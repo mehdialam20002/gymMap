@@ -286,6 +286,107 @@ jobs:
           severity: HIGH,CRITICAL
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # 8 · api-gates — PG-1, PG-2, PG-3, PG-5 and the closed audience-prefix set
+  # ═══════════════════════════════════════════════════════════════════════════
+  api-gates:
+    name: 8 · api-gates
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 10
+    steps:
+      - uses: ./.github/actions/setup-workspace
+
+      - name: Regenerate the contract
+        # No secrets required. openapi:emit fills unset variables with visibly fake
+        # placeholders, so the contract is generatable on a runner that holds nothing —
+        # which is the only way this job can run on every PR from a fork.
+        run: pnpm --filter @gymmap/server openapi:emit
+
+      - run: node packages/config/scripts/api-gates.mjs
+
+      - name: The gates' own fixtures
+        # With zero real endpoints these gates pass on the live document, which is exactly
+        # when one is most likely to be inert. The fixtures prove each bites regardless.
+        run: node --test packages/config/scripts/api-gates.spec.mjs
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 9 · api-absence-assertions — four proofs that an operation does NOT exist
+  # ═══════════════════════════════════════════════════════════════════════════
+  api-absence-assertions:
+    name: 9 · api-absence-assertions
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 10
+    steps:
+      - uses: ./.github/actions/setup-workspace
+      - run: pnpm --filter @gymmap/server openapi:emit
+      - run: node packages/config/scripts/api-absence-assertions.mjs
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 10 · openapi-drift — the committed artefact must match a fresh generation
+  #
+  # NFR-MNT-03. The diff is rendered into the job summary as a MANDATORY review item:
+  # a contract change nobody looked at is a breaking change nobody agreed to.
+  # ═══════════════════════════════════════════════════════════════════════════
+  openapi-drift:
+    name: 10 · openapi-drift
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 10
+    steps:
+      - uses: ./.github/actions/setup-workspace
+      - run: pnpm --filter @gymmap/server openapi:emit
+
+      - name: Compare against the committed artefact
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- openapi.json; then
+            echo 'openapi.json matches the code.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo '### API contract changed — REVIEW REQUIRED'
+            echo ''
+            echo 'The generated document differs from the committed one. That is not'
+            echo 'automatically wrong, but it is never incidental: it changes what every'
+            echo 'client is generated from, and §C3.1 gives breaking changes a six-month'
+            echo 'deprecation obligation.'
+            echo ''
+            echo '```diff'
+            git diff -- openapi.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo '::error::openapi.json is out of date. Run: pnpm --filter @gymmap/server openapi:emit'
+          exit 1
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 14 · contract — request AND response validation against the document
+  # ═══════════════════════════════════════════════════════════════════════════
+  contract:
+    name: 14 · contract
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 15
+    steps:
+      - uses: ./.github/actions/setup-workspace
+      - run: pnpm --filter @gymmap/server openapi:emit
+
+      - name: Validate every route against the contract
+        run: |
+          set -euo pipefail
+          COUNT="$(node packages/config/scripts/count-operations.mjs)"
+          if [ "$COUNT" -eq 0 ]; then
+            # AC-7: explicit, never silent. A zero-route pass and a full pass must not look
+            # identical in a log, or nobody notices the suite quietly stopped covering
+            # anything. The Supertest half arrives with the first endpoint milestone.
+            echo "contract: 0 routes validated — no endpoints exist yet."
+            echo '### contract: **0 routes validated** (no endpoints exist yet)' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "### contract: validating $COUNT route(s)" >> "$GITHUB_STEP_SUMMARY"
+          pnpm --filter @gymmap/server test:contract
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # 26 · gate-summary — THE ONLY CHECK BRANCH PROTECTION NAMES (AC-1)
   # ═══════════════════════════════════════════════════════════════════════════
   gate-summary:
@@ -301,6 +402,10 @@ jobs:
       - typecheck
       - architecture
       - module-structure
+      - api-gates
+      - api-absence-assertions
+      - openapi-drift
+      - contract
       - scan-deps
       - scan-secrets
       - pipeline-integrity

@@ -9,7 +9,7 @@
 
 import 'reflect-metadata';
 
-import { Logger } from '@nestjs/common';
+import { Logger, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module.js';
@@ -25,6 +25,17 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   const config = app.get<AppConfig>(APP_CONFIG);
+
+  // M-008 · URI versioning. `/v1/...` on every route except the probes.
+  //
+  // URI rather than header or media-type versioning because §C3.1 fixes it: "URL-versioned;
+  // breaking changes require a new version with >= 6 months' deprecation". A URL is also the
+  // only form that survives a curl in a support ticket, a CDN cache key and a log line.
+  //
+  // `/healthz` and `/readyz` opt out with VERSION_NEUTRAL (AC-5). A load balancer cannot be
+  // asked to negotiate an API version, and a probe that 404s after a version bump takes the
+  // whole deployment out while every instance is healthy.
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
 
   app.useGlobalFilters(new DomainExceptionFilter());
 

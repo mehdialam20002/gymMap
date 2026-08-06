@@ -4,15 +4,20 @@
  * Every route declares the permission it needs, or is explicitly `@Public()`. There is no third
  * option, and `api-gates.mjs` fails the build on one.
  *
- * Why a decorator and not a guard argument: the reflection pass has to be able to answer
- * "what does this endpoint require" WITHOUT running the application. That is what makes the
- * B3.2 matrix testable as data (M-023: 43 capabilities × 12 roles = 516 generated cell tests)
- * and what lets CI prove an endpoint is gated before anyone writes an integration test for it.
+ * The decorator does TWO things, and both are necessary:
+ *
+ *   SetMetadata   → what `PermissionsGuard` reads at RUNTIME (M-023)
+ *   ApiExtension  → what lands in `openapi.json`, which is what CI checks
+ *
+ * Only the first would leave the gate blind: it reads the generated document rather than the
+ * source, because the document is what the application actually exposes and what clients are
+ * generated from. Only the second would document a guard that does not exist.
  *
  * §B3.2 is explicit that hiding a menu item is NOT an authorisation control. The server decides.
  */
 
-import { SetMetadata } from '@nestjs/common';
+import { SetMetadata, applyDecorators } from '@nestjs/common';
+import { ApiExtension } from '@nestjs/swagger';
 
 export const REQUIRED_PERMISSION = 'gymmap:required-permission';
 
@@ -25,5 +30,8 @@ export const REQUIRED_PERMISSION = 'gymmap:required-permission';
  * them match nothing in the matrix, and the endpoints they guard are open to anyone whose role
  * happens to carry a wildcard.
  */
-export const RequiredPermission = (permission: string): MethodDecorator =>
-  SetMetadata(REQUIRED_PERMISSION, permission);
+export const RequiredPermission = (permission: string) =>
+  applyDecorators(
+    SetMetadata(REQUIRED_PERMISSION, permission),
+    ApiExtension('x-gymmap-permission', permission),
+  );

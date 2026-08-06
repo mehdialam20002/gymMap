@@ -18,11 +18,12 @@
     "test:e2e": "echo \"no-op\"",
     "test:a11y": "echo \"no-op\"",
     "size": "echo \"no-op\"",
-    "openapi:check": "echo \"no-op\"",
+    "openapi:check": "node ../../packages/config/scripts/api-gates.mjs",
     "start": "node dist/main.js",
     "start:worker": "node dist/worker.js",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "node --experimental-strip-types prisma/seed/index.ts"
+    "db:seed": "tsc -p tsconfig.build.json && node dist/../prisma/seed/index.js",
+    "openapi:emit": "tsc -p tsconfig.build.json && node dist/common/openapi/emit.js"
   },
   "devDependencies": {
     "@gymmap/config": "workspace:*",

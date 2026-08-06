@@ -17,12 +17,22 @@
  * makes it a free reconnaissance endpoint if it echoes the stack.
  */
 
-import { Controller, Get, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Res, VERSION_NEUTRAL } from '@nestjs/common';
 import type { Response } from 'express';
 
+import { Public } from '../decorators/public.decorator.js';
+import { RateLimit } from '../decorators/rate-limit.decorator.js';
 import { ReadinessService, type ReadinessReport } from './readiness.service.js';
 
-@Controller()
+/**
+ * M-008 AC-5 · The probes are UNVERSIONED, and that is load-bearing.
+ *
+ * `main.ts` enables URI versioning with `defaultVersion: '1'`, which would otherwise move these
+ * to `/v1/healthz`. A load balancer cannot be asked to negotiate an API version — and a probe
+ * that starts returning 404 after a version bump takes the entire deployment out of rotation
+ * while every instance behind it is perfectly healthy.
+ */
+@Controller({ version: VERSION_NEUTRAL })
 export class HealthController {
   constructor(private readonly readiness: ReadinessService) {}
 
@@ -32,6 +42,8 @@ export class HealthController {
    * The body is a constant. A timestamp would be harmless but invites a client to depend on
    * clock skew, and a version string tells an attacker which CVEs to try.
    */
+  @Public()
+  @RateLimit('RL-READ')
   @Get('healthz')
   @HttpCode(HttpStatus.OK)
   health(): { status: 'ok' } {
@@ -45,6 +57,8 @@ export class HealthController {
    * 503 needs to know whether it is Postgres or Redis, and neither name is a secret. No error
    * text, no host, no port — those are in the log against the correlation id.
    */
+  @Public()
+  @RateLimit('RL-READ')
   @Get('readyz')
   async ready(@Res({ passthrough: true }) res: Response): Promise<ReadinessReport> {
     const report = await this.readiness.check();

@@ -1,0 +1,417 @@
+/**
+ * M-008 · `api-gates` and `api-absence-assertions` — fixture documents, each failing exactly
+ * one gate with its own PG- or invariant id.
+ *
+ * With zero real endpoints, both scripts currently pass on the live document. That is exactly
+ * when a gate is most likely to be inert and least likely to be noticed: it goes green on the
+ * day it is written and stays green for six sprints, and nobody discovers it never worked until
+ * the first unguarded endpoint ships. These fixtures prove each gate bites BEFORE it has
+ * anything real to bite on.
+ */
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { runApiGates, MODULES, FORBIDDEN_PREFIXES, UNVERSIONED } from './api-gates.mjs';
+import { runAbsenceAssertions } from './api-absence-assertions.mjs';
+
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+
+const ERROR_CODES = new Set(['VALIDATION_FAILED', 'PERMISSION_DENIED', 'RESOURCE_NOT_FOUND']);
+const RATE_LIMITS = new Set(['RL-READ', 'RL-WRITE', 'RL-PAYMENT', 'RL-ADMIN']);
+const ALLOWLIST = new Set(['GET /healthz', 'GET /readyz']);
+
+/** A minimal document with one operation, so each test breaks exactly one thing. */
+function doc(path, method, extensions = {}, extra = {}) {
+  return {
+    openapi: '3.0.0',
+    paths: { [path]: { [method]: { summary: 'x', ...extensions, ...extra } } },
+  };
+}
+
+const gates = (document) =>
+  runApiGates({
+    document,
+    publicAllowlist: ALLOWLIST,
+    errorCodes: ERROR_CODES,
+    rateLimitClasses: RATE_LIMITS,
+  });
+
+const codes = (problems) => problems.map((p) => p.gate);
+
+const GUARDED = {
+  'x-gymmap-permission': 'ordering.order.create',
+  'x-gymmap-rate-limit': 'RL-WRITE',
+};
+
+// ---------------------------------------------------------------------------
+// The baseline must be clean, or every assertion below proves nothing.
+// ---------------------------------------------------------------------------
+
+test('a well-formed operation passes every gate', () => {
+  const { problems } = gates(doc('/v1/tenant/plans', 'post', GUARDED));
+  assert.deepEqual(problems, []);
+});
+
+test('the two probes as they actually exist pass', () => {
+  const { problems } = gates({
+    openapi: '3.0.0',
+    paths: {
+      '/healthz': { get: { 'x-gymmap-public': true, 'x-gymmap-rate-limit': 'RL-READ' } },
+      '/readyz': { get: { 'x-gymmap-public': true, 'x-gymmap-rate-limit': 'RL-READ' } },
+    },
+  });
+  assert.deepEqual(problems, []);
+});
+
+// ---------------------------------------------------------------------------
+// PG-1 — every route declares a permission or is a reviewed public exemption.
+// ---------------------------------------------------------------------------
+
+test('PG-1 · a route with no permission and no @Public() fails', () => {
+  const { problems } = gates(
+    doc('/v1/tenant/plans', 'post', { 'x-gymmap-rate-limit': 'RL-WRITE' }),
+  );
+  assert.deepEqual(codes(problems), ['PG-1']);
+  assert.match(problems[0].message, /FR-RBAC-01/);
+  assert.match(problems[0].message, /whoever holds any valid token/);
+});
+
+test('PG-1 · @Public() without an allowlist row fails', () => {
+  const { problems } = gates(
+    doc('/v1/gyms', 'get', { 'x-gymmap-public': true, 'x-gymmap-rate-limit': 'RL-READ' }),
+  );
+  assert.deepEqual(codes(problems), ['PG-1']);
+  assert.match(problems[0].message, /public-allowlist/);
+  assert.match(problems[0].message, /five characters/, 'must say why two mechanisms exist');
+});
+
+test('PG-1 · @Public() AND permission-guarded fails — the ambiguity is the bug', () => {
+  const { problems } = gates(
+    doc('/v1/tenant/plans', 'post', { ...GUARDED, 'x-gymmap-public': true }),
+  );
+  assert.ok(codes(problems).includes('PG-1'));
+  assert.match(
+    problems.find((p) => p.gate === 'PG-1').message,
+    /cannot be inferred/,
+    'must explain that the guard and the contract would disagree',
+  );
+});
+
+// ---------------------------------------------------------------------------
+// PG-3 — permission grammar.
+// ---------------------------------------------------------------------------
+
+test('PG-3 · a two-segment permission fails', () => {
+  const { problems } = gates(
+    doc('/v1/tenant/plans', 'post', { ...GUARDED, 'x-gymmap-permission': 'plan.update' }),
+  );
+  assert.deepEqual(codes(problems), ['PG-3']);
+  assert.match(problems[0].message, /<module>\.<resource>\.<action>/);
+});
+
+test('PG-3 · the colon-and-scope form from §12.2.1 is rejected', () => {
+  // `order:create.self` was the pre-AZ1 grammar. Self-scope is the /me prefix and the ownership
+  // guard, not a segment in the string.
+  const { problems } = gates(
+    doc('/v1/orders', 'post', {
+      'x-gymmap-permission': 'order:create.self',
+      'x-gymmap-rate-limit': 'RL-PAYMENT',
+      'x-gymmap-idempotent': 'required',
+    }),
+  );
+  assert.deepEqual(codes(problems), ['PG-3']);
+});
+
+test('PG-3 · a first segment that is not one of the 23 modules fails', () => {
+  const { problems } = gates(
+    doc('/v1/tenant/plans', 'post', { ...GUARDED, 'x-gymmap-permission': 'gym.plan.update' }),
+  );
+  assert.deepEqual(codes(problems), ['PG-3']);
+  assert.match(problems[0].message, /"gym"/);
+  assert.match(problems[0].message, /23 modules/);
+});
+
+test('PG-3 · every one of the 23 modules is accepted as a first segment', () => {
+  for (const module of MODULES) {
+    const { problems } = gates(
+      doc('/v1/tenant/thing', 'post', {
+        ...GUARDED,
+        'x-gymmap-permission': `${module}.thing.update`,
+      }),
+    );
+    assert.deepEqual(problems, [], `module "${module}" was rejected`);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// PG-2 — idempotency where §14.2.1 says REQ.
+// ---------------------------------------------------------------------------
+
+const MONEY_ROUTES = [
+  ['/v1/orders', 'post'],
+  ['/v1/orders/abc/payment-intent', 'post'],
+  ['/v1/me/memberships/abc/freeze', 'post'],
+  ['/v1/me/memberships/abc/renew', 'post'],
+  ['/v1/tenant/refunds', 'post'],
+  ['/v1/checkin/scan', 'post'],
+  ['/v1/webhooks/payments/razorpay', 'post'],
+  ['/v1/tenant/exports', 'post'],
+  ['/v1/orders/abc/coupon', 'post'],
+];
+
+for (const [path, method] of MONEY_ROUTES) {
+  test(`PG-2 · ${method.toUpperCase()} ${path} without @Idempotent() fails`, () => {
+    const { problems } = gates(doc(path, method, GUARDED));
+    assert.ok(
+      codes(problems).includes('PG-2'),
+      `${path} affects money, membership state or attendance and must require an Idempotency-Key`,
+    );
+    assert.match(problems.find((p) => p.gate === 'PG-2').message, /charges twice|§14\.2\.1/);
+  });
+}
+
+test('PG-2 · the same route WITH @Idempotent() passes', () => {
+  const { problems } = gates(
+    doc('/v1/orders', 'post', { ...GUARDED, 'x-gymmap-idempotent': 'required' }),
+  );
+  assert.deepEqual(problems, []);
+});
+
+test('PG-2 · a GET is never asked for idempotency', () => {
+  const { problems } = gates(
+    doc('/v1/orders', 'get', {
+      'x-gymmap-permission': 'ordering.order.read',
+      'x-gymmap-rate-limit': 'RL-READ',
+    }),
+  );
+  assert.deepEqual(problems, []);
+});
+
+test('PG-2 · a non-money mutation is not asked for idempotency', () => {
+  const { problems } = gates(doc('/v1/tenant/gym/description', 'patch', GUARDED));
+  assert.deepEqual(problems, []);
+});
+
+// ---------------------------------------------------------------------------
+// PG-5 — rate-limit class and registered error codes.
+// ---------------------------------------------------------------------------
+
+test('PG-5 · a route with no rate-limit class fails', () => {
+  const { problems } = gates(
+    doc('/v1/tenant/plans', 'post', { 'x-gymmap-permission': 'plans.plan.update' }),
+  );
+  assert.deepEqual(codes(problems), ['PG-5']);
+  assert.match(problems[0].message, /unmetered/);
+});
+
+test('PG-5 · a rate-limit class outside the closed set fails', () => {
+  const { problems } = gates(
+    doc('/v1/tenant/plans', 'post', { ...GUARDED, 'x-gymmap-rate-limit': 'RL-WHATEVER' }),
+  );
+  assert.deepEqual(codes(problems), ['PG-5']);
+});
+
+test('PG-5 · an unregistered error code fails, and says what it costs the user', () => {
+  const { problems } = gates(
+    doc('/v1/tenant/plans', 'post', {
+      ...GUARDED,
+      'x-gymmap-error-codes': ['VALIDATION_FAILED', 'PLAN_IS_HAUNTED'],
+    }),
+  );
+  assert.deepEqual(codes(problems), ['PG-5']);
+  assert.match(problems[0].message, /PLAN_IS_HAUNTED/);
+  assert.match(problems[0].message, /§13\.2 registry/);
+});
+
+test('PG-5 · registered error codes pass', () => {
+  const { problems } = gates(
+    doc('/v1/tenant/plans', 'post', {
+      ...GUARDED,
+      'x-gymmap-error-codes': ['VALIDATION_FAILED', 'PERMISSION_DENIED'],
+    }),
+  );
+  assert.deepEqual(problems, []);
+});
+
+// ---------------------------------------------------------------------------
+// AC-5 — versioning and the five closed audience prefixes.
+// ---------------------------------------------------------------------------
+
+test('AC-5 · an unversioned business route fails', () => {
+  const { problems } = gates(
+    doc('/gyms', 'get', {
+      'x-gymmap-permission': 'discovery.gym.read',
+      'x-gymmap-rate-limit': 'RL-READ',
+    }),
+  );
+  assert.deepEqual(codes(problems), ['AC-5']);
+  assert.match(problems[0].message, /deprecated/);
+});
+
+test('AC-5 · the two probes are allowed to be unversioned', () => {
+  for (const probe of UNVERSIONED) {
+    const { problems } = gates(
+      doc(probe, 'get', { 'x-gymmap-public': true, 'x-gymmap-rate-limit': 'RL-READ' }),
+    );
+    assert.deepEqual(
+      problems.filter((p) => p.gate === 'AC-5'),
+      [],
+      `${probe} must be exempt`,
+    );
+  }
+});
+
+for (const forbidden of FORBIDDEN_PREFIXES) {
+  test(`AC-5 · the forbidden prefix ${forbidden} fails`, () => {
+    const { problems } = gates(
+      doc(`/v1${forbidden}/thing`, 'get', {
+        'x-gymmap-permission': 'admin.thing.read',
+        'x-gymmap-rate-limit': 'RL-READ',
+      }),
+    );
+    assert.ok(codes(problems).includes('AC-5'));
+    assert.match(
+      problems.find((p) => p.gate === 'AC-5').message,
+      /names a CLIENT, not an AUDIENCE/,
+    );
+  });
+}
+
+test('AC-5 · the four permitted audience prefixes pass', () => {
+  for (const prefix of ['/me', '/tenant', '/admin', '/webhooks']) {
+    const { problems } = gates(
+      doc(`/v1${prefix}/thing`, 'get', {
+        'x-gymmap-permission': 'admin.thing.read',
+        'x-gymmap-rate-limit': 'RL-READ',
+      }),
+    );
+    assert.deepEqual(problems, [], `prefix ${prefix} must be permitted`);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// The four absence assertions.
+// ---------------------------------------------------------------------------
+
+test('I5 · a client-driven activation route fails (BR-PAY-02)', () => {
+  const { problems } = runAbsenceAssertions(doc('/v1/me/memberships/abc/activate', 'post'));
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].assertion, 'no-client-signal-activation');
+  assert.match(problems[0].message, /forgeable/);
+});
+
+test('I5 · an operation DOCUMENTED as activating a membership fails even with a safe path', () => {
+  const { problems } = runAbsenceAssertions(
+    doc('/v1/orders/abc/done', 'post', { summary: 'Activates the membership after payment' }),
+  );
+  assert.ok(problems.some((p) => p.assertion === 'no-client-signal-activation'));
+});
+
+test('I5 · the webhook route is exempt — it IS the activation path', () => {
+  const { problems } = runAbsenceAssertions(
+    doc('/v1/webhooks/payments/razorpay', 'post', {
+      summary: 'Activates the membership on a verified capture',
+    }),
+  );
+  assert.deepEqual(problems, []);
+});
+
+test('I2 · a monetary field in a request body fails (BR-PAY-04)', () => {
+  const document = {
+    openapi: '3.0.0',
+    paths: {
+      '/v1/orders': {
+        post: {
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: { type: 'object', properties: { planId: {}, amountMinor: {} } },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+  const { problems } = runAbsenceAssertions(document);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].assertion, 'no-monetary-request-field');
+  assert.match(problems[0].message, /client-CHOSEN/);
+});
+
+test('I2 · a shared component schema with a price is caught too', () => {
+  // Checking only inline schemas would miss every operation that references the shared DTO.
+  const document = {
+    openapi: '3.0.0',
+    paths: {},
+    components: {
+      schemas: { CreateOrderRequest: { type: 'object', properties: { price: {} } } },
+    },
+  };
+  const { problems } = runAbsenceAssertions(document);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].where, /CreateOrderRequest/);
+});
+
+test('I1 · a tenant id header fails (BR-TEN-01)', () => {
+  const document = doc('/v1/tenant/plans', 'get', {
+    parameters: [{ name: 'X-Tenant-Id', in: 'header' }],
+  });
+  const { problems } = runAbsenceAssertions(document);
+  assert.equal(problems[0].assertion, 'no-client-tenant-id');
+  assert.match(problems[0].message, /someone ELSE'S tenant/);
+});
+
+test('I1 · a tenant id in the path fails', () => {
+  const { problems } = runAbsenceAssertions(doc('/v1/tenant/{tenantId}/plans', 'get'));
+  assert.ok(problems.some((p) => p.assertion === 'no-client-tenant-id'));
+});
+
+test('I1 · a tenant id in the request body fails', () => {
+  const document = {
+    openapi: '3.0.0',
+    paths: {
+      '/v1/tenant/plans': {
+        post: {
+          requestBody: {
+            content: {
+              'application/json': { schema: { type: 'object', properties: { tenant_id: {} } } },
+            },
+          },
+        },
+      },
+    },
+  };
+  const { problems } = runAbsenceAssertions(document);
+  assert.ok(problems.some((p) => p.assertion === 'no-client-tenant-id'));
+});
+
+test('I4 · deciding an application outside /admin fails (BR-GYM-03)', () => {
+  const { problems } = runAbsenceAssertions(doc('/v1/tenant/applications/abc/approve', 'post'));
+  assert.equal(problems[0].assertion, 'no-gym-edits-review');
+  assert.match(problems[0].message, /approve their own listing/);
+});
+
+test('I4 · the same decision under /admin is correct and passes', () => {
+  const { problems } = runAbsenceAssertions(doc('/v1/admin/applications/abc/approve', 'post'));
+  assert.deepEqual(problems, []);
+});
+
+// ---------------------------------------------------------------------------
+// The live document.
+// ---------------------------------------------------------------------------
+
+test('the committed openapi.json passes both gates', () => {
+  const document = JSON.parse(readFileSync(resolve(REPO_ROOT, 'openapi.json'), 'utf8'));
+  assert.deepEqual(gates(document).problems, []);
+  assert.deepEqual(runAbsenceAssertions(document).problems, []);
+});
+
+test('the committed openapi.json has the probes unversioned (AC-5)', () => {
+  const document = JSON.parse(readFileSync(resolve(REPO_ROOT, 'openapi.json'), 'utf8'));
+  assert.deepEqual(Object.keys(document.paths).sort(), ['/healthz', '/readyz']);
+});
