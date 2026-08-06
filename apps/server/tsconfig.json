@@ -2,6 +2,12 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "//": "M-004 · the CHECKED graph — src and test.",
   "extends": "@gymmap/config/tsconfig/nest",
-  "compilerOptions": { "outDir": "dist", "rootDir": ".", "tsBuildInfoFile": "dist/.tsbuildinfo" },
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
   "include": ["src/**/*.ts", "test/**/*.ts"]
 }

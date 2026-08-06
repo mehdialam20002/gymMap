@@ -496,8 +496,8 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-002 | `packages/config` — custom lint rules, architecture boundaries | ✅ `DONE` *(partial, see below)* | `f02a6ce` | 42/42 tests · depcruise 0 errors |
 | M-003 | `packages/types` — branded ids, Money, error registry | ✅ `DONE` | `9e8bfa5` | 29/29 tests |
 | M-004 | NestJS bootstrap, typed config, error envelope, redacted logging | ✅ `DONE` | `78ebf18` | 58/58 tests · booted and curled |
-| M-005 | Docker Compose: Postgres 16 + PostGIS, Redis 7, MinIO, Mailpit | ⬜ `NEXT` | — | — |
-| M-006 | Prisma init and `0_init` — extensions, domains, enums, four roles | ⬜ `TODO` | — | — |
+| M-005 | Docker Compose: Postgres 16 + PostGIS, Redis 7, MinIO, Mailpit | 🟡 `DONE (unverified)` | — | 93/93 file-level tests · **AC-1 not executed: Docker not installed** |
+| M-006 | Prisma init and `0_init` — extensions, domains, enums, four roles | ⬜ `NEXT` | — | — |
 | M-007…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
 
 **M-002 deferrals**, made under the owner's *"do what is necessary, otherwise move on"* steer.

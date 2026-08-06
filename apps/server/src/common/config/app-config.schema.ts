@@ -56,6 +56,20 @@ export const appConfigSchema = z
       .or(z.literal(''))
       .default(''),
     REDIS_URL: z.string().url().startsWith('redis://'),
+    /**
+     * M-005 AC-2 · Three logical Redis databases, matching the Terraform module's split.
+     *
+     * They are separate so that a `FLUSHDB` on the cache — a routine thing to do while
+     * debugging — cannot delete a queue. An evicted or flushed BullMQ key is an accepted job
+     * that will never run, and nothing reports it: the API returned 202, the user was told it
+     * worked, and the work simply never happens.
+     *
+     * The compose file caps Redis at exactly 3 databases, so an index above 2 fails loudly
+     * rather than creating a fourth namespace that Terraform never provisioned.
+     */
+    REDIS_DB_CACHE: z.coerce.number().int().min(0).max(2).default(0),
+    REDIS_DB_QUEUE: z.coerce.number().int().min(0).max(2).default(1),
+    REDIS_DB_RATELIMIT: z.coerce.number().int().min(0).max(2).default(2),
 
     // --- object storage ---------------------------------------------------
     S3_ENDPOINT: z.string().url(),
@@ -119,6 +133,22 @@ export const appConfigSchema = z
   .superRefine((config, ctx) => {
     // Cross-field rules. These are the ones a per-variable schema cannot express, and they are
     // exactly the combinations that boot fine and fail in production.
+
+    // M-005 AC-2 — the three Redis databases must be DISTINCT.
+    // Sharing an index silently defeats the whole separation: the cache and the queue would
+    // live in one keyspace, and the first FLUSHDB while debugging would delete accepted jobs.
+    const redisDbs = [config.REDIS_DB_CACHE, config.REDIS_DB_QUEUE, config.REDIS_DB_RATELIMIT];
+    if (new Set(redisDbs).size !== redisDbs.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['REDIS_DB_QUEUE'],
+        message:
+          `REDIS_DB_CACHE, REDIS_DB_QUEUE and REDIS_DB_RATELIMIT must all differ (got ` +
+          `${redisDbs.join(', ')}). Sharing an index puts the cache and the BullMQ queue in one ` +
+          `keyspace, so a routine FLUSHDB deletes accepted jobs that will never run — and ` +
+          `nothing reports it, because the API already returned 202.`,
+      });
+    }
 
     if (config.PAYMENT_PROVIDER === 'razorpay') {
       for (const key of [

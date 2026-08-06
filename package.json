@@ -28,10 +28,14 @@
     "format:check": "prettier --check .",
     "infra:up": "docker compose -f infra/compose/compose.yaml up -d",
     "infra:down": "docker compose -f infra/compose/compose.yaml down",
-    "infra:reset": "docker compose -f infra/compose/compose.yaml down -v",
+    "infra:reset": "docker compose -f infra/compose/compose.yaml down -v && docker compose -f infra/compose/compose.yaml up -d",
     "infra:logs": "docker compose -f infra/compose/compose.yaml logs -f",
     "infra:ps": "docker compose -f infra/compose/compose.yaml ps",
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev:up": "pnpm infra:up",
+    "dev:down": "pnpm infra:down",
+    "dev:reset": "pnpm infra:reset",
+    "infra:verify": "node infra/compose/verify.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",

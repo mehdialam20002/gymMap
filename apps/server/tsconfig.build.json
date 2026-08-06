@@ -2,6 +2,11 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "//": "M-004 · the EMITTED graph. `test/` is typechecked by tsconfig.json but never reaches dist.",
   "extends": "./tsconfig.json",
-  "compilerOptions": { "rootDir": "src" },
-  "include": ["src/**/*.ts"]
+  "compilerOptions": {
+    "rootDir": "src",
+    "noEmit": false,
+    "allowImportingTsExtensions": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["test/**/*"]
 }
