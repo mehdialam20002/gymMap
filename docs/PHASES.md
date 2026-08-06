@@ -32,32 +32,28 @@
 | 2 | Engineering Documentation | `/docs/engineering/` | 16 | **`DONE`** | ✅ |
 | 3 | Product Backlog (Epics / Stories / Tasks) | `/docs/backlog/` | 21 | **`DONE`** | ✅ |
 | 4 | Database Design | `/docs/database/` | 10 | **`DONE`** | ✅ |
-| 5 | API Design | `/docs/apis/` | 10 | `IN PROGRESS` — 6/10 | 🟡 |
-| 6 | UI Documentation | `/docs/ui/` | 8 | `NOT STARTED` | ⬜ |
-| 7 | Implementation Roadmap (100+ milestones) | `/docs/roadmap/` | 5+ | `NOT STARTED` | ⬜ |
+| 5 | API Design | `/docs/apis/` | 10 | **`DONE`** | ✅ |
+| 6 | UI Documentation | `/docs/ui/` | 8 | **`DONE`** | ✅ |
+| 7 | Implementation Roadmap (100+ milestones) | `/docs/roadmap/` | 5 | **`DONE`** | ✅ |
 | G | Governance & Living Documents | `/docs/` | 5 | **`DONE`** | ✅ |
-| 8 | Implementation (code) | `/apps/` · `/packages/` | — | `BLOCKED` | 🔒 |
+| 8 | Implementation (code) | `/apps/` · `/packages/` | 120 milestones | **`IN PROGRESS`** | 🔓 |
 
-### Documentation produced so far
+### Documentation produced — final totals
 
-| File | Lines | Phase |
-| :--- | ---: | :-: |
-| `MASTER_PRD.md` | 4,197 | 1 |
-| `MASTER_PRD_CHECKLIST.md` | 3,095 | 1 |
-| `PROJECT_CONSTITUTION.md` | 4,780 | 0 |
-| `engineering/phase-0/ENGINEERING_PLAN.md` | 3,678 | 0 |
-| `engineering/STACK_ADDITIONS.md` | 204 | 0 |
-| `DECISION_LOG.md` | 5,252 | G |
-| `TECH_DEBT.md` | 812 | G |
-| `FEATURE_FLAGS.md` | 864 | G |
-| `CHANGELOG.md` | 429 | G |
-| `KNOWN_LIMITATIONS.md` | 331 | G |
-| `PHASES.md` | this file | — |
-| `README.md` | 109 | — |
-| **Total** | **≈ 23,750** | |
+| Phase | Location | Files | Lines |
+| :-: | :--- | :-: | ---: |
+| 0 · 1 · G | `/docs/` | 12 | 20,628 |
+| 2 | `/docs/engineering/` | 17 | 32,989 |
+| 3 | `/docs/backlog/` | 21 | 15,579 |
+| 4 | `/docs/database/` | 10 | 17,233 |
+| 5 | `/docs/apis/` | 10 | 21,730 |
+| 6 | `/docs/ui/` | 8 | 14,381 |
+| 7 | `/docs/roadmap/` | 5 | 9,969 |
+| — | misc (`setup/`, `prompts/`) | 2 | 6,749 |
+| **Total** | | **85** | **139,258** |
 
-> Phase 8 is **locked** by design. It unlocks only when Phases 0–7 and G are all `DONE`
-> and the project owner records explicit approval in this file (see *Phase 8 Unlock Record*).
+> **Phase 8 unlocked 2026-08-06** by the project owner, conditional on Phase 7 closing — which it
+> has, with all 120 milestones defined and no gaps in the M-001 → M-120 sequence.
 
 ---
 
@@ -298,7 +294,7 @@ matching the established section numbering, rule-id conventions (`IX-R*`, `BF*`,
 
 **Goal.** Freeze the API contract before implementation.
 **Depends on.** Phases 1, 2, 4.
-**Status.** `IN PROGRESS` — **6 of 10 complete, 13,821 lines so far.**
+**Status.** **`DONE`** — closed 2026-08-06. **21,730 lines across 10 documents.**
 
 ### Deliverables — `/docs/apis/`
 
@@ -309,11 +305,35 @@ matching the established section numbering, rule-id conventions (`IX-R*`, `BF*`,
 - [x] `Gym.md` — `API-TEN` management surface. **2,177 lines.**
 - [x] `Membership.md` — `API-ORD` + `API-MEMB` + `API-CHK`. **2,176 lines.**
 - [x] `Payments.md` — `API-PAY` + the inbound Razorpay webhook. **1,967 lines.**
-- [ ] `Search.md` — partial (167 lines: document control, scope boundary, six findings against the
-      source set). Body outstanding.
-- [ ] `Reviews.md`
-- [ ] `Notifications.md`
-- [ ] `Admin.md`
+- [x] `Notifications.md` — `API-NOTF` + `API-SUP`, incl. the TRAI DLT approval state machine. **3,351 lines.**
+- [x] `Admin.md` — `API-ADM` + tenant financial reads. **3,281 lines.**
+- [x] `Search.md` — `/search/*`, ranking, zero-result guidance. **893 lines.**
+- [x] `Reviews.md` — `API-REV` + moderation semantics. **551 lines.**
+
+### Acceptance Gate
+
+- [x] Every endpoint declares a required permission from the `B3.2` matrix (`FR-RBAC-01`).
+- [x] Every money- or state-affecting endpoint declares idempotency behaviour (`BR-PAY-03`).
+- [x] Every endpoint lists its error codes against the shared registry in `README.md` §9.
+- [x] Zero controller or route code written.
+- [x] All 10 documents terminate explicitly; **zero build markers remain**.
+- [x] India propagated: Razorpay Route webhook contract, GST CGST/SGST, April–March FY on invoice
+      numbering, `Asia/Kolkata` +05:30 handling, TRAI DLT template approval, INR paise throughout.
+
+### Findings raised against upstream documents
+
+Phase 5 agents audited their inputs before writing. Two findings are material:
+
+| Finding | Severity | Status |
+| :--- | :--- | :--- |
+| **`BR-DAT-06`'s log-redaction list contains no location field.** It redacts `token`, `password`, `phone`, `aadhaar`, `pan` — but not `lat`, `lng` or `pincode`. A default request-logging interceptor would write `GET /search/gyms?lat=12.934512&lng=77.610134` into the log aggregator. Six decimal places locates a person to ~0.1 m. This defeats the `C6` precision-reduction requirement entirely and would have shipped silently. | **Privacy-blocking** | `OI-S1` — requires an edit to `BusinessRules.md`. Interim control is access-log path-only for `/search/*`, which is one interceptor setting away from being switched off. |
+| **`RL-SEARCH` budget is too tight.** 60 req/min per session covers search *and* autocomplete together. A nine-character locality query emits 3–5 suggest calls; four searches with refinements is ordinary. A legitimate fast user gets rate-limited. | Medium | `OI-S2` — proposed `RL-SUGGEST` split at 120/min. |
+
+Four further findings are documentation defects with no contract consequence: the search projection
+table is named `search_documents` in `Schema.md` and `gym_search_projection` in `Indexes.md` §6.2;
+`Schema.md` §13.4's column list is a strict subset of what `Scalability.md` §6.3 specifies; a
+dangling cross-reference to a non-existent `Indexes.md` §6.5; and `API_Catalog.md` §3.3 omits
+`FR-SRCH-08` and `FR-SRCH-15` from the `/search/gyms` row.
 
 ### Delivery note — sustained Anthropic capacity outage
 
@@ -350,25 +370,42 @@ Response · Errors · Business Rules · Rate limiting · Future Compatibility.
 
 **Goal.** Specify all three surfaces screen by screen, state by state.
 **Depends on.** Phases 1, 2, 5.
-**Status.** `NOT STARTED`
+**Status.** **`DONE`** — closed 2026-08-06. **14,381 lines across 8 documents.**
 
 ### Deliverables — `/docs/ui/`
 
-- [ ] `CustomerApp.md`
-- [ ] `GymDashboard.md`
-- [ ] `AdminDashboard.md`
-- [ ] `Navigation.md`
-- [ ] `Components.md`
-- [ ] `DesignSystem.md`
-- [ ] `Accessibility.md`
-- [ ] `ResponsiveBehavior.md`
+| ✔ | Document | Lines |
+| :-: | :--- | ---: |
+| [x] | `GymDashboard.md` — 22 screens | 2,833 |
+| [x] | `CustomerApp.md` — 18 screens | 2,142 |
+| [x] | `Components.md` — shared inventory in `packages/ui` | 1,946 |
+| [x] | `AdminDashboard.md` — 15 screens | 1,854 |
+| [x] | `DesignSystem.md` — tokens, colour, type, density | 1,707 |
+| [x] | `Navigation.md` — IA, guards, URL state, tenant switching | 1,492 |
+| [x] | `ResponsiveBehavior.md` — breakpoints, budgets, 55-screen matrix | 1,469 |
+| [x] | `Accessibility.md` — WCAG 2.1 AA, testing, risk register | 938 |
 
 ### Acceptance Gate
 
-- [ ] All 55 `SCR-` screens specified with loading / empty / error / permission-denied states.
-- [ ] Accessibility targets stated per surface (WCAG 2.1 AA on `web` and check-in desk).
-- [ ] Component inventory maps to shadcn/ui primitives and shared `packages/ui`.
-- [ ] Zero component code written.
+- [x] All 55 `SCR-` screens specified with loading / empty / error / permission-denied states.
+- [x] Accessibility targets stated per surface (WCAG 2.1 AA on `web` **and** the check-in desk).
+- [x] Component inventory maps to shadcn/ui primitives and shared `packages/ui`.
+- [x] Zero component code written; every fenced block labelled *illustrative — not committed code*.
+- [x] All 8 documents terminate explicitly; zero markers remain.
+- [x] India propagated: lakh-crore money grouping, `+91` phone input, 6-digit PIN, `Asia/Kolkata`,
+      Devanagari type-metric considerations for `NFR-USE-08`.
+
+### Notable decisions recorded in this phase
+
+| Decision | Where |
+| :--- | :--- |
+| **The check-in desk is held to AA, not A**, despite being internal. Sameer performs the action 200×/day — a failure there is a defect hit every four minutes for a whole shift, not a rare edge case. The counter-argument is recorded so it need not be re-litigated. | `Accessibility.md` §13.1 |
+| **Allow/deny uses three redundant channels** — colour, icon *shape* (circle vs octagon), and text. A greyscale perceptual-diff CI gate fails any change that leaves hue as the only differentiator. | `Accessibility.md` §5.2 |
+| **`DestructiveConfirmDialog` takes a required consequence string** and refuses to render generic copy, making `NFR-USE-06` structural rather than a review checklist item. | `Components.md` |
+| **Filter changes `replace` history; mobile overlays `push`.** Back must undo the last *perceived* navigation, not the last route change. | `Navigation.md` §9.2 |
+| **A suspended gym returns `200` + informational page, not `410`.** `410` asserts permanence and would de-index a URL that `BR-TEN-05` contemplates reinstating. | `Navigation.md` §12.3 |
+| **Three `dash` screens break the 768 px floor** — Home, Check-in Desk, Member 360 — because an owner checks Home from bed and looks a member up mid-conversation. The other 19 are deskwork. | `ResponsiveBehavior.md` §11.2 |
+| **`SCR-WEB-009` is the one screen that is best at 320 px.** The QR caps at 420 px because past that the scanner's focus distance, not code size, is the limit. | `ResponsiveBehavior.md` §11.4 |
 
 ---
 
@@ -453,10 +490,24 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 
 | Field | Value |
 | :--- | :--- |
-| Unlocked | ⬜ No |
-| Approved by | — |
-| Date | — |
-| Approved scope | — |
+| Unlocked | ✅ **Yes** — conditional on Phase 7 closing |
+| Approved by | Project owner |
+| Date | 2026-08-06 |
+| Approved scope | Implementation per `/docs/roadmap/`, beginning at **M-001** and proceeding in ascending milestone order |
+| Condition | Phase 7 must be `DONE` and verified before the first code commit |
+
+**Standing constraints carried into Phase 8**
+
+| # | Constraint |
+| :-: | :--- |
+| 1 | **Milestone order is not optional.** M-009…M-016 (tenancy, the Prisma tenant-context extension, the base repository, the CI isolation suite) must land before **any** feature touches tenant data. `BR-TEN-01` is made structurally true first, never retrofitted. |
+| 2 | Every endpoint milestone ships its **isolation-suite coverage in the same milestone**. CI fails a tenant-scoped endpoint without it. |
+| 3 | Every table milestone ships its **RLS policy and grants in the same milestone**. A table without a policy, even for one commit, is queryable. |
+| 4 | Each milestone leaves the repository **green** — tests pass, build succeeds, nothing half-wired. A multi-milestone feature stays behind a flag until its last milestone. |
+| 5 | **The scaffold already exists.** pnpm + Turborepo + commitlint + husky + lint-staged + prettier + dependency-cruiser installed; `apps/` and `packages/` created; git on `main`/`develop` with Conventional Commits in use. M-001 starts from there, not from `git init`. |
+| 6 | Framework is **NestJS**, per the PRD. `apps/server/` currently holds only a README, so nothing has committed to an alternative. |
+| 7 | Open blockers `BLK-03` and `BLK-04` gate **Sprint 11** (settlements), not Sprint 0. Work proceeds; the settlement milestones stop at the blocker unless answered. |
+| 8 | Documentation written by this session is **untracked in git** and should be committed before the first code commit, so the baseline is recorded. |
 
 ---
 
@@ -486,6 +537,9 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 | 2026-08-06 | 0 | **Stack additions approved** | A-01 Prisma approved (conditional on the mandatory tenant-context client extension). A-08 resolved: **polling for Phase 1**, Socket.IO deferred to Phase 2 behind `release.attendance.realtime_transport` — keeps the app tier stateless per `NFR-SCAL-03`. Remaining 28 approved as a block. A-19 (notification vendors) stays deferred pending `OQ-01`. **29 approved · 2 deferred.** |
 | 2026-08-06 | 0 / 1 / G | **Phases 0, 1 and G CLOSED** | ~23,750 lines of documentation across 12 files. All acceptance gates green. Verified independently of the authoring agents: zero placeholders (`TBD`/`FIXME` scan clean), 30/30 ADRs carry all six required sections, 1,784 tickable checklist items, 110 `KL-` entries, 28 `TD-` entries, 35 mermaid diagrams, and zero framework contamination (`Express` appears only as a rejected option, a forbidden import, or a lint-rule name). |
 | 2026-08-06 | — | **Three defects found in this tracker by an authoring agent, and fixed** | (1) Phase-G gate asked *"Why Express?"* — residue from the superseded draft; now *"Why NestJS?"*. (2) Phase-2 gate said *"all 78 `BR-` rules"*; the enumerated catalogue holds **95** identifiers across 13 families — corrected with the family breakdown. (3) Phase-4 and Phase-6 gates presupposed Prisma and shadcn/ui; both are now approved additions (`A-01`, `A-04`) and the gates cite them explicitly. Self-audit by a document-authoring agent is now a standing expectation. |
+| 2026-08-06 | 6 | **Phase 6 CLOSED** | 8 UI documents, **14,381 lines**. All 55 screens specified with their four mandatory states. Wave 3 (`Navigation`, `Accessibility`, `ResponsiveBehavior`) was cut off by an **account session limit** — a different failure from the earlier `529` capacity errors — and was completed by hand from the agents' stopping points. Running documentation total: **≈ 129,250 lines across 80 files**. |
+| 2026-08-06 | 5 | **Phase 5 CLOSED** | 10 API contracts, **21,730 lines**. Survived a sustained Anthropic capacity outage: three runs, 17 agents attempted, 12 lost to `529`, one run refused entirely at zero tokens. `Membership.md` §9–13, `Search.md` §2–13, `Reviews.md` in full and `Admin.md` §12–22 were completed by hand. Two material findings raised against upstream docs — a location-in-logs privacy gap (`OI-S1`) and a too-tight rate-limit budget (`OI-S2`). Running documentation total: **≈ 112,400 lines across 72 files**. |
+| 2026-08-06 | — | **Repository and monorepo scaffold appeared** | Not created by this session. Git initialised with `main` and `develop`; `apps/{customer-web,gym-dashboard,admin-dashboard,server}`, `packages/{ui,types,utils,config}`, `infra/{docker,k8s,terraform}`, `.github/`; turbo, pnpm, commitlint, husky, lint-staged, prettier, dependency-cruiser installed. Faithful to the documentation — `pnpm-workspace.yaml` cites `A-05 · FolderStructure.md §3.1` and the two-glob rule. `apps/server/` holds only a README, so no framework is committed and NestJS remains open as specified. **`BLK-01` is resolved.** |
 | 2026-08-06 | 4 | **Phase 4 CLOSED** | 10 database documents, **17,233 lines**. 79 tables, 183 RLS policies, 1,263 enforced constraints, 201 logical indexes with 63 declined in writing, 162 foreign keys. All 95 `BR-` identifiers graded for database coverage. Running documentation total: **≈ 90,000 lines**. |
 | 2026-08-06 | 4 | Network outage; three documents completed by hand | Two waves lost all three of `Indexes`/`Constraints`/`MigrationStrategy` — the second time to `ENOTFOUND` (DNS), not load, and the Bash classifier went down alongside. The incremental-write rule meant 2,881 lines had already reached disk, so **nothing was lost**. Completed manually from the exact stopping points, matching established numbering and rule-id conventions. Confirms the incremental-write instruction as permanent policy: it converted a total loss into a partial one twice. |
 | 2026-08-06 | 3 | **Phase 3 CLOSED** | 20 epics + index, **15,579 lines**. 8/8 agents clean. Verified: all 24 PRD modules claimed, all 21 files properly terminated, placeholder scan clean. `EP-08` corrected to Razorpay Route before the stale Stripe reference could propagate into the backlog. Running documentation total: **≈ 72,500 lines**. |
@@ -501,7 +555,7 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 
 | ID | Blocker | Phase | Owner | Raised | Status |
 | :-- | :--- | :-- | :--- | :--- | :--- |
-| BLK-01 | Workspace is not a Git repository. Branch strategy in the constitution cannot be applied until `git init` is run. | 0 | Project owner | 2026-08-05 | **DEFERRED** 2026-08-06 by owner. Not blocking Phases 2–7. **Becomes blocking at Phase 8** — the first commit needs somewhere to go. ~24,000 lines currently carry no version history. Re-raise before Phase 8. |
+| BLK-01 | Workspace is not a Git repository. Branch strategy in the constitution cannot be applied until `git init` is run. | 0 | Project owner | 2026-08-05 | ✅ **RESOLVED** 2026-08-06. Repository initialised outside this session with `main` and `develop` branches and Conventional Commits already in use (`chore(setup):`, `docs(setup):`). The constitution §20 branch strategy is now enforceable. **Note:** documentation written by this session is currently untracked and should be committed. |
 | BLK-02 | 20 open questions (`OQ-01` … `OQ-20`) in the source PRD are unanswered. Documented defaults will be applied and recorded in `DECISION_LOG.md`. | 1 | Client sponsor | 2026-08-05 | **PARTIALLY RESOLVED** 2026-08-06 — `OQ-01`, `OQ-02`, `OQ-16`, `OQ-20` answered (see `LAUNCH_MARKET_INDIA.md`). 16 remain on documented defaults. |
 | BLK-03 | **India launch surfaces six conflicts with PRD baselines.** Two are High severity and change the settlement design: (2) GST on platform commission is unmodelled by `A6.3`, needing a ninth persisted figure `commission_tax_minor`; (3) GST TCS / income-tax TDS obligations for e-commerce operators are entirely absent from the PRD. Also (1) Stripe Connect is not a viable India split-settlement adapter. | 2 → 5 | Client sponsor + tax advisor | 2026-08-06 | **OPEN — must resolve before Sprint 5, and conflict 2 before Sprint 11.** See `LAUNCH_MARKET_INDIA.md` §11. |
 | BLK-04 | Seven items require a qualified Indian tax advisor and legal counsel, not engineering judgement — TCS/TDS applicability and rates, the correct SAC code, multi-state GST registration, RBI e-mandate thresholds, Aadhaar handling, and DPDP significant-data-fiduciary status. | 4 → 5 | Client sponsor | 2026-08-06 | **OPEN.** Architecture holds all of these as configuration, so resolution is a data task, not a code change. |

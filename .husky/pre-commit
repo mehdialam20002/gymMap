@@ -1,7 +1,10 @@
 #!/usr/bin/env sh
 # A-24 · pre-commit — format staged files, then scan them for secrets.
 
-pnpm exec lint-staged || exit 1
+. "$(dirname "$0")/common.sh"
+resolve_pnpm || exit 1
+
+$PNPM exec lint-staged || exit 1
 
 # A-25 · Gitleaks. Optional locally, mandatory in CI (.github/workflows/security.yml).
 # If the binary is absent we say so once rather than failing the commit, because a
