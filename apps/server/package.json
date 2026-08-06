@@ -1,0 +1,28 @@
+{
+  "name": "@gymmap/server",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "//": "NOT type:module. NestJS + emitDecoratorMetadata is CommonJS territory; see packages/config/tsconfig/nest.json.",
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "echo \"no-op\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo \"no-op\"",
+    "architecture": "echo \"no-op\"",
+    "test:unit": "echo \"no-op\"",
+    "test:int": "echo \"no-op\"",
+    "test:contract": "echo \"no-op\"",
+    "test:isolation": "echo \"no-op\"",
+    "test:e2e": "echo \"no-op\"",
+    "test:a11y": "echo \"no-op\"",
+    "size": "echo \"no-op\"",
+    "openapi:check": "echo \"no-op\""
+  },
+  "devDependencies": {
+    "@gymmap/config": "workspace:*",
+    "@types/node": "^22.10.0",
+    "typescript": "^6.0.3"
+  }
+}

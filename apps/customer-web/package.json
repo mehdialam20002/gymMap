@@ -1,0 +1,27 @@
+{
+  "name": "@gymmap/customer-web",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "//": "M-001 · §3.6 script contract. build/dev become real in the milestone that scaffolds the framework; they are no-ops now rather than absent so `turbo run` never passes by omission.",
+  "scripts": {
+    "build": "echo \"no-op\"",
+    "dev": "echo \"no-op\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo \"no-op\"",
+    "architecture": "echo \"no-op\"",
+    "test:unit": "echo \"no-op\"",
+    "test:int": "echo \"no-op\"",
+    "test:contract": "echo \"no-op\"",
+    "test:isolation": "echo \"no-op\"",
+    "test:e2e": "echo \"no-op\"",
+    "test:a11y": "echo \"no-op\"",
+    "size": "echo \"no-op\"",
+    "openapi:check": "echo \"no-op\""
+  },
+  "devDependencies": {
+    "@gymmap/config": "workspace:*",
+    "typescript": "^6.0.3"
+  }
+}

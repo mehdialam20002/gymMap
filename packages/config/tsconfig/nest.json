@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "//": "M-001 · NestJS preset — apps/server only. Adds the two decorator flags Nest's DI container requires. Emits, unlike the react preset, because Node runs the output rather than a bundler.",
+  "//2": "KNOWN TENSION, see M-001 notes and TD-029: `emitDecoratorMetadata` reads the TYPE of a constructor parameter to resolve a provider. `verbatimModuleSyntax` (inherited, true) means an `import type { X }` is erased entirely — so a dependency imported as a type produces `undefined` metadata and Nest fails at runtime with a confusing 'Cannot read properties of undefined' rather than at compile time. The rule is therefore: NEVER use `import type` for anything that appears in a constructor signature. This is enforced by the custom ESLint rule `no-type-import-in-ctor` delivered in M-002, not by the compiler.",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "verbatimModuleSyntax": false,
+    "strictPropertyInitialization": false
+  },
+  "//4": "`verbatimModuleSyntax: false` is NOT a style preference — it is forced. NestJS 10 and its ecosystem are CommonJS-first, and TypeScript raises TS1287 ('a top-level export modifier cannot be used on value declarations in a CommonJS module when verbatimModuleSyntax is enabled') on the very first exported symbol. The alternatives were both worse: making apps/server ESM fights emitDecoratorMetadata and every CJS-only Nest dependency, and hand-writing `export =` throughout abandons ESM syntax entirely. Verified empirically at M-001, not assumed. Recorded as TD-030.",
+  "//3": "`strictPropertyInitialization` is the one §9.1 flag relaxed anywhere in this repository. Nest injects into constructor parameters and populates DTO properties by deserialisation, so a definitely-assigned property has no initialiser the compiler can see. The alternative is a `!` non-null assertion on every injected field, which §9.2 forbids without a justification comment — trading one documented exception for hundreds of undocumented ones. Recorded in TECH_DEBT.md as TD-029."
+}

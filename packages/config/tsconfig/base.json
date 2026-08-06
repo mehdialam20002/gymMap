@@ -1,0 +1,5 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "//": "M-001 · The neutral preset. Adds nothing to tsconfig.base.json except a name, so that a package with no runtime opinion has something to extend other than a relative path four levels up. Every other preset in this directory extends THIS, not the root, so a future root change reaches all four.",
+  "extends": "../../../tsconfig.base.json"
+}

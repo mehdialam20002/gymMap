@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@gymmap/config/tsconfig/node",
+  "compilerOptions": { "outDir": "dist", "rootDir": "src", "tsBuildInfoFile": "dist/.tsbuildinfo" },
+  "include": ["src/**/*.ts"]
+}

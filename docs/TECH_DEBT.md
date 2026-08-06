@@ -199,10 +199,90 @@ Full detail for each entry is in §4. `PRD id` shows the primary identifier; eac
 | **TD-026** | Strings externalised, no translation pipeline | Code | Low | S | Second locale committed, or `ASM-07` recorded false | Frontend Lead, customer site | ACCEPTED | `NFR-USE-08` |
 | **TD-027** | Traceability maintained by hand | Docs | **High** | M | First sprint where the checklist is not updated in-PR; sprint 16 at the latest | QA Lead | ACCEPTED | `BAC-06` |
 | **TD-028** | No provider-sandbox contract tests, fixtures hand-authored | Test | **High** | M | Before sprint 6 exit — no production payment traffic before this | QA Lead | SCHEDULED | `BR-PAY-05` |
+| **TD-029** | `strictPropertyInitialization: false` in `apps/server` | Code | Low | S | A NestJS version that resolves injection without constructor-parameter metadata | Technical Lead | ACCEPTED | `§9.1`, M-001 |
+| **TD-030** | `verbatimModuleSyntax: false` in `apps/server` | Code | Medium | M | NestJS ships first-class ESM support, or the ecosystem's CJS-only dependencies clear | Technical Lead | ACCEPTED | `§9.1`, M-001 |
 
 ---
 
 ## 4. Entries
+
+---
+
+### TD-029 — `strictPropertyInitialization: false` in `apps/server`
+
+| Field | Value |
+| :--- | :--- |
+| **Category** | Code |
+| **Interest rate** | **Low** — bounded to one package and one class of field |
+| **Effort** | S |
+| **Owner** | Technical Lead |
+| **Status** | ACCEPTED |
+| **Discovered** | M-001, while writing `packages/config/tsconfig/nest.json` |
+
+**What.** `apps/server` is the only package in the repository that relaxes a `§9.1` compiler flag.
+Every other package — including all three front-end apps — keeps the full set.
+
+**Why we took it.** NestJS populates two kinds of field the compiler cannot see being assigned:
+constructor-injected providers, and DTO properties set by deserialisation. With
+`strictPropertyInitialization: true`, every one requires a `!` definite-assignment assertion.
+Constitution `§9.2` forbids a non-null assertion without a justification comment — so the flag would
+trade **one documented exception for several hundred undocumented ones**, and would train engineers
+to write `!` reflexively, which is exactly the habit the rule exists to prevent.
+
+**What it costs.** A genuinely uninitialised property in a non-injected class inside `apps/server`
+will not be caught by the compiler. Mitigated because Zod validates every inbound payload at the
+boundary (`NFR-SEC-05`), so an unset DTO field fails validation before it reaches a use case.
+
+**Revisit trigger.** A NestJS release that resolves injection without reading constructor-parameter
+metadata — at which point the flag can be restored and the `!`-assertion question disappears with it.
+
+**Verified.** Not assumed. `packages/config/test/effective-config.spec.mjs` asserts this override is
+present, is scoped to `apps/server`, and cites this id. An override without a `TD-` reference fails
+the test.
+
+---
+
+### TD-030 — `verbatimModuleSyntax: false` in `apps/server`
+
+| Field | Value |
+| :--- | :--- |
+| **Category** | Code |
+| **Interest rate** | **Medium** — grows with the size of the server codebase |
+| **Effort** | M |
+| **Owner** | Technical Lead |
+| **Status** | ACCEPTED |
+| **Discovered** | M-001, empirically — `tsc` raised `TS1287` on the first exported symbol |
+
+**What.** `apps/server` disables `verbatimModuleSyntax`, which the rest of the repository keeps on.
+
+**Why we took it.** This is **forced, not preferred**. NestJS 10 and its ecosystem are CommonJS-first.
+`apps/server` therefore has no `"type": "module"`, so `NodeNext` resolves it as CJS — and TypeScript
+raises:
+
+> `TS1287: A top-level 'export' modifier cannot be used on value declarations in a CommonJS module
+> when 'verbatimModuleSyntax' is enabled.`
+
+on the very first exported symbol. Two alternatives were considered and rejected:
+
+| Alternative | Why rejected |
+| :--- | :--- |
+| Make `apps/server` ESM (`"type": "module"`) | Fights `emitDecoratorMetadata`, and a long tail of Nest ecosystem packages are CJS-only. Trades a compile-time flag for runtime interop failures discovered in production |
+| Use `export =` / `import =` throughout | Abandons ESM syntax across the entire server. Every file becomes non-portable and unfamiliar |
+
+**What it costs.** Without `verbatimModuleSyntax`, TypeScript elides imports it believes are
+type-only. Ordinarily harmless — but combined with `emitDecoratorMetadata` it is the opposite of
+harmless: a provider imported as `import type { X }` is erased, its DI metadata becomes `undefined`,
+and Nest fails at **runtime** with a confusing "Cannot read properties of undefined" rather than at
+compile time.
+
+**Mitigation.** The rule is: **never use `import type` for anything appearing in a constructor
+signature.** Enforced by the custom ESLint rule `no-type-import-in-ctor`, delivered in M-002. Until
+that rule ships, this debt is uncontrolled and the risk is live — recorded here rather than assumed
+away.
+
+**Revisit trigger.** NestJS ships first-class ESM support, or the CJS-only dependencies in the
+server's tree clear. Re-test by removing the override and running `pnpm turbo run typecheck`; the
+failure, if it remains, is immediate and unambiguous.
 
 ---
 

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "//": "M-001 · Browser preset — packages/ui and the three front-end apps. Overrides module resolution to `bundler` because Next.js and Vite resolve, not Node; adds the DOM libs; turns off emit because the bundler owns output. None of the §9.1 strictness flags is touched.",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "allowImportingTsExtensions": true
+  }
+}

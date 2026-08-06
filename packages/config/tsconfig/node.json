@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "//": "M-001 · Node 22 library preset. Used by packages/types and packages/utils — code that runs under Node and is consumed by both the server and the browser apps. NodeNext is inherited from the root; it is restated nowhere.",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["node"]
+  }
+}
