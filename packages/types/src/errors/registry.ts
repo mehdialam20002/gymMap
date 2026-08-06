@@ -90,6 +90,23 @@ export const ERROR_REGISTRY = {
     retryable: false,
     detailsShape: '{ field: string; rule: string; }',
   },
+  /**
+   * The terminal fallback. Emitted when an unrecognised throwable reaches the global filter, and
+   * when a code with no registry row would otherwise reach the wire.
+   *
+   * Carries no detail by design (AC-FND-09.6 / SEC-A03-005): a Prisma message contains the SQL
+   * and often a parameter value, a filesystem error an absolute path, an HTTP client error the
+   * upstream URL with its query string. The full error goes to the log against the correlation
+   * id, so support loses nothing while an attacker gains nothing.
+   */
+  INTERNAL_ERROR: {
+    module: 'common',
+    class: 'System',
+    httpStatus: 500,
+    messageKey: 'error.common.internal_error',
+    enforces: ['AC-FND-09.6', 'SEC-A03-005', 'C3.1'],
+    retryable: false,
+  },
   RESOURCE_NOT_FOUND: {
     module: 'common',
     class: 'NotFound',

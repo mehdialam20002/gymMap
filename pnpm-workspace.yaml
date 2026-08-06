@@ -5,3 +5,9 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# A-25 supply-chain posture. An install script is arbitrary code execution at install
+# time, so the default is 'no' and every exception is listed here with a reason.
+# @nestjs/core's postinstall only prints a support message - nothing needs it to run.
+allowBuilds:
+  "@nestjs/core": false

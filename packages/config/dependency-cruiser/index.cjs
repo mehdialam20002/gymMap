@@ -99,7 +99,16 @@ const STRUCTURAL_RULES = [
     // The exemption must cover .cjs and .mjs, not only .ts — the custom-rule specs are CommonJS
     // because ESLint's RuleTester is, and they legitimately import eslint itself.
     from: { path: '^(apps|packages)', pathNot: '\\.(spec|test)\\.[cm]?[jt]sx?$' },
-    to: { dependencyTypes: ['npm-dev'] },
+    to: {
+      dependencyTypes: ['npm-dev'],
+      // `@types/*` packages are ERASED at compile time — `import type { Request } from 'express'`
+      // emits nothing, so there is no runtime import to break in a pruned production image.
+      // Declaring them as devDependencies is correct, and flagging them here was a false positive
+      // that `tsPreCompilationDeps: true` makes unavoidable without this exclusion: the setting
+      // is needed so type-only edges across a FORBIDDEN boundary stay visible, and it necessarily
+      // surfaces these harmless ones too.
+      pathNot: 'node_modules/@types/',
+    },
   },
 ];
 
