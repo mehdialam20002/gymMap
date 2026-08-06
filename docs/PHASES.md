@@ -494,9 +494,9 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | :--- | :--- | :--- | :--- | :--- |
 | M-001 | `tsconfig` presets and the compiler contract | ✅ `DONE` | `370d4c5` | 9/9 typecheck · 30/30 tests |
 | M-002 | `packages/config` — custom lint rules, architecture boundaries | ✅ `DONE` *(partial, see below)* | `f02a6ce` | 42/42 tests · depcruise 0 errors |
-| M-003 | `packages/types` — branded ids, Money, error registry | ✅ `DONE` | — | 29/29 tests · 24/24 turbo tasks |
-| M-004 | NestJS bootstrap, typed config, error envelope, redacted logging | ⬜ `NEXT` | — | — |
-| M-005 | Docker Compose: Postgres 16 + PostGIS, Redis 7, MinIO, Mailpit | ⬜ `TODO` | — | — |
+| M-003 | `packages/types` — branded ids, Money, error registry | ✅ `DONE` | `9e8bfa5` | 29/29 tests |
+| M-004 | NestJS bootstrap, typed config, error envelope, redacted logging | ✅ `DONE` | `78ebf18` | 58/58 tests · booted and curled |
+| M-005 | Docker Compose: Postgres 16 + PostGIS, Redis 7, MinIO, Mailpit | ⬜ `NEXT` | — | — |
 | M-006 | Prisma init and `0_init` — extensions, domains, enums, four roles | ⬜ `TODO` | — | — |
 | M-007…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
 
@@ -519,6 +519,49 @@ Each is deferred to the milestone that first creates a consumer for it — none 
 | D-3 | `moduleResolution: node10` is deprecated in TypeScript 6 | Override removed; `nest.json` inherits `NodeNext`, which resolves as CJS because `apps/server` declares no `"type": "module"`. |
 | D-4 | Roadmap M-003 names `IDEMPOTENCY_KEY_REUSED`; constitution §13.2.2 names `IDEMPOTENCY_KEY_MISMATCH` for the same condition | Constitution wins — it governs the registry, and §13.2.1 forbids two codes for one condition. Roadmap wording to be corrected. Noted in `packages/types/src/errors/registry.ts`. |
 | D-5 | Roadmap M-003 AC-4 cites `Security.md` §2.3 as the error registry; §2.3 is the OTP design | Registry lives at `packages/types/src/errors/registry.ts` per constitution §13.2.1. The union is **derived** from it, so AC-4's intent is structural rather than CI-checked. |
+| D-6 | Nest's built-in `ValidationPipe` requires `class-validator`, which would be a **substitution** for Zod (A-02) and is forbidden | Wrote `ZodValidationPipe` instead, which is what M-004's file list specified. Discovered empirically: the server refused to boot. |
+
+### 🔴 BLK-05 — the roadmap has two incompatible milestone numbering schemes
+
+**Status: OPEN. Halts front-end scheduling, per CLAUDE.md §3 and §9.3.**
+
+`docs/roadmap/README.md` §5 and the four `Milestones_*.md` detail files assign **completely
+different work to the same milestone ids**. This is not a drift of one or two rows — the schemes
+disagree wholesale:
+
+| id | `README.md` §5 says | `Milestones_*.md` detail says |
+| :--- | :--- | :--- |
+| `M-023` | Three app shells + TanStack Query provider — *FE-web* | The B3.2 matrix as data, `PermissionsGuard` — *BE* |
+| `M-034` | Auth screens `SCR-WEB-016` — *FE-web* | `branch_hours`, `OperatingHours` — *BE* |
+| `M-036` | Onboarding wizard steps 1–6 — *BE* | Reviewer console + **`packages/ui` tokens** — *Full-stack* |
+| `M-042` | Reviewer console `SCR-ADM-002`/`003` — *FE-dash* | `search_documents`, the six indexes — *BE* |
+| `M-048` | Zero-result recovery + Redis cache — *BE, 3h* | `SCR-WEB-002` + the **customer-web shell** — *FE* |
+
+`README.md`'s own tie-break rule — *"this index wins on id, sprint, epic, size, role and
+depends-on"* — **cannot be applied**, because the two documents do not describe the same work
+under those ids. Applying it would silently reassign every front-end milestone.
+
+**Why this blocks the front ends specifically.** Both schemes place the creation of `packages/ui`
+and the three app shells in *different milestones in different sprints*. Until it is resolved
+there is no defensible answer to "which milestone builds the admin dashboard shell".
+
+**Resolution required from the project owner:** declare which document is normative for milestone
+identity, then correct the other. Record in `DECISION_LOG.md`. Work below M-019 (the current
+front) is unaffected and continues.
+
+### 🟠 Coverage gaps found while scoping the two front ends
+
+Neither is a conflict — they are **absences**, and both make a stated exit criterion unmeetable:
+
+| Gap | Detail |
+| :--- | :--- |
+| `SCR-ADM-005`, `SCR-ADM-012` have backend only; **`SCR-ADM-006` appears in no roadmap file at all** | Yet M-117 AC-10 asserts *"all 15 admin screens"* are permission-gated, and the Sprint-15 exit declares the console complete. As written that gate cannot pass. |
+| Customer-web screens with no delivering milestone | `SCR-WEB-001` (home), `-005`/`-006`/`-007` (checkout, payment, confirmation), `-008` (account home), `-010` (visit history), `-013` (write review), `-016` (auth), `-018` (for-gyms), and the city/category landing pages that M-120's `rel.discovery.city-launch-gate` assumes exist. |
+
+`README.md` §9.3 is explicit that screen-by-screen build-out of all 55 `SCR-` ids is **not** in the
+120 milestones, and estimates full decomposition at ~1,420 milestones / ~6,832 focused hours. The
+120-milestone roadmap is a **structural spine**, not a complete build plan. `SCR-WEB-015`
+(referrals) is correctly absent — descope `D-02` is taken.
 
 ### Phase 8 Unlock Record
 
