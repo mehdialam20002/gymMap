@@ -1,0 +1,11 @@
+# A-25 · Trivy suppressions — NFR-SEC-07
+#
+# RULE: every entry carries an expiry date and a ticket id (FolderStructure.md §2).
+# An entry without both is removed by review, not renewed. An expired entry
+# fails the security workflow rather than silently continuing to suppress.
+#
+# Format:
+#   CVE-YYYY-NNNNN exp:YYYY-MM-DD ticket:TD-NNN  # one line on why it cannot be fixed yet
+#
+# Empty by design. Nothing is suppressed until something is proven
+# unfixable-for-now, and that proof is a TECH_DEBT.md entry.

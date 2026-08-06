@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# A-24 · commit-msg — Conventional Commits carrying a PRD identifier.
+# Grammar: PROJECT_CONSTITUTION.md §20.3
+pnpm exec commitlint --edit "$1"

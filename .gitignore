@@ -1,0 +1,84 @@
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+
+# ---------------------------------------------------------------------------
+# Build output
+# ---------------------------------------------------------------------------
+dist/
+build/
+out/
+.next/
+!.next/cache/
+.turbo/
+*.tsbuildinfo
+.vite/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+dependency-graph.svg
+dependency-graph.json
+
+# ---------------------------------------------------------------------------
+# Environment and secrets  (NFR-SEC-07 / A-25 — never commit a real secret)
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+.gitleaks-report.json
+
+# ---------------------------------------------------------------------------
+# Prisma — generated client only. Migrations ARE committed.
+# ---------------------------------------------------------------------------
+**/prisma/generated/
+**/node_modules/.prisma/
+
+# ---------------------------------------------------------------------------
+# Local infrastructure state (docker volumes, terraform)
+# ---------------------------------------------------------------------------
+.docker-data/
+infra/compose/.data/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+
+# ---------------------------------------------------------------------------
+# Editor / OS
+# ---------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------------------
+# Logs and temporary files
+# ---------------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-error.log*
+logs/
+tmp/
+temp/
+.cache/
+.eslintcache
+.prettiercache

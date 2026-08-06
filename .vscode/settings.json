@@ -1,0 +1,141 @@
+{
+  // ---------------------------------------------------------------------------
+  // Formatting — Prettier is the single authority. lint-staged re-runs it at
+  // commit time, so a save that disagrees with the hook is a misconfiguration.
+  // ---------------------------------------------------------------------------
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "never"
+  },
+  "editor.rulers": [100],
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  // The specification corpus is hand-formatted; .prettierignore excludes it and
+  // format-on-save must agree, or a stray save reflows a 4,000-line document.
+  "[markdown]": {
+    "editor.formatOnSave": false,
+    "files.trimTrailingWhitespace": false
+  },
+
+  // ---------------------------------------------------------------------------
+  // TypeScript — use the workspace compiler, never VS Code's bundled one, or
+  // the editor and `pnpm typecheck` disagree about the §9.1 flag set.
+  // ---------------------------------------------------------------------------
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.inlayHints.parameterNames.enabled": "literals",
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+
+  // ---------------------------------------------------------------------------
+  // Search and explorer — keep the 90,000-line docs set searchable but keep
+  // build output out of the way.
+  // ---------------------------------------------------------------------------
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.next": true,
+    "**/.turbo": true,
+    "**/coverage": true,
+    "**/pnpm-lock.yaml": true,
+    "**/playwright-report": true,
+    "**/test-results": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.turbo/**": true,
+    "**/.next/**": true,
+    "**/dist/**": true
+  },
+  "files.associations": {
+    "*.env.example": "dotenv",
+    "compose.yaml": "dockercompose"
+  },
+
+  // ---------------------------------------------------------------------------
+  // Tailwind — recognise class strings in cva/clsx/cn helpers used by shadcn/ui
+  // ---------------------------------------------------------------------------
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+  ],
+  "tailwindCSS.classAttributes": ["class", "className", "ngClass", "classNames"],
+
+  // ---------------------------------------------------------------------------
+  // Todo Tree — surface the project's own governance markers, not just TODOs.
+  // ---------------------------------------------------------------------------
+  "todo-tree.general.tags": ["TODO", "FIXME", "HACK", "TD-", "KL-", "BLK-", "OQ-"],
+  "todo-tree.highlights.customHighlight": {
+    "TD-": { "icon": "credit-card", "foreground": "#e0af68" },
+    "KL-": { "icon": "info", "foreground": "#7aa2f7" },
+    "BLK-": { "icon": "alert", "foreground": "#f7768e" },
+    "OQ-": { "icon": "question", "foreground": "#bb9af7" }
+  },
+
+  // ---------------------------------------------------------------------------
+  // Spell checker — the domain vocabulary, so real typos stand out.
+  // ---------------------------------------------------------------------------
+  "cSpell.words": [
+    "gymmap",
+    "multitenant",
+    "postgis",
+    "trgm",
+    "unaccent",
+    "pgcrypto",
+    "Testcontainers",
+    "shadcn",
+    "Radix",
+    "Zod",
+    "Prisma",
+    "BullMQ",
+    "Turborepo",
+    "Mailpit",
+    "MinIO",
+    "Pino",
+    "argon",
+    "Argon2id",
+    "EdDSA",
+    "Razorpay",
+    "UPI",
+    "Aadhaar",
+    "DPDP",
+    "CGST",
+    "SGST",
+    "paise",
+    "Kolkata",
+    "Andheri",
+    "papaparse",
+    "zxing",
+    "dbhub",
+    "commitlint",
+    "lintstagedrc",
+    "gitleaks",
+    "trivyignore"
+  ],
+  "cSpell.ignorePaths": ["pnpm-lock.yaml", "node_modules", ".git"],
+
+  // ---------------------------------------------------------------------------
+  // Git
+  // ---------------------------------------------------------------------------
+  "git.branchProtection": ["main", "develop"],
+  "git.branchProtectionPrompt": "alwaysPrompt",
+  "git.inputValidationSubjectLength": 72,
+  "git.autofetch": true,
+  "git.pruneOnFetch": true,
+
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "package.json": "pnpm-lock.yaml, pnpm-workspace.yaml, turbo.json, .npmrc, .nvmrc",
+    "tsconfig.base.json": "tsconfig*.json",
+    ".gitignore": ".gitattributes, .editorconfig, .gitleaks.toml, .trivyignore",
+    "prettier.config.mjs": ".prettierignore, .lintstagedrc.mjs, commitlint.config.mjs",
+    "CLAUDE.md": ".mcp.json"
+  }
+}

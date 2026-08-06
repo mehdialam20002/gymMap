@@ -1,0 +1,55 @@
+#!/usr/bin/env sh
+# A-24 · pre-push.
+#
+# Two cheap guards that catch the two mistakes a hook can actually prevent:
+# pushing straight to a protected branch, and pushing a branch whose name
+# carries no PRD identifier (PROJECT_CONSTITUTION.md §20.2).
+#
+# Test suites are deliberately NOT run here. Phase 8 is locked, so there is
+# nothing to run yet; when it unlocks, CI (A-26) is the gate, not the developer's
+# machine. A pre-push that takes four minutes is a pre-push that gets --no-verify'd.
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+# ---------------------------------------------------------------------------
+# 1. Protected branches
+# ---------------------------------------------------------------------------
+case "$branch" in
+  main|develop)
+    echo ""
+    echo "  Refusing to push directly to '$branch'."
+    echo ""
+    echo "  Trunk-based development with short-lived branches (C1.1, §20.2):"
+    echo "    git switch -c feat/FR-XXX-NN-short-summary"
+    echo ""
+    echo "  Override only for a genuine hotfix:  git push --no-verify"
+    exit 1
+    ;;
+esac
+
+# ---------------------------------------------------------------------------
+# 2. Branch naming — <type>/<PRD-ID>-<kebab-summary>, <= 60 chars
+# ---------------------------------------------------------------------------
+types='feat|fix|docs|refactor|test|perf|chore|ci|build|revert|hotfix'
+families='FR|BR|NFR|AC|US|SCR|API|BAC|E2E|UAT|OBJ|KPI|RSK|OQ|ASM|CON|DEP|TD|KL|ADR|EP|BLK|A'
+
+if ! echo "$branch" | grep -Eq "^($types)/($families)-[A-Z0-9]+(-[A-Z0-9]+)*-[a-z0-9]+(-[a-z0-9]+)*$"; then
+  echo ""
+  echo "  Branch name '$branch' does not match the required form."
+  echo ""
+  echo "    <type>/<PRD-ID>-<kebab-summary>        (<= 60 characters)"
+  echo ""
+  echo "  Examples:"
+  echo "    feat/FR-CHK-04-checkin-validation-sequence"
+  echo "    fix/BR-FIN-03-statement-sums-exactly"
+  echo "    chore/A-23-dependency-cruiser-rules"
+  echo ""
+  exit 1
+fi
+
+if [ "${#branch}" -gt 60 ]; then
+  echo "  Branch name is ${#branch} characters; the limit is 60 (§20.2)."
+  exit 1
+fi
+
+exit 0

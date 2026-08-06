@@ -1,0 +1,68 @@
+# A-25 · Dependency scanning — NFR-SEC-07, NFR-SEC-08
+#
+# Note the interaction with the STACK_ADDITIONS.md standing rule: Dependabot may
+# only ever *update* an already-approved dependency. It can never introduce one.
+# A PR that adds a new transitive top-level dependency is reviewed as an
+# addition, not merged as a bump.
+
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    labels: ["dependencies", "security"]
+    commit-message:
+      # Matches commitlint's INFRASTRUCTURAL_SCOPES allowlist, so Dependabot's
+      # commits pass the PRD-identifier rule without an exemption.
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      # One PR per ecosystem cluster rather than per package: a Prisma bump that
+      # arrives split across four PRs gets merged in the wrong order.
+      typescript-tooling:
+        patterns: ["typescript", "@types/*", "tsx", "tsup"]
+      linting:
+        patterns: ["eslint*", "@typescript-eslint/*", "prettier*", "dependency-cruiser"]
+      testing:
+        patterns: ["jest*", "@jest/*", "supertest", "@playwright/*", "playwright", "testcontainers"]
+      nest:
+        patterns: ["@nestjs/*"]
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      prisma:
+        patterns: ["prisma", "@prisma/*"]
+    ignore:
+      # TypeScript 7 removed the public compiler API, which `nest build`
+      # consumes. Held until NestJS publishes a supported path.
+      # See docs/setup/INSTALLATION_REPORT.md.
+      - dependency-name: typescript
+        versions: ["7.x"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Kolkata
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "ci(deps)"
+
+  - package-ecosystem: docker
+    directory: /infra/compose
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Kolkata
+    labels: ["dependencies", "infrastructure"]
+    commit-message:
+      prefix: "chore(deps)"

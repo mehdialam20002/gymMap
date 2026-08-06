@@ -1,0 +1,7 @@
+# A-05 · docs/engineering/FolderStructure.md §3.1
+#
+# Two globs, no more. A third glob is how a `tools/` or `scripts/` directory
+# appears without an amendment under constitution §24.
+packages:
+  - "apps/*"
+  - "packages/*"

@@ -1,0 +1,23 @@
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+pnpm-lock.yaml
+*.tsbuildinfo
+
+# Generated Prisma client
+**/prisma/generated/
+
+# Terraform state
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# The specification corpus is hand-formatted and reviewed as prose. Prettier
+# would reflow ~90,000 lines and destroy the table alignment. Format checks
+# still apply to any NEW markdown outside docs/.
+docs/

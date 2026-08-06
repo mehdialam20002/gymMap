@@ -1,0 +1,61 @@
+# A-25 · Gitleaks — NFR-SEC-07 / NFR-SEC-08
+#
+# Runs in CI (.github/workflows/security.yml) and in the pre-commit hook when
+# the binary is present locally. A finding fails the build; it is never
+# downgraded to a warning.
+
+title = "GymMap secret scanning"
+
+[extend]
+# Start from the maintained upstream rule set, then narrow below.
+useDefault = true
+
+# ---------------------------------------------------------------------------
+# Project-specific detections
+# ---------------------------------------------------------------------------
+
+[[rules]]
+id = "razorpay-key-id"
+description = "Razorpay key id (India payment adapter, EP-08)"
+regex = '''rzp_(live|test)_[A-Za-z0-9]{14,}'''
+tags = ["payment", "razorpay"]
+
+[[rules]]
+id = "razorpay-key-secret"
+description = "Razorpay key secret assigned to a variable"
+regex = '''(?i)razorpay[_-]?(key[_-]?)?secret['"\s:=]+[A-Za-z0-9]{20,}'''
+tags = ["payment", "razorpay"]
+
+[[rules]]
+id = "postgres-connection-string"
+description = "PostgreSQL URL carrying a non-placeholder password"
+regex = '''postgres(ql)?:\/\/[^:\s]+:(?!postgres\b|password\b|changeme\b)[^@\s]{6,}@'''
+tags = ["database"]
+
+[[rules]]
+id = "jwt-signing-key"
+description = "JWT or Ed25519 signing material (A-11, FR-CHK-02)"
+regex = '''(?i)(jwt|access|refresh|qr)[_-]?(token[_-]?)?(secret|private[_-]?key)['"\s:=]+[A-Za-z0-9+/=_-]{24,}'''
+tags = ["auth"]
+
+# ---------------------------------------------------------------------------
+# Allowlist
+#
+# Every entry is a path or a literal that is provably not a secret. A real
+# secret is rotated and removed from history — never allowlisted.
+# ---------------------------------------------------------------------------
+[allowlist]
+description = "Documentation examples and local-only development credentials"
+paths = [
+  '''docs/.*\.md$''',
+  '''\.env\.example$''',
+  '''infra/compose/docker-compose\.yml$''',
+  '''pnpm-lock\.yaml$''',
+]
+regexes = [
+  '''(?i)(changeme|placeholder|example|dummy|sample|your[_-]?key[_-]?here|xxx+)''',
+  # The local compose stack's fixed development credentials. These reach no
+  # network beyond the developer's loopback interface.
+  '''postgres:postgres@localhost''',
+  '''minioadmin''',
+]

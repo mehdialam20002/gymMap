@@ -1,0 +1,52 @@
+# CODEOWNERS — RSK-14: money and tenancy paths require two reviewers.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# ACTION REQUIRED before this file does anything.
+#
+# The handles below are placeholders. GitHub silently ignores a CODEOWNERS
+# entry naming a team or user that cannot be resolved — so an unedited file
+# reads as "protected" while enforcing nothing at all.
+#
+# Replace @gymmap/* with real teams or @handles, then enable branch protection
+# on `main` and `develop` with "Require review from Code Owners" ticked.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Default owner for everything not matched below.
+*                                   @gymmap/engineering
+
+# ---------------------------------------------------------------------------
+# The load-bearing walls. Two reviewers, always.
+# ---------------------------------------------------------------------------
+
+# Tenancy — BR-TEN-01. The only directory permitted to construct PrismaClient.
+/apps/server/src/tenancy/           @gymmap/engineering-leads @gymmap/security
+
+# Money — BR-PAY-01, BR-FIN-01. Append-only ledger, integer minor units.
+/apps/server/src/ledger/            @gymmap/engineering-leads @gymmap/finance-eng
+/apps/server/src/settlements/       @gymmap/engineering-leads @gymmap/finance-eng
+/apps/server/src/refunds/           @gymmap/engineering-leads @gymmap/finance-eng
+/apps/server/src/billing/           @gymmap/engineering-leads @gymmap/finance-eng
+/apps/server/src/payments/          @gymmap/engineering-leads @gymmap/finance-eng
+
+# Database schema, RLS policies and migrations.
+/apps/server/prisma/                @gymmap/engineering-leads @gymmap/security
+
+# Authentication, tokens, permissions.
+/apps/server/src/auth/              @gymmap/engineering-leads @gymmap/security
+
+# ---------------------------------------------------------------------------
+# Governance. These documents are the project's law; a change is an amendment.
+# ---------------------------------------------------------------------------
+/docs/PROJECT_CONSTITUTION.md       @gymmap/engineering-leads
+/docs/MASTER_PRD.md                 @gymmap/engineering-leads @gymmap/product
+/docs/engineering/STACK_ADDITIONS.md @gymmap/engineering-leads
+/docs/DECISION_LOG.md               @gymmap/engineering-leads
+
+# ---------------------------------------------------------------------------
+# Build, CI and infrastructure.
+# ---------------------------------------------------------------------------
+/.github/                           @gymmap/engineering-leads
+/infra/                             @gymmap/engineering-leads @gymmap/devops
+/turbo.json                         @gymmap/engineering-leads
+/pnpm-workspace.yaml                @gymmap/engineering-leads
+/tsconfig.base.json                 @gymmap/engineering-leads

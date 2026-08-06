@@ -1,0 +1,53 @@
+# ---------------------------------------------------------------------------
+# Line endings
+#
+# The repository stores LF. Windows checkouts get LF too, because the same
+# files are mounted into Linux containers by infra/compose (A-28). A CRLF
+# shell script in a container fails with a confusing "bad interpreter" error.
+# forceConsistentCasingInFileNames (§9.1) has the equivalent intent for paths.
+# ---------------------------------------------------------------------------
+* text=auto eol=lf
+
+# ---------------------------------------------------------------------------
+# Explicitly binary — never diffed, never EOL-converted
+# ---------------------------------------------------------------------------
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.webp   binary
+*.avif   binary
+*.woff   binary
+*.woff2  binary
+*.ttf    binary
+*.otf    binary
+*.eot    binary
+*.pdf    binary
+*.zip    binary
+*.gz     binary
+*.mp4    binary
+*.webm   binary
+
+# ---------------------------------------------------------------------------
+# Windows-only files that must keep CRLF
+# ---------------------------------------------------------------------------
+*.bat    text eol=crlf
+*.cmd    text eol=crlf
+*.ps1    text eol=crlf
+
+# ---------------------------------------------------------------------------
+# Generated / vendored — collapsed in diffs and excluded from language stats
+# ---------------------------------------------------------------------------
+pnpm-lock.yaml            linguist-generated=true -diff
+package-lock.json         linguist-generated=true -diff
+**/prisma/generated/**    linguist-generated=true -diff
+docs/**                   linguist-documentation
+
+# ---------------------------------------------------------------------------
+# Diff drivers — better hunk headers when reviewing money and schema code
+# ---------------------------------------------------------------------------
+*.ts     diff=typescript
+*.tsx    diff=typescript
+*.md     diff=markdown
+*.prisma diff=typescript
