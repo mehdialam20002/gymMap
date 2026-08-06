@@ -23,3 +23,9 @@ allowBuilds:
   "@prisma/client": true
   "@prisma/engines": true
   prisma: true
+
+  # Arrived transitively with @nestjs/swagger. Scarf's postinstall reports an install ping to a
+  # third party. Nothing depends on it running, and NFR-PRV-* plus the DPDP Act posture make a
+  # silent outbound call at install time exactly the kind of thing that should be opted into
+  # rather than out of.
+  "@scarf/scarf": false

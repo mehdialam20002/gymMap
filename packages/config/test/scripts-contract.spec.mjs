@@ -69,7 +69,10 @@ const DEFERRED = {
     size: 'M-034',
   },
   server: {
-    'test:int': 'M-005 — Testcontainers needs Postgres+PostGIS from Docker Compose',
+    // `test:int` was deferred to M-005 and is now DISCHARGED — apps/server/test/*.int-spec.ts
+    // runs 23 assertions against a real PostgreSQL 16 container. Removing the entry is what
+    // this map is for: it makes "not yet" expire on a schedule rather than decay into "never",
+    // and the test failed the moment the script became real, which is how the expiry works.
     'test:isolation': 'M-015 — THE CROSS-TENANT ISOLATION SUITE',
   },
 };

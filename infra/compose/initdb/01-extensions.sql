@@ -68,10 +68,14 @@ DECLARE
     ];
     missing text[];
 BEGIN
-    SELECT array_agg(name ORDER BY name) INTO missing
-    FROM unnest(required) AS name
+    -- The alias must be a plain column alias that the correlated subquery can reference.
+    -- `unnest(required) AS name` does NOT create a table named `unnest`, so `unnest.name`
+    -- raised "missing FROM-clause entry" on the first real container start — the assertion
+    -- never ran, and the NOTICE claiming all extensions were available never printed either.
+    SELECT array_agg(ext ORDER BY ext) INTO missing
+    FROM unnest(required) AS ext
     WHERE NOT EXISTS (
-        SELECT 1 FROM pg_available_extensions AS ae WHERE ae.name = unnest.name
+        SELECT 1 FROM pg_available_extensions AS ae WHERE ae.name = ext
     );
 
     IF missing IS NOT NULL THEN
@@ -95,8 +99,32 @@ $$;
 -- ═══════════════════════════════════════════════════════════════════════════════════════════
 ALTER DATABASE gymmap SET timezone TO 'UTC';
 
--- Deterministic ordering, matching POSTGRES_INITDB_ARGS --locale=C. An index whose order
--- depends on the host locale is an index that sorts differently on a developer's machine than
--- in CI, which surfaces as a flaky pagination test nobody can reproduce.
-ALTER DATABASE gymmap SET lc_collate TO 'C';
-ALTER DATABASE gymmap SET lc_ctype TO 'C';
+-- ═══════════════════════════════════════════════════════════════════════════════════════════
+-- ASSERTION 3 — deterministic collation.
+--
+-- An index whose order depends on the host locale sorts differently on a developer's machine
+-- than in CI, and it surfaces as a flaky pagination test nobody can reproduce.
+--
+-- Collation is NOT settable here. `ALTER DATABASE … SET lc_collate` raises "unrecognized
+-- configuration parameter" — it is fixed when the cluster is initialised, which is what
+-- `POSTGRES_INITDB_ARGS: --locale=C` in compose.yaml does. So this ASSERTS the outcome rather
+-- than attempting to cause it. (The attempt was in this file for one container start and did
+-- nothing but log an error, which is exactly the sort of line that gets read as "handled".)
+-- ═══════════════════════════════════════════════════════════════════════════════════════════
+DO $$
+DECLARE
+    actual text;
+BEGIN
+    SELECT datcollate INTO actual FROM pg_database WHERE datname = current_database();
+    IF actual <> 'C' THEN
+        RAISE EXCEPTION
+            E'\n\n'
+            '  Database collation is "%", expected "C".\n\n'
+            '  Index ordering would then depend on the host locale, so ORDER BY disagrees\n'
+            '  between a developer''s machine and CI. Set POSTGRES_INITDB_ARGS --locale=C in\n'
+            '  infra/compose/compose.yaml and run: pnpm infra:reset\n',
+            actual;
+    END IF;
+    RAISE NOTICE 'Collation C confirmed.';
+END
+$$;

@@ -163,12 +163,17 @@ services:
         # ...and verified. `mc anonymous get` prints the effective policy; if it
         # is anything but `none`, bring-up fails here rather than serving
         # someone's Aadhaar card to an unauthenticated GET.
+        # `mc anonymous get` reports the effective policy in prose, and the wording for "no
+        # anonymous access" is `private`, not `none` — `none` is what you SET, `private` is what
+        # you READ back. Matching on `none` rejected a correctly-private bucket on the first
+        # real run. The check is now written as a DENY list rather than an allow list, so a
+        # future mc release that invents a fourth word for "no access" cannot fail us closed
+        # by accident, while any word that means access still fails us open-loudly.
         KYC_POLICY="$$(mc anonymous get local/gymmap-kyc)"
         case "$$KYC_POLICY" in
-          *none*) ;;
-          *)
-            echo "FATAL: the kyc bucket is not private. Effective policy: $$KYC_POLICY" >&2
-            echo "BR-DAT-07 requires KYC documents to be unreachable anonymously." >&2
+          *download*|*upload*|*public*|*write*)
+            echo "FATAL: the kyc bucket permits anonymous access. Effective policy: $$KYC_POLICY" >&2
+            echo "BR-DAT-07 — KYC documents are PAN cards, Aadhaar and bank proofs." >&2
             exit 1
             ;;
         esac

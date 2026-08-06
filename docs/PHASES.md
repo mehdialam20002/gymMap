@@ -496,8 +496,8 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-002 | `packages/config` — custom lint rules, architecture boundaries | ✅ `DONE` *(partial, see below)* | `f02a6ce` | 42/42 tests · depcruise 0 errors |
 | M-003 | `packages/types` — branded ids, Money, error registry | ✅ `DONE` | `9e8bfa5` | 29/29 tests |
 | M-004 | NestJS bootstrap, typed config, error envelope, redacted logging | ✅ `DONE` | `78ebf18` | 58/58 tests · booted and curled |
-| M-005 | Docker Compose: Postgres 16 + PostGIS, Redis 7, MinIO, Mailpit | 🟡 `DONE (unverified)` | `6e54781` | File-level tests pass · **AC-1 blocked: WSL2 installed, awaiting reboot** |
-| M-006 | Prisma init and `0_init` — extensions, domains, enums, four roles | 🟡 `DONE (unverified)` | — | 81 enums · 12 domains · 4 roles · 0 tables · 21/21 lint tests · **integration tests need Docker** |
+| M-005 | Docker Compose: Postgres 16 + PostGIS, Redis 7, MinIO, Mailpit | ✅ `DONE` | `6e54781` | **4/4 services healthy · infra:verify 7/7** |
+| M-006 | Prisma init and `0_init` — extensions, domains, enums, four roles | ✅ `DONE` | `075bd88` | **23/23 integration tests on real PG16** · 81 enums · 460 values · 12 domains · 4 roles · 0 tables |
 | M-007 | `pr.yml` — the ten always-on gates, 23 modules, 23 runbooks | ✅ `DONE` | — | 15/15 structure tests · 3 violation fixtures prove the gates bite |
 | M-007…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
 

@@ -980,12 +980,43 @@ GRANT CREATE ON SCHEMA public TO app_migrator;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM PUBLIC;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM PUBLIC;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE USAGE ON TYPES FROM PUBLIC;
 
--- Domains and enums are usable by the application roles; that is not an access right to data.
-GRANT USAGE ON TYPE money_minor, money_minor_nonneg, currency_code, basis_points,
-  iana_timezone, country_code, slug, phone_e164, email_address, pan_in, gstin_in,
-  financial_year_label
-  TO app_rw, app_append, app_platform_ro;
+-- ───────────────────────────────────────────────────────────────────────────────────────────
+-- Types are the exception PostgreSQL makes to "no default access", and it caught this file out.
+--
+-- `REVOKE ALL ON SCHEMA public FROM PUBLIC` does NOT touch type privileges: every CREATE TYPE
+-- and CREATE DOMAIN grants USAGE to PUBLIC implicitly. So after the first real run of this
+-- migration, PUBLIC held USAGE on all 93 types while the comment above claimed otherwise.
+--
+-- To be clear about the stakes: type USAGE grants no access to any DATA. It permits referencing
+-- the type in a definition and calling its I/O functions, nothing more. This is not a
+-- vulnerability, and it is corrected anyway — because §2.2's whole design is that ABSENCE is the
+-- default and every privilege is a deliberate, visible line. An exception that only holds for
+-- types is an exception someone has to remember, and the next person reading the comment above
+-- would have believed it.
+--
+-- A loop rather than 93 statements: a hand-written list would be missing an entry within a month.
+-- ───────────────────────────────────────────────────────────────────────────────────────────
+DO $$
+DECLARE
+    t record;
+BEGIN
+    FOR t IN
+        SELECT format('%I.%I', n.nspname, ty.typname) AS qualified
+        FROM pg_type ty
+        JOIN pg_namespace n ON n.oid = ty.typnamespace
+        WHERE n.nspname = 'public'
+          AND ty.typtype IN ('e', 'd')          -- enums and domains
+    LOOP
+        EXECUTE format('REVOKE ALL ON TYPE %s FROM PUBLIC', t.qualified);
+        EXECUTE format(
+            'GRANT USAGE ON TYPE %s TO app_rw, app_append, app_platform_ro, app_migrator',
+            t.qualified
+        );
+    END LOOP;
+END
+$$;
 
 -- ═══════════════════════════════════════════════════════════════════════════════════════════
 -- 6 · DEFERRED, AND WHY — nothing here is silently dropped (CLAUDE.md §9.6)
