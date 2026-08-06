@@ -32,7 +32,7 @@ A conflict is never resolved in code. It is resolved by the owner, recorded in
 
 ## 2. Precedence — when two documents disagree, the higher one wins
 
-```
+```text
 PROJECT_CONSTITUTION.md        how we build — immutable
         ↓
 MASTER_PRD.md                  what we build — changes only via Part C §C10 Change Control
@@ -51,23 +51,27 @@ deleted, and the behaviour is re-derived from the PRD.
 
 ## 3. Phase 8 is LOCKED
 
-[`docs/PHASES.md`](docs/PHASES.md) is the execution ledger and the project heartbeat. **Read it every
-session.**
+[`docs/PHASES.md`](docs/PHASES.md) is the execution ledger and the project heartbeat. **Read it at the
+start of every session — it is the authority on phase state, and it changes daily.**
 
-| Phase                                                                          | State         |
-| :----------------------------------------------------------------------------- | :------------ |
-| 0 Constitution · 1 PRD · 2 Engineering · 3 Backlog · 4 Database · G Governance | `DONE`        |
-| 5 API Design · 6 UI Documentation · 7 Roadmap                                  | `NOT STARTED` |
-| **8 Implementation (code)**                                                    | **`BLOCKED`** |
+Do not trust a phase status quoted anywhere else, including in this file. The Phase Summary Board in
+`PHASES.md` is the only current answer. What is fixed, and repeated here because it gates everything:
 
-Phase 8 unlocks only when Phases 0–7 and G are all `DONE` **and** the project owner records explicit
-approval in the _Phase 8 Unlock Record_ in `PHASES.md`.
+> **Phase 8 (implementation) is `BLOCKED`.** It unlocks only when Phases 0–7 and G are all `DONE`
+> **and** the project owner records explicit approval in the _Phase 8 Unlock Record_ in `PHASES.md`.
 
-**Until then: no application code.** No React components, no NestJS controllers or routes, no Prisma
-schema, no migrations. Illustrative snippets inside documentation are permitted and must be labelled
-`illustrative — not committed code`.
+**Until it unlocks: no application code.** No React components, no NestJS controllers or routes, no
+Prisma schema, no migrations. Illustrative snippets inside documentation are permitted and must be
+labelled `illustrative — not committed code`.
 
 Environment, tooling and repository configuration are **not** Phase 8 work and may proceed.
+
+### More than one session may be working here at once
+
+The documentation phases are authored in a **separate concurrent session** that writes to `docs/`
+continuously. Before editing anything under `docs/`, check the file's modification time and re-read
+it — a file you read ten minutes ago may already have moved on. Prefer appending to a document over
+rewriting it, and never rewrite a specification file wholesale.
 
 ---
 
@@ -88,7 +92,7 @@ otherwise silently returns the wrong rows.
 
 ---
 
-## 5. The stack is locked. Substitution is forbidden.
+## 5. The stack is locked — substitution is forbidden
 
 From [`docs/engineering/STACK_ADDITIONS.md`](docs/engineering/STACK_ADDITIONS.md):
 
@@ -131,7 +135,7 @@ indicator. A-19 notification vendors remain open.
 [`docs/engineering/FolderStructure.md`](docs/engineering/FolderStructure.md) §2: _"A directory not
 listed here does not exist without an amendment under constitution §24."_
 
-```
+```text
 apps/       customer-web · gym-dashboard · admin-dashboard · server
 packages/   ui · types · utils · config
 infra/      terraform · docker · compose · k8s
@@ -158,7 +162,7 @@ Root laws that bite in practice:
 Branch: `<type>/<PRD-id>-<kebab-summary>`, ≤ 60 characters.
 Commit: `<type>(<PRD-ID>): <imperative summary, ≤ 72 chars>`
 
-```
+```text
 feat/FR-CHK-04-checkin-validation-sequence
 feat(FR-CHK-04): enforce the ten-step check-in validation order
 fix(BR-PAY-03): return the stored response on idempotency-key replay
@@ -186,7 +190,7 @@ pnpm infra:reset   # stop and DESTROY volumes
 | PostgreSQL + PostGIS   | `localhost:5432` · db `gymmap` · `postgres` / `postgres`          |
 | Redis                  | `localhost:6379`                                                  |
 | MinIO S3 API / console | `localhost:9000` / `localhost:9001` · `minioadmin` / `minioadmin` |
-| Mailpit SMTP / UI      | `localhost:1025` / http://localhost:8025                          |
+| Mailpit SMTP / UI      | `localhost:1025` / <http://localhost:8025>                        |
 
 Copy `.env.example` → `.env.local`. Never commit a real credential; `.env.local` is git-ignored and
 Gitleaks-scanned.
