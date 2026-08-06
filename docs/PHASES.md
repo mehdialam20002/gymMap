@@ -467,24 +467,58 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 
 ---
 
-## Phase 8 — Implementation (LOCKED)
+## Phase 8 — Implementation (IN PROGRESS)
 
 **Goal.** Build the platform, milestone by milestone, per `/docs/roadmap/`.
 **Depends on.** Phases 0–7 and G, all `DONE`, plus explicit owner approval.
-**Status.** `BLOCKED — awaiting Phase 0–7 completion and owner sign-off`
+**Status.** `IN PROGRESS — Sprint 0, foundations. 3 of 120 milestones complete.`
 
 ### Pre-flight, mandatory before *any* code
 
-- [ ] Read `/docs/PROJECT_CONSTITUTION.md`
-- [ ] Read `/docs/MASTER_PRD.md`
-- [ ] Read `/docs/engineering/`
-- [ ] Read `/docs/database/`
-- [ ] Read `/docs/apis/`
-- [ ] Read `/docs/ui/`
-- [ ] Read `/docs/backlog/`
-- [ ] Read `/docs/roadmap/`
-- [ ] Confirm the requested work does not conflict with any of the above.
+- [x] Read `/docs/PROJECT_CONSTITUTION.md`
+- [x] Read `/docs/MASTER_PRD.md`
+- [x] Read `/docs/engineering/`
+- [x] Read `/docs/database/`
+- [x] Read `/docs/apis/`
+- [x] Read `/docs/ui/`
+- [x] Read `/docs/backlog/`
+- [x] Read `/docs/roadmap/`
+- [x] Confirm the requested work does not conflict with any of the above.
       **If it conflicts: stop, explain the conflict, wait for confirmation.**
+
+### Milestone ledger
+
+Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
+
+| Milestone | Title | Status | Commit | Verification |
+| :--- | :--- | :--- | :--- | :--- |
+| M-001 | `tsconfig` presets and the compiler contract | ✅ `DONE` | `370d4c5` | 9/9 typecheck · 30/30 tests |
+| M-002 | `packages/config` — custom lint rules, architecture boundaries | ✅ `DONE` *(partial, see below)* | `f02a6ce` | 42/42 tests · depcruise 0 errors |
+| M-003 | `packages/types` — branded ids, Money, error registry | ✅ `DONE` | — | 29/29 tests · 24/24 turbo tasks |
+| M-004 | NestJS bootstrap, typed config, error envelope, redacted logging | ⬜ `NEXT` | — | — |
+| M-005 | Docker Compose: Postgres 16 + PostGIS, Redis 7, MinIO, Mailpit | ⬜ `TODO` | — | — |
+| M-006 | Prisma init and `0_init` — extensions, domains, enums, four roles | ⬜ `TODO` | — | — |
+| M-007…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+
+**M-002 deferrals**, made under the owner's *"do what is necessary, otherwise move on"* steer.
+Each is deferred to the milestone that first creates a consumer for it — none is dropped:
+
+| Deferred | Discharged by | Why it cannot be built yet |
+| :--- | :--- | :--- |
+| Jest preset + the NFR-MNT-01 coverage threshold map | M-005 / M-015 | Node 22's native type stripping runs the current specs; a Jest preset is needed once there are integration and Testcontainers layers to configure. |
+| Playwright config | M-034 | No UI surface exists to drive. |
+| `size-limit` budgets | M-034 | No bundle exists to measure against NFR-PERF-10. |
+| Tailwind preset + design tokens | M-036 | Tokens are defined with the first `packages/ui` component, not before. |
+
+**Deviations recorded during Sprint 0**
+
+| # | Deviation | Resolution |
+| :-: | :--- | :--- |
+| D-1 | `nest.json` must set `verbatimModuleSyntax: false` (TS1287 — NestJS is CommonJS-first) | Recorded as **TD-030**; the residual hazard is closed by the `no-type-import-in-ctor` lint rule shipped in M-002. |
+| D-2 | `nest.json` must set `strictPropertyInitialization: false` | Recorded as **TD-029**. |
+| D-3 | `moduleResolution: node10` is deprecated in TypeScript 6 | Override removed; `nest.json` inherits `NodeNext`, which resolves as CJS because `apps/server` declares no `"type": "module"`. |
+| D-4 | Roadmap M-003 names `IDEMPOTENCY_KEY_REUSED`; constitution §13.2.2 names `IDEMPOTENCY_KEY_MISMATCH` for the same condition | Constitution wins — it governs the registry, and §13.2.1 forbids two codes for one condition. Roadmap wording to be corrected. Noted in `packages/types/src/errors/registry.ts`. |
+| D-5 | Roadmap M-003 AC-4 cites `Security.md` §2.3 as the error registry; §2.3 is the OTP design | Registry lives at `packages/types/src/errors/registry.ts` per constitution §13.2.1. The union is **derived** from it, so AC-4's intent is structural rather than CI-checked. |
 
 ### Phase 8 Unlock Record
 

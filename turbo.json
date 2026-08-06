@@ -7,23 +7,56 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
-    "typecheck": { "dependsOn": ["^build"], "outputs": [] },
-    "lint": { "outputs": [] },
+    "typecheck": {
+      "dependsOn": ["^build", "build"],
+      "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    },
     "architecture": {
       "outputs": ["dependency-graph.svg", "dependency-graph.json"]
     },
-    "test:unit": { "dependsOn": ["^build"], "outputs": ["coverage/**"] },
-    "test:int": { "dependsOn": ["^build"], "outputs": [], "cache": false },
-    "test:contract": { "dependsOn": ["build"], "outputs": [], "cache": false },
-    "test:isolation": { "dependsOn": ["^build"], "outputs": [], "cache": false },
+    "test:unit": {
+      "dependsOn": ["^build", "build"],
+      "outputs": ["coverage/**"]
+    },
+    "test:int": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "cache": false
+    },
+    "test:contract": {
+      "dependsOn": ["build"],
+      "outputs": [],
+      "cache": false
+    },
+    "test:isolation": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "cache": false
+    },
     "test:e2e": {
       "dependsOn": ["build"],
       "outputs": ["playwright-report/**"],
       "cache": false
     },
-    "test:a11y": { "dependsOn": ["build"], "outputs": [], "cache": false },
-    "size": { "dependsOn": ["build"], "outputs": [] },
-    "openapi:check": { "dependsOn": ["build"], "outputs": [] },
-    "dev": { "cache": false, "persistent": true }
+    "test:a11y": {
+      "dependsOn": ["build"],
+      "outputs": [],
+      "cache": false
+    },
+    "size": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
+    "openapi:check": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
   }
 }

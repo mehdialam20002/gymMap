@@ -17,11 +17,11 @@
   ],
   "//": "M-001 · §3.6 script contract. A no-op is the literal string, never a missing script.",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo \"no-op\"",
     "architecture": "echo \"no-op\"",
-    "test:unit": "echo \"no-op\"",
+    "test:unit": "node --test test/*.spec.ts test/*.type-spec.ts",
     "test:int": "echo \"no-op\"",
     "test:contract": "echo \"no-op\"",
     "test:isolation": "echo \"no-op\"",
@@ -34,5 +34,8 @@
     "@gymmap/config": "workspace:*",
     "@types/node": "^22.10.0",
     "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
   }
 }

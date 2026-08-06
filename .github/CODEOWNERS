@@ -50,3 +50,18 @@
 /turbo.json                         @gymmap/engineering-leads
 /pnpm-workspace.yaml                @gymmap/engineering-leads
 /tsconfig.base.json                 @gymmap/engineering-leads
+
+# ---------------------------------------------------------------------------
+# M-003 AC-7 · Generated code. Written by CI (openapi-typescript) from M-008
+# onward and NEVER hand-edited — a manual fix here is overwritten by the next
+# contract job with no warning, so the fix silently disappears and the bug
+# comes back. Ownership is the lock: a diff under this path needs a lead.
+# ---------------------------------------------------------------------------
+/packages/types/src/api/generated/  @gymmap/engineering-leads
+
+# The error-code registry. §13.2.1 makes codes permanent — never renamed, never
+# reused — because clients branch on them and old app versions live for months.
+/packages/types/src/errors/         @gymmap/engineering-leads
+
+# The money contract. BR-PAY-01 / KPI-26 reconciliation depends on it.
+/packages/types/src/money.ts        @gymmap/engineering-leads

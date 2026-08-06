@@ -1,6 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
+  "//": "M-003 · the CHECKED graph — src and test. AC-2's negative type tests only bite if `tsc` sees them.",
   "extends": "@gymmap/config/tsconfig/node",
-  "compilerOptions": { "outDir": "dist", "rootDir": "src", "tsBuildInfoFile": "dist/.tsbuildinfo" },
-  "include": ["src/**/*.ts"]
+  "compilerOptions": { "outDir": "dist", "rootDir": ".", "tsBuildInfoFile": "dist/.tsbuildinfo" },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
 }

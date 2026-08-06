@@ -1,0 +1,3 @@
+# M-003 AC-7 — written by CI from M-008 onward (openapi-typescript). NEVER hand-edited.
+# The CODEOWNERS lock at repo root enforces that; a hand edit is overwritten by the next
+# contract job without warning, so a fix made here silently disappears.
