@@ -1,0 +1,92 @@
+# M-007 · The one place the toolchain is set up. CI_CD.md §2.5, §4.3 job 1.
+#
+# Every job composes this instead of repeating a setup block. Repeated setup blocks drift: one
+# job pins Node 22 and another floats, and the difference only shows up as a test that passes in
+# one job and fails in another with no visible cause.
+name: setup-workspace
+description: Install the pinned toolchain, restore the pnpm store, and report the affected graph.
+
+inputs:
+  fetch-depth:
+    description: >-
+      Checkout depth. Jobs that inspect history (commit-grammar, affected-graph) need more than
+      the default shallow clone.
+    required: false
+    default: "1"
+
+outputs:
+  affected:
+    description: Space-separated list of affected workspace packages, empty if none.
+    value: ${{ steps.affected.outputs.packages }}
+
+runs:
+  using: composite
+  steps:
+    # Actions are pinned by COMMIT SHA, not tag (CI_CD.md §2.5, AC-7). A tag is mutable and
+    # points wherever its owner repoints it — `@v4` on a compromised action is arbitrary code
+    # execution inside a job that holds repository credentials. The version comment is for
+    # humans; the SHA is what runs.
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      with:
+        fetch-depth: ${{ inputs.fetch-depth }}
+
+    - name: Read the pinned Node version
+      id: nvm
+      shell: bash
+      run: echo "version=$(cat .nvmrc | tr -d '\nv ')" >> "$GITHUB_OUTPUT"
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+      with:
+        run_install: false
+
+    - name: Install Node
+      uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+      with:
+        node-version: ${{ steps.nvm.outputs.version }}
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      # `--frozen-lockfile` is the whole point: CI must fail on a lockfile that does not match
+      # package.json rather than quietly resolving something newer. A CI run that silently
+      # installs a different tree than the developer had is not a verification of anything.
+      run: pnpm install --frozen-lockfile
+
+    - name: Compute the affected graph
+      id: affected
+      shell: bash
+      run: |
+        set -euo pipefail
+        BASE="${{ github.event.pull_request.base.sha || 'HEAD~1' }}"
+        PACKAGES="$(pnpm turbo run build --filter="...[${BASE}]" --dry-run=json 2>/dev/null \
+          | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{
+              try { const j=JSON.parse(d); console.log([...new Set((j.tasks||[]).map(t=>t.package))].join(' ')); }
+              catch { console.log(''); }
+            })" || echo "")"
+        echo "packages=$PACKAGES" >> "$GITHUB_OUTPUT"
+
+        {
+          echo "### Affected workspaces"
+          echo ""
+          if [ -z "$PACKAGES" ]; then
+            echo "**None.** No workspace package is affected by this diff."
+            echo ""
+            # AC-8 requires this to be explicit. A summary that just says "nothing affected" reads
+            # like "nothing was checked", and the next question in review is always the same.
+            echo "The following gates ran **anyway**, because they are never affected-filtered:"
+            echo ""
+            echo "| Job | Why it always runs |"
+            echo "| :-- | :-- |"
+            echo "| 2 \`commit-grammar\` | Inspects commit messages, not files |"
+            echo "| 5 \`architecture\` | A boundary is a property of the WHOLE graph — a violation can be introduced by a file that is not itself \"affected\" |"
+            echo "| 6 \`module-structure\` | Counts the 23 modules; a deletion is invisible to an affected filter |"
+            echo "| 16 \`scan-secrets\` | A secret in any file, changed or not |"
+            echo "| 25 \`pipeline-integrity\` | Validates the workflows themselves |"
+          else
+            echo "| Package |"
+            echo "| :-- |"
+            for p in $PACKAGES; do echo "| \`$p\` |"; done
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"

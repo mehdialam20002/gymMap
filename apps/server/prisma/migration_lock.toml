@@ -1,0 +1,6 @@
+# PM-5. Committed, never edited by hand.
+#
+# Prisma writes this once and reads it on every migrate. Changing the provider here does not
+# port the migrations — it makes Prisma apply Postgres DDL against whatever the new provider is,
+# and the failure is at deploy time against a real database.
+provider = "postgresql"

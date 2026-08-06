@@ -1,0 +1,61 @@
+# M-007 · The uncached full matrix, plus placeholders for the jobs that arrive later.
+#
+# Nightly exists because the PR pipeline is deliberately fast: it caches, it filters by affected
+# workspace, and it skips anything slow. Every one of those choices can hide a real failure, and
+# nightly is the run with none of them.
+
+name: nightly
+
+on:
+  schedule:
+    # 19:00 UTC = 00:30 Asia/Kolkata — after the working day in the launch market, so a red
+    # nightly is waiting at the start of the next one rather than three hours into it.
+    - cron: "0 19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-matrix:
+    name: full uncached build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TURBO_FORCE: "true" # ignore every cache entry
+    steps:
+      - uses: ./.github/actions/setup-workspace
+        with:
+          fetch-depth: "0"
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm test:unit
+      - run: pnpm exec depcruise --config .dependency-cruiser.cjs apps packages --output-type err
+      - run: node packages/config/scripts/module-structure.mjs
+
+  # ---------------------------------------------------------------------------
+  # Placeholders. Each is wired by the milestone that first gives it something
+  # real to measure. They are listed rather than omitted so the gap is visible:
+  # an absent job looks like an oversight, a listed one is a commitment with a
+  # date. A job that passes while asserting nothing is the outcome to avoid.
+  # ---------------------------------------------------------------------------
+  performance:
+    name: k6 performance (wired by M-049)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Not yet wired
+        run: |
+          echo "::notice::k6 arrives with M-049 — the NFR-PERF-01 search gate."
+          echo "There is no search endpoint to load yet; a green run here would assert nothing."
+
+  restore-drill:
+    name: restore drill (wired by M-006)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Not yet wired
+        run: |
+          echo "::notice::The restore drill arrives with M-006 — there is no database to restore."
+          echo "NFR-AVL-08 requires a PROVEN restore, which means restoring a real backup."

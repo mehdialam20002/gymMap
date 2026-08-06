@@ -17,7 +17,7 @@
     "typecheck": "echo \"no-op\"",
     "lint": "eslint .",
     "architecture": "depcruise --config ../../.dependency-cruiser.cjs ../../apps ../../packages --output-type err",
-    "test:unit": "node --test test/*.spec.mjs eslint/rules/*.spec.cjs dependency-cruiser/*.spec.cjs",
+    "test:unit": "node --test test/*.spec.mjs eslint/rules/*.spec.cjs dependency-cruiser/*.spec.cjs scripts/*.spec.mjs",
     "test:int": "echo \"no-op\"",
     "test:contract": "echo \"no-op\"",
     "test:isolation": "echo \"no-op\"",

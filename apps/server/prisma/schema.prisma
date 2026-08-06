@@ -1,0 +1,32 @@
+// M-006 · The Prisma schema. ZERO MODELS, deliberately.
+//
+// ┌─ READ THIS BEFORE RUNNING `prisma migrate dev` ────────────────────────────────────────┐
+// │ Prisma's diff engine knows nothing about roles, domains, policies or grants. It sees   │
+// │ only models. `0_init` creates 81 enum types, 12 domains, 4 roles and a blanket revoke, │
+// │ and NONE of that appears below — so the diff engine reads all of it as drift and will  │
+// │ cheerfully generate a migration that DROPS it.                                          │
+// │                                                                                         │
+// │ Dropping the four roles is dropping the enforcement of BR-TEN-01.                       │
+// │                                                                                         │
+// │ Therefore: migrations in this project are HAND-WRITTEN and validated by                 │
+// │ packages/config/scripts/migration-lint.mjs. Use `prisma migrate diff` to INSPECT, and   │
+// │ `prisma migrate deploy` to APPLY. Never `prisma migrate dev` against a real database.   │
+// └─────────────────────────────────────────────────────────────────────────────────────────┘
+//
+// Tables arrive one migration at a time from M-009 onward, each carrying its RLS policy and
+// grants in the same file (MG10, P9, R-6). Models are added here to match, never ahead.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// §8.6 — models are PascalCase and map to snake_case tables via @@map. The database is the
+// contract with SQL, psql and every report; the model name is a TypeScript convenience.
+//
+// No models yet. R-M1.

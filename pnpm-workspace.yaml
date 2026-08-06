@@ -11,3 +11,15 @@ packages:
 # @nestjs/core's postinstall only prints a support message - nothing needs it to run.
 allowBuilds:
   "@nestjs/core": false
+
+  # A-01, A-07 · Prisma. These three are `true` because Prisma's postinstall downloads the
+  # query-engine binary for the host platform and generates the typed client. Without it
+  # `prisma migrate` and `PrismaClient` do not exist — this is not telemetry or a nag banner,
+  # it is the package's actual installation.
+  #
+  # The engines are integrity-checked against the lockfile, and A-01 was approved with the
+  # tenant-context extension as its condition (ADR-0005) — that condition is enforced in code
+  # by the `no-raw-prisma-outside-tenancy` dependency-cruiser rule, not by blocking the install.
+  "@prisma/client": true
+  "@prisma/engines": true
+  prisma: true

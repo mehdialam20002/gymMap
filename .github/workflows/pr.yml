@@ -1,0 +1,340 @@
+# M-007 · The ten always-on gates. CI_CD.md §4.3.
+#
+# TEN of the twenty-six jobs are wired here — the ten that can assert something real today.
+# Jobs 7 (unit), 8-10 (api-gates, api-absence-assertions, openapi-drift), 11 (migration-safety),
+# 12 (integration), 13 (isolation), 14 (contract), 17 (scan-sast), 21 (bac06-report) and 22
+# (docs-traceability) arrive with the milestone that first gives them something to check, and
+# the browser-surface jobs 18, 19 and 24 with the front-end band.
+#
+# Wiring a job with nothing to assert produces a green check that means nothing, which is worse
+# than an absent one: it is a claim of coverage that no one has to defend.
+#
+# BRANCH PROTECTION NAMES EXACTLY ONE CHECK: `gate-summary`. That is deliberate and it is also
+# the rollback plan — every future job is added without touching branch protection, and a
+# reverted job cannot leave a required check permanently pending.
+
+name: pr
+
+on:
+  pull_request:
+    branches: [main, develop]
+  merge_group:
+
+# A new push supersedes the previous run on the same PR. Without this, a branch pushed five
+# times holds five runners for work whose answer is already stale.
+concurrency:
+  group: pr-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Least privilege by default. A job needing more says so locally (CI_CD.md §2.5).
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: "1"
+  DO_NOT_TRACK: "1"
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 1 · setup — install once, publish the affected graph (AC-8)
+  # ═══════════════════════════════════════════════════════════════════════════
+  setup:
+    name: 1 · setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      affected: ${{ steps.workspace.outputs.affected }}
+    steps:
+      - id: workspace
+        uses: ./.github/actions/setup-workspace
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 2 · commit-grammar — every commit cites a PRD identifier
+  #
+  # Constitution §20.3. Not bureaucracy: `git log --grep=FR-CHK-04` is how anyone answers
+  # "why is this code like this" two years from now, and it only works if the link was made
+  # at commit time. Nothing reconstructs it later.
+  # ═══════════════════════════════════════════════════════════════════════════
+  commit-grammar:
+    name: 2 · commit-grammar
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: ./.github/actions/setup-workspace
+        with:
+          fetch-depth: "0" # needs history to read the range
+
+      - name: Conventional Commits
+        run: |
+          pnpm exec commitlint \
+            --from "${{ github.event.pull_request.base.sha }}" \
+            --to "${{ github.event.pull_request.head.sha }}" \
+            --verbose
+
+      - name: Every commit cites a PRD identifier
+        run: |
+          set -euo pipefail
+          PATTERN='(FR|BR|NFR|AC|US|EP|E2E|BAC|KPI|OBJ|SCR|API|RSK|TD|ADR|M)-[A-Z0-9]+'
+          FAILED=0
+          while IFS= read -r sha; do
+            [ -z "$sha" ] && continue
+            MESSAGE="$(git log -1 --format='%B' "$sha")"
+            if ! printf '%s' "$MESSAGE" | grep -Eq "$PATTERN"; then
+              echo "::error::Commit $(git log -1 --format='%h %s' "$sha") cites no PRD identifier."
+              echo "  Put it in the scope — feat(FR-CHK-04): … — or in a Refs: footer."
+              FAILED=1
+            fi
+          done < <(git rev-list "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}")
+          exit $FAILED
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 3 · lint — warnings are errors, and suppressions must be justified (AC-4)
+  # ═══════════════════════════════════════════════════════════════════════════
+  lint:
+    name: 3 · lint
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 10
+    steps:
+      - uses: ./.github/actions/setup-workspace
+
+      - name: Formatting
+        run: pnpm format:check
+
+      - name: ESLint — zero warnings
+        # A warning nobody must fix is a warning everybody ignores, and the count only grows.
+        run: pnpm lint -- --max-warnings=0
+
+      - name: An eslint-disable must cite a DECISION_LOG entry
+        run: |
+          set -euo pipefail
+          # A rule suppressed without a recorded reason is a rule that was inconvenient once.
+          # The reference is what lets a reviewer distinguish "we thought about this" from
+          # "the build was red and I was in a hurry".
+          MATCHES="$(grep -rn --include='*.ts' --include='*.tsx' --include='*.mjs' --include='*.cjs' \
+            -E 'eslint-disable(-next-line|-line)?' apps packages 2>/dev/null \
+            | grep -vE 'ADR-[0-9]{4}|DECISION_LOG|TD-[0-9]{3}' || true)"
+          if [ -n "$MATCHES" ]; then
+            echo "::error::eslint-disable without an ADR-NNNN, TD-NNN or DECISION_LOG reference:"
+            echo "$MATCHES"
+            exit 1
+          fi
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 4 · typecheck
+  # ═══════════════════════════════════════════════════════════════════════════
+  typecheck:
+    name: 4 · typecheck
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 10
+    steps:
+      - uses: ./.github/actions/setup-workspace
+      - run: pnpm typecheck
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 5 · architecture — the FULL rule set, never cached, never affected-filtered (AC-3)
+  #
+  # A boundary is a property of the whole graph. An affected filter would miss a violation
+  # introduced by a file that is not itself in the diff — which is most of them, because the
+  # edge that breaks a boundary usually lives at the far end.
+  # ═══════════════════════════════════════════════════════════════════════════
+  architecture:
+    name: 5 · architecture
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 10
+    steps:
+      - uses: ./.github/actions/setup-workspace
+
+      - name: dependency-cruiser — full graph
+        run: pnpm exec depcruise --config .dependency-cruiser.cjs apps packages --output-type err
+
+      - name: Publish the module graph
+        if: always()
+        run: |
+          pnpm exec depcruise --config .dependency-cruiser.cjs apps packages \
+            --output-type json > dependency-graph.json
+
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        if: always()
+        with:
+          name: module-graph
+          path: dependency-graph.json
+          retention-days: 14
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 6 · module-structure — exactly 23 modules, §8.3 READMEs, no forbidden directories (AC-5)
+  # ═══════════════════════════════════════════════════════════════════════════
+  module-structure:
+    name: 6 · module-structure
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 5
+    steps:
+      - uses: ./.github/actions/setup-workspace
+      - run: node packages/config/scripts/module-structure.mjs
+      - name: The validator's own tests
+        run: node --test packages/config/scripts/module-structure.spec.mjs
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 15 · scan-deps — no unapproved dependency, no known vulnerability
+  # ═══════════════════════════════════════════════════════════════════════════
+  scan-deps:
+    name: 15 · scan-deps
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 10
+    steps:
+      - uses: ./.github/actions/setup-workspace
+
+      - name: Audit
+        run: pnpm audit --audit-level=high --prod
+
+      - name: R1a — the root package.json declares no runtime dependencies
+        run: |
+          # FolderStructure R1a. The root is a workspace coordinator; a dependency there is
+          # hoisted into every package's resolution and becomes a phantom import nobody declared.
+          node -e "
+            const pkg = require('./package.json');
+            if (pkg.dependencies && Object.keys(pkg.dependencies).length) {
+              console.error('::error::Root package.json has a dependencies block (R1a):',
+                Object.keys(pkg.dependencies).join(', '));
+              process.exit(1);
+            }
+          "
+
+      - name: Every dependency has an approved A-NN row
+        run: |
+          set -euo pipefail
+          # STACK_ADDITIONS.md standing rule: a dependency with no approved row is a review
+          # blocker. Substitution is forbidden; addition requires the owner's approval FIRST.
+          # Reported, not enforced, until M-008 — the allow-list needs the full manifest to be
+          # accurate, and a false red here would train people to ignore this job.
+          node packages/config/scripts/dependency-approval.mjs || {
+            echo "::warning::Unapproved dependencies detected — see STACK_ADDITIONS.md"
+          }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 16 · scan-secrets — Gitleaks over the full history of the PR range
+  # ═══════════════════════════════════════════════════════════════════════════
+  scan-secrets:
+    name: 16 · scan-secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0 # a secret added and then removed is still in the history
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@83373cf2f8c4db6e24b41c1a9b086bb9619e9cd3 # v2.3.7
+        env:
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+          GITLEAKS_ENABLE_SUMMARY: "true"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 25 · pipeline-integrity — the pipeline checks itself (AC-6, AC-7)
+  # ═══════════════════════════════════════════════════════════════════════════
+  pipeline-integrity:
+    name: 25 · pipeline-integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: ./.github/actions/setup-workspace
+
+      - name: actionlint
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash)
+          ./actionlint -color
+
+      - name: AC-7 — every third-party action is pinned by commit SHA
+        run: node packages/config/scripts/actions-pinned.mjs
+
+      - name: AC-6 — no floating image tag in compose
+        run: node --test apps/server/test/compose-contract.spec.ts
+
+      - name: terraform validate
+        # AC-6 requires this to pass against infra/terraform/, which is EMPTY at this point and
+        # must therefore pass with no special case. An `if: exists()` guard here would be a
+        # special case that silently keeps passing after the directory has real content.
+        run: |
+          set -euo pipefail
+          if ! command -v terraform >/dev/null 2>&1; then
+            curl -fsSL https://releases.hashicorp.com/terraform/1.10.3/terraform_1.10.3_linux_amd64.zip -o tf.zip
+            unzip -q tf.zip && sudo mv terraform /usr/local/bin/
+          fi
+          shopt -s nullglob
+          MODULES=(infra/terraform/**/)
+          if [ ${#MODULES[@]} -eq 0 ]; then
+            echo "infra/terraform/ has no modules yet — nothing to validate, and that is a pass."
+          else
+            for dir in "${MODULES[@]}"; do
+              [ -n "$(echo "$dir"*.tf)" ] || continue
+              echo "validating $dir"
+              terraform -chdir="$dir" init -backend=false -input=false
+              terraform -chdir="$dir" validate
+            done
+          fi
+
+      - name: IaC misconfiguration scan
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # v0.29.0
+        with:
+          scan-type: config
+          scan-ref: infra/
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 26 · gate-summary — THE ONLY CHECK BRANCH PROTECTION NAMES (AC-1)
+  # ═══════════════════════════════════════════════════════════════════════════
+  gate-summary:
+    name: 26 · gate-summary
+    runs-on: ubuntu-latest
+    # `always()` so this still runs when an upstream job fails; without it the required check
+    # would sit "pending" forever on a red PR and nobody could tell a failure from a hang.
+    if: always()
+    needs:
+      - setup
+      - commit-grammar
+      - lint
+      - typecheck
+      - architecture
+      - module-structure
+      - scan-deps
+      - scan-secrets
+      - pipeline-integrity
+    timeout-minutes: 5
+    steps:
+      - name: Summarise and enforce
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          echo "### Gate summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Job | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| :-- | :-- |" >> "$GITHUB_STEP_SUMMARY"
+
+          FAILED=0
+          while IFS=$'\t' read -r job result; do
+            case "$result" in
+              success)  icon="PASS" ;;
+              # `skipped` is legitimate only when a job was filtered out; it is NOT a pass and
+              # is reported as such, so a mis-filtered job cannot hide behind a green summary.
+              skipped)  icon="SKIPPED" ;;
+              *)        icon="FAIL"; FAILED=1 ;;
+            esac
+            echo "| \`$job\` | $icon ($result) |" >> "$GITHUB_STEP_SUMMARY"
+          done < <(printf '%s' "$RESULTS" | node -e "
+            let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{
+              const n=JSON.parse(d);
+              for (const [k,v] of Object.entries(n)) console.log(k+'\t'+v.result);
+            })")
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$FAILED" -ne 0 ]; then
+            echo "**One or more gates failed.**" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "**All gates green.**" >> "$GITHUB_STEP_SUMMARY"

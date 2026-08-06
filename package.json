@@ -35,7 +35,11 @@
     "dev:up": "pnpm infra:up",
     "dev:down": "pnpm infra:down",
     "dev:reset": "pnpm infra:reset",
-    "infra:verify": "node infra/compose/verify.mjs"
+    "infra:verify": "node infra/compose/verify.mjs",
+    "ci:module-structure": "node packages/config/scripts/module-structure.mjs",
+    "ci:actions-pinned": "node packages/config/scripts/actions-pinned.mjs",
+    "ci:deps-approved": "node packages/config/scripts/dependency-approval.mjs",
+    "ci:violations": "for f in .github/deliberate-violations/*.spec.sh; do bash \"$f\" || exit 1; done"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",
