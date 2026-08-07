@@ -79,6 +79,14 @@ test('not-to-dev-dep exempts build config, and nothing that ships', () => {
     'apps/customer-web/postcss.config.mjs',
     'packages/ui/tailwind-preset.ts',
     'packages/config/dependency-cruiser/rules.spec.cjs',
+
+    // M-021 · the HYPHEN forms. This repository names its integration suites `*.int-spec.ts`
+    // and `*.isolation-spec.ts`, and the pattern was anchored on a literal `.spec.` — so every
+    // one of them was subject to the rule. Nothing noticed until an integration suite first
+    // imported @nestjs/testing, which is a devDependency BY DESIGN.
+    'apps/server/test/isolation/otp-endpoints.int-spec.ts',
+    'apps/server/test/isolation/tenancy.isolation-spec.ts',
+    'apps/server/test/isolation/dropped-policy.negative-spec.ts',
   ]) {
     assert.ok(exempt.test(path), `${path} should be exempt from not-to-dev-dep`);
   }
@@ -92,6 +100,14 @@ test('not-to-dev-dep exempts build config, and nothing that ships', () => {
     'apps/customer-web/app/page.tsx',
     'apps/admin-dashboard/src/routes/router.tsx',
     'packages/ui/src/tokens/primitive/palette.ts',
+
+    // The widened `[.-](spec|test)` must not have swallowed anything that merely CONTAINS the
+    // word. A file called `spec.ts` or `inspect.ts` ships, and `-spec` must match only at the
+    // end before the extension.
+    'apps/server/src/iam/domain/spec.ts',
+    'apps/server/src/common/inspect.ts',
+    'apps/server/src/specification.ts',
+    'apps/server/src/test-utils.ts',
   ]) {
     assert.ok(!exempt.test(path), `${path} must NOT be exempt from not-to-dev-dep`);
   }

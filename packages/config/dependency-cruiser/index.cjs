@@ -139,8 +139,16 @@ const STRUCTURAL_RULES = [
     // Three exemptions, each for the same underlying reason: the file never reaches a pruned
     // production image, so the failure this rule prevents cannot occur.
     //
-    //   *.spec / *.test        the custom-rule specs are CommonJS because ESLint's RuleTester
-    //                          is, and they legitimately import eslint itself
+    //   *.spec / *-spec        a test file. The custom-rule specs are CommonJS because ESLint's
+    //   *.test / *-test        RuleTester is and they import eslint itself; the integration
+    //                          suites import @nestjs/testing to override one provider. Both are
+    //                          devDependencies BY DESIGN — that is what a devDependency is for.
+    //
+    //                          The HYPHEN form matters. This repository names its integration
+    //                          suites `*.int-spec.ts` and `*.isolation-spec.ts`, and a pattern
+    //                          anchored on a literal `.spec.` misses every one of them. M-021
+    //                          found it the first time an integration suite imported a devDep,
+    //                          and until then the rule had simply never been reached.
     //   *.config.[cm]?[jt]s    build configuration, executed by the build TOOL in the dev
     //                          environment. `tailwind.config.ts` importing tailwindcss for its
     //                          `Config` type is not a runtime import — it is the tool reading
@@ -156,7 +164,7 @@ const STRUCTURAL_RULES = [
     from: {
       path: '^(apps|packages)',
       pathNot:
-        '\\.(spec|test)\\.[cm]?[jt]sx?$|\\.config\\.[cm]?[jt]s$|/tailwind-preset\\.ts$|' +
+        '[.-](spec|test)\\.[cm]?[jt]sx?$|\\.config\\.[cm]?[jt]s$|/tailwind-preset\\.ts$|' +
         '^packages/config/',
     },
     to: {

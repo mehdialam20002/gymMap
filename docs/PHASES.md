@@ -471,7 +471,7 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 
 **Goal.** Build the platform, milestone by milestone, per `/docs/roadmap/`.
 **Depends on.** Phases 0–7 and G, all `DONE`, plus explicit owner approval.
-**Status.** `IN PROGRESS — Sprint 0 complete, the auth track begun, plus the three UI shells pulled ahead. 20 of 120 milestones. A member can register and sign in with a password over HTTP; an unknown identifier and a wrong password are indistinguishable in status, body and measured latency; and the OpenAPI contract is regenerable for the first time since M-010.`
+**Status.** `IN PROGRESS — Sprint 0 complete, the auth track well under way, plus the three UI shells pulled ahead. 21 of 120 milestones. A member can register and sign in with a password OR a phone OTP over HTTP; an unknown identifier and a wrong password are indistinguishable in status, body and measured latency; and the OpenAPI contract is regenerable for the first time since M-010.`
 
 ### Pre-flight, mandatory before *any* code
 
@@ -515,7 +515,39 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-018 | The transactional **outbox**, the `SKIP LOCKED` dispatcher, the §C5 job harness | ✅ `DONE` | — | **12 outbox integration on real PG16** — 4 concurrent dispatchers × 500 rows, each claimed **exactly once** · 23 job-harness incl. the `TR-25` deliberate double-trigger · 14 channel-port · found 1 real defect in M-017 · raised `BLK-07`, `BLK-08` |
 | M-019 | Identity and RBAC tables — `users` … `role_permissions` | ✅ `DONE` | — | **69 integration on real PG16** + 19 matrix · all **504** §B3.2 cells re-parsed from the PRD and compared · `app_rw` proved unable to write `role_permissions` · found **2 real defects in the schema spec** |
 | M-020 | Argon2id credentials, password policy, lockout, the four `/v1/auth/*` routes | ✅ `DONE` | — | **21 endpoint tests over real HTTP** incl. the enumeration assertion measured against real Argon2id · 18 hasher · 19 policy · 18 Redis · found **6 real defects, 5 pre-existing** · raised `BLK-09` |
-| M-021…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+| M-021 | Phone OTP — the `FR-AUTH-05` limits, two independent ceilings | ✅ `DONE` | — | **18 endpoint over real HTTP** + 18 Redis + 19 policy · every limit asserted from both sides · "no SMS is sent" asserted by COUNTING deliveries · found 1 real off-by-one |
+| M-022…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+
+**M-021's two ceilings are independent, and implementing one is the documented trap.**
+
+| Ceiling | Protects | What the other one misses |
+| :--- | :--- | :--- |
+| 3 sends per 30 min **per number**, 30 s cool-down | the MEMBER, from being SMS-bombed by anyone who knows their number | an attacker cycling ten thousand numbers never trips it once |
+| 20 operations per hour **per IP**, captcha above 10 | the PLATFORM — at ~₹0.15 a message this is a direct financial exposure (`CON-02`) | one number hammered from many addresses still needs the per-number limit |
+
+Both directions are asserted. The captcha threshold sits ten below the hard block deliberately: a
+shared NAT — an office, a college, an Indian carrier's CGNAT, which is most consumer traffic —
+legitimately produces many requests from one address, so blocking at 10 would deny real members
+while challenging at 10 lets a human through and stops a script. A solved captcha does not lift the
+hard ceiling; it proves a human, not an entitlement.
+
+**`AC-AUTH-01.4` is two claims, and the second is the one a status assertion misses.**
+
+*"The 4th send returns 429 **and no SMS is sent**."* The endpoint suite substitutes a **recording**
+delivery adapter and asserts the delivery count did not move — a test checking only the status
+passes against an implementation that sends first and refuses afterwards, which is exactly the
+₹0.15-per-refusal failure the limit exists to prevent.
+
+**One real defect, found by the endpoint spec.** `recordIpOperation` returns the post-increment
+count, and the comparison used it directly — so the captcha landed on the **tenth** request rather
+than *"above 10"*. One request early sounds harmless and is not: the threshold was chosen against
+real CGNAT traffic, and every step earlier turns more legitimate members into people who must solve
+a puzzle to sign in.
+
+**And the suite found the control working against itself.** Seven tests failed on the first run with
+`CAPTCHA_REQUIRED`, because every request in the file comes from `127.0.0.1` and the ceiling counted
+the whole suite as one abuser. The per-IP counter is now cleared between tests — each is an
+independent situation — and the ceiling is exercised deliberately by two tests that do not clear it.
 
 **M-020 resolved three specification conflicts before writing any code — ADR-0033, 0034, 0035.**
 

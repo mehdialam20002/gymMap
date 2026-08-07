@@ -87,7 +87,22 @@ export class RequestOtpUseCase {
 
   async execute(command: RequestOtpCommand): Promise<RequestOtpResult> {
     // ── 1. The ceilings, BEFORE anything is sent or even minted ─────────────────────────────
-    const operationsFromIp = await this.store.recordIpOperation(command.ip);
+    //
+    // ┌─ THE COUNT IS INCREMENTED FIRST AND THEN EXCLUDED FROM ITS OWN COMPARISON ────────────┐
+    // │ `recordIpOperation` returns the POST-increment value, so on the eleventh request it   │
+    // │ returns 11. §8.1 says a captcha is required *"above 10 per-IP operations"* — the      │
+    // │ eleventh — so the comparison must be against the ten that came BEFORE this one.       │
+    // │                                                                                        │
+    // │ Comparing the post-increment value directly moved the challenge to the tenth request, │
+    // │ which the endpoint spec caught. One request early sounds harmless; it is not, because │
+    // │ the threshold was chosen against real CGNAT traffic, and every step earlier turns     │
+    // │ more legitimate members into people who must solve a puzzle to sign in.                │
+    // │                                                                                        │
+    // │ The increment still happens on EVERY request, including refused ones. A refused       │
+    // │ attempt that did not count would be free, and an attacker could hammer forever at     │
+    // │ zero cost without ever advancing towards the ceiling.                                  │
+    // └────────────────────────────────────────────────────────────────────────────────────────┘
+    const operationsFromIp = (await this.store.recordIpOperation(command.ip)) - 1;
     const { sendsInWindow, secondsSinceLastSend } = await this.store.readSendCounters(
       command.phone,
     );
