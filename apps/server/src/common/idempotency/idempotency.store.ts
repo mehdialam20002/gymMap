@@ -168,9 +168,28 @@ export class IdempotencyStore {
    * └──────────────────────────────────────────────────────────────────────────────────────────┘
    */
   async release(key: string): Promise<void> {
+    const existing = await this.prisma.client.idempotencyKey.findFirst({
+      where: { key, responseStatus: null },
+      select: { key: true, createdAt: true },
+    });
+    // Already completed, already released, or never existed. Nothing to do, and doing nothing is
+    // correct — a late failure signal must not disturb a row that succeeded.
+    if (!existing) return;
+
+    // ┌─ `createdAt + 1ms`, NOT `now - 1s` ────────────────────────────────────────────────────┐
+    // │ The first version set `expiresAt` to a second in the past, and the table's CHECK        │
+    // │ `expires_at > created_at` refused it — every single time, because `created_at` is       │
+    // │ always more recent than "a second ago". The interceptor swallows a release failure      │
+    // │ (`.catch(() => undefined)`), so the claim was NEVER released: a failed request left its │
+    // │ key IN_FLIGHT for the full 24-hour window, and every retry waited ten seconds and timed │
+    // │ out. A transient provider blip became a day-long outage for that key.                    │
+    // │                                                                                          │
+    // │ Anchoring to `createdAt` satisfies the CHECK and is semantically exact: a released row  │
+    // │ expired at the instant it was created, so it was never valid for replay at all.          │
+    // └──────────────────────────────────────────────────────────────────────────────────────────┘
     await this.prisma.client.idempotencyKey.updateMany({
       where: { key, responseStatus: null },
-      data: { expiresAt: new Date(this.clock.now().getTime() - 1000) },
+      data: { expiresAt: new Date(existing.createdAt.getTime() + 1) },
     });
   }
 

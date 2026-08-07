@@ -183,3 +183,48 @@ model IdempotencyKey {
   @@index([tenantId, key], map: "ix_idempotency_keys__tenant_key")
   @@map("idempotency_keys")
 }
+
+/// M-018 · The transactional outbox — Schema.md §13.1, ADR-0017, §C1.5.
+///
+/// Written in the SAME transaction as the state change it describes. That is the whole point:
+/// "save then publish" loses the event if the process dies between them, and "publish then save"
+/// acts downstream on a state that never committed. One transaction makes both impossible.
+///
+/// `aggregateType` is String and not an enum — BLK-07. Schema.md §2.5 cites a list of 26
+/// aggregate roots at ERD.md §6, which contains no such list, and deriving it yields 36
+/// candidates. MG9 makes an enum value permanent, so guessing is worse than deferring.
+model OutboxEvent {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+
+  aggregateType String @map("aggregate_type")
+  /// NO relation, deliberately: the outbox is purged 30 days after publish while aggregates live
+  /// for years, so the FK direction is wrong and the lifetimes do not nest.
+  aggregateId   String @map("aggregate_id") @db.Uuid
+
+  eventType String @map("event_type")
+  payload   Json
+
+  status   OutboxStatusEnum @default(PENDING)
+  attempts Int              @default(0)
+
+  availableAt DateTime  @default(now()) @map("available_at") @db.Timestamptz(6)
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
+  lastError   String?   @map("last_error")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  correlationId String @map("correlation_id") @db.Uuid
+
+  @@index([availableAt, id], map: "idx_outbox__pending")
+  @@index([aggregateType, aggregateId, id], map: "idx_outbox__aggregate")
+  @@map("outbox")
+}
+
+enum OutboxStatusEnum {
+  PENDING
+  PUBLISHED
+  FAILED
+  DEAD
+
+  @@map("outbox_status_enum")
+}

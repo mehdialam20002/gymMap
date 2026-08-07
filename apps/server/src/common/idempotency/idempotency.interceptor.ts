@@ -137,10 +137,22 @@ export class IdempotencyInterceptor implements NestInterceptor {
                 });
             },
             error: () => {
-              // The work FAILED. Release the claim so a retry can execute — otherwise the stored
-              // failure replays for the whole retention window and a transient fault becomes a
-              // permanent one no retry can clear.
-              void this.store.release(key).catch(() => undefined);
+              // The work FAILED. Release the claim so a retry can execute — otherwise the claim
+              // sits IN_FLIGHT for the full retention window and a transient fault becomes a
+              // day-long outage for that key.
+              //
+              // The failure is LOGGED, not swallowed. A silent `.catch(() => undefined)` here
+              // hid a real bug for a whole milestone: `release()` set `expiresAt` to a second in
+              // the past, the table's CHECK refused it every time, and nothing said so. The
+              // request already failed, so this cannot throw — but it must be visible.
+              void this.store.release(key).catch((error: unknown) => {
+                this.logger.error({
+                  message: 'IDEMPOTENCY RELEASE FAILED — this key is wedged until it expires',
+                  key,
+                  endpoint,
+                  error: error instanceof Error ? error.message : String(error),
+                });
+              });
             },
           }),
         );

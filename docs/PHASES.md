@@ -471,7 +471,7 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 
 **Goal.** Build the platform, milestone by milestone, per `/docs/roadmap/`.
 **Depends on.** Phases 0–7 and G, all `DONE`, plus explicit owner approval.
-**Status.** `IN PROGRESS — Sprint 0 foundations, plus the three UI shells pulled ahead. 17 of 120 milestones. The customer website and admin console shells both build and serve, the cross-tenant isolation suite is green on a real PostgreSQL 16, and the lint gate runs for the first time.`
+**Status.** `IN PROGRESS — Sprint 0 foundations, plus the three UI shells pulled ahead. 18 of 120 milestones. The customer website and admin console shells both build and serve, the cross-tenant isolation suite is green on a real PostgreSQL 16, and the transactional outbox dispatches exactly once under four concurrent workers.`
 
 ### Pre-flight, mandatory before *any* code
 
@@ -512,7 +512,48 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-015 | **THE CROSS-TENANT ISOLATION SUITE** — generated, `BAC-10` | ✅ `DONE` | — | **114/114 isolation on real PG16** · A1…A7 · A7 proves the suite goes RED with RLS off · 23/23 coverage-gate fixtures · found 3 real defects |
 | M-016 | `Money`, the Indian formatter, the `Clock` port, time discipline | ✅ `DONE` | — | **36 money + 27 time + 17 Money/Clock** · 10,000-split property test · TR-24 asserted at 18:30 UTC · **`pnpm lint` passes for the first time** |
 | M-017 | `idempotency_keys` and the idempotency interceptor | ✅ `DONE` | — | **11 integration on real PG16** incl. the twenty-way concurrency case · 17 fingerprint · 15 interceptor · found 1 real defect |
-| M-018…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+| M-018 | The transactional **outbox**, the `SKIP LOCKED` dispatcher, the §C5 job harness | ✅ `DONE` | — | **12 outbox integration on real PG16** — 4 concurrent dispatchers × 500 rows, each claimed **exactly once** · 23 job-harness incl. the `TR-25` deliberate double-trigger · 14 channel-port · found 1 real defect in M-017 · raised `BLK-07`, `BLK-08` |
+| M-019…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+
+**M-018 · `SELECT … FOR UPDATE SKIP LOCKED` is a lock, not a claim — and the difference cost 100 rows.**
+
+The first dispatcher took the documented shape: `SELECT … FOR UPDATE SKIP LOCKED` to pick a batch,
+process it, then `UPDATE … SET status = 'PUBLISHED'`. Four concurrent dispatchers over 500 pending
+rows dispatched 600 times. **One hundred events were published twice.**
+
+`FOR UPDATE` holds its row lock only until the transaction commits. The batch was selected in one
+transaction, and the row went back to `PENDING` and unlocked the moment that transaction ended —
+so the next dispatcher's `SKIP LOCKED` did not skip it, because there was nothing left to skip. The
+fix is to claim and lease in a single statement:
+
+```sql
+UPDATE outbox SET available_at = <now + leaseMs>
+WHERE id IN (SELECT id FROM outbox WHERE status = 'PENDING' AND available_at <= now()
+             ORDER BY available_at, id LIMIT $1 FOR UPDATE SKIP LOCKED)
+RETURNING …
+```
+
+The `UPDATE` makes the claim durable; the lease makes a worker that dies mid-batch recoverable
+without a human. A sequential test passes against the broken version, which is why `AC-EP01-19` is
+asserted with four *simultaneous* dispatchers rather than four sequential ones.
+
+**One real defect found in M-017, which its own tests could not see.**
+
+`IdempotencyStore.release()` set `expiresAt = now - 1000` to mark a claim dead. `idempotency_keys`
+carries `ck_idempotency_keys__expiry` — `expires_at > created_at` — so **every release violated the
+CHECK and threw**, every time. The interceptor's `.catch(() => undefined)` swallowed it. The visible
+consequence: a failed request's claim was never released, and every retry of that key for the next
+twenty-four hours waited ten seconds and timed out. Fixed to `createdAt + 1ms`, and the catch now
+logs rather than discards — a swallowed error is a defect with a hiding place.
+
+**`AC-FND-08.2` failed first, in exactly the way the invariant predicts.**
+
+The outbox row must be written in the SAME transaction as the state change, or a crash between the
+two produces a payment that succeeded and a membership nobody was told about. The first test used
+`client.$transaction` on the *extended* client, so the writer opened a second, independent
+transaction that committed on its own — the aggregate rolled back and the event survived. The trap
+is that the code reads correctly. Fixed by entering through `runInTenantTransaction(raw, …)`, and
+the test now rolls the outer transaction back and asserts the row is gone.
 
 **M-017's concurrency guarantee is the UNIQUE constraint, not a lock.**
 
@@ -717,6 +758,44 @@ chosen — see ADR-0031 for the narrowed analysis and what it actually cost.
 
 </details>
 
+### 🟠 BLK-07 — `outbox.aggregate_type` has no enumerable value set
+
+**Found by M-006, deferred; forced by M-018, which had to create the column.**
+
+`Schema.md` §2.5 and `Relationships.md` both say the `outbox` aggregate type is one of **the 26
+aggregate roots listed at `ERD.md` §6**. `ERD.md` §6 lists none — it is a section about aggregate
+boundaries, not a register. Deriving the set from the 79-table schema yields **36** candidates, not
+26, and the ten-row difference is not obviously resolvable by reading: it turns on whether things
+like `Invoice` and `SettlementBatch` are roots in their own right or parts of `Order` and `Payout`.
+
+**`MG9` is why this cannot be guessed.** An enum value is permanent — addable, never removable
+while a row holds it. Shipping a 36-value `outbox_aggregate_type_enum` and discovering the answer
+was 26 leaves ten values that can never be withdrawn.
+
+**What M-018 shipped instead.** `aggregate_type text` with a `CHECK` enforcing PascalCase. The
+shape is constrained, no typo passes, and the day the register exists the column becomes an enum in
+one migration with no data change. Recorded in `TECH_DEBT.md`.
+
+**Needed:** an owner amendment naming the 26 — or confirming the number is 36.
+
+### 🟠 BLK-08 — `job_runs` is not in the schema register, so it is a log line
+
+**Found by M-018.**
+
+`AC-FND-12.2` requires that a job which SUCCEEDS LATE raises an overrun alert, which means run
+history has to be recorded somewhere. The obvious somewhere is a `job_runs` table. **`Schema.md` §4
+is a closed register of 79 tables and does not contain one.** An eightieth table is a schema
+amendment under constitution §24, not a milestone's prerogative.
+
+**What M-018 shipped instead.** `JOB_RUN_SINK` — a port, with `LoggingJobRunSink` behind it — plus
+**Postgres advisory locks** for the single-execution guarantee rather than a claims table. The
+advisory lock is arguably the better mechanism regardless: it is released automatically when the
+session ends, so a worker killed mid-job does not leave a claim row that blocks every subsequent
+run until a human clears it.
+
+If the owner amends `Schema.md`, a database adapter drops in behind the same port and **no job
+changes**. Recorded in `TECH_DEBT.md`.
+
 ### 🟠 Coverage gaps found while scoping the two front ends
 
 Neither is a conflict — they are **absences**, and both make a stated exit criterion unmeetable:
@@ -804,3 +883,7 @@ Neither is a conflict — they are **absences**, and both make a stated exit cri
 | BLK-02 | 20 open questions (`OQ-01` … `OQ-20`) in the source PRD are unanswered. Documented defaults will be applied and recorded in `DECISION_LOG.md`. | 1 | Client sponsor | 2026-08-05 | **PARTIALLY RESOLVED** 2026-08-06 — `OQ-01`, `OQ-02`, `OQ-16`, `OQ-20` answered (see `LAUNCH_MARKET_INDIA.md`). 16 remain on documented defaults. |
 | BLK-03 | **India launch surfaces six conflicts with PRD baselines.** Two are High severity and change the settlement design: (2) GST on platform commission is unmodelled by `A6.3`, needing a ninth persisted figure `commission_tax_minor`; (3) GST TCS / income-tax TDS obligations for e-commerce operators are entirely absent from the PRD. Also (1) Stripe Connect is not a viable India split-settlement adapter. | 2 → 5 | Client sponsor + tax advisor | 2026-08-06 | **OPEN — must resolve before Sprint 5, and conflict 2 before Sprint 11.** See `LAUNCH_MARKET_INDIA.md` §11. |
 | BLK-04 | Seven items require a qualified Indian tax advisor and legal counsel, not engineering judgement — TCS/TDS applicability and rates, the correct SAC code, multi-state GST registration, RBI e-mandate thresholds, Aadhaar handling, and DPDP significant-data-fiduciary status. | 4 → 5 | Client sponsor | 2026-08-06 | **OPEN.** Architecture holds all of these as configuration, so resolution is a data task, not a code change. |
+| BLK-05 | **The roadmap carries two incompatible milestone numbering schemes.** The same `M-NNN` id means different work in different files, so "milestone order is not optional" (Standing constraint 1) cannot be mechanically checked. | 3 | Project owner | 2026-08-07 | **OPEN.** See the section above. Work proceeds against `Milestones_000-029.md`, which is the more detailed of the two. |
+| BLK-06 | `int4`-based Prisma domains reject binary bind parameters (SQLSTATE 22P03). | 5 | Project owner | 2026-08-07 | ✅ **RESOLVED** 2026-08-07 by ADR-0031. Scope was **one** domain, `basis_points`, now a plain `integer` with an equivalent per-column `CHECK`. The other eleven domains are untouched. |
+| BLK-07 | **`outbox.aggregate_type` has no enumerable value set.** `Schema.md` §2.5 and `Relationships.md` both cite "the 26 aggregate roots at `ERD.md` §6"; that section lists none, and deriving the set yields 36. `MG9` makes an enum value permanent, so the ten-row difference cannot be guessed. | 3 | Project owner | 2026-08-07 | **OPEN, not blocking.** M-018 shipped `text` + a PascalCase `CHECK`; it becomes an enum in one migration, with no data change, the day the register exists. In `TECH_DEBT.md`. |
+| BLK-08 | **`job_runs` is absent from `Schema.md` §4's closed 79-table register.** `AC-FND-12.2` needs run history to raise an overrun alert; an eightieth table is a §24 amendment, not a milestone's prerogative. | 3 | Project owner | 2026-08-07 | **OPEN, not blocking.** M-018 shipped `JOB_RUN_SINK` (a port) plus Postgres advisory locks — which self-release on session end, so a killed worker leaves nothing to clear. A database adapter drops in behind the port and no job changes. In `TECH_DEBT.md`. |

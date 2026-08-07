@@ -150,6 +150,7 @@ const EXPECTED_APPLICATION_TABLES = [
   'tenants', // M-009
   'audit_log', // M-013 — the partitioned parent
   'idempotency_keys', // M-017
+  'outbox', // M-018
 ];
 
 /**

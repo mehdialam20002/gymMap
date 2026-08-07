@@ -50,6 +50,29 @@ Correlation: every delivery carries the originating `correlation_id` through
 "which request sent this SMS?" is answerable — which TRAI DLT makes a compliance question, not a
 curiosity.
 
+## Sprint 0 state — the port exists, the vendors do not (`M-018`, `T-17.03`)
+
+Everything above describes the module at `EP-17`. What is actually deployed today is the outbound
+port and one local adapter, and the operational consequences are worth knowing before an incident
+rather than during one.
+
+| Question | Answer today |
+| :--- | :--- |
+| Which channels have an adapter? | **`EMAIL`, in `local` and `test` only** — `MailpitEmailAdapter`, which captures to <http://localhost:8025> and delivers nothing. `SMS`, `IN_APP` and `PUSH` have none. |
+| What happens in `staging` or `production`? | `NotificationsModule` registers **zero** channels — the factory returns `[]`. Every send is answered `CHANNEL_NOT_AVAILABLE` (422), the code `README.md` §9.5.11 registers against "the requested channel has no configured adapter". |
+| Is that a misconfiguration to fix? | **No — it is the design, and it is the safer of the two failures.** The alternative is registering the local capture adapter everywhere, which reports every send as accepted, delivers none, and shows a hundred percent success rate on every dashboard. A 422 is visible; a silent success is not. `MailpitEmailAdapter`'s constructor throws outside `local`/`test` as a second line of defence. |
+| Why is nothing sending? | Because `A-19` is `DEFERRED` (`TD-023`). `OQ-01` is answered — India — but the SMS path additionally needs TRAI DLT entity, header and template registration, which is calendar time on a regulator's timetable. |
+| Can a member reach `DELIVERED`? | No channel does today. §2.8 D8: a channel with no status-callback model stops at `SENT`, and `MailpitEmailAdapter.parseStatusCallback()` **throws** rather than synthesising a confirmation for a message nobody received. |
+
+**If a developer reports "no email arrived locally":** check `APP_ENV` is `local`, then open
+<http://localhost:8025>. `pnpm infra:ps` confirms Mailpit is healthy. Nothing is sent over SMTP yet
+— the adapter records the intent and logs the template key; the wire delivery arrives with `EP-17`.
+
+**Nothing personal is in that log line.** `BR-DAT-06` — the rendered body carries a member's name,
+their gym and possibly an OTP, so the adapter logs the template key, the version, the category and
+a redacted address (`p***a@example.com`) and never the body. Asserted in
+`apps/server/test/notification-channel.spec.ts`.
+
 ## Known incidents
 
 _None yet._

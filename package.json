@@ -40,7 +40,7 @@
     "ci:module-structure": "node packages/config/scripts/module-structure.mjs",
     "ci:actions-pinned": "node packages/config/scripts/actions-pinned.mjs",
     "ci:deps-approved": "node packages/config/scripts/dependency-approval.mjs",
-    "ci:violations": "for f in .github/deliberate-violations/*.spec.sh; do bash \"$f\" || exit 1; done",
+    "ci:violations": "node packages/config/scripts/deliberate-violations.mjs",
     "ci:api-gates": "node packages/config/scripts/api-gates.mjs",
     "ci:api-absence": "node packages/config/scripts/api-absence-assertions.mjs",
     "ci:elevation-inventory": "node packages/config/scripts/elevation-inventory.mjs --check",

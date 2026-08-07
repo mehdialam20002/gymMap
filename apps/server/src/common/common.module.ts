@@ -16,6 +16,11 @@ import { ReadinessService } from './health/readiness.service.js';
 import { AccessTokenVerifier } from './auth/access-token.verifier.js';
 import { CLOCK, ID_GENERATOR } from './clock/clock.port.js';
 import { IdempotencyStore } from './idempotency/idempotency.store.js';
+import { OUTBOX_PORT } from './outbox/outbox.port.js';
+import { OutboxWriter } from './outbox/outbox.writer.js';
+import { OutboxDispatcher } from './outbox/outbox.dispatcher.js';
+import { JOB_RUN_SINK, JobRunner, LoggingJobRunSink } from './queue/job-runner.js';
+import { QueueRegistry } from './queue/queue.registry.js';
 import { SystemClock, SystemIdGenerator } from './clock/system-clock.adapter.js';
 
 @Global()
@@ -41,6 +46,19 @@ import { SystemClock, SystemIdGenerator } from './clock/system-clock.adapter.js'
     // BR-PAY-03. In place BEFORE the first payment path, not retrofitted — retrofitting
     // means auditing every mutating route that already exists and getting one wrong.
     IdempotencyStore,
+
+    // M-018. The writer is exported as a PORT so a use case depends on "record that this
+    // happened" rather than on a class that inserts a row — and so nothing can grow a
+    // synchronous publish() to call from a request path.
+    OutboxWriter,
+    { provide: OUTBOX_PORT, useExisting: OutboxWriter },
+    OutboxDispatcher,
+
+    // The harness all 24 §C5 jobs consume. BLK-08: the run sink logs today and becomes a table
+    // once `job_runs` is in Schema.md's register — no job changes when it does.
+    { provide: JOB_RUN_SINK, useClass: LoggingJobRunSink },
+    JobRunner,
+    QueueRegistry,
   ],
   exports: [
     APP_CONFIG,
@@ -49,6 +67,19 @@ import { SystemClock, SystemIdGenerator } from './clock/system-clock.adapter.js'
     CLOCK,
     ID_GENERATOR,
     IdempotencyStore,
+
+    // M-018. The writer is exported as a PORT so a use case depends on "record that this
+    // happened" rather than on a class that inserts a row — and so nothing can grow a
+    // synchronous publish() to call from a request path.
+    OutboxWriter,
+    { provide: OUTBOX_PORT, useExisting: OutboxWriter },
+    OutboxDispatcher,
+
+    // The harness all 24 §C5 jobs consume. BLK-08: the run sink logs today and becomes a table
+    // once `job_runs` is in Schema.md's register — no job changes when it does.
+    { provide: JOB_RUN_SINK, useClass: LoggingJobRunSink },
+    JobRunner,
+    QueueRegistry,
   ],
 })
 export class CommonModule implements NestModule {

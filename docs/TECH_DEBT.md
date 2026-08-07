@@ -201,6 +201,8 @@ Full detail for each entry is in §4. `PRD id` shows the primary identifier; eac
 | **TD-028** | No provider-sandbox contract tests, fixtures hand-authored | Test | **High** | M | Before sprint 6 exit — no production payment traffic before this | QA Lead | SCHEDULED | `BR-PAY-05` |
 | **TD-029** | `strictPropertyInitialization: false` in `apps/server` | Code | Low | S | A NestJS version that resolves injection without constructor-parameter metadata | Technical Lead | ACCEPTED | `§9.1`, M-001 |
 | **TD-030** | `verbatimModuleSyntax: false` in `apps/server` | Code | Medium | M | NestJS ships first-class ESM support, or the ecosystem's CJS-only dependencies clear | Technical Lead | ACCEPTED | `§9.1`, M-001 |
+| **TD-031** | `outbox.aggregate_type` is `text` + `CHECK`, not an enum | Data | Low | S | `BLK-07` answered — the register of aggregate roots is written down | Technical Lead | **BLOCKED** | `MG9`, M-018 |
+| **TD-032** | Job run history is a log line, not a `job_runs` table | Data | Medium | S | `BLK-08` answered, or the first overrun nobody could reconstruct from logs | Technical Lead | **BLOCKED** | `AC-FND-12.2`, M-018 |
 
 ---
 
@@ -283,6 +285,89 @@ away.
 **Revisit trigger.** NestJS ships first-class ESM support, or the CJS-only dependencies in the
 server's tree clear. Re-test by removing the override and running `pnpm turbo run typecheck`; the
 failure, if it remains, is immediate and unambiguous.
+
+---
+
+### TD-031 — `outbox.aggregate_type` is `text` + `CHECK`, not an enum
+
+| Field | Value |
+| :--- | :--- |
+| **Category** | Data |
+| **Interest rate** | **Low** — one column, and the `CHECK` already prevents the failure an enum would |
+| **Effort** | S |
+| **Owner** | Technical Lead |
+| **Status** | BLOCKED — on `BLK-07` |
+| **Discovered** | M-006, deferred. Forced by M-018, which had to create the column |
+
+**What.** `outbox.aggregate_type` is `text` with `CHECK (aggregate_type ~ '^[A-Z][A-Za-z]*$')`
+rather than the `outbox_aggregate_type_enum` the schema implies. Every other categorical column in
+this database is an enum — 81 of them shipped in `0_init`.
+
+**Why we took it.** The value set is not knowable from the documents. `Schema.md` §2.5 and
+`Relationships.md` both say the type is one of **the 26 aggregate roots listed at `ERD.md` §6**, and
+`ERD.md` §6 lists none — it discusses aggregate boundaries without enumerating them. Deriving the
+set from the 79-table schema yields **36** candidates. The ten-row gap turns on genuine modelling
+questions (is `Invoice` a root, or part of `Order`?) that are the owner's to answer, not a
+milestone's to guess.
+
+**`MG9` is what makes guessing unrecoverable.** An enum value is permanent — addable, but never
+removable while a single row holds it. A 36-value enum that should have been 26 leaves ten values
+in the type forever, and every future reader has to be told which ten are wrong.
+
+**What it costs.** The database will accept `Membershp` — PascalCase, passes the `CHECK`, means
+nothing. An enum would refuse it at the storage engine. Mitigated in three places: `OutboxWriter`
+is the only writer, the dispatcher's routing is a total map over known types, and the
+`outbox.int-spec.ts` suite asserts the `CHECK` refuses `camelCase`, `snake_case` and the empty
+string.
+
+**Payoff trigger.** `BLK-07` answered. The repayment is one migration — `CREATE TYPE`, `ALTER TABLE
+… TYPE … USING aggregate_type::outbox_aggregate_type_enum`, drop the `CHECK` — with **no data
+change**, because every value already conforms.
+
+**Verified.** `apps/server/test/isolation/outbox.int-spec.ts` asserts the constraint bites.
+
+---
+
+### TD-032 — Job run history is a log line, not a `job_runs` table
+
+| Field | Value |
+| :--- | :--- |
+| **Category** | Data |
+| **Interest rate** | **Medium** — grows with the number of scheduled jobs, and §C5 names twenty-four |
+| **Effort** | S |
+| **Owner** | Technical Lead |
+| **Status** | BLOCKED — on `BLK-08` |
+| **Discovered** | M-018, while building the §C5 job harness |
+
+**What.** `AC-FND-12.2` requires an alert when a job **succeeds late**, not only when it fails —
+"a settlement build that usually takes 40 seconds and today took 40 minutes has not failed; it will
+succeed, after the payout window closed." Detecting that needs run history. There is no table for
+it. `JobRunner` emits a structured record through the `JOB_RUN_SINK` port, and the only adapter
+behind that port writes to the log.
+
+**Why we took it.** `Schema.md` §4 is a **closed register of 79 tables**. `job_runs` is not one of
+them, and an eightieth table is a schema amendment under constitution §24 — not something a
+milestone decides on its own while implementing an unrelated acceptance criterion.
+
+**The single-execution guarantee did not need the table anyway.** `TR-25` requires that a job
+scheduled on three workers executes once per fire. The obvious implementation is a claims table;
+M-018 used **Postgres advisory locks** instead, and that is the better mechanism regardless: an
+advisory lock is released automatically when the session ends, so a worker killed mid-job leaves
+nothing behind. A claims row would block every subsequent run of that job until a human noticed and
+cleared it — at 3am, on a job nobody was watching because it had been working for six months.
+
+**What it costs.** Overrun and failure are visible in logs and alertable there, but not
+**queryable**. "Has `settlements.build` been slower every night this week?" needs a log aggregator
+rather than a `SELECT`, and the retention is the aggregator's rather than the platform's.
+
+**Payoff trigger.** `BLK-08` answered — or, sooner, the first overrun incident that could not be
+reconstructed from logs, which is the evidence the amendment is worth making. Repayment is a
+`PrismaJobRunSink` behind the existing port: **no job changes**, because no job has ever seen
+anything but the interface.
+
+**Verified.** `apps/server/test/job-harness.spec.ts` — 23 tests, including the `TR-25` deliberate
+double-trigger (the same job fired concurrently on two workers executes exactly once) and the
+overrun case, both asserted against the port rather than against a table.
 
 ---
 
@@ -697,6 +782,20 @@ failure, if it remains, is immediate and unambiguous.
 | **Owner** | Technical Lead with Product Manager |
 | **Status** | **BLOCKED** — on `OQ-01` |
 | **Related PRD id** | `A-19`, `OQ-01`, `FR-NOTF-01`, `FR-NOTF-08`, `FR-AUTH-01`, `FR-AUTH-05`, `AC-AUTH-01.1`, `DEP-03`, `DEP-04`, `DEP-06`, `KPI-12` |
+
+**Progress, 2026-08-07 (M-018).** The port half of this entry is now built, which is what `T-17.03`
+asks for in Sprint 0: `NotificationChannel` at
+`apps/server/src/notifications/application/ports/notification-channel.port.ts`, with the four keys,
+the `ChannelSendResult` the §2.8 D3 attempt record needs, the status-callback member and the DLT
+binding. One local adapter exists — Mailpit, email, `local`/`test` only.
+
+**The debt is unchanged and the interest still accrues.** No vendor adapter exists, and `OQ-01`
+being answered (India) has not by itself produced one — the India SMS path additionally needs TRAI
+DLT registration, which is calendar time on a regulator's timetable. What M-018 did change is that
+the failure is now **visible**: outside `local` and `test`, `NotificationsModule` registers no
+channel at all, so the answer is `CHANNEL_NOT_AVAILABLE` (422) rather than a stub reporting success.
+A silent hundred-percent delivery rate on a channel that delivers nothing was the real risk in this
+entry, and it is closed.
 
 ---
 
