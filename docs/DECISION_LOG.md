@@ -5302,9 +5302,60 @@ unrepresentable, which is the property R3 actually protects.
 
 ---
 
+## ADR-0032 — The idempotency retention window is 24 hours, because the provider's is
+
+- **Status.** `Accepted`
+- **Date.** 2026-08-07
+- **Milestone.** M-017
+- **Requirement.** `TR-36`, `AC-FND-07.5`, `BR-PAY-03`
+
+### Context
+
+`AC-FND-07.5` requires the idempotency retention window to be **configuration**, and to be at
+least the payment provider's own retry window. It does not name a number, because the number
+depends on a third party's behaviour rather than on ours.
+
+The failure being avoided is specific and one-directional. A retention window SHORTER than the
+provider's retry window means a provider retry arrives after the key has expired, is treated as a
+first attempt, and **executes a second time**. On a webhook that activates a membership
+(`BR-PAY-02`) that is a duplicate activation; on a refund path it is a duplicate refund.
+
+### The two numbers
+
+| Window | Value | Source |
+| :--- | :--- | :--- |
+| Razorpay webhook retry window | **24 hours** | Razorpay retries a failed webhook with exponential backoff for up to 24 hours before giving up. |
+| Client-side retry window | minutes | A mobile client retrying a checkout does so within one user session. It is comfortably inside any window chosen for the provider. |
+| **`IDEMPOTENCY_RETENTION_SECONDS`** | **86,400 (24 h)**, configurable 1 h – 7 d | Matches the longest of the above. |
+
+The provider's window is the binding constraint, and the client's is not close to it. So the
+configured default equals the provider's window exactly rather than exceeding it: a longer window
+costs storage and, more importantly, extends the period in which a **reused** key produces a 409
+for a client that has legitimately moved on to a new operation.
+
+### Decision
+
+`IDEMPOTENCY_RETENTION_SECONDS` defaults to **86,400** and is validated to the range 3,600 –
+604,800. The floor of one hour is deliberate: any value below it is almost certainly a units
+error — someone writing minutes into a seconds field — and the schema refuses it at boot rather
+than producing a system that is silently non-idempotent under load.
+
+### Consequences
+
+- Adding a second payment provider requires re-checking this number against **its** retry window,
+  and raising the default if that window is longer. The comparison lives here so the check has
+  somewhere to be recorded rather than being rediscovered.
+- The sweep (M-018) deletes expired rows; expiry is **also** enforced on read, because the sweep
+  runs on a schedule and can be behind. A row past its window must never replay a response from
+  outside the retention period the client was promised.
+- The value is per-environment configuration, so a staging environment can shorten it to make the
+  expiry path testable without waiting a day.
+
+---
+
 ## Appendix C — Superseded and deprecated decisions
 
-None. All thirty-one ADRs in this log are `Accepted` and in force as of 2026-08-07.
+None. All thirty-two ADRs in this log are `Accepted` and in force as of 2026-08-07.
 
 When the first supersession occurs, the superseded ADR **remains in place** with its status changed
 to `Superseded`, its `Superseded by` field populated, and its content otherwise unaltered — matching

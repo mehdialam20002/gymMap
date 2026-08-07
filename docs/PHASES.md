@@ -471,7 +471,7 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 
 **Goal.** Build the platform, milestone by milestone, per `/docs/roadmap/`.
 **Depends on.** Phases 0–7 and G, all `DONE`, plus explicit owner approval.
-**Status.** `IN PROGRESS — Sprint 0 foundations, plus the three UI shells pulled ahead. 16 of 120 milestones. The customer website and admin console shells both build and serve, the cross-tenant isolation suite is green on a real PostgreSQL 16, and the lint gate runs for the first time.`
+**Status.** `IN PROGRESS — Sprint 0 foundations, plus the three UI shells pulled ahead. 17 of 120 milestones. The customer website and admin console shells both build and serve, the cross-tenant isolation suite is green on a real PostgreSQL 16, and the lint gate runs for the first time.`
 
 ### Pre-flight, mandatory before *any* code
 
@@ -511,7 +511,27 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | **UI-3** | `apps/admin-dashboard` — the React 18 + Vite shell, MFA-gated | ✅ `DONE` | — | **24/24** · builds · served and curled · 15 SCR-ADM routes declared |
 | M-015 | **THE CROSS-TENANT ISOLATION SUITE** — generated, `BAC-10` | ✅ `DONE` | — | **114/114 isolation on real PG16** · A1…A7 · A7 proves the suite goes RED with RLS off · 23/23 coverage-gate fixtures · found 3 real defects |
 | M-016 | `Money`, the Indian formatter, the `Clock` port, time discipline | ✅ `DONE` | — | **36 money + 27 time + 17 Money/Clock** · 10,000-split property test · TR-24 asserted at 18:30 UTC · **`pnpm lint` passes for the first time** |
-| M-017…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+| M-017 | `idempotency_keys` and the idempotency interceptor | ✅ `DONE` | — | **11 integration on real PG16** incl. the twenty-way concurrency case · 17 fingerprint · 15 interceptor · found 1 real defect |
+| M-018…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+
+**M-017's concurrency guarantee is the UNIQUE constraint, not a lock.**
+
+Twenty simultaneous requests carrying the same key all attempt one `INSERT`; PostgreSQL lets
+exactly one succeed and raises 23505 on the other nineteen, atomically, at the storage engine.
+Every alternative is worse — a `SELECT` then `INSERT` has a race between the statements, a Redis
+lock adds a system that can be down while Postgres is fine, and an advisory lock holds a
+connection for the duration of the work. `AC-FND-07.4` is asserted with twenty *simultaneous*
+claims through twenty real connections, because a sequential test passes against an
+implementation that has the race.
+
+**One real defect, found by writing the failure-path test:**
+
+A handler that throws SYNCHRONOUSLY — a guard clause or a validation throw in the method body —
+threw before `.pipe` was reached, so the error escaped the `switchMap` projection and the `tap`'s
+error branch never ran. The claim would have sat `IN_FLIGHT` until it expired, and every retry
+for the next twenty-four hours would have waited ten seconds and timed out. Fixed with
+`defer(() => next.handle())`, which turns the synchronous throw into an error notification the
+release can see.
 
 **M-016 turned on the lint gate, and it had never run.**
 

@@ -140,3 +140,46 @@ enum TaxRegistrationStatusEnum {
 
   @@map("tax_registration_status_enum")
 }
+
+/// M-017 · One row per client-supplied `Idempotency-Key` — BR-PAY-03, §14.2.1.
+///
+/// `@@unique([key])` and NOT `@@unique([tenantId, key])`. SC-R06 normally requires every unique
+/// index to lead with `tenant_id`; this is one of the five closed exceptions (Schema.md §2.9),
+/// because the constraint IS the concurrency control: two simultaneous requests with the same
+/// key must COLLIDE, and that collision — raised as SQLSTATE 23505 on a single INSERT — is what
+/// makes "exactly one executes" true without a lock, a queue or a distributed mutex.
+///
+/// Isolation is unaffected. The row carries `tenantId` and the P-STD policy governs every READ,
+/// so tenant B cannot replay tenant A's stored response. The unique index constrains INSERTS and
+/// the policy constrains READS; they are different mechanisms and only one is about isolation.
+model IdempotencyKey {
+  id String @id @default(uuid()) @db.Uuid
+
+  key      String @unique(map: "uq_idempotency_keys__key")
+  tenantId String @map("tenant_id") @db.Uuid
+  endpoint String
+
+  /// SHA-256 of method, path, tenant and the canonicalised body. Excludes volatile headers, so
+  /// the same logical retry from a different client build is still a retry.
+  requestHash String @map("request_hash") @db.Char(64)
+
+  /// NULL means IN FLIGHT — the state a concurrent second request waits on. The row is inserted
+  /// BEFORE the work for exactly this reason.
+  responseStatus Int?  @map("response_status") @db.SmallInt
+  responseBody   Json? @map("response_body")
+
+  /// The ORIGINAL request's correlation id, replayed with the stored response so a support
+  /// agent tracing a retry lands on the request that actually did the work.
+  correlationId String @map("correlation_id") @db.Uuid
+
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  /// Configuration, not a constant — TR-36 requires it to be at least the payment provider's
+  /// retry window, and both numbers are recorded in DECISION_LOG.md.
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@index([expiresAt], map: "ix_idempotency_keys__expires_at")
+  @@index([tenantId, key], map: "ix_idempotency_keys__tenant_key")
+  @@map("idempotency_keys")
+}

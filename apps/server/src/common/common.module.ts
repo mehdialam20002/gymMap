@@ -15,6 +15,7 @@ import { HealthController } from './health/health.controller.js';
 import { ReadinessService } from './health/readiness.service.js';
 import { AccessTokenVerifier } from './auth/access-token.verifier.js';
 import { CLOCK, ID_GENERATOR } from './clock/clock.port.js';
+import { IdempotencyStore } from './idempotency/idempotency.store.js';
 import { SystemClock, SystemIdGenerator } from './clock/system-clock.adapter.js';
 
 @Global()
@@ -37,8 +38,18 @@ import { SystemClock, SystemIdGenerator } from './clock/system-clock.adapter.js'
     // injects the port, so a test substitutes a FixedClock without a global monkey-patch.
     { provide: CLOCK, useClass: SystemClock },
     { provide: ID_GENERATOR, useClass: SystemIdGenerator },
+    // BR-PAY-03. In place BEFORE the first payment path, not retrofitted — retrofitting
+    // means auditing every mutating route that already exists and getting one wrong.
+    IdempotencyStore,
   ],
-  exports: [APP_CONFIG, ReadinessService, AccessTokenVerifier, CLOCK, ID_GENERATOR],
+  exports: [
+    APP_CONFIG,
+    ReadinessService,
+    AccessTokenVerifier,
+    CLOCK,
+    ID_GENERATOR,
+    IdempotencyStore,
+  ],
 })
 export class CommonModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

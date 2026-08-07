@@ -126,6 +126,18 @@ export const appConfigSchema = z
     ARGON2_PARALLELISM: z.coerce.number().int().min(1).default(1),
 
     // --- payments (EP-08) --------------------------------------------------
+    /**
+     * `TR-36`, `AC-FND-07.5` — the idempotency retention window, in seconds.
+     *
+     * CONFIGURATION, not a constant, and it must be at least the payment provider's own retry
+     * window. Razorpay retries a webhook for up to 24 hours; a retention shorter than that means
+     * a provider retry arrives after the key has expired, is treated as a first attempt, and
+     * executes a second time.
+     *
+     * The comparison and both numbers are recorded in `docs/DECISION_LOG.md`. Default 24 h.
+     */
+    IDEMPOTENCY_RETENTION_SECONDS: z.coerce.number().int().min(3600).max(604_800).default(86_400),
+
     PAYMENT_PROVIDER: z.enum(['razorpay', 'stripe', 'stub']),
     RAZORPAY_KEY_ID: z.string().default(''),
     RAZORPAY_KEY_SECRET: z.string().default(''),

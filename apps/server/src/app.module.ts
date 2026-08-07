@@ -15,6 +15,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { TenancyModule } from './tenancy/tenancy.module.js';
 import { TenantContextMiddleware } from './tenancy/context/tenant-context.middleware.js';
+import { IdempotencyInterceptor } from './common/idempotency/idempotency.interceptor.js';
 import { TenantGuard } from './tenancy/guards/tenant.guard.js';
 
 @Module({
@@ -29,6 +30,20 @@ import { TenantGuard } from './tenancy/guards/tenant.guard.js';
     // default at runtime too, which is the belt to PG-1's braces.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
+
+    // ── Interceptor ORDER matters, and this is the order ──────────────────────────────────
+    //
+    // Nest runs global interceptors in registration order, outermost first. Idempotency must
+    // wrap the audit interceptor, not the other way round:
+    //
+    //   idempotency OUTSIDE   a replayed request never reaches the handler, so it writes no
+    //                         second audit row for work that did not happen again
+    //   audit OUTSIDE         every replay would be audited as a fresh action, and the log
+    //                         would show twenty approvals where one occurred
+    //
+    // BR-PAY-03 and BR-DAT-01 agree here: the audit log records what HAPPENED, and a replay is
+    // not a second happening.
+    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
 
     // Global, so an @Audited() handler cannot be added without the interceptor seeing it.
     // Per-controller registration would make coverage depend on remembering two things.

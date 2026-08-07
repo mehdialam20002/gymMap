@@ -149,6 +149,7 @@ it('AC-2 · the four roles are exactly the expected four', () => {
 const EXPECTED_APPLICATION_TABLES = [
   'tenants', // M-009
   'audit_log', // M-013 — the partitioned parent
+  'idempotency_keys', // M-017
 ];
 
 /**
