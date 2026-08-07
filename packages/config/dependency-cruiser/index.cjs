@@ -66,6 +66,19 @@ const TENANCY_RULES = [
     from: { path: '^apps/server/src', pathNot: '^apps/server/src/tenancy/prisma/' },
     to: { path: 'node_modules/@prisma/client' },
   },
+  {
+    name: 'no-test-harness-in-src',
+    comment:
+      'NFR-SEC-09 / FR-RBAC-01, §12.3 (M-011 AC-8) — application code may not import ' +
+      'test/harness/. The harness SIGNS access ' +
+      'tokens (mint-token.ts), so anything in src/ that can reach it can mint a token for any ' +
+      'tenant and any role: every authorisation control in the system, bypassed by one import. ' +
+      'Living under test/ is a convention; this rule is the enforcement, and conventions do not ' +
+      'survive a refactor at 6pm.',
+    severity: 'error',
+    from: { path: '^apps/server/src' },
+    to: { path: '^apps/server/test/' },
+  },
 ];
 
 /** §3.4 — structural hygiene. */

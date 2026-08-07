@@ -502,7 +502,8 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-008 | OpenAPI generation, `/v1` versioning, api-gates, the drift gate | ✅ `DONE` | `3fdac69` | 45/45 gate fixtures · byte-stable emission · 4 absence proofs |
 | M-009 | `tenants` — the first tenant-owned table, RLS enabled and FORCED | ✅ `DONE` | — | **23/23 isolation tests on real PG16** · RS-1/2/3/7/8/10 · IS6 coverage proved non-vacuous |
 | M-010 | The Prisma tenant-context client extension (ADR-0005) | ✅ `DONE` | — | **PX-1…PX-6 on real PG16** · 16/16 extension · 39/39 isolation · found 4 real defects |
-| M-011 | `TenantContextMiddleware`, the ALS carrier, the principal scaffold | ⬜ `NEXT` | — | — |
+| M-011 | `TenantContextMiddleware`, the ALS carrier, the principal scaffold | ✅ `DONE` | — | 20/20 guard · 29/29 middleware · 5 spellings × 3 locations refused |
+| M-012 | `TenantScopedRepository` and `GET /v1/tenant/ping` | ⬜ `NEXT` | — | — |
 | M-007…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
 
 **M-002 deferrals**, made under the owner's *"do what is necessary, otherwise move on"* steer.

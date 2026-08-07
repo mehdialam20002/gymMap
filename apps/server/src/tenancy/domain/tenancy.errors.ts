@@ -88,6 +88,41 @@ export class TenantContextAlreadySetError extends DomainException {
 }
 
 /**
+ * `AC-1`, `§11.3`, `TD1` — a client tried to supply the tenant id.
+ *
+ * ┌─ 400, AND REJECTED RATHER THAN IGNORED ─────────────────────────────────────────────────────┐
+ * │ This one IS about the caller, so unlike the two above it is a 4xx.                          │
+ * │                                                                                             │
+ * │ Ignoring the header is the tempting alternative and it is wrong twice. A client that        │
+ * │ believes it is scoping its requests silently gets different behaviour from the one it       │
+ * │ intended — and we lose the signal. Someone sending `X-Tenant-Id` is either an integrator    │
+ * │ working from wrong documentation or somebody probing for exactly this, and both are worth   │
+ * │ a log line.                                                                                 │
+ * │                                                                                             │
+ * │ The message is deliberately explicit about the remedy. Vagueness protects nothing here: the │
+ * │ fact that the tenant comes from the token is published in the API contract, and an          │
+ * │ integrator who understands it stops sending the header.                                     │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export class TenantHeaderNotAcceptedError extends DomainException {
+  constructor(location: 'header' | 'query' | 'body', key: string) {
+    super(
+      'TENANT_HEADER_NOT_ACCEPTED',
+      `A client-supplied tenant id was rejected: "${key}" in the ${location}.`,
+      [
+        {
+          field: key,
+          location,
+          remedy:
+            'The tenant is derived from the access token and is never accepted from a client ' +
+            '(§C3.1, §11.3). Remove this field and authenticate as a principal of that tenant.',
+        },
+      ],
+    );
+  }
+}
+
+/**
  * `PX-6`, `P4` — exactly one interactive transaction per unit of work.
  *
  * A nested `$transaction` inside the extension's own transaction is a SAVEPOINT, not a

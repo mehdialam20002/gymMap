@@ -8,6 +8,15 @@
  */
 
 export { TenancyModule } from './tenancy.module.js';
+
+// M-011 · request-scope resolution. The middleware runs BEFORE guards and pipes, so a 400 from
+// validation already carries the tenant and the correlation id (AC-FND-09.5).
+export {
+  TenantContextMiddleware,
+  REJECTED_TENANT_KEYS,
+  isUntenantedPath,
+} from './context/tenant-context.middleware.js';
+export { TenantGuard } from './guards/tenant.guard.js';
 export { PrismaService, type TenantScopedPrisma } from './prisma/prisma.service.js';
 export { runInTenantTransaction, GLOBAL_MODELS } from './prisma/tenant-scoped-client.js';
 
@@ -33,6 +42,7 @@ export {
 
 export {
   MissingTenantContextError,
+  TenantHeaderNotAcceptedError,
   NestedTransactionError,
   TenantContextAlreadySetError,
 } from './domain/tenancy.errors.js';
