@@ -28,11 +28,36 @@ export class DomainException extends Error {
   readonly details: readonly ProblemDetail[];
   readonly httpStatus: number;
 
-  constructor(code: ErrorCode, operatorMessage: string, details: readonly ProblemDetail[] = []) {
+  /**
+   * A client-facing message that OVERRIDES the filter's static per-code text. Usually absent.
+   *
+   * ┌─ WHY AN OVERRIDE EXISTS AT ALL, GIVEN `message` IS OPERATOR-ONLY ────────────────────────┐
+   * │ The filter maps a code to one fixed string, which is right for almost everything: the    │
+   * │ member-facing text must not vary with internal state, or it leaks it.                     │
+   * │                                                                                           │
+   * │ `ACCOUNT_LOCKED` cannot work that way. `UM1` and `Authentication.md` §6 require the       │
+   * │ message to state the failure count, the window, the masked unlock channel and the local  │
+   * │ time the lock lifts — and §6 says outright that *"'Account locked' alone fails review"*.  │
+   * │ Those four values are per-request, so a static map physically cannot carry them.          │
+   * │                                                                                           │
+   * │ The override is therefore for messages assembled from values ALREADY SAFE to disclose to  │
+   * │ this caller about their own account. It is not a general-purpose channel for internal     │
+   * │ detail: `message` remains operator-only, and anything set here is read by a member.       │
+   * └───────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  readonly clientMessage?: string;
+
+  constructor(
+    code: ErrorCode,
+    operatorMessage: string,
+    details: readonly ProblemDetail[] = [],
+    clientMessage?: string,
+  ) {
     super(operatorMessage);
     this.name = new.target.name;
     this.code = code;
     this.details = details;
+    if (clientMessage !== undefined) this.clientMessage = clientMessage;
     // An unregistered code reaches here only via a cast, but it MUST NOT throw: a constructor
     // that throws while building an error replaces the original failure with a TypeError raised
     // at the throw site, losing the real problem entirely — and it would pre-empt the filter's

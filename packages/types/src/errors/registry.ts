@@ -220,4 +220,74 @@ export const ERROR_REGISTRY = {
     enforces: ['FR-RBAC-01', 'FR-RBAC-02'],
     retryable: false,
   },
+
+  // --- iam · M-020, the password path -------------------------------------
+  //
+  // Note what is ABSENT: there is no INVALID_CREDENTIALS, no USER_NOT_FOUND and no
+  // WRONG_PASSWORD. A failed login returns `UNAUTHENTICATED` — the code already above —
+  // whether the identifier is unknown or the password is wrong.
+  //
+  // `Security.md` §1.6 requires the two to be indistinguishable, and a distinct code is the
+  // easiest possible enumeration oracle: an attacker reads it straight out of the response body
+  // and needs no timing analysis at all. Registering one "for better error messages" would undo
+  // the decoy-hash work in `argon2.hasher.adapter.ts` with a single line.
+
+  ACCOUNT_LOCKED: {
+    module: 'iam',
+    class: 'Authorisation',
+    // 403, NOT 429 — `API_Catalog.md` §4.5. Rate limiting is about request volume and clears
+    // with time; a lockout is about THIS ACCOUNT and clears with an unlock. A 429 tells the
+    // victim of a credential-stuffing run to "try again in a minute", which is false and useless.
+    httpStatus: 403,
+    messageKey: 'error.iam.account_locked',
+    enforces: ['FR-AUTH-08', 'NFR-USE-05'],
+    // Not retryable as a request. The caller must unlock, or wait — `details` carries
+    // `locked_until` and `unlock_channels`, which is actionable in a way a Retry-After is not.
+    retryable: false,
+  },
+  PASSWORD_BREACHED: {
+    module: 'iam',
+    class: 'Validation',
+    httpStatus: 422,
+    messageKey: 'error.iam.password_breached',
+    enforces: ['FR-AUTH-04'],
+    // Retrying the SAME password will fail identically; a different one succeeds. False,
+    // because `retryable` means "this request may succeed unchanged".
+    retryable: false,
+  },
+  EMAIL_ALREADY_REGISTERED: {
+    module: 'iam',
+    class: 'Conflict',
+    httpStatus: 409,
+    messageKey: 'error.iam.email_already_registered',
+    enforces: ['FR-AUTH-01'],
+    retryable: false,
+  },
+  PHONE_ALREADY_REGISTERED: {
+    module: 'iam',
+    class: 'Conflict',
+    httpStatus: 409,
+    messageKey: 'error.iam.phone_already_registered',
+    enforces: ['FR-AUTH-02'],
+    retryable: false,
+  },
+  RESET_TOKEN_INVALID: {
+    module: 'iam',
+    class: 'Validation',
+    // 422 rather than 404. A 404 distinguishes "no such token" from "expired token", and a
+    // token is a bearer credential — the two must look identical or the response tells an
+    // attacker whether a guessed value ever existed.
+    httpStatus: 422,
+    messageKey: 'error.iam.reset_token_invalid',
+    enforces: ['FR-AUTH-10', 'NFR-SEC-07'],
+    retryable: false,
+  },
+  VERIFICATION_TOKEN_INVALID: {
+    module: 'iam',
+    class: 'Validation',
+    httpStatus: 422,
+    messageKey: 'error.iam.verification_token_invalid',
+    enforces: ['FR-AUTH-01', 'NFR-SEC-07'],
+    retryable: false,
+  },
 } as const satisfies Record<string, ErrorRegistryRow>;

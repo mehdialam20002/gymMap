@@ -49,7 +49,12 @@ interface ErrorEnvelope {
  * (NFR-USE-08) once M-019 lands. Until then these are the fallbacks, and they are written to be
  * useful without being informative to an attacker.
  */
-const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
+export const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
+  // Listed explicitly even though it equals GENERIC_500. The alternative is exempting it in the
+  // coverage test, and an exemption is a hole somebody widens later — "INTERNAL_ERROR is
+  // allowed to be missing" becomes "this code is basically internal too". An entry that
+  // happens to match the fallback costs one line and keeps the rule absolute.
+  INTERNAL_ERROR: 'An internal error occurred.',
   VALIDATION_FAILED: 'The request could not be validated.',
   RESOURCE_NOT_FOUND: 'The requested resource does not exist.',
   UNAUTHENTICATED: 'Authentication is required.',
@@ -62,6 +67,35 @@ const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
   TENANT_HEADER_NOT_ACCEPTED: 'Tenant may not be supplied by the client.',
   TENANT_CONTEXT_MISSING: 'An internal error occurred.',
   TENANT_CONTEXT_ALREADY_SET: 'An internal error occurred.',
+  ELEVATION_REFUSED: 'You do not have permission to perform this action.',
+
+  // --- M-020, the password path -------------------------------------------
+  //
+  // `ACCOUNT_LOCKED`'s real message is assembled per request and arrives on the exception's
+  // `clientMessage` — UM1 requires the count, the window, the masked channel and the local
+  // unlock time, and a static map cannot carry them. This entry is the floor if that is ever
+  // absent, and it is deliberately still actionable rather than a bare "Account locked", which
+  // Authentication.md §6 says fails review.
+  ACCOUNT_LOCKED:
+    'This account is temporarily locked after repeated unsuccessful sign-in attempts. ' +
+    'You can unlock it with a verification code, or wait for the lock to lift.',
+  PASSWORD_BREACHED:
+    'This password has appeared in a known data breach, so it is one of the first an attacker ' +
+    'will try. Please choose a different one.',
+  // Both conflicts name the field WITHOUT confirming an account exists to an unauthenticated
+  // caller — the address was submitted by that caller, so echoing the fact tells them nothing
+  // they did not already supply. Registration is the one place §1.6's enumeration rule bends,
+  // and Authentication.md §8.3 accepts it: refusing to say would make the form unusable.
+  EMAIL_ALREADY_REGISTERED:
+    'An account already exists with this email address. Try signing in, or reset your password.',
+  PHONE_ALREADY_REGISTERED:
+    'An account already exists with this mobile number. Try signing in, or reset your password.',
+  // "Invalid or expired" as ONE message, deliberately. Distinguishing them tells an attacker
+  // whether a guessed token ever existed.
+  RESET_TOKEN_INVALID:
+    'This password reset link is invalid or has expired. Please request a new one.',
+  VERIFICATION_TOKEN_INVALID:
+    'This verification link is invalid or has expired. Please request a new one.',
 };
 
 const GENERIC_500 = 'An internal error occurred.';
@@ -138,7 +172,11 @@ export class DomainExceptionFilter implements ExceptionFilter {
         operatorMessage: exception.message,
         body: this.envelope(
           exception.code,
-          CLIENT_SAFE_MESSAGE[exception.code] ?? GENERIC_500,
+          // The per-request override first — see `DomainException.clientMessage`. Only
+          // `ACCOUNT_LOCKED` uses it today, because UM1 requires four per-request values in
+          // the text and a static map cannot carry them. The map is the floor, GENERIC_500
+          // the floor beneath that.
+          exception.clientMessage ?? CLIENT_SAFE_MESSAGE[exception.code] ?? GENERIC_500,
           [...exception.details],
           correlationId,
         ),

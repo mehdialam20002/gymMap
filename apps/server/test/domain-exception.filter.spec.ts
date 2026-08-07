@@ -11,7 +11,11 @@ import assert from 'node:assert/strict';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ZodError, z } from 'zod';
 
-import { DomainExceptionFilter } from '../dist/common/errors/domain-exception.filter.js';
+import {
+  CLIENT_SAFE_MESSAGE,
+  DomainExceptionFilter,
+} from '../dist/common/errors/domain-exception.filter.js';
+import { ERROR_REGISTRY } from '@gymmap/types';
 import {
   BusinessRuleException,
   ConflictException,
@@ -222,4 +226,80 @@ test('details from a domain exception reach the client', () => {
   );
   assert.equal(out.body.error.details.length, 1);
   assert.equal((out.body.error.details[0] as { field: string }).field, 'currency');
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// M-020 · Every registered code needs a message, and one needs a dynamic one.
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('EVERY code in the registry has a client-safe message', () => {
+  // ┌─ THE GAP THIS CLOSES ────────────────────────────────────────────────────────────────┐
+  // │ Adding a row to ERROR_REGISTRY and forgetting `CLIENT_SAFE_MESSAGE` produces a 403 or │
+  // │ 422 whose body says "An internal error occurred." Every test passes: the status is    │
+  // │ right, the code is right, the envelope is right. Only the sentence a member reads is  │
+  // │ wrong, and it is wrong in the way that makes support unable to help them.              │
+  // │                                                                                        │
+  // │ M-020 found `ELEVATION_REFUSED` in exactly that state, shipped in M-014.               │
+  // └────────────────────────────────────────────────────────────────────────────────────────┘
+  const missing = Object.keys(ERROR_REGISTRY).filter(
+    (code) => CLIENT_SAFE_MESSAGE[code as keyof typeof CLIENT_SAFE_MESSAGE] === undefined,
+  );
+
+  assert.deepEqual(
+    missing,
+    [],
+    `these registered codes render as "An internal error occurred":\n  ${missing.join('\n  ')}\n\n` +
+      'EV7: the member-facing message is part of the contract, not a nicety. Add an entry to ' +
+      'CLIENT_SAFE_MESSAGE in domain-exception.filter.ts.',
+  );
+});
+
+test('no client-safe message leaks internal vocabulary', () => {
+  // A message is read by a member. "tenant", "RLS", "policy", "null" and a bare SQLSTATE are
+  // words that mean something to us and nothing to them — except that something broke.
+  const internal = /\bSQLSTATE\b|\bRLS\b|\bnull\b|\bundefined\b|\bstack\b|\bprisma\b/i;
+  for (const [code, message] of Object.entries(CLIENT_SAFE_MESSAGE)) {
+    assert.doesNotMatch(message as string, internal, `${code} leaks internal vocabulary`);
+    assert.ok((message as string).length >= 20, `${code} has a stub message`);
+  }
+});
+
+test('a per-request clientMessage OVERRIDES the static map', () => {
+  // ACCOUNT_LOCKED is the only user today: UM1 requires the failure count, the window, the
+  // masked channel and the local unlock time, and a static map cannot carry four per-request
+  // values.
+  const dynamic = new DomainException(
+    'ACCOUNT_LOCKED',
+    'operator detail that must never be shown',
+    [{ locked_until: '2026-08-07T14:22:00+05:30' }],
+    'Your account is locked because there were 10 unsuccessful sign-in attempts.',
+  );
+
+  const out = capture(dynamic);
+  assert.equal(out.status, 403, 'a lockout is a 403, not a 429 — API_Catalog.md §4.5');
+  assert.match(out.body.error.message, /10 unsuccessful sign-in attempts/);
+  assert.doesNotMatch(out.body.error.message, /operator detail/, 'the operator message leaked');
+});
+
+test('without an override, ACCOUNT_LOCKED still gets an ACTIONABLE floor', () => {
+  // Authentication.md §6: "'Account locked' alone fails review." The fallback has to be more
+  // than a label, because the fallback is what ships if a call site forgets the override.
+  const out = capture(new DomainException('ACCOUNT_LOCKED', 'locked'));
+  assert.match(out.body.error.message, /unlock/i);
+  assert.doesNotMatch(out.body.error.message, /^Account locked\.?$/);
+});
+
+test('a failed login is UNAUTHENTICATED — there is no code that distinguishes the two cases', () => {
+  // Security.md §1.6. A distinct INVALID_CREDENTIALS or USER_NOT_FOUND is the easiest possible
+  // enumeration oracle: read straight out of the body, no timing analysis needed. It would undo
+  // the decoy-hash work in argon2.hasher.adapter.ts with one line.
+  const forbidden = ['INVALID_CREDENTIALS', 'USER_NOT_FOUND', 'WRONG_PASSWORD', 'ACCOUNT_UNKNOWN'];
+  for (const code of forbidden) {
+    assert.equal(
+      code in ERROR_REGISTRY,
+      false,
+      `${code} is registered. A code that distinguishes "no such account" from "wrong password" ` +
+        'is a user-enumeration oracle in the response body.',
+    );
+  }
 });
