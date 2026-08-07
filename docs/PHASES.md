@@ -471,7 +471,7 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 
 **Goal.** Build the platform, milestone by milestone, per `/docs/roadmap/`.
 **Depends on.** Phases 0–7 and G, all `DONE`, plus explicit owner approval.
-**Status.** `IN PROGRESS — Sprint 0 foundations, plus the three UI shells pulled ahead. 14 of 120 milestones, and the customer website and admin console shells both build and serve.`
+**Status.** `IN PROGRESS — Sprint 0 foundations, plus the three UI shells pulled ahead. 15 of 120 milestones. The customer website and admin console shells both build and serve, and the cross-tenant isolation suite is green on a real PostgreSQL 16.`
 
 ### Pre-flight, mandatory before *any* code
 
@@ -509,7 +509,19 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | **UI-1** | `packages/ui` — the three token tiers, both themes, the contrast proof | ✅ `DONE` | — | **85/85** · all 60 documented contrast ratios recomputed and verified · 530 CSS declarations generated |
 | **UI-2** | `apps/customer-web` — the Next.js 14 App Router shell | ✅ `DONE` | — | **23/23** · builds · served and curled · 87.4 kB first load · CSP nonce per response |
 | **UI-3** | `apps/admin-dashboard` — the React 18 + Vite shell, MFA-gated | ✅ `DONE` | — | **24/24** · builds · served and curled · 15 SCR-ADM routes declared |
-| M-015…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+| M-015 | **THE CROSS-TENANT ISOLATION SUITE** — generated, `BAC-10` | ✅ `DONE` | — | **114/114 isolation on real PG16** · A1…A7 · A7 proves the suite goes RED with RLS off · 23/23 coverage-gate fixtures · found 3 real defects |
+| M-016…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+
+**M-015 found three defects, and two of them were live holes rather than test gaps.**
+
+| Defect | Consequence | Why nothing caught it |
+| :--- | :--- | :--- |
+| `TenantContextMiddleware` was registered with `.forRoutes({ path: '*path' })` — Express 5 syntax on Express 4, which matches **nothing**. The middleware never executed. | `X-Tenant-Id` had **never been refused** in a real request — `AC-1`'s control against a client choosing its own tenant had not run. And every `@TenantScoped()` route answered `500`. | Its 29 unit tests instantiate the class and call `use()` directly. A unit test cannot see a registration that matches nothing; only a request can. `middleware-registration.int-spec.ts` now asserts it over HTTP. |
+| The middleware read `request.principal`, which `JwtAuthGuard` sets — and Nest runs middleware **before** guards, so it was always `undefined`. | Recorded in M-011 as a known gap deferred to M-022, and it hid the defect above: both produce the same 500. | Nothing asserted over HTTP at all. M-015 needs a working tenant-scoped endpoint, so the fix came forward: `AccessTokenVerifier` was extracted and the middleware resolves the principal itself. The guard remains the **sole** rejecter, so `AC-7`'s single error shape still comes from one place. |
+| `test:isolation` globbed `*.int-spec.ts` and `*.isolation-spec.ts`, silently excluding `dropped-policy.negative-spec.ts` — **A7 itself**, the assertion that makes the other six falsifiable. | A7 would never have run in CI. | A file that exists and is never run reports no failures, which is indistinguishable from passing. The glob is now one pattern, and `isolation-coverage.spec.mjs` asserts every spec file matches it. |
+
+`GET /v1/tenant/ping` — the Sprint-0 exit-condition endpoint — **worked over HTTP for the first
+time in this milestone**. A4, the positive control, is what reported that it did not.
 
 ### The UI shells were pulled ahead of the roadmap, deliberately
 

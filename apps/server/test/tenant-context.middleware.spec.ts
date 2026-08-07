@@ -18,6 +18,8 @@ import {
 } from '../dist/tenancy/context/tenant-context.middleware.js';
 import { currentTenantContext } from '../dist/tenancy/context/tenant-context.als.js';
 import { TenantHeaderNotAcceptedError } from '../dist/tenancy/domain/tenancy.errors.js';
+import { AccessTokenVerifier } from '../dist/common/auth/access-token.verifier.js';
+import { mintAccessToken, testSecret } from './harness/mint-token.ts';
 
 const TENANT_A = '01912f00-0000-7000-8000-00000000000a';
 const TENANT_B = '01912f00-0000-7000-8000-00000000000b';
@@ -30,7 +32,30 @@ interface FakeRequest {
   principal?: { sub: string; tenant_id?: string };
 }
 
-const middleware = new TenantContextMiddleware();
+// M-015: the middleware resolves the principal ITSELF from the Authorization header, because
+// Nest runs middleware before guards and `request.principal` was therefore always undefined —
+// every @TenantScoped() route answered 500. It takes the shared verifier now.
+const verifier = new AccessTokenVerifier({ JWT_ACCESS_SECRET: testSecret() } as never);
+const middleware = new TenantContextMiddleware(verifier);
+
+/**
+ * A request carrying a REAL signed token, rather than a hand-placed `principal`.
+ *
+ * The tests below used to set `principal` directly on the fake request. That stopped being a
+ * faithful stand-in the moment M-015 made the middleware resolve the principal ITSELF — it was
+ * modelling a field that `JwtAuthGuard` sets AFTER this middleware runs, which is exactly the
+ * ordering defect that let every @TenantScoped() route return 500 while these tests were green.
+ *
+ * Minting a token makes the test exercise the real path: header -> verifier -> tenant frame.
+ */
+function authorised(tenant: string | undefined, sub = ACTOR): Partial<FakeRequest> {
+  const token = mintAccessToken({
+    sub,
+    ...(tenant === undefined ? {} : { tenantId: tenant }),
+    secret: testSecret(),
+  });
+  return { headers: { authorization: `Bearer ${token}` } };
+}
 
 /** Runs the middleware and reports the context observed INSIDE the downstream chain. */
 function run(request: Partial<FakeRequest>) {
@@ -128,20 +153,20 @@ test('an array body does not crash the check', () => {
 // ---------------------------------------------------------------------------
 
 test('AC-2 · the tenant is taken from the principal claim', () => {
-  const observed = run({ principal: { sub: ACTOR, tenant_id: TENANT_A } });
+  const observed = run(authorised(TENANT_A));
   assert.equal(observed?.kind, 'TENANT');
   assert.equal(observed?.kind === 'TENANT' ? observed.tenantId : null, TENANT_A);
 });
 
 test('AC-2 · the actor travels with the context, for created_by and the audit row', () => {
-  const observed = run({ principal: { sub: ACTOR, tenant_id: TENANT_A } });
+  const observed = run(authorised(TENANT_A));
   assert.equal(observed?.kind === 'TENANT' ? observed.actorId : null, ACTOR);
 });
 
 test('AC-2 · a principal with no tenant claim yields NONE, not a guess', () => {
   // Platform staff have no tenant. Inventing one — from the URL, from the first tenant in the
   // database, from anywhere — is how an admin session silently acquires a tenant's scope.
-  const observed = run({ principal: { sub: ACTOR } });
+  const observed = run(authorised(undefined));
   assert.equal(observed?.kind, 'NONE');
 });
 
@@ -149,7 +174,12 @@ test('a malformed tenant claim is a token-issuance defect, not a client error', 
   // Nothing a caller sends can change a claim inside a signed token, so this must not be
   // reported as their mistake — the investigation belongs at the issuer (M-022).
   assert.throws(
-    () => run({ principal: { sub: ACTOR, tenant_id: 'not-a-uuid' } }),
+    () =>
+      run({
+        headers: {
+          authorization: `Bearer ${mintAccessToken({ sub: ACTOR, tenantId: 'not-a-uuid', secret: testSecret() })}`,
+        },
+      }),
     /token-issuance defect/,
   );
 });
@@ -159,20 +189,20 @@ test('a malformed tenant claim is a token-issuance defect, not a client error', 
 // ---------------------------------------------------------------------------
 
 test('AC-4 · the context is visible to the NEXT handler, not just to the middleware', () => {
-  const observed = run({ principal: { sub: ACTOR, tenant_id: TENANT_A } });
+  const observed = run(authorised(TENANT_A));
   assert.equal(observed?.kind, 'TENANT');
 });
 
 test('AC-4 · the context does NOT leak outside the request', () => {
-  run({ principal: { sub: ACTOR, tenant_id: TENANT_A } });
+  run(authorised(TENANT_A));
   // Read after the middleware has returned. A leak here would mean one request's scope bleeding
   // into the next — the same class of bug as a pooled connection carrying a session setting.
   assert.equal(currentTenantContext().kind, 'NONE');
 });
 
 test("two sequential requests do not see each other's tenant", () => {
-  const first = run({ principal: { sub: ACTOR, tenant_id: TENANT_A } });
-  const second = run({ principal: { sub: ACTOR, tenant_id: TENANT_B } });
+  const first = run(authorised(TENANT_A));
+  const second = run(authorised(TENANT_B));
   assert.equal(first?.kind === 'TENANT' ? first.tenantId : null, TENANT_A);
   assert.equal(second?.kind === 'TENANT' ? second.tenantId : null, TENANT_B);
 });

@@ -48,15 +48,32 @@ export class AppModule implements NestModule {
     // pipe, the single most common thing anyone debugs, already carries the tenant and the
     // correlation id (AC-FND-09.5). A guard would put the frame after the error.
     //
-    // KNOWN GAP, recorded rather than papered over: the middleware reads `request.principal`,
-    // which `JwtAuthGuard` sets — and guards run AFTER middleware, so at Sprint 0 the principal
-    // is not yet populated when the middleware runs. The tenant therefore resolves to NONE for
-    // every request, and every tenant-scoped operation correctly throws.
+    // M-011's KNOWN GAP is DISCHARGED, brought forward from M-022 by M-015.
     //
-    // That is the safe direction to be wrong in, and it is temporary: M-022 replaces the
-    // scaffold guard with token verification INSIDE this middleware, where it belongs, so the
-    // principal exists before the context is resolved. Until then the only routes that work are
-    // the untenanted ones, which is exactly what Sprint 0 has.
-    consumer.apply(TenantContextMiddleware).forRoutes({ path: '*path', method: RequestMethod.ALL });
+    // The gap was: the middleware read `request.principal`, which `JwtAuthGuard` sets, and
+    // guards run AFTER middleware — so the principal was never populated and every
+    // tenant-scoped route resolved to NONE. It was recorded as safe-but-temporary, and it was.
+    // M-015's generated suite needs a WORKING tenant-scoped endpoint to assert isolation
+    // against, so the fix could not wait: `AccessTokenVerifier` was extracted and the
+    // middleware now resolves the principal itself. The guard remains the sole rejecter.
+    //
+    // ┌─ `'*'`, NOT `'*path'` — AND THIS ONE WAS A REAL DEFECT ────────────────────────────┐
+    // │ `'*path'` is Express 5 / path-to-regexp v8 syntax. Nest 10 runs Express 4, where    │
+    // │ that pattern matches NOTHING — so this middleware never executed on any request.    │
+    // │                                                                                      │
+    // │ Two controls were silently absent, not merely degraded:                              │
+    // │                                                                                      │
+    // │   the tenant frame was never opened, so @TenantScoped() routes 500'd — which looked  │
+    // │   exactly like the known gap above and hid it                                        │
+    // │                                                                                      │
+    // │   `X-Tenant-Id` was never REFUSED. AC-1's control against a client choosing its own  │
+    // │   tenant had never run in a real request. Its 29 unit tests instantiate the          │
+    // │   middleware class directly, so they passed throughout.                              │
+    // │                                                                                      │
+    // │ `CommonModule` two files away uses `.forRoutes('*')` and worked. The mismatch is why │
+    // │ `middleware-registration.int-spec.ts` now asserts over HTTP that this middleware     │
+    // │ actually runs — a registration that matches nothing is invisible to every unit test. │
+    // └──────────────────────────────────────────────────────────────────────────────────────┘
+    consumer.apply(TenantContextMiddleware).forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }

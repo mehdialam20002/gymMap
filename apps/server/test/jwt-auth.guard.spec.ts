@@ -10,6 +10,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { AccessTokenVerifier } from '../dist/common/auth/access-token.verifier.js';
 import { JwtAuthGuard, extractBearerToken } from '../dist/common/guards/jwt-auth.guard.js';
 import { UnauthenticatedException } from '../dist/common/errors/domain-exception.js';
 import { mintAccessToken, REJECTION_FIXTURES, testSecret } from './harness/mint-token.ts';
@@ -34,7 +35,12 @@ function contextWith(authorization?: string) {
 
 const config = { JWT_ACCESS_SECRET: testSecret() } as never;
 
-const guard = (isPublic = false) => new JwtAuthGuard(reflector(isPublic), config);
+// M-015 moved the verification itself into `AccessTokenVerifier`, so BOTH the guard and
+// `TenantContextMiddleware` use one implementation. The guard now takes the verifier rather
+// than the config — it rejects, it no longer verifies.
+const verifier = new AccessTokenVerifier(config);
+
+const guard = (isPublic = false) => new JwtAuthGuard(reflector(isPublic), verifier);
 
 // ---------------------------------------------------------------------------
 // Accept.

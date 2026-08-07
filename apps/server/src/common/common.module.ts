@@ -13,6 +13,7 @@ import { APP_CONFIG, loadAppConfig, type AppConfig } from './config/app-config.s
 import { CorrelationMiddleware } from './logging/correlation.middleware.js';
 import { HealthController } from './health/health.controller.js';
 import { ReadinessService } from './health/readiness.service.js';
+import { AccessTokenVerifier } from './auth/access-token.verifier.js';
 
 @Global()
 @Module({
@@ -26,8 +27,12 @@ import { ReadinessService } from './health/readiness.service.js';
       useFactory: (): AppConfig => loadAppConfig(),
     },
     ReadinessService,
+    // Global because BOTH `TenantContextMiddleware` (which resolves the principal) and
+    // `JwtAuthGuard` (which rejects) need it, and they live in different modules. One verifier
+    // is the point: two would be two definitions of "a valid token", and they would drift.
+    AccessTokenVerifier,
   ],
-  exports: [APP_CONFIG, ReadinessService],
+  exports: [APP_CONFIG, ReadinessService, AccessTokenVerifier],
 })
 export class CommonModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

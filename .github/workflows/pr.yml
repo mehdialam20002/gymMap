@@ -394,6 +394,58 @@ jobs:
           pnpm --filter @gymmap/server test:contract
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # 13 · isolation — BAC-10. NEVER cached, never affected-filtered, never waived.
+  #
+  # CI_CD.md §0.5 marks invariant I1 UNWAIVABLE: a failing isolation gate is never re-run "to
+  # see if it passes" and never waived. §3.6 is equally plain that removing this job from the
+  # critical path "is not a lever; it is the failure the pipeline exists to prevent".
+  #
+  # TURBO_FORCE is set because a CACHED isolation result is a result from a DIFFERENT COMMIT.
+  # A gate that reports a cache hit is a gate that did not run — and it reports success.
+  # `isolation-coverage` fails on IG-5 if this env var is ever removed.
+  # ═══════════════════════════════════════════════════════════════════════════
+  isolation:
+    name: 13 · isolation
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 20
+    env:
+      TURBO_FORCE: "true"
+    services:
+      postgres:
+        # The SAME digest as infra/compose/compose.yaml. Two different PostGIS builds between
+        # local and CI is how "it passes on my machine" becomes an isolation question, and this
+        # is the one suite where that ambiguity is unaffordable.
+        image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gymmap
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+        ports:
+          - 5432:5432
+    steps:
+      - uses: ./.github/actions/setup-workspace
+
+      # IG-1 … IG-6 BEFORE the suite. A route with no case group must fail here, where the
+      # message names the route, rather than as an absent test nobody looks for.
+      - name: isolation-coverage — every tenant-scoped route has a case group
+        run: pnpm ci:isolation-coverage >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply migrations and seed
+        run: pnpm --filter @gymmap/server db:setup
+
+      - name: Build the server, so the suite drives the real application
+        run: pnpm --filter @gymmap/server build
+
+      # A1 … A6 per route, plus A7's negative control. A7 DISABLES row-level security and
+      # requires the subset to fail: if it passes, the suite is not exercising the policy and
+      # every other assertion here is unfalsifiable.
+      - name: The suite
+        run: pnpm --filter @gymmap/server test:isolation
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # 26 · gate-summary — THE ONLY CHECK BRANCH PROTECTION NAMES (AC-1)
   # ═══════════════════════════════════════════════════════════════════════════
   gate-summary:
@@ -413,6 +465,7 @@ jobs:
       - api-absence-assertions
       - openapi-drift
       - contract
+      - isolation
       - scan-deps
       - scan-secrets
       - pipeline-integrity

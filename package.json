@@ -43,7 +43,8 @@
     "ci:violations": "for f in .github/deliberate-violations/*.spec.sh; do bash \"$f\" || exit 1; done",
     "ci:api-gates": "node packages/config/scripts/api-gates.mjs",
     "ci:api-absence": "node packages/config/scripts/api-absence-assertions.mjs",
-    "ci:elevation-inventory": "node packages/config/scripts/elevation-inventory.mjs --check"
+    "ci:elevation-inventory": "node packages/config/scripts/elevation-inventory.mjs --check",
+    "ci:isolation-coverage": "node packages/config/scripts/isolation-coverage.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",

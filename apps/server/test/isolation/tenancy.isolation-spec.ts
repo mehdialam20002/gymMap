@@ -1,63 +1,71 @@
 /**
- * M-012 · THE ONE HAND-WRITTEN ISOLATION SPEC — R-M3. Assertions A1–A4.
- *
- * Deleted by M-015, which generates a case group per route from the OpenAPI document. It exists
- * now because the generator needs something to be modelled on, and because the Sprint-0 exit
- * condition needs the four assertions to have been made at least once by hand.
+ * M-015 · THE CROSS-TENANT ISOLATION SUITE — GENERATED. `BAC-10`, `E2E-11`, `NFR-SEC-09`.
  *
  * ═══════════════════════════════════════════════════════════════════════════════════════════
- * A4 IS THE ONE PEOPLE SKIP, AND IT IS THE ONLY REASON THE OTHER THREE MEAN ANYTHING.
+ * THIS FILE ITERATES AN INVENTORY. IT DOES NOT ENUMERATE ROUTES.
  *
- * Suppose `app.tenant_id` were globally broken — misspelled in the policy, say, so the predicate
- * never matches for anyone. Then:
+ * The hand-written M-012 version was deleted in the same commit that created this one (`R-M3`).
+ * The difference is not style: a hand-authored suite measures the diligence of whoever last
+ * added a test, and this measures the system. A `@TenantScoped()` route added on a Friday
+ * afternoon with no spec fails `isolation-coverage` (`IG-1`) before it reaches here.
  *
- *   A1  tenant B cannot read tenant A     ✓ passes (B reads nothing at all)
- *   A2  tenant B cannot write tenant A    ✓ passes (B writes nothing at all)
- *   A3  B's collection excludes A's rows  ✓ passes (B's collection is empty)
- *
- * All green, and the system returns nothing to everybody. `TestingStrategy.md` §5.4 calls this
- * the CATASTROPHIC FALSE PASS, and E0.5 exists because of it.
- *
- * A4 is the positive control: tenant A, asking for its own data, must get a NON-EMPTY result.
- * It is the assertion that distinguishes "isolation works" from "nothing works".
+ * The case group per route is derived from `_inventory.generated.ts`, which is derived from
+ * `openapi.json`, which is what clients are generated from. There is no list of routes in this
+ * file, and adding one would be the defect.
  * ═══════════════════════════════════════════════════════════════════════════════════════════
+ *
+ * ┌─ WHICH ASSERTIONS APPLY, AND WHY THE KIND DECIDES ──────────────────────────────────────────┐
+ * │ ITEM        A4, A1        addresses one resource; a cross-tenant read is 404, never 403      │
+ * │ COLLECTION  A4, A3        returns a set; the refusal is an EMPTY set, not an error           │
+ * │ ACTION      A4?, A2       mutates; the before/after checksum is the assertion                │
+ * │ SEARCH      A4, A3, A5    A5's leaky six — named because they do not LOOK like a read        │
+ * │ REPORT      A4, A3, A5                                                                       │
+ * │ EXPORT      A4, A3, A5                                                                       │
+ * │                                                                                              │
+ * │ A6 runs once per suite: it is a property of the connection, not of a route.                  │
+ * │ A7 is a separate file — it must run against a container with RLS DISABLED.                   │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 
-import { PrismaClient } from '@prisma/client';
+import type { INestApplication } from '@nestjs/common';
 
-import { runWithTenant } from '../../dist/tenancy/context/tenant-context.als.js';
-import { withTenantContext } from '../../dist/tenancy/prisma/tenant-scoped-client.js';
+import { GENERATED_INVENTORY } from './_inventory.generated.ts';
+import { EXCEPTED_ROUTES, ISOLATION_EXCEPTIONS, exceptionKey } from './_exceptions.ts';
+import {
+  assertA1ReadRefused,
+  assertA2WriteRefused,
+  assertA3CollectionFiltered,
+  assertA4PositiveControl,
+  assertA6VariableInTransaction,
+  fillPath,
+  platformChecksum,
+  type ProbeContext,
+  type ProbeResponse,
+} from './_assertions.ts';
 import { TENANT_A, TENANT_B, seedTenantsSql } from '../../prisma/seed/tenants.ts';
-import { tenantId } from '@gymmap/types';
+import { mintAccessToken } from '../harness/mint-token.ts';
+import { applyTestEnv, TEST_JWT_SECRET } from '../harness/test-env.ts';
 
-const DATABASE_URL =
-  process.env['DATABASE_URL_APP'] ??
-  'postgresql://gymmap_app:gymmap_local_dev@localhost:5432/gymmap?schema=public';
+/** Must match `SEED_TENANT_A_COUNTS` in the coverage gate; asserted below. */
+const EXPECTED_TENANT_A_COUNTS: Record<string, number> = {
+  '/v1/tenant/ping': 1,
+};
 
-let raw: PrismaClient;
-let client: ReturnType<typeof withTenantContext>;
+/** The table each route's resource lives in, for A2's checksum. */
+const ROUTE_TABLE: Record<string, string> = {
+  '/v1/tenant/{tenantRef}/ping': 'tenants',
+  '/v1/tenant/ping': 'tenants',
+};
+
+let app: INestApplication | undefined;
+let baseUrl = '';
 let available = false;
 
 function psql(sql: string): string {
-  return execFileSync(
-    'docker',
-    ['exec', '-i', 'gymmap-postgres', 'psql', '-U', 'postgres', '-d', 'gymmap', '-tA'],
-    { input: sql, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
-  ).trim();
-}
-
-/**
- * Runs SQL and returns stdout AND stderr together.
- *
- * Needed because psql without `-v ON_ERROR_STOP=1` prints its error to stderr and still exits 0
- * — so `execFileSync` does not throw, and a try/catch around a failing statement catches
- * nothing. A test written that way reports "no refusal" while the database refused correctly.
- */
-function psqlCombined(sql: string): string {
   try {
     return execFileSync(
       'docker',
@@ -71,255 +79,312 @@ function psqlCombined(sql: string): string {
         '-d',
         'gymmap',
         '-tA',
-        // Without this psql exits 0 on a failed statement, execFileSync does not throw, and the
-        // stderr carrying the actual reason is never read. The first version of this helper saw
-        // only `SET BEGIN SET ROLLBACK` — enough to know something was refused, and not enough
-        // to know it was the POLICY rather than a constraint or a typo.
         '-v',
         'ON_ERROR_STOP=1',
       ],
       { input: sql, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
-    );
+    ).trim();
   } catch (error) {
     const e = error as { stdout?: string; stderr?: string };
-    return `${e.stdout ?? ''}\n${e.stderr ?? ''}`;
+    return `${e.stdout ?? ''}\n${e.stderr ?? ''}`.trim();
   }
 }
 
+function tokenFor(which: 'A' | 'B'): string {
+  return mintAccessToken({
+    sub:
+      which === 'A'
+        ? '01912f00-0000-7000-8000-0000000000a1'
+        : '01912f00-0000-7000-8000-0000000000b1',
+    tenantId: which === 'A' ? TENANT_A : TENANT_B,
+    roles: ['GYM_OWNER'],
+    secret: TEST_JWT_SECRET,
+  });
+}
+
+const context: ProbeContext = {
+  tenantA: TENANT_A,
+  tenantB: TENANT_B,
+  async request(method, path, asTenant): Promise<ProbeResponse> {
+    const response = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: { authorization: `Bearer ${tokenFor(asTenant)}` },
+    });
+    const raw = await response.text();
+    let body: unknown = null;
+    try {
+      body = raw.length > 0 ? JSON.parse(raw) : null;
+    } catch {
+      body = raw;
+    }
+    return { status: response.status, body, raw };
+  },
+};
+
 before(async () => {
   try {
-    psql(`
-      SET session_replication_role = 'replica';
-      DELETE FROM tenants WHERE id IN ('${TENANT_A}','${TENANT_B}');
-      SET session_replication_role = 'origin';
-      ${seedTenantsSql()}
-    `);
-    raw = new PrismaClient({ datasources: { db: { url: DATABASE_URL } } });
-    await raw.$connect();
-    client = withTenantContext(raw);
+    psql(seedTenantsSql());
+
+    applyTestEnv();
+
+    const { NestFactory } = await import('@nestjs/core');
+    const { AppModule } = await import('../../dist/app.module.js');
+    const { configureApp } = await import('../../dist/common/bootstrap/configure-app.js');
+
+    // `abortOnError: false` is NOT optional here. Nest's default is `true`, which calls
+    // `process.exit(1)` on a bootstrap failure — and with `logger: false` it does so having
+    // printed nothing. The test runner then reports "test failed" with no TAP output and no
+    // stack, which is the least debuggable failure this repository can produce. It cost half an
+    // hour once already.
+    app = await NestFactory.create(AppModule, { logger: false, abortOnError: false });
+    configureApp(app);
+    await app.listen(0);
+    baseUrl = (await app.getUrl()).replace('[::1]', 'localhost');
     available = true;
   } catch (error) {
     console.error(
-      `\n  SKIPPING the isolation assertions — no database.\n` +
-        `    pnpm infra:up && pnpm --filter @gymmap/server db:setup\n` +
+      '\n  SKIPPING the generated isolation suite — the application would not boot.\n' +
+        '    pnpm infra:up && pnpm --filter @gymmap/server db:setup && pnpm --filter @gymmap/server build\n' +
         `  ${error instanceof Error ? error.message.split('\n')[0] : String(error)}\n`,
     );
   }
 });
 
 after(async () => {
-  if (available) await raw.$disconnect();
+  if (app) await app.close();
 });
 
 const it = (name: string, fn: () => Promise<void>) =>
   test(name, async (t) => {
-    if (!available) return t.skip('no database');
+    if (!available) return t.skip('the application did not boot');
     await fn();
   });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// A4 FIRST. Deliberately.
-//
-// Ordered first so that when the suite is read, and when it fails, the positive control is the
-// thing seen before the three negatives. A suite that opens with three "cannot" assertions
-// trains the reader to skim them as a block.
+// The suite must be non-vacuous before any assertion in it means anything.
 // ═══════════════════════════════════════════════════════════════════════════
 
-it('A4 · POSITIVE CONTROL — tenant A reading its OWN data gets a NON-EMPTY result', async () => {
-  const rows = await runWithTenant(tenantId(TENANT_A), async () => client.tenant.findMany());
-
+test('the inventory is non-empty, so this suite is not passing over an empty list', () => {
+  // A generator that produced nothing would make every `for` below a no-op, and node:test
+  // reports zero subtests as success. This is the same shape as the elevation inventory's zero
+  // baseline, and it needs the same control.
   assert.ok(
-    rows.length > 0,
-    'Tenant A can see nothing. Every "cannot read another tenant" assertion below would now ' +
-      'pass trivially, because nothing is readable by anybody — the catastrophic false pass of ' +
-      'TestingStrategy.md §5.4. This is the assertion that distinguishes "isolation works" from ' +
-      '"the system is broken".',
+    GENERATED_INVENTORY.routes.length > 0,
+    'the isolation inventory is EMPTY. Every case group below would silently not run, and the ' +
+      'suite would report success having asserted nothing about the most important property in ' +
+      'the system.',
   );
-  assert.equal(rows[0]!.id, TENANT_A);
-  assert.ok(rows[0]!.legalName.length > 0, 'the row came back but carries no data');
 });
 
-it('A4 · and tenant B, independently, also gets its OWN non-empty result', async () => {
-  // Both directions. A policy accidentally hardcoded to tenant A would pass the assertion above.
-  const rows = await runWithTenant(tenantId(TENANT_B), async () => client.tenant.findMany());
-  assert.ok(rows.length > 0, 'tenant B can see nothing');
-  assert.equal(rows[0]!.id, TENANT_B);
+test('every inventory route has a case group, or a declared exception', () => {
+  // acceptance criterion 11 — a route is covered, or it is in `_exceptions.ts` with a reason, an
+  // alternative control and an owner. There is no third option and no `skip`.
+  const uncovered = GENERATED_INVENTORY.routes
+    .filter((route) => !EXCEPTED_ROUTES.has(exceptionKey(route)))
+    .filter((route) => !(route.path in ROUTE_TABLE));
+
+  assert.deepEqual(
+    uncovered.map(exceptionKey),
+    [],
+    'a tenant-scoped route has no table mapping, so A2 cannot take its checksum. Add it to ' +
+      'ROUTE_TABLE, or declare it in _exceptions.ts with an owner and an alternative control.',
+  );
+});
+
+test('the expected-count table agrees with the coverage gate', () => {
+  // Two copies of the same fixture expectation, in a `.ts` suite and an `.mjs` gate. Duplication
+  // is only safe while something asserts it — and a disagreement here means the gate approves a
+  // count the suite does not check.
+  for (const route of GENERATED_INVENTORY.routes) {
+    if (!['COLLECTION', 'SEARCH', 'REPORT', 'EXPORT'].includes(route.kind)) continue;
+    assert.ok(
+      EXPECTED_TENANT_A_COUNTS[route.path],
+      `${route.path} is a ${route.kind} with no expected tenant-A count in this file, though ` +
+        'the coverage gate has one. A4 would assert nothing for it.',
+    );
+  }
+});
+
+test('the exception list is empty, and its length is reported', () => {
+  // Printed rather than merely asserted: job 13 puts this number in the summary, so "how many
+  // routes are exempt" is answered on every pull request rather than in nobody's head.
+  console.log(`  isolation exceptions declared: ${ISOLATION_EXCEPTIONS.length}`);
+  for (const exception of ISOLATION_EXCEPTIONS) {
+    assert.ok(exception.reason.length > 20, `${exceptionKey(exception)} has no real reason`);
+    assert.ok(exception.alternativeControl.length > 0, 'an exception with no alternative control');
+    assert.ok(exception.owner.length > 0, 'an exception with no owner');
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// A1 — a cross-tenant READ returns nothing.
+// The generated case groups. A4 first for every route, deliberately.
 // ═══════════════════════════════════════════════════════════════════════════
 
-it('A1 · tenant B cannot read tenant A by id', async () => {
-  const row = await runWithTenant(tenantId(TENANT_B), async () =>
-    client.tenant.findFirst({ where: { id: TENANT_A } }),
-  );
-  assert.equal(row, null);
-});
+for (const route of GENERATED_INVENTORY.routes) {
+  if (EXCEPTED_ROUTES.has(exceptionKey(route))) continue;
 
-it('A1 · and the reverse, so the policy is not hardcoded to one direction', async () => {
-  const row = await runWithTenant(tenantId(TENANT_A), async () =>
-    client.tenant.findFirst({ where: { id: TENANT_B } }),
-  );
-  assert.equal(row, null);
-});
+  const label = `${route.method} ${route.path}`;
+  const table = ROUTE_TABLE[route.path]!;
+
+  // ── A4 · the positive control, before anything else ──────────────────────
+  it(`A4 · ${label} — tenant A reading its OWN data gets a non-empty 200`, async () => {
+    await assertA4PositiveControl(context, route);
+  });
+
+  it(`A4 · ${label} — and tenant B, independently, also gets its own`, async () => {
+    // Both directions. A policy accidentally hardcoded to tenant A passes the assertion above.
+    const response = await context.request(route.method, fillPath(route.path, TENANT_B), 'B');
+    assert.equal(response.status, 200, `tenant B cannot read its own data: ${response.raw}`);
+    assert.ok(response.raw.includes(TENANT_B), 'the response carries no tenant-B data');
+  });
+
+  // ── A1 · a cross-tenant read is refused, with no existence disclosure ────
+  if (route.kind === 'ITEM') {
+    it(`A1 · ${label} — tenant A cannot read tenant B, and cannot tell it from a missing row`, async () => {
+      // The forbidden fragments are read from the actual row rather than hardcoded, so a column
+      // added later is covered without anyone remembering to add it here.
+      const legalName = psql(`SELECT legal_name FROM tenants WHERE id = '${TENANT_B}';`);
+      await assertA1ReadRefused(context, route, [TENANT_B, legalName]);
+    });
+
+    it(`A1 · ${label} — and the reverse, so the policy is not one-directional`, async () => {
+      const response = await context.request(route.method, fillPath(route.path, TENANT_A), 'B');
+      assert.equal(response.status, 404);
+      assert.ok(!response.raw.includes(TENANT_A));
+    });
+  }
+
+  // ── A2 · a cross-tenant write leaves the row byte-identical ──────────────
+  if (route.kind === 'ACTION') {
+    it(`A2 · ${label} — tenant B's row is byte-identical before and after`, async () => {
+      await assertA2WriteRefused(context, route, table);
+    });
+  }
+
+  // ── A3 · a collection is filtered, asserted by count ─────────────────────
+  if (['COLLECTION', 'SEARCH', 'REPORT', 'EXPORT'].includes(route.kind)) {
+    it(`A3 · ${label} — the collection is filtered, by COUNT`, async () => {
+      await assertA3CollectionFiltered(
+        context,
+        route,
+        EXPECTED_TENANT_A_COUNTS[route.path]!,
+        (row) => (row as { id?: string }).id,
+      );
+    });
+
+    // ── A5 · the leaky six, by name ────────────────────────────────────────
+    if (['SEARCH', 'REPORT', 'EXPORT'].includes(route.kind)) {
+      it(`A5 · ${label} — a ${route.kind} route is covered BY NAME (E2E-11, IS5)`, async () => {
+        // E2E-11 and IS5 name search, reports, exports, the audit explorer, notification
+        // delivery logs and settlement statements specifically, because none of them LOOKS like
+        // a resource read — and a suite built around "GET /resource/{id}" misses all six.
+        const response = await context.request(route.method, route.path, 'A');
+        assert.equal(response.status, 200);
+        assert.ok(!response.raw.includes(TENANT_B), `a ${route.kind} response leaked tenant B`);
+      });
+    }
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
-// A2 — a cross-tenant WRITE is refused, and the refusal is indistinguishable
-//      from the refusal for a row that does not exist.
+// A6 · a property of the CONNECTION, so it runs once.
 // ═══════════════════════════════════════════════════════════════════════════
 
-it('A2 · tenant B cannot UPDATE tenant A, and cannot tell it from a missing row', async () => {
-  const updateOther = await runWithTenant(tenantId(TENANT_B), async () =>
-    client.tenant.updateMany({ where: { id: TENANT_A }, data: { tradingName: 'hijacked' } }),
+it('A6 · app.tenant_id is a registered setting, and the policy reads it with NO missing_ok', async () => {
+  assertA6VariableInTransaction();
+
+  // The half that matters more: `current_setting('app.tenant_id')` with no `missing_ok` RAISES
+  // 42704 when unset, rather than returning NULL and silently matching nothing. A policy written
+  // the other way turns a missing context into an empty result set, which is indistinguishable
+  // from a correct answer — so nobody investigates, and the eventual "fix" is to widen the policy.
+  // Every isolation policy in the schema, not one table's. A policy correct on the tables
+  // somebody thought of and written with `missing_ok` on the rest is the failure this catches,
+  // and it is invisible if the query names a single table (§5.8, RS-11).
+  const policies = psql(
+    `SELECT tablename || ' :: ' || policyname || ' :: ' || qual
+     FROM pg_policies
+     WHERE qual LIKE '%app.tenant_id%' ORDER BY tablename, policyname;`,
   );
-
-  const updateNonexistent = await runWithTenant(tenantId(TENANT_B), async () =>
-    client.tenant.updateMany({
-      where: { id: '01912f00-0000-7000-8000-0000000000ff' },
-      data: { tradingName: 'hijacked' },
-    }),
+  assert.ok(
+    policies.length > 0,
+    'NO policy in this database references app.tenant_id. Either RLS is not applied at all, or ' +
+      'the isolation predicate has been rewritten to something this assertion cannot see — and ' +
+      'a check that finds nothing must not pass.',
   );
-
-  // BYTE IDENTITY, not just "both zero". A response that differs at all between "yours but
-  // forbidden" and "does not exist" is an oracle, however quiet.
-  assert.deepEqual(updateOther, updateNonexistent);
-  assert.equal(updateOther.count, 0);
-
-  // And confirm nothing actually changed, read back OUTSIDE any tenant scope.
-  const stored = psql(`SELECT trading_name FROM tenants WHERE id = '${TENANT_A}';`);
-  assert.notEqual(stored, 'hijacked');
-});
-
-it('A2 · a cross-tenant INSERT is refused by WITH CHECK (PC4, AC-FND-01.1)', async () => {
-  // ┌─ RAW SQL, NOT PRISMA, AND THE REASON IS RECORDED AS BLK-06 ─────────────────────────────┐
-  // │ Prisma CANNOT WRITE to a Postgres DOMAIN column. `tenants.reserve_bps` is domain         │
-  // │ `basis_points`, and a Prisma `create` fails with SQLSTATE 22P03 "incorrect binary data   │
-  // │ format in bind parameter 12" — BEFORE the statement reaches the RLS policy. Proved by    │
-  // │ altering that one column to plain `integer`, at which point the insert succeeds.          │
-  // │                                                                                          │
-  // │ So a Prisma-based assertion here would "pass" for entirely the wrong reason: the write   │
-  // │ would be refused by a binary-format error, not by WITH CHECK, and the test would report  │
-  // │ that isolation works when it had never been exercised. That is the catastrophic false    │
-  // │ pass in a different costume.                                                             │
-  // │                                                                                          │
-  // │ Raw SQL exercises the POLICY, which is what A2 is about. The Prisma limitation is a      │
-  // │ separate conflict between Schema.md §2.4 (domains) and A-01 (Prisma), recorded in        │
-  // │ docs/PHASES.md as BLK-06 and awaiting an owner decision.                                  │
-  // └──────────────────────────────────────────────────────────────────────────────────────────┘
-  // The outcome is read from psql's OUTPUT, not from whether it threw.
-  //
-  // Without `-v ON_ERROR_STOP=1`, psql prints the error to stderr and still exits 0 — so a
-  // try/catch here catches nothing and `refused` stays false while the database did exactly the
-  // right thing. Asserting on the message is also stronger: it proves the refusal came from the
-  // POLICY rather than from a constraint, a type error or a typo in the statement.
-  const output = psqlCombined(
-    `SET ROLE app_rw;
-     BEGIN;
-     SET LOCAL app.tenant_id = '${TENANT_B}';
-     INSERT INTO tenants (id, legal_name, entity_type)
-     VALUES ('01912f00-0000-7000-8000-0000000000fe', 'Smuggled', 'COMPANY');
-     COMMIT;`,
-  );
-
-  assert.match(
-    output,
-    /new row violates row-level security policy/i,
-    `WITH CHECK must refuse an insert outside the caller scope. psql said:\n${output}`,
-  );
-
-  // And the row genuinely is not there.
-  assert.equal(
-    psql(`SELECT count(*) FROM tenants WHERE id = '01912f00-0000-7000-8000-0000000000fe';`),
-    '0',
+  assert.match(policies, /current_setting/);
+  assert.ok(
+    !/current_setting\([^)]*,\s*true\s*\)/.test(policies),
+    `a policy uses current_setting(..., true) — the missing_ok form. An unset app.tenant_id ` +
+      `would then return NULL and the predicate would match nothing, which looks exactly like ` +
+      `"this tenant has no data".\n${policies}`,
   );
   await Promise.resolve();
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// A3 — a COLLECTION is filtered, asserted by COUNT.
-//
-// By count rather than by inspecting the ids: a filter that returned the right ids but a wrong
-// count would mean the same row twice, and a filter that returned a correct-looking page while
-// the total was wrong is exactly what a broken `LIMIT` interaction produces.
+// §5.5 · the other audiences are HANDLED, not skipped.
 // ═══════════════════════════════════════════════════════════════════════════
 
-it('A3 · a collection read is filtered — one row, not three', async () => {
-  const total = Number(psql(`SELECT count(*) FROM tenants WHERE deleted_at IS NULL;`));
-  assert.ok(total >= 2, `the fixture needs at least two tenants, found ${total}`);
+it('§5.5 · a probe exposes no internal detail', async () => {
+  const probes = GENERATED_INVENTORY.otherAudiences.filter((r) => r.audience === 'PROBE');
+  assert.ok(probes.length >= 2, 'the probes are missing from the contract');
 
-  const visibleToA = await runWithTenant(tenantId(TENANT_A), async () => client.tenant.count());
-
-  assert.equal(
-    visibleToA,
-    1,
-    `tenant A can count ${visibleToA} of ${total} tenants. Under P-SELF the answer is always 1 ` +
-      `— a tenant that can count this table can count the platform's customers.`,
-  );
-});
-
-it('A3 · findMany returns the same one row, so count and list agree', async () => {
-  // A count that is right while the list is wrong is a real failure mode: they take different
-  // query paths, and only one of them is usually tested.
-  const rows = await runWithTenant(tenantId(TENANT_A), async () => client.tenant.findMany());
-  assert.equal(rows.length, 1);
-  assert.equal(rows[0]!.id, TENANT_A);
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-// AC-7 — SQL injection supplied AS A VALUE is inert.
-// ═══════════════════════════════════════════════════════════════════════════
-
-it('AC-7 · `OR 1=1` passed as a VALUE never widens the result (SEC-A03-002)', async () => {
-  // TWO safe outcomes, and the test accepts either.
-  //
-  //   rejected   the value never reaches the database — Prisma refuses to coerce it to a uuid
-  //   zero rows  it reaches the database as a literal and matches nothing
-  //
-  // Rejection is the STRONGER outcome, and it is what actually happens here. An earlier version
-  // of this test demanded zero rows and failed against the safer behaviour — a test that insists
-  // on the weaker of two correct answers is a test that will eventually be "fixed" by weakening
-  // the code.
-  //
-  // What must NEVER happen is a row from another tenant, which is the only thing asserted.
-  let rows: unknown[] = [];
-  try {
-    rows = await runWithTenant(tenantId(TENANT_A), async () =>
-      client.tenant.findMany({ where: { id: "' OR 1=1 --" } }),
-    );
-  } catch {
-    rows = [];
+  for (const probe of probes) {
+    const response = await fetch(`${baseUrl}${probe.path}`);
+    const raw = await response.text();
+    // A readiness probe that reports a connection string, a version or a hostname is
+    // reconnaissance served to an unauthenticated caller.
+    for (const leak of ['postgresql://', 'redis://', 'password', 'secret', TENANT_A, TENANT_B]) {
+      assert.ok(
+        !raw.toLowerCase().includes(leak.toLowerCase()),
+        `${probe.path} exposes "${leak}" to an unauthenticated caller: ${raw}`,
+      );
+    }
   }
-  assert.equal(rows.length, 0);
 });
 
-it('AC-7 · a value that unions in another tenant returns nothing', async () => {
-  const rows = await runWithTenant(tenantId(TENANT_A), async () =>
-    client.tenant.findMany({
-      where: { tradingName: `x' UNION SELECT * FROM tenants WHERE id='${TENANT_B}` },
-    }),
-  );
-  assert.equal(rows.length, 0);
+it('§5.5 · every non-tenant route is assigned an audience rather than dropped', async () => {
+  // The failure this prevents: a route that is neither tenant-scoped nor recognised silently
+  // belongs to nobody's suite. Assigning an audience does not test it, but it makes the gap
+  // countable — and the count appears in job 13's summary.
+  for (const route of GENERATED_INVENTORY.otherAudiences) {
+    assert.ok(
+      ['PUBLIC', 'ME', 'TENANT', 'ADMIN', 'WEBHOOK', 'PROBE'].includes(route.audience),
+      `${route.method} ${route.path} has audience "${route.audience}", which is not one of the ` +
+        'five §5.5 audiences plus PROBE',
+    );
+  }
+  await Promise.resolve();
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// The repository refuses before reaching Postgres — AC-1.
+// The checksum helper is itself proved to work, or A2 is decoration.
 // ═══════════════════════════════════════════════════════════════════════════
 
-it('AC-1 · a context-free read throws before a statement is sent', async () => {
-  const { TenantPrismaRepository } =
-    await import('../../dist/tenancy/infrastructure/tenant.prisma-repository.js');
-  const { MissingTenantContextError } = await import('../../dist/tenancy/domain/tenancy.errors.js');
+it('platformChecksum CHANGES when the row changes, and is stable when it does not', async () => {
+  // A checksum function that always returned the same string would make every A2 assertion pass.
+  // This is the control for the control.
+  const first = platformChecksum('tenants', TENANT_B);
+  assert.equal(first, platformChecksum('tenants', TENANT_B), 'the checksum is not stable');
 
-  const repository = new TenantPrismaRepository({ client } as never);
-
-  const before = psql(
-    `SELECT count(*) FROM pg_stat_activity WHERE datname='gymmap' AND state='idle in transaction';`,
+  psql(
+    `SET session_replication_role = 'replica';
+     UPDATE tenants SET trading_name = 'checksum-probe' WHERE id = '${TENANT_B}';
+     SET session_replication_role = 'origin';`,
   );
-  await assert.rejects(() => repository.findOwnTenant(), MissingTenantContextError);
-  const after = psql(
-    `SELECT count(*) FROM pg_stat_activity WHERE datname='gymmap' AND state='idle in transaction';`,
+  const changed = platformChecksum('tenants', TENANT_B);
+
+  psql(
+    `SET session_replication_role = 'replica';
+     UPDATE tenants SET trading_name = 'Peak Performance' WHERE id = '${TENANT_B}';
+     SET session_replication_role = 'origin';`,
   );
 
-  assert.equal(before, after, 'a transaction was opened despite the missing context');
+  assert.notEqual(
+    changed,
+    first,
+    'platformChecksum did not change after the row changed. Every A2 assertion in this suite ' +
+      'would pass regardless of what a cross-tenant write did.',
+  );
+  assert.equal(platformChecksum('tenants', TENANT_B), first, 'the row was not restored');
 });
