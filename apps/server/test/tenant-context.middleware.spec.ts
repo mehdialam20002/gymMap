@@ -19,6 +19,7 @@ import {
 import { currentTenantContext } from '../dist/tenancy/context/tenant-context.als.js';
 import { TenantHeaderNotAcceptedError } from '../dist/tenancy/domain/tenancy.errors.js';
 import { AccessTokenVerifier } from '../dist/common/auth/access-token.verifier.js';
+import { SystemClock } from '../dist/common/clock/system-clock.adapter.js';
 import { mintAccessToken, testSecret } from './harness/mint-token.ts';
 
 const TENANT_A = '01912f00-0000-7000-8000-00000000000a';
@@ -35,7 +36,14 @@ interface FakeRequest {
 // M-015: the middleware resolves the principal ITSELF from the Authorization header, because
 // Nest runs middleware before guards and `request.principal` was therefore always undefined —
 // every @TenantScoped() route answered 500. It takes the shared verifier now.
-const verifier = new AccessTokenVerifier({ JWT_ACCESS_SECRET: testSecret() } as never);
+// A SystemClock rather than a FixedClock: these specs mint tokens relative to now and
+// assert acceptance, so a frozen clock would have to be kept in step with the minter.
+// jwt-auth.guard.spec's expiry cases pass explicit offsets, which is the same property
+// from the other side.
+const verifier = new AccessTokenVerifier(
+  { JWT_ACCESS_SECRET: testSecret() } as never,
+  new SystemClock(),
+);
 const middleware = new TenantContextMiddleware(verifier);
 
 /**

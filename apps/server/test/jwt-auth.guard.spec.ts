@@ -11,6 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { AccessTokenVerifier } from '../dist/common/auth/access-token.verifier.js';
+import { SystemClock } from '../dist/common/clock/system-clock.adapter.js';
 import { JwtAuthGuard, extractBearerToken } from '../dist/common/guards/jwt-auth.guard.js';
 import { UnauthenticatedException } from '../dist/common/errors/domain-exception.js';
 import { mintAccessToken, REJECTION_FIXTURES, testSecret } from './harness/mint-token.ts';
@@ -38,7 +39,11 @@ const config = { JWT_ACCESS_SECRET: testSecret() } as never;
 // M-015 moved the verification itself into `AccessTokenVerifier`, so BOTH the guard and
 // `TenantContextMiddleware` use one implementation. The guard now takes the verifier rather
 // than the config — it rejects, it no longer verifies.
-const verifier = new AccessTokenVerifier(config);
+// A SystemClock rather than a FixedClock: these specs mint tokens relative to now and
+// assert acceptance, so a frozen clock would have to be kept in step with the minter.
+// jwt-auth.guard.spec's expiry cases pass explicit offsets, which is the same property
+// from the other side.
+const verifier = new AccessTokenVerifier(config, new SystemClock());
 
 const guard = (isPublic = false) => new JwtAuthGuard(reflector(isPublic), verifier);
 

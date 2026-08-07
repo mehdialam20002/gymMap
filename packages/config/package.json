@@ -10,7 +10,8 @@
     "./tsconfig/node": "./tsconfig/node.json",
     "./tsconfig/react": "./tsconfig/react.json",
     "./tsconfig/nest": "./tsconfig/nest.json",
-    "./tailwind/preset": "./tailwind/preset.ts"
+    "./tailwind/preset": "./tailwind/preset.ts",
+    "./eslint": "./eslint/index.mjs"
   },
   "//": "M-001 · §3.6 script contract. A no-op is the literal string, never a missing script — a missing script makes `turbo run` succeed by omission, which is indistinguishable from passing.",
   "scripts": {

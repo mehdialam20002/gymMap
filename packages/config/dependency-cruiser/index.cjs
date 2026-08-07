@@ -148,9 +148,16 @@ const STRUCTURAL_RULES = [
     //   tailwind-preset.ts     the same thing under a different name: packages/ui's preset is
     //                          build configuration that three apps compose, and calling it
     //                          `*.config.ts` would imply it configures packages/ui itself
+    //   packages/config/       the whole package IS tool configuration. Its `build` is a no-op,
+    //                          nothing imports it at runtime, and its eslint rule set
+    //                          necessarily imports eslint. R1a keeps eslint out of the ROOT
+    //                          devDependencies, so it lives here — which is the correct place
+    //                          and not a runtime import in any sense.
     from: {
       path: '^(apps|packages)',
-      pathNot: '\\.(spec|test)\\.[cm]?[jt]sx?$|\\.config\\.[cm]?[jt]s$|/tailwind-preset\\.ts$',
+      pathNot:
+        '\\.(spec|test)\\.[cm]?[jt]sx?$|\\.config\\.[cm]?[jt]s$|/tailwind-preset\\.ts$|' +
+        '^packages/config/',
     },
     to: {
       dependencyTypes: ['npm-dev'],

@@ -9,7 +9,7 @@
     "build": "tsc -p tsconfig.build.json",
     "dev": "node --watch dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "echo \"no-op\"",
+    "lint": "eslint . --max-warnings=0",
     "architecture": "echo \"no-op\"",
     "test:unit": "node --test test/*.spec.ts",
     "test:int": "node --test --test-concurrency=1 test/*.int-spec.ts",
@@ -27,18 +27,23 @@
     "db:setup": "prisma migrate deploy && docker exec -i gymmap-postgres psql -U postgres -d gymmap -v ON_ERROR_STOP=1 -f - < ../../infra/compose/set-local-role-password.sql"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@gymmap/config": "workspace:*",
     "@nestjs/cli": "^10.4.9",
     "@nestjs/testing": "^10.4.22",
     "@types/express": "^5.0.6",
     "@types/node": "^22.10.0",
     "@types/supertest": "^6.0.3",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
     "prisma": "^6.19.3",
     "supertest": "^7.2.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.66.0"
   },
   "dependencies": {
     "@gymmap/types": "workspace:*",
+    "@gymmap/utils": "workspace:*",
     "@nestjs/common": "^10.4.22",
     "@nestjs/core": "^10.4.22",
     "@nestjs/platform-express": "^10.4.22",
@@ -51,5 +56,6 @@
     "rxjs": "^7.8.2",
     "zod": "^3.25.76"
   },
-  "//test:isolation": "M-015 · ONE glob covering every *-spec.ts under test/isolation/. The previous form listed *.int-spec.ts and *.isolation-spec.ts explicitly, which silently excluded dropped-policy.negative-spec.ts — A7, the assertion that makes the other six falsifiable. A file that exists and is never run is the exact failure this milestone is about, and it was in the milestone's own script."
+  "//test:isolation": "M-015 · ONE glob covering every *-spec.ts under test/isolation/. The previous form listed *.int-spec.ts and *.isolation-spec.ts explicitly, which silently excluded dropped-policy.negative-spec.ts — A7, the assertion that makes the other six falsifiable. A file that exists and is never run is the exact failure this milestone is about, and it was in the milestone's own script.",
+  "//lint": "R1a keeps the ROOT devDependencies to seven packages, and eslint is not one of them — so each workspace that lints declares its own. The shared rule set still lives in one place (@gymmap/config/eslint); only the runner is per-package."
 }

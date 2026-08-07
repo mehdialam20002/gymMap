@@ -12,10 +12,10 @@
  * another tenant's rows.
  */
 
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
-import type { AppConfig } from '../../common/config/app-config.schema.js';
+import { APP_CONFIG, type AppConfig } from '../../common/config/app-config.schema.js';
 import { withTenantContext } from './tenant-scoped-client.js';
 
 /**
@@ -72,7 +72,12 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   /** The extended client. This is what every repository injects. */
   readonly client: TenantScopedPrisma;
 
-  constructor(private readonly config: AppConfig) {
+  // `@Inject(APP_CONFIG)` rather than relying on the reflected parameter type. AppConfig is a
+  // Zod-inferred TYPE with no runtime value, so emitDecoratorMetadata would emit `undefined`
+  // (TD-030) the moment this class was provided by class reference instead of by factory —
+  // and the failure appears at boot, pointing nowhere near here. The explicit token removes
+  // the dependency on how the provider happens to be registered today.
+  constructor(@Inject(APP_CONFIG) private readonly config: AppConfig) {
     this.raw = new PrismaClient({
       datasources: { db: { url: config.DATABASE_URL } },
       // `query` is emitted as an event rather than logged directly, so the OTel exporter can

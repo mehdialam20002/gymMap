@@ -42,6 +42,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { APP_CONFIG, type AppConfig } from '../config/app-config.schema.js';
+import { CLOCK, type Clock } from '../clock/clock.port.js';
 
 /** The claims a Sprint-0 access token carries. M-022 adds the rest. */
 export interface AccessTokenClaims {
@@ -75,7 +76,23 @@ export class TokenRejected extends Error {
 
 @Injectable()
 export class AccessTokenVerifier {
-  constructor(@Inject(APP_CONFIG) private readonly config: AppConfig) {}
+  /**
+   * The clock is INJECTED, and REQUIRED — `AC-FND-13.3`.
+   *
+   * Expiry was checked against `Date.now()` until M-016, which made every token-lifetime
+   * assertion untestable: proving a token expires after fifteen minutes meant either waiting
+   * fifteen minutes or monkey-patching a global — and the monkey-patch leaks between suites, so
+   * one spec's frozen clock changes another's result depending on the order they ran in.
+   * `no-bare-date` caught it the first time the lint gate actually ran, in M-016.
+   *
+   * Required rather than optional-with-a-fallback. A default `() => new Date()` would put the
+   * ambient clock back one level down, where nothing flags it, and every caller that forgot to
+   * pass a clock would silently get the untestable behaviour back.
+   */
+  constructor(
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
+    @Inject(CLOCK) private readonly clock: Clock,
+  ) {}
 
   /**
    * Verifies and returns the claims, or throws `TokenRejected` naming the reason.
@@ -129,7 +146,7 @@ export class AccessTokenVerifier {
       throw new TokenRejected('unparseable payload');
     }
 
-    const now = Math.floor(Date.now() / 1000);
+    const now = Math.floor(this.clock.now().getTime() / 1000);
 
     if (typeof claims.exp !== 'number' || claims.exp <= now) throw new TokenRejected('expired');
     if (typeof claims.nbf === 'number' && claims.nbf > now) {

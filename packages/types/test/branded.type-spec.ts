@@ -69,33 +69,33 @@ const aMembership: MembershipId = membershipId(UUID_A);
 const aBranch: BranchId = branchId(UUID_A);
 
 // TenantId / GymId — the pair that would breach BR-TEN-01 if confused.
-// @ts-expect-error
+// @ts-expect-error a GymId must not be assignable to TenantId — the brands are distinct
 const p1a: TenantId = aGym;
-// @ts-expect-error
+// @ts-expect-error a TenantId must not be assignable to GymId — the brands are distinct
 const p1b: GymId = aTenant;
 
 // MemberId / UserId — a member is a tenant-scoped record; a user is a platform identity.
-// @ts-expect-error
+// @ts-expect-error a UserId must not be assignable to MemberId — the brands are distinct
 const p2a: MemberId = aUser;
-// @ts-expect-error
+// @ts-expect-error a MemberId must not be assignable to UserId — the brands are distinct
 const p2b: UserId = aMember;
 
 // OrderId / PaymentId — one order can have several payment attempts (BR-PAY-02).
-// @ts-expect-error
+// @ts-expect-error a PaymentId must not be assignable to OrderId — the brands are distinct
 const p3a: OrderId = aPayment;
-// @ts-expect-error
+// @ts-expect-error a OrderId must not be assignable to PaymentId — the brands are distinct
 const p3b: PaymentId = anOrder;
 
 // PlanId / MembershipId — the plan is the template, the membership is the instance.
-// @ts-expect-error
+// @ts-expect-error a MembershipId must not be assignable to PlanId — the brands are distinct
 const p4a: PlanId = aMembership;
-// @ts-expect-error
+// @ts-expect-error a PlanId must not be assignable to MembershipId — the brands are distinct
 const p4b: MembershipId = aPlan;
 
 // BranchId / GymId — a gym has many branches; the single-branch case is where this gets confused.
-// @ts-expect-error
+// @ts-expect-error a GymId must not be assignable to BranchId — the brands are distinct
 const p5a: BranchId = aGym;
-// @ts-expect-error
+// @ts-expect-error a BranchId must not be assignable to GymId — the brands are distinct
 const p5b: GymId = aBranch;
 
 // A branded id IS still a string where a string is genuinely wanted (logging, URL building).

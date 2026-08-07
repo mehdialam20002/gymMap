@@ -237,7 +237,6 @@ it('PX-5 · the extension binds $allModels, so coverage is not a maintained list
 
     await runWithoutTenant(async () => {
       await assert.rejects(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ADR-0005: dynamic model access is the point of the PX-5 introspection
         () => (client as any)[model].findMany(),
         MissingTenantContextError,
         `model "${model}" is NOT covered by the extension. A model outside the interception is a ` +

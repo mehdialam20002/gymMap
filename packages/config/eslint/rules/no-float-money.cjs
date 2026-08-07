@@ -30,9 +30,15 @@ const MONEY_NAME =
  * starting with a capital in camelCase. A naive suffix match silently swallows `discount`,
  * which ends in the letters "count" and is very much money. That bug shipped for one test run
  * and is the reason this comment exists.
+ *
+ * M-016 added `exponent`, `precision`, `scale` and `digits`. `minorExponent` — the number of
+ * decimal places in a currency's minor unit — matches MONEY_NAME on "minor" and is a COUNT OF
+ * DIGITS, exactly as much not-money as `commissionRateBps`. Caught the first time the rule was
+ * actually run against the codebase, which was M-016: until then there was no ESLint config to
+ * register it in, so all four custom rules had passing unit tests and had never seen a file.
  */
 const NOT_MONEY =
-  /(?:^|_)(count|rate|bps|pct|percent|ratio|days?|version|index|priority)$|[a-z0-9](Count|Rate|Bps|Pct|Percent|Ratio|Days?|Version|Index|Priority)$/;
+  /(?:^|_)(count|rate|bps|pct|percent|ratio|days?|version|index|priority|exponent|precision|scale|digits)$|[a-z0-9](Count|Rate|Bps|Pct|Percent|Ratio|Days?|Version|Index|Priority|Exponent|Precision|Scale|Digits)$/;
 
 /** Types that may legitimately carry a monetary quantity. */
 const ALLOWED_TYPES = new Set(['bigint', 'Money', 'MoneyMinor', 'AmountMinor']);

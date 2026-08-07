@@ -66,11 +66,54 @@ module.exports = {
       if (typeof name === 'string') ctorTypes.push({ name, node: ann });
     }
 
+    /**
+     * True when Nest is told the token EXPLICITLY, so the emitted metadata is irrelevant.
+     *
+     * `constructor(@Inject(APP_CONFIG) private readonly config: AppConfig)` cannot fail the way
+     * TD-030 describes: Nest resolves `APP_CONFIG`, never the reflected parameter type. And
+     * `AppConfig` is a Zod-inferred TYPE with no runtime value, so a value import is not merely
+     * unnecessary — it is impossible.
+     *
+     * Added in M-016, when the four custom rules ran against the codebase for the first time.
+     * Without it the rule demands a value import of something that has no value.
+     */
+    function hasInjectDecorator(param) {
+      const decorators = param.decorators ?? param.parameter?.decorators ?? [];
+      return decorators.some((d) => {
+        const expression = d.expression;
+        if (expression?.type === 'CallExpression') {
+          return expression.callee?.name === 'Inject';
+        }
+        return expression?.name === 'Inject';
+      });
+    }
+
+    /**
+     * True when the enclosing class extends `Error`.
+     *
+     * An exception is never a Nest provider, so Nest never reflects on its constructor and
+     * TD-030 cannot apply. `DomainException`'s parameter is an `ErrorCode` — a string union with
+     * no runtime value — so the rule's own remedy, "use a value import", is impossible to follow.
+     *
+     * Deliberately NOT "the class carries no decorator", which was the first attempt: that
+     * exemption is broader than the reason for it and silently disabled the rule for the plain
+     * `class S { … }` shape its own fixtures use — so the rule would have kept passing its unit
+     * tests while no longer catching anything they describe.
+     */
+    function extendsError(ctorNode) {
+      const superClass = ctorNode.parent?.parent?.superClass;
+      return superClass?.type === 'Identifier' && /Error$/.test(superClass.name);
+    }
+
     return {
       ImportDeclaration: recordTypeOnly,
 
       'MethodDefinition[kind="constructor"]'(node) {
-        for (const param of node.value?.params ?? []) collectParamType(param);
+        if (extendsError(node)) return;
+        for (const param of node.value?.params ?? []) {
+          if (hasInjectDecorator(param)) continue;
+          collectParamType(param);
+        }
       },
 
       'Program:exit'() {

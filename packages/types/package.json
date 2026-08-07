@@ -19,7 +19,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "echo \"no-op\"",
+    "lint": "eslint . --max-warnings=0",
     "architecture": "echo \"no-op\"",
     "test:unit": "node --test test/*.spec.ts test/*.type-spec.ts",
     "test:int": "echo \"no-op\"",
@@ -31,11 +31,16 @@
     "openapi:check": "echo \"no-op\""
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@gymmap/config": "workspace:*",
     "@types/node": "^22.10.0",
-    "typescript": "^6.0.3"
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.66.0"
   },
   "dependencies": {
     "zod": "^3.24.1"
-  }
+  },
+  "//lint": "R1a keeps the ROOT devDependencies to seven packages, and eslint is not one of them — so each workspace that lints declares its own. The shared rule set still lives in one place (@gymmap/config/eslint); only the runner is per-package."
 }

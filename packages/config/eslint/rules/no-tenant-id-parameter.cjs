@@ -23,8 +23,18 @@
 const TENANT_PARAM = /^tenant_?id$/i;
 
 /** Files where a tenant id parameter is legitimate. */
+/**
+ * Paths where a tenant id parameter is legitimate.
+ *
+ * `tenancy/` owns the mechanism, so it necessarily handles the id as a value. `logging/` is the
+ * exemption M-016 added when this rule first ran against the codebase: `setCorrelationTenant`
+ * attaches the tenant to the correlation context so it appears on every LOG LINE, which is the
+ * opposite of a data-access parameter — it records the scope that RLS already decided rather
+ * than choosing one. Without the exemption the rule fires on the one function whose whole job is
+ * to make the tenant visible in an incident.
+ */
 const EXEMPT_PATH =
-  /[\\/](tenancy|test|tests|__tests__|__mocks__|prisma[\\/]seed|migrations)[\\/]|\.(spec|test|e2e-spec)\.[cm]?tsx?$/;
+  /[\\/](tenancy|logging|test|tests|__tests__|__mocks__|prisma[\\/]seed|migrations)[\\/]|\.(spec|test|e2e-spec)\.[cm]?tsx?$/;
 
 const MESSAGE =
   "Constitution §11.5 BR5 / BR-TEN-01: '{{name}}' takes a tenant id as a parameter. Tenant scope " +

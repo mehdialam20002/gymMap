@@ -32,7 +32,7 @@ if (process.env['NODE_ENV'] !== 'test') {
       new Logger('worker').log(`Queue role started · env=${config.APP_ENV} (no HTTP listener)`);
     })
     .catch((error: unknown) => {
-      // eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console -- TD-030 sibling: a worker that fails to build its DI container has no logger yet. One line, in a bootstrap catch, before exit.
       console.error('Worker failed to start:\n', error instanceof Error ? error.message : error);
       process.exit(1);
     });

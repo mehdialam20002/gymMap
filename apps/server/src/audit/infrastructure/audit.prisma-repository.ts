@@ -20,7 +20,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { REDACTED_FIELD_NAMES } from '../../common/logging/redaction.js';
-import type { AuditPrismaService } from '../../tenancy/prisma/audit-prisma.service.js';
+// A VALUE import, not `import type`. TD-030: a type-only import is erased, so
+// emitDecoratorMetadata emits `undefined` and Nest fails at RUNTIME with an error that
+// points nowhere near this line. AuditPrismaService is a class and has a runtime value.
+import { AuditPrismaService } from '../../tenancy/prisma/audit-prisma.service.js';
 import type { AuditEntry, AuditWritePort } from '../ports/audit-write.port.js';
 
 @Injectable()

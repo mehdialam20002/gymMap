@@ -111,7 +111,7 @@ const context: ProbeContext = {
       headers: { authorization: `Bearer ${tokenFor(asTenant)}` },
     });
     const raw = await response.text();
-    let body: unknown = null;
+    let body: unknown;
     try {
       body = raw.length > 0 ? JSON.parse(raw) : null;
     } catch {

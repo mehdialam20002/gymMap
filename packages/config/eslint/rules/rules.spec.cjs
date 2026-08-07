@@ -16,6 +16,7 @@ const assert = require('node:assert/strict');
 const noFloatMoney = require('./no-float-money.cjs');
 const noTenantIdParameter = require('./no-tenant-id-parameter.cjs');
 const noTypeImportInCtor = require('./no-type-import-in-ctor.cjs');
+const noBareDate = require('./no-bare-date.cjs');
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -186,4 +187,50 @@ test('no-type-import-in-ctor', () => {
 
 test('no-type-import-in-ctor — the message cites the debt it discharges (AC-1)', () => {
   assert.match(noTypeImportInCtor.meta.messages.typeImportInCtor, /TD-030/);
+});
+
+// ---------------------------------------------------------------------------
+// no-bare-date — AC-FND-13.3, TR-21
+//
+// THE PARENTHESES ARE THE WHOLE RULE. `new Date()` reads the ambient clock;
+// `new Date(value)` converts something it was given. A rule that banned both would be unusable,
+// because parsing an ISO string from the database and copying a Date to avoid handing out a
+// mutable reference are both `new Date(x)` and both correct.
+// ---------------------------------------------------------------------------
+
+test('no-bare-date', () => {
+  ruleTester.run('no-bare-date', noBareDate, {
+    valid: [
+      // Converting a value it was GIVEN. This is the case the rule must never break.
+      { code: 'const d = new Date(isoString);' },
+      { code: 'const copy = new Date(other.getTime());' },
+      { code: 'const d = new Date(2026, 0, 1);' },
+      // The port. The whole point of the rule is that this is what code writes instead.
+      { code: 'const now = clock.now();' },
+      { code: 'const t = clock.now().getTime();' },
+      // A property that merely happens to be called `now`.
+      { code: 'const t = payload.now();' },
+      { code: 'const t = other.Date.now();' },
+    ],
+    invalid: [
+      {
+        code: 'const now = new Date();',
+        errors: [{ messageId: 'newDate' }],
+      },
+      {
+        code: 'const t = Date.now();',
+        errors: [{ messageId: 'dateNow' }],
+      },
+      {
+        // Inside a method, which is where it actually appears.
+        code: 'class S { expired(e) { return e < Date.now() / 1000; } }',
+        errors: [{ messageId: 'dateNow' }],
+      },
+      {
+        // Both forms in one file are two separate findings, not one.
+        code: 'const a = new Date(); const b = Date.now();',
+        errors: [{ messageId: 'newDate' }, { messageId: 'dateNow' }],
+      },
+    ],
+  });
 });

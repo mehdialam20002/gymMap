@@ -19,7 +19,7 @@
     "tokens:build": "node scripts/tokens.mjs --build",
     "tokens:check": "node scripts/tokens.mjs --check",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "echo \"no-op\"",
+    "lint": "eslint . --max-warnings=0",
     "architecture": "echo \"no-op\"",
     "test:unit": "node --test test/*.spec.ts && node scripts/tokens.mjs --check",
     "test:int": "echo \"no-op\"",
@@ -31,8 +31,13 @@
     "openapi:check": "echo \"no-op\""
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.10.5",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
     "tailwindcss": "^3.4.17",
-    "typescript": "^6.0.3"
-  }
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.66.0"
+  },
+  "//lint": "R1a keeps the ROOT devDependencies to seven packages, and eslint is not one of them - so each workspace that lints declares its own runner. @gymmap/config is deliberately ABSENT here: DesignSystem.md 2.4 puts the Tailwind preset re-export in packages/config, which makes config depend on ui, and turbo refuses the resulting build cycle. The shared rule set still reaches this package - eslint walks up to the root eslint.config.mjs, which resolves ./packages/config/eslint/index.mjs by relative path and needs no dependency edge."
 }

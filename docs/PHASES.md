@@ -471,7 +471,7 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 
 **Goal.** Build the platform, milestone by milestone, per `/docs/roadmap/`.
 **Depends on.** Phases 0–7 and G, all `DONE`, plus explicit owner approval.
-**Status.** `IN PROGRESS — Sprint 0 foundations, plus the three UI shells pulled ahead. 15 of 120 milestones. The customer website and admin console shells both build and serve, and the cross-tenant isolation suite is green on a real PostgreSQL 16.`
+**Status.** `IN PROGRESS — Sprint 0 foundations, plus the three UI shells pulled ahead. 16 of 120 milestones. The customer website and admin console shells both build and serve, the cross-tenant isolation suite is green on a real PostgreSQL 16, and the lint gate runs for the first time.`
 
 ### Pre-flight, mandatory before *any* code
 
@@ -510,7 +510,34 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | **UI-2** | `apps/customer-web` — the Next.js 14 App Router shell | ✅ `DONE` | — | **23/23** · builds · served and curled · 87.4 kB first load · CSP nonce per response |
 | **UI-3** | `apps/admin-dashboard` — the React 18 + Vite shell, MFA-gated | ✅ `DONE` | — | **24/24** · builds · served and curled · 15 SCR-ADM routes declared |
 | M-015 | **THE CROSS-TENANT ISOLATION SUITE** — generated, `BAC-10` | ✅ `DONE` | — | **114/114 isolation on real PG16** · A1…A7 · A7 proves the suite goes RED with RLS off · 23/23 coverage-gate fixtures · found 3 real defects |
-| M-016…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+| M-016 | `Money`, the Indian formatter, the `Clock` port, time discipline | ✅ `DONE` | — | **36 money + 27 time + 17 Money/Clock** · 10,000-split property test · TR-24 asserted at 18:30 UTC · **`pnpm lint` passes for the first time** |
+| M-017…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+
+**M-016 turned on the lint gate, and it had never run.**
+
+`no-float-money`, `no-tenant-id-parameter` and `no-type-import-in-ctor` were written in M-002
+with passing `RuleTester` specs — and there was no ESLint configuration file to register them in,
+so `pnpm lint` exited 2 (*"could not find a configuration file"*) and had done since. CI job 3
+would have failed on the first pull request. A rule with a green unit test and no config is a
+rule that has never seen the codebase.
+
+Creating the flat config found six things. None was a defect the tests could have caught, because
+the tests were the thing that was not running:
+
+| Finding | Resolution |
+| :--- | :--- |
+| `AccessTokenVerifier` checked token expiry against `Date.now()` | The `Clock` is now injected and **required** — not optional-with-a-fallback, which would put the ambient clock back one level down where nothing flags it. Token lifetime is testable without waiting fifteen minutes. |
+| Three Prisma services took `AppConfig` through the reflected parameter type | Now `@Inject(APP_CONFIG)`. They are provided by factory today, so TD-030 could not bite — but it would the moment somebody registered one by class reference, and the failure appears at boot pointing nowhere near the constructor. |
+| `AuditPrismaRepository` used `import type` for `AuditPrismaService`, which is a real class | A value import, exactly as the rule says. |
+| `no-float-money` fired on `minorExponent: number` | A false positive: it is a count of decimal digits, as much not-money as `commissionRateBps`. `exponent`, `precision`, `scale` and `digits` added to the rule's `NOT_MONEY` list. |
+| `no-tenant-id-parameter` fired on `setCorrelationTenant` | A false positive: it attaches the tenant to the **log line**, which records the scope RLS already decided rather than choosing one. `logging/` exempted. |
+| Two `eslint-disable` directives were dead, and `no-console` was not enabled | `no-console` is on now — `console.log(user)` bypasses Pino's redaction and puts personal data in a seven-year log estate (`BR-DAT-06`). The two bootstrap files keep narrow per-line disables, cited as CI job 3 requires, rather than a whole-file exemption in which a later `console.log` would go unflagged. |
+
+The first attempt at the `no-type-import-in-ctor` exemption was *"the class carries no
+decorator"*, which is broader than the reason for it: it silently disabled the rule for the plain
+`class S { … }` shape the rule's own fixtures use, so the rule would have kept passing its unit
+tests while catching nothing they describe. Replaced with `extends Error`, which is the actual
+argument — an exception is never a Nest provider.
 
 **M-015 found three defects, and two of them were live holes rather than test gaps.**
 

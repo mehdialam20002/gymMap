@@ -38,17 +38,22 @@
  * `app_append` grant: this pool can write one table and read nothing.
  */
 
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
-import type { AppConfig } from '../../common/config/app-config.schema.js';
+import { APP_CONFIG, type AppConfig } from '../../common/config/app-config.schema.js';
 
 @Injectable()
 export class AuditPrismaService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AuditPrismaService.name);
   private readonly appendOnly: PrismaClient;
 
-  constructor(private readonly config: AppConfig) {
+  // `@Inject(APP_CONFIG)` rather than relying on the reflected parameter type. AppConfig is a
+  // Zod-inferred TYPE with no runtime value, so emitDecoratorMetadata would emit `undefined`
+  // (TD-030) the moment this class was provided by class reference instead of by factory —
+  // and the failure appears at boot, pointing nowhere near here. The explicit token removes
+  // the dependency on how the provider happens to be registered today.
+  constructor(@Inject(APP_CONFIG) private readonly config: AppConfig) {
     // The audit URL, or the application URL as a documented fallback. In a deployed environment
     // AUDIT_DATABASE_URL is set by Terraform to the gymmap_audit credential; locally, falling
     // back keeps `pnpm infra:up` a one-step setup. The fallback is visible in the log below so

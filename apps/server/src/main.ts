@@ -51,7 +51,7 @@ async function bootstrap(): Promise<void> {
 
 bootstrap().catch((error: unknown) => {
   // Cannot use the Nest logger here — the failure may BE the logger's construction.
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line no-console -- TD-030 sibling: the failure may BE the logger construction, so there is no logger to use. One line, in a bootstrap catch, before exit.
   console.error('Server failed to start:\n', error instanceof Error ? error.message : error);
   process.exit(1);
 });

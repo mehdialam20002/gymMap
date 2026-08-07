@@ -20,10 +20,10 @@
  * └─────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
-import type { AppConfig } from '../../common/config/app-config.schema.js';
+import { APP_CONFIG, type AppConfig } from '../../common/config/app-config.schema.js';
 import { ElevationRefusedError } from '../domain/tenancy.errors.js';
 import { currentElevation } from './platform-elevation.js';
 
@@ -32,7 +32,12 @@ export class PlatformPrismaService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PlatformPrismaService.name);
   private readonly readOnly: PrismaClient;
 
-  constructor(private readonly config: AppConfig) {
+  // `@Inject(APP_CONFIG)` rather than relying on the reflected parameter type. AppConfig is a
+  // Zod-inferred TYPE with no runtime value, so emitDecoratorMetadata would emit `undefined`
+  // (TD-030) the moment this class was provided by class reference instead of by factory —
+  // and the failure appears at boot, pointing nowhere near here. The explicit token removes
+  // the dependency on how the provider happens to be registered today.
+  constructor(@Inject(APP_CONFIG) private readonly config: AppConfig) {
     // '' means unset, matching AUDIT_DATABASE_URL. Falling back to the application connection
     // keeps local setup one step; the warning below makes the weaker posture visible rather
     // than something discovered by reading the source during an incident.

@@ -14,6 +14,8 @@ import { CorrelationMiddleware } from './logging/correlation.middleware.js';
 import { HealthController } from './health/health.controller.js';
 import { ReadinessService } from './health/readiness.service.js';
 import { AccessTokenVerifier } from './auth/access-token.verifier.js';
+import { CLOCK, ID_GENERATOR } from './clock/clock.port.js';
+import { SystemClock, SystemIdGenerator } from './clock/system-clock.adapter.js';
 
 @Global()
 @Module({
@@ -31,8 +33,12 @@ import { AccessTokenVerifier } from './auth/access-token.verifier.js';
     // `JwtAuthGuard` (which rejects) need it, and they live in different modules. One verifier
     // is the point: two would be two definitions of "a valid token", and they would drift.
     AccessTokenVerifier,
+    // AC-FND-13.3 — the ONE place the ambient clock enters the application. Every consumer
+    // injects the port, so a test substitutes a FixedClock without a global monkey-patch.
+    { provide: CLOCK, useClass: SystemClock },
+    { provide: ID_GENERATOR, useClass: SystemIdGenerator },
   ],
-  exports: [APP_CONFIG, ReadinessService, AccessTokenVerifier],
+  exports: [APP_CONFIG, ReadinessService, AccessTokenVerifier, CLOCK, ID_GENERATOR],
 })
 export class CommonModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
