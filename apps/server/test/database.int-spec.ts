@@ -159,6 +159,10 @@ const EXPECTED_APPLICATION_TABLES = [
   'roles',
   'permissions',
   'role_permissions',
+  // M-020 · sessions, moved here from M-022 by ADR-0035 because FR-AUTH-10 (rank 2) needs them
+  // and the milestone that owned them (rank 4) had a cycle in it. Both IDENTITY class.
+  'auth_sessions',
+  'refresh_tokens',
 ];
 
 /**

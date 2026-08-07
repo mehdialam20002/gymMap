@@ -76,6 +76,13 @@ export const MG10_NO_RLS_BY_CLASS = {
     'IDENTITY · Schema.md §4.7 — HAS a tenant_id and no policy, the one reviewed exception ' +
     '(M-019 AC-2). A policy evaluates NULL = <uuid> for every platform grant, so super-admins ' +
     'become invisible to themselves. Held to PC2-IDENTITY in test/isolation/rls-coverage.sql.',
+  auth_sessions:
+    'IDENTITY · Schema.md §4.8 — a session belongs to a USER, and a user belongs to no single ' +
+    'tenant: one member may hold memberships at three gyms and one session across all of them. ' +
+    'No tenant_id, scoped by user_id, protected by authorisation (M-020, ADR-0035).',
+  refresh_tokens:
+    'IDENTITY · Schema.md §4.8 — one rotation generation within a session, reached only through ' +
+    'its session. Same class and same reasoning as auth_sessions (M-020, ADR-0035).',
 
   // GLOBAL platform reference (§C2.3, grant class G-REF). There is no tenant whose rows these
   // are, so there is nothing for a policy to scope to.

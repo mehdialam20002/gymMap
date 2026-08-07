@@ -121,9 +121,45 @@ export const appConfigSchema = z
     QR_TOKEN_TTL_SECONDS: z.coerce.number().int().min(15).max(300).default(60),
 
     // --- password hashing (A-12) ------------------------------------------
-    ARGON2_MEMORY_COST: z.coerce.number().int().min(19456).default(19456),
-    ARGON2_TIME_COST: z.coerce.number().int().min(2).default(2),
+    //
+    // The defaults are `Security.md` §2.4.2's recorded values, which is what A-12's approval
+    // condition — "Parameter tuning must be recorded" — actually requires. They were 19456/2
+    // (the OWASP floor) as a placeholder until M-020 read §2.4.2 and adopted the real ones.
+    //
+    // The `min()` bounds are the OWASP floor, NOT the policy: they exist so a misconfigured
+    // deployment cannot go BELOW the floor, while re-calibration upward (A-12 requires it
+    // annually and on any instance-class change) needs no code change.
+    ARGON2_MEMORY_COST: z.coerce.number().int().min(19456).default(65536),
+    ARGON2_TIME_COST: z.coerce.number().int().min(2).default(3),
     ARGON2_PARALLELISM: z.coerce.number().int().min(1).default(1),
+
+    /**
+     * `Security.md` §2.4.2 — 8 concurrent hashes per API instance, behind a semaphore.
+     *
+     * 8 × 64 MiB is 512 MiB of transient memory, and that is the deliberate cap. Without it a
+     * login flood is a memory-exhaustion denial of service **caused by the security control
+     * itself** (STRIDE A1/D). The queue behind the semaphore is bounded so an attacker cannot
+     * convert it into unbounded latency instead.
+     */
+    ARGON2_MAX_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(8),
+
+    /** How long a request waits for a hash slot before `503 DEPENDENCY_UNAVAILABLE`. */
+    ARGON2_QUEUE_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).default(5_000),
+
+    // --- credential tokens (ADR-0034 — Redis, not a table) -----------------
+    /** `Authentication.md` §8.7. Short on purpose: a reset link is a bearer credential. */
+    PASSWORD_RESET_TTL_SECONDS: z.coerce.number().int().min(300).max(3_600).default(1_800),
+    /** `Authentication.md` §8.3. A verification link may sit in an inbox overnight. */
+    EMAIL_VERIFICATION_TTL_HOURS: z.coerce.number().int().min(1).max(168).default(24),
+
+    // --- account lockout (FR-AUTH-08, Authentication.md §6) ----------------
+    //
+    // RLM6: limits are CONFIGURATION, not constants in code. The defaults are the specified
+    // values and `lockout.policy.ts` holds the same numbers as its documented contract — the
+    // policy module is the domain rule, these are the operational knobs.
+    LOCKOUT_THRESHOLD: z.coerce.number().int().min(3).max(100).default(10),
+    LOCKOUT_WINDOW_SECONDS: z.coerce.number().int().min(60).default(900),
+    LOCKOUT_DURATION_SECONDS: z.coerce.number().int().min(60).default(900),
 
     // --- payments (EP-08) --------------------------------------------------
     /**

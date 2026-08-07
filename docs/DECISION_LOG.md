@@ -5364,7 +5364,134 @@ versions.
 
 ---
 
-**End of decision log.** Thirty ADRs, all `Accepted`, recorded 2026-08-06 against
-`MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as approved on
-2026-08-06.
+## ADR-0033 — The password maximum is 128, the value that satisfies both documents
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-07 |
+| **Decided by** | Project owner, on the analysis below |
+| **Supersedes** | Nothing. Reconciles `Security.md` §2.4.1 with `Authentication.md` §5.2 |
+| **Tracked as** | M-020 |
+
+**The conflict.** Two documents at the same rank state different maxima for a password:
+
+| Document | Value | Its stated reason |
+| :--- | :--- | :--- |
+| `Security.md` §2.4.1 | **128** | *"an unbounded body is a memory-pressure vector before it reaches the hasher. 128 accommodates any passphrase a human will type"* |
+| `Authentication.md` §5.2 | **256** | *"bound the Argon2id work factor"* |
+
+`CLAUDE.md` §2 puts `docs/engineering/` and `docs/apis/` at the **same** precedence rank, so the
+hierarchy returns no answer. Under §9.3 that is a halt, and it was raised as one.
+
+**Decision. 128.** Not because `Security.md` outranks `Authentication.md` — it does not — but
+because 128 is the only value that leaves **both rules true**. Each document states a *ceiling*.
+A password of 128 characters or fewer is within 128 and within 256; a password of 200 is within
+one and outside the other. Choosing the intersection is not choosing a winner.
+
+This is the same move as M-019's widening of `ck_users__has_contact`: where two clauses can both
+be honoured, honour both rather than ranking them.
+
+**What is NOT changed.** `Authentication.md` §8.4's login schema and §-1312's re-authentication
+schema keep `.max(256)` with `.min(1)`, exactly as written. Those are deliberately **not** the
+policy schema — an existing password may predate any policy, and rejecting a login because the
+stored password is longer than today's maximum locks a user out of their own account with no path
+forward. The policy bound applies where a password is **chosen**: register, reset, change.
+
+**Consequence.** A user who would have chosen a 129–256 character password is refused, with
+`VALIDATION_FAILED` naming the field and not echoing the value. The practical cost is nil: no
+human types a 129-character passphrase, and a password manager generating one can generate 128.
+
+**Follow-up.** `Authentication.md` §5.2 should be amended to 128 so the two documents agree in
+text and not only in effect. Until then this ADR is the reconciliation of record.
+
+---
+
+## ADR-0034 — Credential tokens live in Redis, not in a table
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-07 |
+| **Decided by** | Technical Lead |
+| **Supersedes** | Nothing. Fills a genuine gap |
+| **Tracked as** | M-020 |
+
+**Context.** `Authentication.md` §8.3 and §8.7 require two single-use tokens — email verification
+(24 h) and password reset (30 minutes) — each a 256-bit CSPRNG value stored as its **SHA-256**,
+never in the clear (`NFR-SEC-07`). Neither document names a home for them. `Schema.md` §4 has no
+such table, and its register is **closed at 79 tables**.
+
+**This is the `BLK-08` situation again.** An eightieth table is a schema amendment under
+constitution §24, not a milestone's prerogative — and M-018 already met this with `job_runs`.
+
+**Decision.** Redis, under `iam:verify:{sha256}` and `iam:reset:{sha256}`, with the TTL as the
+key's expiry and consumption as an atomic `GETDEL`.
+
+**Why this is the better answer here, not merely the available one.**
+
+| | Redis | A table |
+| :--- | :--- | :--- |
+| Expiry | The TTL **is** the storage. An expired token cannot be read, ever. | A `expires_at` column plus a sweep job, and every read must remember to check it. |
+| Single use | `GETDEL` is atomic. Two concurrent uses of one reset token cannot both succeed. | A `used_at` update, with a read-then-write race unless it is `UPDATE … WHERE used_at IS NULL RETURNING`. |
+| Data at rest | Nothing survives the TTL. A backup restored six months later contains no live reset tokens. | Rows persist until swept, and a restored backup may contain usable ones. |
+
+The third row is the security argument, and it is why this is not a workaround. `A-25`'s Redis is
+already the store for the lockout counter and the rate limiter, so no new infrastructure appears.
+
+**What it costs.** A Redis outage makes verification and reset unavailable — they fail closed,
+which for a credential path is the correct direction. Recorded in `runbooks/iam.md`.
+
+**Reversible.** The `CredentialTokenStore` port has one implementation. If the owner amends
+`Schema.md` to add the table, a Prisma adapter drops in behind the same interface and no use case
+changes — the same shape as `JOB_RUN_SINK`.
+
+---
+
+## ADR-0035 — `auth_sessions` and `refresh_tokens` move from M-022 into M-020
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-07 |
+| **Decided by** | Project owner, on the analysis below |
+| **Supersedes** | The milestone placement in `roadmap/Milestones_000-029.md` §M-022 |
+| **Tracked as** | M-020 |
+
+**The circularity.** M-020 AC-4 requires that *"a password reset invalidates **all** sessions for
+that user, not just the current one"* (`FR-AUTH-10`), and ships
+`reset-invalidates-sessions.int-spec.ts` to prove it. The `auth_sessions` and `refresh_tokens`
+tables are created by **M-022** — which lists **M-020** as a dependency. `Epic_02.md` L537 states
+the edge in the opposite direction. As written, neither milestone can be built first.
+
+**Why this resolves in favour of moving the migration.**
+
+`CLAUDE.md` §2 places `docs/roadmap/` at rank 4 and says of it: *"plan of work, never a source of
+requirements"*. `FR-AUTH-10` is in `MASTER_PRD.md`, rank 2. So:
+
+- The requirement that a reset revokes every session is **binding**.
+- The milestone in which a table is created is **a plan**, and the plan contains a cycle.
+
+Shipping the reset endpoint without revocation is not a smaller version of the feature.
+`Authentication.md` §8.8 is explicit: *"Not revoking sessions would violate `FR-AUTH-10` and is not
+a compatibility question."* A password reset that leaves an attacker's session alive is the exact
+scenario a reset exists to end.
+
+**Decision.** M-020 creates both tables, to `Schema.md` §4.8's specification — `auth_sessions`
+grant class **G-CRUD**, `refresh_tokens` **G-COMPLETE** with `UPDATE (used_at, superseded_by_id)`
+and nothing else (Deviation **D-04**). Both are **IDENTITY** class: no `tenant_id`, no RLS, and
+both are added to the `IS6` exemption list with their reason in the same change (`PC2`).
+
+**What M-020 does NOT take from M-022.** Only the tables. JWT issue, rotation and reuse detection
+remain M-022's, and M-020 writes no session row — it only revokes. The one operation M-020 needs
+is a set-based `UPDATE … WHERE user_id = $1 AND status = 'ACTIVE'`.
+
+**Consequence for M-022.** Its migration is already applied when it starts; its Files list loses
+one entry and its acceptance criteria are otherwise untouched. Recorded in `PHASES.md`.
+
+---
+
+**End of decision log.** Thirty-five ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
+against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
+approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 during Phase 8 implementation.
 

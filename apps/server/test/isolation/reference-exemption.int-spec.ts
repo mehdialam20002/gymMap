@@ -118,6 +118,25 @@ const EXEMPT: readonly Exemption[] = [
       'Held to PC2-IDENTITY in rls-coverage.sql, which fails if a SECOND such table appears.',
   },
 
+  // ── M-020 · Schema.md §4.8 IDENTITY class, moved here from M-022 by ADR-0035 ─────────────
+  {
+    table: 'auth_sessions',
+    reason:
+      'IDENTITY class (Schema.md §1.3, §4.8). A session belongs to a USER, and a user belongs ' +
+      'to no single tenant — one member may hold memberships at three gyms and reach all of ' +
+      'them from one session. There is no tenant_id to scope by. The control is authorisation ' +
+      'on user_id, the same as `users` itself.',
+  },
+  {
+    table: 'refresh_tokens',
+    reason:
+      'IDENTITY class (Schema.md §4.8). One rotation generation within a session, reachable ' +
+      "only through that session, so it inherits auth_sessions' class and its reasoning. Its " +
+      'own protection is stronger than a policy: grant class G-COMPLETE means app_rw can write ' +
+      'only (used_at, superseded_by_id), so the rotation chain reuse detection walks cannot be ' +
+      'rewritten even by the application role.',
+  },
+
   // ── M-019 · GLOBAL platform reference, grant class G-REF ─────────────────────────────────
   //
   // These three ARE reference data, in the §C2.3 sense — the first of the eleven that file

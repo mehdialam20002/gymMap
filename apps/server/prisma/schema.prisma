@@ -286,7 +286,8 @@ model User {
   erasedAt       DateTime? @map("erased_at") @db.Timestamptz(6)
   deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  roles UserRole[]
+  roles    UserRole[]
+  sessions AuthSession[]
 
   @@index([status, createdAt(sort: Desc)], map: "ix_users__status_created_at")
   @@map("users")
@@ -411,4 +412,96 @@ enum PlatformRoleEnum {
   MODERATOR
 
   @@map("platform_role_enum")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// M-020 · Sessions and refresh tokens — Schema.md §4.8, ADR-0011, ADR-0035.
+//
+// Moved here from M-022 by ADR-0035: M-020's AC-4 requires a password reset to revoke every
+// session (FR-AUTH-10, rank 2), and the milestone that creates the table is a rank-4 plan with
+// a cycle in it. M-020 takes only the tables; JWT issue and rotation remain M-022's.
+//
+// Both are IDENTITY class — no tenantId, no RLS. A session belongs to a USER, and a user
+// belongs to no single tenant.
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+/// Schema.md §4.8. One authenticated device session, listable and revocable by its owner.
+model AuthSession {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  userId String @map("user_id") @db.Uuid
+
+  /// ADR-0011. The token family root — reuse detection revokes the family, not one token.
+  familyId String @unique @map("family_id") @db.Uuid
+
+  /// Shown on the FR-AUTH-09 sessions screen. `ip` is `inet` in SQL; Prisma has no inet type,
+  /// so it is read as a string. Never widen the column to text — a text column sorts
+  /// "10.0.0.2" before "9.0.0.1" and every range query becomes wrong.
+  deviceLabel String? @map("device_label")
+  userAgent   String? @map("user_agent")
+  ip          String? @db.Inet
+
+  status AuthSessionStatusEnum @default(ACTIVE)
+
+  /// Absolute, not sliding. A session that refreshes forever is a session that never ends.
+  absoluteExpiresAt DateTime @map("absolute_expires_at") @db.Timestamptz(6)
+
+  /// FR-AUTH-10. Revocation is a status and a timestamp — there is no DELETE grant, so
+  /// "when was this member logged out, and why" survives an account-takeover investigation.
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revokedReason String?   @map("revoked_reason")
+
+  user   User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  tokens RefreshToken[]
+
+  @@index([userId], map: "idx_auth_sessions__user_active")
+  @@index([userId, createdAt(sort: Desc)], map: "idx_auth_sessions__user_created")
+  @@map("auth_sessions")
+}
+
+/// Schema.md §4.8, ERD.md §16.1 deviation D-04. Append-only with ONE completion transition.
+///
+/// Grant class G-COMPLETE: SELECT, INSERT, and UPDATE on (used_at, superseded_by_id) ONLY.
+/// The column scope is the control — rotation must leave a chain, and a rewritten `generation`
+/// or `tokenHash` would make reuse detection stop detecting while still appearing to work.
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  sessionId String @map("session_id") @db.Uuid
+
+  /// NFR-SEC-07. SHA-256 of the token. THE TOKEN ITSELF IS NEVER STORED — a database read must
+  /// not be a session takeover. `char(64)` plus a lowercase-hex CHECK in SQL.
+  tokenHash String @unique @map("token_hash") @db.Char(64)
+
+  /// Monotonic within the family. Unique per session, which is what makes "a second use of a
+  /// spent generation" a detectable event rather than an ambiguous one.
+  generation Int
+
+  supersededById String? @map("superseded_by_id") @db.Uuid
+
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+
+  session      AuthSession    @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  supersededBy RefreshToken?  @relation("RotationChain", fields: [supersededById], references: [id], onDelete: Restrict)
+  supersedes   RefreshToken[] @relation("RotationChain")
+
+  @@unique([sessionId, generation], map: "uq_refresh_tokens__session_generation")
+  @@index([sessionId, generation(sort: Desc)], map: "idx_refresh_tokens__session")
+  @@index([expiresAt], map: "idx_refresh_tokens__expires_at")
+  @@map("refresh_tokens")
+}
+
+/// FR-AUTH-10. `EXPIRED` is reached by the TTL sweep, `REVOKED` by an explicit act.
+enum AuthSessionStatusEnum {
+  ACTIVE
+  REVOKED
+  EXPIRED
+
+  @@map("auth_session_status_enum")
 }
