@@ -55,6 +55,21 @@ export const appConfigSchema = z
       .startsWith('postgresql://')
       .or(z.literal(''))
       .default(''),
+    /**
+     * M-013 · The audit writer connects SEPARATELY, as a role that is a member of app_append
+     * and nothing else — so it can INSERT an audit row and cannot read one back.
+     *
+     * Optional, and the fallback is loud rather than silent: unset, the writer uses the
+     * application connection and logs a warning at boot saying the "writer cannot read the
+     * log" property does not hold. Acceptable locally, never in a deployed environment.
+     *
+     * Empty string rather than `.optional()`, matching `DATABASE_REPLICA_URL` directly above.
+     * An unset variable and an empty one must behave identically, because `.env.example`
+     * carries the key with no value — and a schema where `KEY=` fails while omitting the line
+     * entirely succeeds is a schema that rejects its own example file. The parity test caught
+     * exactly that.
+     */
+    AUDIT_DATABASE_URL: z.string().url().startsWith('postgresql://').or(z.literal('')).default(''),
     REDIS_URL: z.string().url().startsWith('redis://'),
     /**
      * M-005 AC-2 · Three logical Redis databases, matching the Terraform module's split.

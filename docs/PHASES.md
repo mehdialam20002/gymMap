@@ -504,7 +504,8 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-010 | The Prisma tenant-context client extension (ADR-0005) | ✅ `DONE` | — | **PX-1…PX-6 on real PG16** · 16/16 extension · 39/39 isolation · found 4 real defects |
 | M-011 | `TenantContextMiddleware`, the ALS carrier, the principal scaffold | ✅ `DONE` | — | 20/20 guard · 29/29 middleware · 5 spellings × 3 locations refused |
 | M-012 | `TenantScopedRepository` and `GET /v1/tenant/ping` | ✅ `DONE` | — | 50/50 isolation · A1–A4 incl. the positive control · 404 not 403 proved byte-identical |
-| M-013 | `audit_log`, the append-only writer, the `@Audited()` interceptor | ⬜ `NEXT` | — | — |
+| M-013 | `audit_log`, the append-only writer, the `@Audited()` interceptor | ✅ `DONE` | — | 19/19 audit-grant tests · trigger refuses even a superuser · CI-10 partition trap proved |
+| M-014 | `runElevated()` — platform scope as a named, audited call | ⬜ `NEXT` | — | — |
 | M-007…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
 
 **M-002 deferrals**, made under the owner's *"do what is necessary, otherwise move on"* steer.

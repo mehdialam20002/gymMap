@@ -148,7 +148,18 @@ it('AC-2 · the four roles are exactly the expected four', () => {
  */
 const EXPECTED_APPLICATION_TABLES = [
   'tenants', // M-009
+  'audit_log', // M-013 — the partitioned parent
 ];
+
+/**
+ * `audit_log` partitions are excluded by PATTERN, not listed individually.
+ *
+ * Listing them would make this test fail every month when the maintenance job creates the next
+ * one — and a test that fails on a calendar boundary gets its assertion loosened rather than
+ * investigated. The partitions are not unpoliced either: `audit-grants.int-spec.ts` asserts that
+ * every one of them carries forced RLS, both policies and the G-AUDIT grants (CI-10).
+ */
+const PARTITION_PATTERN = /^audit_log_y\d{4}m\d{2}$/;
 
 it('the application tables are exactly the ones a migration created', () => {
   const tables = sql(
@@ -156,7 +167,9 @@ it('the application tables are exactly the ones a migration created', () => {
      WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name`,
   );
   // `_prisma_migrations` is Prisma's bookkeeping and `spatial_ref_sys` ships with PostGIS.
-  const application = tables.filter((t) => t !== '_prisma_migrations' && t !== 'spatial_ref_sys');
+  const application = tables.filter(
+    (t) => t !== '_prisma_migrations' && t !== 'spatial_ref_sys' && !PARTITION_PATTERN.test(t),
+  );
   assert.deepEqual(
     application,
     [...EXPECTED_APPLICATION_TABLES].sort(),

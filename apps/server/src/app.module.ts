@@ -7,16 +7,18 @@
  */
 
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 
+import { AuditModule } from './audit/audit.module.js';
 import { CommonModule } from './common/common.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { TenancyModule } from './tenancy/tenancy.module.js';
 import { TenantContextMiddleware } from './tenancy/context/tenant-context.middleware.js';
 import { TenantGuard } from './tenancy/guards/tenant.guard.js';
 
 @Module({
-  imports: [CommonModule, TenancyModule],
+  imports: [CommonModule, TenancyModule, AuditModule],
   providers: [
     // ── Global guards, in order ────────────────────────────────────────────────────────────
     //
@@ -27,6 +29,10 @@ import { TenantGuard } from './tenancy/guards/tenant.guard.js';
     // default at runtime too, which is the belt to PG-1's braces.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
+
+    // Global, so an @Audited() handler cannot be added without the interceptor seeing it.
+    // Per-controller registration would make coverage depend on remembering two things.
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })
 export class AppModule implements NestModule {
