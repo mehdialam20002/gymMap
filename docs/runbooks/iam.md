@@ -98,7 +98,10 @@ tables, their tenancy class, and the seeded §B3.1 / §B3.2 catalogue. Login arr
 
 | Question | Answer today |
 | :--- | :--- |
-| Can anyone authenticate? | **No.** Every seeded principal has `password_hash IS NULL`, and no auth endpoint exists. Tests mint tokens directly through `test/harness/mint-token.ts`. |
+| Can anyone authenticate? | **Yes, as of M-020** — `POST /v1/auth/login` verifies a password. It issues NO SESSION: `SE1` forbids a bearer string in a response body, and session creation with rotation is M-022's. So login is verifiable and not yet useful. The eleven seeded principals still have `password_hash IS NULL` and cannot sign in; register one to get an account that can. |
+| Why is a login returning 401 when the password is right? | Check the lockout first — `GET auth:fail:{user_id}` in Redis. Ten failures in fifteen minutes is a **403 `ACCOUNT_LOCKED`**, not a 401. A 401 with a correct password means the stored hash does not match: look for a second account on the same address differing in case, which `normaliseIdentifier` exists to prevent. |
+| A member says the reset link does not work | It is single-use and 30 minutes. All three of unknown, spent and expired are ONE 422 by design — a token is a bearer credential and distinguishing them says whether a guessed value was ever real. Completing a reset also revokes every OTHER outstanding link for that user. |
+| Why does registration accept a breached password? | It does not check. `BLK-09` / `KL-099`: `A-32` is `PROPOSED` and absent from `STACK_ADDITIONS.md`. The `breach_check_skipped` counter is at 100% and will stay there until an adapter lands — that is the gap being visible, not a fault to chase. |
 | What is seeded? | 12 roles · 64 permissions · 191 `role_permissions` · 11 principals (7 platform-scoped, 4 tenant-scoped). `SEED_VERSION = 0.2`. |
 | Where does the permission catalogue come from? | `MASTER_PRD.md` §B3.2, mechanically — `rbac-matrix.spec.ts` re-parses the PRD and compares all 504 cells on every run. Edit the PRD or `iam/permissions.ts` alone and the build fails. |
 | Why 64 and not the "~180" in `Schema.md` §4.7? | That figure is in §4.7's **Volume** sentence, beside `user_roles` **520,000** and a 10× column — a capacity projection for a table that grows as endpoints land, not a register. The enumerated source is §B3.2's 42 capabilities. |

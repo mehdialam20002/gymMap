@@ -471,7 +471,7 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 
 **Goal.** Build the platform, milestone by milestone, per `/docs/roadmap/`.
 **Depends on.** Phases 0–7 and G, all `DONE`, plus explicit owner approval.
-**Status.** `IN PROGRESS — Sprint 0 complete, the auth track begun, plus the three UI shells pulled ahead. 19 of 120 milestones. The five identity tables carry the correct tenancy class, all 504 §B3.2 authorisation cells are verified against the PRD on every test run, and all ten migrations replay from an empty volume.`
+**Status.** `IN PROGRESS — Sprint 0 complete, the auth track begun, plus the three UI shells pulled ahead. 20 of 120 milestones. A member can register and sign in with a password over HTTP; an unknown identifier and a wrong password are indistinguishable in status, body and measured latency; and the OpenAPI contract is regenerable for the first time since M-010.`
 
 ### Pre-flight, mandatory before *any* code
 
@@ -514,7 +514,64 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-017 | `idempotency_keys` and the idempotency interceptor | ✅ `DONE` | — | **11 integration on real PG16** incl. the twenty-way concurrency case · 17 fingerprint · 15 interceptor · found 1 real defect |
 | M-018 | The transactional **outbox**, the `SKIP LOCKED` dispatcher, the §C5 job harness | ✅ `DONE` | — | **12 outbox integration on real PG16** — 4 concurrent dispatchers × 500 rows, each claimed **exactly once** · 23 job-harness incl. the `TR-25` deliberate double-trigger · 14 channel-port · found 1 real defect in M-017 · raised `BLK-07`, `BLK-08` |
 | M-019 | Identity and RBAC tables — `users` … `role_permissions` | ✅ `DONE` | — | **69 integration on real PG16** + 19 matrix · all **504** §B3.2 cells re-parsed from the PRD and compared · `app_rw` proved unable to write `role_permissions` · found **2 real defects in the schema spec** |
-| M-020…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+| M-020 | Argon2id credentials, password policy, lockout, the four `/v1/auth/*` routes | ✅ `DONE` | — | **21 endpoint tests over real HTTP** incl. the enumeration assertion measured against real Argon2id · 18 hasher · 19 policy · 18 Redis · found **6 real defects, 5 pre-existing** · raised `BLK-09` |
+| M-021…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+
+**M-020 resolved three specification conflicts before writing any code — ADR-0033, 0034, 0035.**
+
+| Conflict | Resolution |
+| :--- | :--- |
+| Password maximum: `Security.md` §2.4.1 says **128**, `Authentication.md` §5.2 says **256**, and `CLAUDE.md` §2 ranks them equally | **128** — not because one document wins, but because each states a *ceiling* and 128 is the only value leaving both true. Login keeps `min(1).max(256)`: a stored password may predate any policy, and refusing a LOGIN for it locks a member out with no path forward. |
+| The verification and reset tokens have **no specified home**, and `Schema.md` §4's register is closed at 79 tables | Redis (`ADR-0034`). Also the better answer: the TTL *is* the storage so an expired token cannot be read at all, `GETDEL` makes single-use atomic, and nothing survives into a backup restored six months later. |
+| `auth_sessions` is created by **M-022**, which depends on **M-020** — a cycle | Move the tables into M-020. `FR-AUTH-10` is rank 2; the milestone a table lands in is rank 4, *"a plan of work, never a source of requirements"*. `Authentication.md` §8.8: shipping a reset that leaves sessions alive *"is not a compatibility question"*. |
+
+**`openapi:emit` had been dead since M-010, and every gate stayed green.**
+
+The emitter boots the real `AppModule` against placeholder credentials. M-010 added `TenancyModule`,
+whose three Prisma services `$connect()` in `onModuleInit` — so it died on *"Authentication failed
+against database server"* and `openapi.json` was last written at **M-012**.
+
+`ci:api-gates` **reads that document**. So PG-1, PG-2, PG-3 and PG-5 were being applied to a frozen
+snapshot, reporting four operations passing while the application had moved on. No route actually
+escaped the gate, because M-012's ping routes happened to be the last ones added before M-020 — that
+is luck, not a control. Fixed with an explicit contract-only mode, plus a drift spec that runs the
+emitter and diffs the committed document. The document now carries 8 operations.
+
+**The tenancy extension had no notion of the IDENTITY class, and the whole auth track needed it.**
+
+Every `/v1/auth/*` route returned `500 TENANT_CONTEXT_MISSING`: the extension wraps every model
+operation in a transaction demanding `app.tenant_id`, and `users` is IDENTITY class — read *before*
+a tenant is known, because the tenant is a **consequence** of the roles an identity holds.
+
+`IDENTITY_MODELS` is a second exemption set rather than four more entries in `GLOBAL_MODELS`.
+`GLOBAL` rests on *"there is no `tenant_id` here"*, which `rls-coverage.sql` PC2 proves
+independently — and `UserRole` has one. Merging them would have made PC2's own premise false while
+every test still passed.
+
+**Three more defects, each found by a test written for something else:**
+
+- **The Redis client kept the process alive.** Two isolation suites that boot a real app went from
+  3 s to a 150 s timeout. In production the symptom is quieter and worse: `SIGTERM` never completes,
+  so every rolling deploy waits out its grace period and is `SIGKILL`ed with requests in flight.
+- **`ELEVATION_REFUSED` had no client-safe message**, shipped in M-014. Status right, code right,
+  envelope right — the only wrong thing was the sentence a member reads. A coverage test now makes a
+  registry row without a message impossible.
+- **`markEmailVerified` moved the status to `ACTIVE` unconditionally** while its own comment said
+  *"`PENDING_VERIFICATION` only"*. A suspended account could be revived by clicking a verification
+  link sent before the suspension — an admin action undone from an old email.
+
+**Two things in this milestone are deliberately absent.**
+
+There is **no error code that distinguishes an unknown identifier from a wrong password**, and
+`iam.errors.ts` defines no class for one. Both absences are the enforcement, and the spec asserts
+the names stay unregistered: a distinct code is the easiest possible enumeration oracle — read
+straight from the response body, no timing analysis needed — and it would undo the decoy-hash work
+with a single line.
+
+**Login issues no session.** `SE1` forbids a bearer string in a response body, and session creation
+with rotation and reuse detection is M-022's (ADR-0011). M-020's login is verifiable and not yet
+useful, which is the honest shape of a half-built auth track; the feature flag keeps the routes off
+until it is whole.
 
 **M-019 found two defects, both in constraints that would have failed in production and not in CI.**
 
@@ -974,3 +1031,4 @@ Neither is a conflict — they are **absences**, and both make a stated exit cri
 | BLK-06 | `int4`-based Prisma domains reject binary bind parameters (SQLSTATE 22P03). | 5 | Project owner | 2026-08-07 | ✅ **RESOLVED** 2026-08-07 by ADR-0031. Scope was **one** domain, `basis_points`, now a plain `integer` with an equivalent per-column `CHECK`. The other eleven domains are untouched. |
 | BLK-07 | **`outbox.aggregate_type` has no enumerable value set.** `Schema.md` §2.5 and `Relationships.md` both cite "the 26 aggregate roots at `ERD.md` §6"; that section lists none, and deriving the set yields 36. `MG9` makes an enum value permanent, so the ten-row difference cannot be guessed. | 3 | Project owner | 2026-08-07 | **OPEN, not blocking.** M-018 shipped `text` + a PascalCase `CHECK`; it becomes an enum in one migration, with no data change, the day the register exists. In `TECH_DEBT.md`. |
 | BLK-08 | **`job_runs` is absent from `Schema.md` §4's closed 79-table register.** `AC-FND-12.2` needs run history to raise an overrun alert; an eightieth table is a §24 amendment, not a milestone's prerogative. | 3 | Project owner | 2026-08-07 | **OPEN, not blocking.** M-018 shipped `JOB_RUN_SINK` (a port) plus Postgres advisory locks — which self-release on session end, so a killed worker leaves nothing to clear. A database adapter drops in behind the port and no job changes. In `TECH_DEBT.md`. |
+| BLK-09 | **The breached-password corpus has no approved `A-NN` row.** `Security.md` §0.4 registers it as `A-32` / `PROPOSED`; `STACK_ADDITIONS.md` holds A-01…A-30 and no A-31+ of any status. The number is *also* claimed by `CI_CD.md` (artefact signing) and `Monitoring.md` §11.2 (log store) — `Deployment.md` DP-O2 already records the collision. Two peer-rank documents additionally specify different MECHANISMS: a self-hosted Bloom filter (`Security.md`, which explicitly rejects the alternative) versus a third-party k-anonymity API (`Authentication.md` §8.3), differing in whether a new sub-processor exists at all under `OQ-16` residency. | 1 | Project owner + Data Protection | 2026-08-07 | **OPEN, not blocking.** M-020 ships the port with no adapter, per `Security.md` §0.4's own procedure. The bound implementation answers `UNAVAILABLE` and never `NOT_BREACHED`, so the gap is a counter pinned at 100% rather than a stub reporting success. In `KNOWN_LIMITATIONS.md` as `KL-099`. |
