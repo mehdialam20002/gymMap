@@ -17,3 +17,4 @@ export * from './enums/tenant-status.js';
 export * from './schemas/common/money.schema.js';
 export * from './schemas/common/problem-details.schema.js';
 export * from './schemas/common/pagination.schema.js';
+export * from './schemas/iam/auth.schema.js';

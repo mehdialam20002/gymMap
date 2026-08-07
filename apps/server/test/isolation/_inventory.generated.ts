@@ -45,6 +45,26 @@ export const GENERATED_INVENTORY: Inventory = {
       "method": "GET",
       "path": "/readyz",
       "audience": "PROBE"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/auth/login",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/auth/password/forgot",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/auth/password/reset",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/auth/register",
+      "audience": "PUBLIC"
     }
   ]
 } as const;

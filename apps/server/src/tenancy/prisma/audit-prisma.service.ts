@@ -42,6 +42,7 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nest
 import { PrismaClient } from '@prisma/client';
 
 import { APP_CONFIG, type AppConfig } from '../../common/config/app-config.schema.js';
+import { skipEagerConnect } from '../../common/bootstrap/contract-only-mode.js';
 
 @Injectable()
 export class AuditPrismaService implements OnModuleInit, OnModuleDestroy {
@@ -64,6 +65,7 @@ export class AuditPrismaService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
+    if (skipEagerConnect(this.config.APP_ENV, 'AuditPrismaService')) return;
     await this.appendOnly.$connect();
     if (!this.config.AUDIT_DATABASE_URL) {
       this.logger.warn(

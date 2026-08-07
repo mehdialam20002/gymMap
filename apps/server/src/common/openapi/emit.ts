@@ -14,6 +14,8 @@ import { resolve } from 'node:path';
 
 import { NestFactory } from '@nestjs/core';
 
+import { CONTRACT_ONLY_ENV } from '../bootstrap/contract-only-mode.js';
+
 import { AppModule } from '../../app.module.js';
 import { configureApp } from '../bootstrap/configure-app.js';
 import { createOpenApiDocument, serialiseOpenApiDocument } from './document.factory.js';
@@ -36,6 +38,11 @@ const OUTPUT = resolve(process.cwd(), '../../openapi.json');
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 const CONTRACT_ONLY_PLACEHOLDERS: Readonly<Record<string, string>> = {
+  // Tells the three Prisma services and the Redis provider to build their clients and open
+  // NOTHING. Without it this script dies on `Authentication failed against database server`
+  // — which it silently did from M-010 to M-020, leaving openapi.json eight milestones
+  // stale while every gate stayed green. See common/bootstrap/contract-only-mode.ts.
+  [CONTRACT_ONLY_ENV]: '1',
   APP_ENV: 'development',
   APP_REGION: 'ap-south-1',
   LOG_LEVEL: 'error',

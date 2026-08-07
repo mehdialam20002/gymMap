@@ -21,10 +21,17 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { Logger, type Provider } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  type OnApplicationShutdown,
+  type Provider,
+} from '@nestjs/common';
 import { Redis } from 'ioredis';
 
 import { APP_CONFIG, type AppConfig } from '../config/app-config.schema.js';
+import { skipEagerConnect } from '../bootstrap/contract-only-mode.js';
 
 export const REDIS_CLIENT = Symbol('RedisClient');
 
@@ -32,15 +39,23 @@ export const REDIS_CLIENT = Symbol('RedisClient');
 export function createRedisClient(config: AppConfig): Redis {
   const logger = new Logger('Redis');
 
+  // Contract-only mode: build the client, connect to nothing, and — the part that actually
+  // matters here — do not hold the event loop open. `openapi:emit` wrote its document and then
+  // hung forever on exit, because an ioredis connection is an active handle and the process
+  // cannot end while one is alive. A generator that produces the right file and never returns
+  // is a hung CI job, which reads as a broken build rather than a broken shutdown.
+  const contractOnly = skipEagerConnect(config.APP_ENV, 'Redis');
+
   const client = new Redis(config.REDIS_URL, {
     // See the header. Fail fast rather than hanging the request.
     maxRetriesPerRequest: 1,
     // Do not queue commands issued while the connection is down. Queued commands look like they
     // succeeded to the caller until they eventually reject, all at once, on reconnect.
     enableOfflineQueue: false,
-    // `lazyConnect: false` — connect at construction, so a bad URL fails at boot rather than on
-    // the first member's login attempt.
-    lazyConnect: false,
+    // Connect at construction, so a bad URL fails at boot rather than on the first member's
+    // login attempt — except in contract-only mode, where connecting is both pointless and the
+    // thing that stops the process exiting.
+    lazyConnect: contractOnly,
     connectTimeout: 5_000,
     // Bounded backoff. Unbounded means an instance that lost Redis at 3am is still doubling its
     // retry delay at 9am and takes minutes to notice recovery.
@@ -62,3 +77,39 @@ export const redisProvider: Provider = {
   useFactory: createRedisClient,
   inject: [APP_CONFIG],
 };
+
+/**
+ * Closes the connection on shutdown.
+ *
+ * ┌─ WITHOUT THIS THE PROCESS NEVER EXITS ──────────────────────────────────────────────────────┐
+ * │ An `ioredis` connection is an ACTIVE HANDLE. Node keeps the event loop alive while one is   │
+ * │ open, so `app.close()` returns, every test finishes, and the process sits there forever.    │
+ * │                                                                                              │
+ * │ Caught by `middleware-registration.int-spec.ts` and `tenancy.isolation-spec.ts` — the two   │
+ * │ suites that boot a real `AppModule` over HTTP. Both went from ~3s to a 150s timeout the      │
+ * │ moment `IamModule` joined the graph, and neither of them has anything to do with Redis.      │
+ * │                                                                                              │
+ * │ In production the symptom is worse and quieter: `SIGTERM` during a rolling deploy would      │
+ * │ never complete, so the orchestrator waits out its grace period and `SIGKILL`s instead —      │
+ * │ dropping in-flight requests on every single deployment.                                      │
+ * │                                                                                              │
+ * │ A separate provider rather than a hook on the factory: a `useFactory` returns a plain        │
+ * │ `Redis`, and Nest only calls lifecycle hooks on providers that declare them. This one        │
+ * │ injects the client and owns nothing but its shutdown.                                        │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+@Injectable()
+export class RedisConnectionLifecycle implements OnApplicationShutdown {
+  constructor(@Inject(REDIS_CLIENT) private readonly client: Redis) {}
+
+  async onApplicationShutdown(): Promise<void> {
+    // `quit()` drains in-flight commands and sends QUIT; `disconnect()` severs immediately and
+    // would abandon a rate-limit write mid-flight. If the server is already unreachable `quit()`
+    // rejects, and there is nothing useful left to do about it at shutdown.
+    try {
+      await this.client.quit();
+    } catch {
+      this.client.disconnect();
+    }
+  }
+}

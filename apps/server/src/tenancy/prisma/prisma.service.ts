@@ -16,6 +16,7 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nest
 import { PrismaClient } from '@prisma/client';
 
 import { APP_CONFIG, type AppConfig } from '../../common/config/app-config.schema.js';
+import { skipEagerConnect } from '../../common/bootstrap/contract-only-mode.js';
 import { withTenantContext } from './tenant-scoped-client.js';
 
 /**
@@ -94,7 +95,11 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
-    await this.raw.$connect();
+    // Contract-only mode builds the client and opens nothing — see contract-only-mode.ts.
+    // The query listener below is still registered, so the shape of the service is unchanged.
+    if (!skipEagerConnect(this.config.APP_ENV, 'PrismaService')) {
+      await this.raw.$connect();
+    }
 
     // Sampled, and the PARAMETERS ARE NEVER LOGGED.
     //

@@ -24,6 +24,7 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nest
 import { PrismaClient } from '@prisma/client';
 
 import { APP_CONFIG, type AppConfig } from '../../common/config/app-config.schema.js';
+import { skipEagerConnect } from '../../common/bootstrap/contract-only-mode.js';
 import { ElevationRefusedError } from '../domain/tenancy.errors.js';
 import { currentElevation } from './platform-elevation.js';
 
@@ -46,6 +47,7 @@ export class PlatformPrismaService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
+    if (skipEagerConnect(this.config.APP_ENV, 'PlatformPrismaService')) return;
     await this.readOnly.$connect();
     if (!this.config.PLATFORM_DATABASE_URL) {
       this.logger.warn(

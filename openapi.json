@@ -46,6 +46,155 @@
         "x-gymmap-rate-limit": "RL-READ"
       }
     },
+    "/v1/auth/login": {
+      "post": {
+        "description": "Returns 401 UNAUTHENTICATED for an unknown identifier AND for a wrong password — the same status, the same code, the same message and the same latency (Security.md §1.6). A locked account is 403 ACCOUNT_LOCKED, never 429: a lockout is about this account and clears with an unlock, while a 429 tells the victim of credential stuffing to try again in a minute. NO SESSION IS ISSUED — that is M-022 (SE1, ADR-0011).",
+        "operationId": "loginWithPassword",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "user_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Verifies a password.",
+        "tags": ["iam"],
+        "x-gymmap-error-codes": [
+          "VALIDATION_FAILED",
+          "UNAUTHENTICATED",
+          "ACCOUNT_LOCKED",
+          "RATE_LIMIT_EXCEEDED",
+          "DEPENDENCY_UNAVAILABLE"
+        ],
+        "x-gymmap-public": true,
+        "x-gymmap-rate-limit": "RL-AUTH"
+      }
+    },
+    "/v1/auth/password/forgot": {
+      "post": {
+        "description": "ALWAYS 202, whether or not the address is known. The caller here is guessing rather than asserting, so a differing status, body or latency would be an account-existence oracle over any address anyone cares to try — the unknown path performs equivalent work.",
+        "operationId": "forgotPassword",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Requests a password reset link.",
+        "tags": ["iam"],
+        "x-gymmap-error-codes": [
+          "VALIDATION_FAILED",
+          "RATE_LIMIT_EXCEEDED",
+          "DEPENDENCY_UNAVAILABLE"
+        ],
+        "x-gymmap-public": true,
+        "x-gymmap-rate-limit": "RL-AUTH"
+      }
+    },
+    "/v1/auth/password/reset": {
+      "post": {
+        "description": "Revokes EVERY session for the account in the same transaction as the password write (FR-AUTH-10). Authentication.md §8.8: not revoking \"is not a compatibility question\" — a reset exists for the case where someone else is in the account, and changing the password without ending their session changes nothing for them.",
+        "operationId": "resetPassword",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "sessions_revoked": {
+                      "example": 3,
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Completes a password reset.",
+        "tags": ["iam"],
+        "x-gymmap-error-codes": [
+          "VALIDATION_FAILED",
+          "RESET_TOKEN_INVALID",
+          "PASSWORD_BREACHED",
+          "RATE_LIMIT_EXCEEDED",
+          "DEPENDENCY_UNAVAILABLE"
+        ],
+        "x-gymmap-public": true,
+        "x-gymmap-rate-limit": "RL-AUTH"
+      }
+    },
+    "/v1/auth/register": {
+      "post": {
+        "description": "At least one of email or phone is required — an India walk-in member may have only a phone (FR-CRM-04). The account is created PENDING_VERIFICATION; an email registration receives a verification link valid for 24 hours. No session is created: verifying an email must not sign anyone in, because the link travels through an inbox.",
+        "operationId": "registerAccount",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status": {
+                      "example": "PENDING_VERIFICATION",
+                      "type": "string"
+                    },
+                    "user_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "verification_sent": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Registers an account with a password.",
+        "tags": ["iam"],
+        "x-gymmap-error-codes": [
+          "VALIDATION_FAILED",
+          "EMAIL_ALREADY_REGISTERED",
+          "PHONE_ALREADY_REGISTERED",
+          "PASSWORD_BREACHED",
+          "RATE_LIMIT_EXCEEDED",
+          "DEPENDENCY_UNAVAILABLE"
+        ],
+        "x-gymmap-public": true,
+        "x-gymmap-rate-limit": "RL-AUTH"
+      }
+    },
     "/v1/tenant/ping": {
       "get": {
         "description": "Proves the tenant context resolved and RLS is applying. The tenant is derived from the access token — there is no parameter, because there is nothing for a caller to choose.",

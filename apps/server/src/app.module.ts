@@ -11,6 +11,7 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 
 import { AuditModule } from './audit/audit.module.js';
 import { CommonModule } from './common/common.module.js';
+import { IamModule } from './iam/iam.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { TenancyModule } from './tenancy/tenancy.module.js';
@@ -19,7 +20,10 @@ import { IdempotencyInterceptor } from './common/idempotency/idempotency.interce
 import { TenantGuard } from './tenancy/guards/tenant.guard.js';
 
 @Module({
-  imports: [CommonModule, TenancyModule, AuditModule],
+  // M-020 adds `IamModule` — the first module with a consumer, which is this file's
+  // standing rule for when a module gets wired in. The remaining nineteen §C1.3
+  // directories arrive with their own milestones.
+  imports: [CommonModule, TenancyModule, AuditModule, IamModule],
   providers: [
     // ── Global guards, in order ────────────────────────────────────────────────────────────
     //

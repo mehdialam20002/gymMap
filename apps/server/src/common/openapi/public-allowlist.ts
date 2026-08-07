@@ -43,6 +43,55 @@ export const PUBLIC_ALLOWLIST: readonly PublicRoute[] = [
       'string — a readiness probe that leaks "postgres at 10.0.3.14 refused connection" is a ' +
       'network map served to anyone who asks.',
   },
+
+  // ── M-020 · the password path ────────────────────────────────────────────────────────────
+  //
+  // All four must be public: nobody can authenticate before they have authenticated. That is
+  // the easy part. The interesting column below is `abuseControl`, because "unauthenticated"
+  // means there is no principal to rate-limit by, and each of these four is abused differently.
+  {
+    route: 'POST /v1/auth/register',
+    reason:
+      'Account creation. A member with no account has no credential, so there is nothing to ' +
+      'authenticate with. FR-AUTH-01.',
+    abuseControl:
+      'RL-AUTH per identifier and per IP. Argon2id runs behind an 8-permit semaphore, so a ' +
+      'registration flood cannot exhaust memory (Security.md §2.4.2) — the request queues and ' +
+      'then gets a 503 rather than taking the instance down. The password policy is checked ' +
+      'BEFORE the hash, so a nine-character password costs no CPU.',
+  },
+  {
+    route: 'POST /v1/auth/login',
+    reason: 'Sign-in. The credential being presented is the thing that would authenticate.',
+    abuseControl:
+      'RL-AUTH (10 per 15 minutes per identifier) AND the FR-AUTH-08 lockout at the same ten ' +
+      'attempts by design, so a caller never sees a 429 and a lockout disagreeing about how ' +
+      'many attempts they made. The lockout is checked BEFORE any verification, so a locked ' +
+      'account costs one Redis read rather than 250ms of Argon2id — otherwise the control ' +
+      'itself becomes the amplifier.',
+  },
+  {
+    route: 'POST /v1/auth/password/forgot',
+    reason:
+      'Password recovery. A member who has forgotten their password cannot present one, which ' +
+      'is the entire premise of the endpoint. FR-AUTH-10.',
+    abuseControl:
+      'RL-AUTH, and the response is IDENTICAL for a known and an unknown address — same 202, ' +
+      'same body, same latency, because the unknown path performs equivalent Redis work. ' +
+      'Without that this is a free account-existence oracle over any address anyone tries. ' +
+      'Emails are the real cost, and the per-identifier limit is what bounds them.',
+  },
+  {
+    route: 'POST /v1/auth/password/reset',
+    reason:
+      'Completes the recovery above. The bearer credential IS the reset token; requiring a ' +
+      'session would mean only an already-signed-in member could reset a password.',
+    abuseControl:
+      'The token is 256 bits of CSPRNG, stored only as its SHA-256, single-use through an ' +
+      'atomic GETDEL, and valid for 30 minutes. RL-AUTH bounds guessing, though 2^256 does ' +
+      'most of that work. An unknown, spent and expired token are one indistinguishable 422, ' +
+      'so a guess never reveals whether a value was ever real.',
+  },
 ];
 
 /** Fast lookup for the gate. */
