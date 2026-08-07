@@ -83,6 +83,22 @@ export class IdempotencyStore {
           endpoint: input.endpoint,
           requestHash: input.requestHash,
           correlationId: input.correlationId,
+          // ┌─ BOTH TIMESTAMPS COME FROM THE SAME CLOCK ────────────────────────────────────┐
+          // │ `created_at` has a `DEFAULT now()`, so omitting it lets the DATABASE pick one │
+          // │ end of `ck_idempotency_keys__expiry` while the application picks the other.   │
+          // │ The CHECK then compares two machines' clocks, and any skew larger than the    │
+          // │ retention window makes every claim raise 23514 — a total outage on the        │
+          // │ payment path, caused by NTP rather than by anything in the request.           │
+          // │                                                                                │
+          // │ Found by M-019: `FixedClock` in the isolation suite is pinned to a literal    │
+          // │ instant, real UTC passed it during the day, and a one-hour-retention fixture  │
+          // │ started failing on a test that had changed in no way. That is the skew case,  │
+          // │ reproduced accidentally.                                                       │
+          // │                                                                                │
+          // │ Supplying both from `this.clock` makes the CHECK a statement about this        │
+          // │ process's own arithmetic — which is what it was always meant to assert.        │
+          // └────────────────────────────────────────────────────────────────────────────────┘
+          createdAt: now,
           expiresAt,
         },
       });

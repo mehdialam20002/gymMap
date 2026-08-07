@@ -203,6 +203,7 @@ Full detail for each entry is in §4. `PRD id` shows the primary identifier; eac
 | **TD-030** | `verbatimModuleSyntax: false` in `apps/server` | Code | Medium | M | NestJS ships first-class ESM support, or the ecosystem's CJS-only dependencies clear | Technical Lead | ACCEPTED | `§9.1`, M-001 |
 | **TD-031** | `outbox.aggregate_type` is `text` + `CHECK`, not an enum | Data | Low | S | `BLK-07` answered — the register of aggregate roots is written down | Technical Lead | **BLOCKED** | `MG9`, M-018 |
 | **TD-032** | Job run history is a log line, not a `job_runs` table | Data | Medium | S | `BLK-08` answered, or the first overrun nobody could reconstruct from logs | Technical Lead | **BLOCKED** | `AC-FND-12.2`, M-018 |
+| **TD-033** | Seed versioned by a string, not by `seed.manifest.json` checksums | Test | Medium | S | The first "works on my machine" traced to seed drift; sprint 6 at the latest | QA Lead | ACCEPTED | `§6.7`, `SD-2`, M-019 |
 
 ---
 
@@ -368,6 +369,49 @@ anything but the interface.
 **Verified.** `apps/server/test/job-harness.spec.ts` — 23 tests, including the `TR-25` deliberate
 double-trigger (the same job fired concurrently on two workers executes exactly once) and the
 overrun case, both asserted against the port rather than against a table.
+
+---
+
+### TD-033 — Seed versioned by a string, not by `seed.manifest.json` checksums
+
+| Field | Value |
+| :--- | :--- |
+| **Category** | Test |
+| **Interest rate** | **Medium** — the cost is paid in debugging time, and it grows with every suite that binds to a fixture |
+| **Effort** | S |
+| **Owner** | QA Lead |
+| **Status** | ACCEPTED |
+| **Discovered** | M-019, on bumping `SEED_VERSION` to `0.2` for the first real payload |
+
+**What.** The seed's identity is `SEED_VERSION = '0.2'`, a hand-maintained string in
+`prisma/seed/version.ts`. `TestingStrategy.md` §6.7 specifies something considerably stronger — a
+`seed.manifest.json` carrying `version`, `epoch`, `prngSeed`, `namespace`, and per-table
+`checksums` and `counts`, with gate `SD-2` failing the build when a computed checksum differs from
+the manifest, and failing equally when the manifest changes and the output does not.
+
+**Why we took it.** The roadmap's M-019 entry names `SEED_VERSION → 0.2` explicitly, and the gate
+that would read a manifest does not exist: `SD-2`, `SD-3` and `SD-4` are part of CI job 11
+(`migration-safety`), which is not built. Writing the manifest now would produce a file nothing
+reads, and a checksum nobody verifies is worse than no checksum — it looks like a control.
+
+**What it costs.** The failure §6.7 exists to prevent is a seed whose contents change without its
+version changing: every snapshot and every isolation binding breaks, and *the breakage surfaces as
+unrelated red tests in someone else's pull request*. A string bumped by hand does not prevent that;
+it only records the intent to.
+
+**Mitigation, and it is real but partial.** `roles-seed.int-spec.ts` asserts the counts §6.7's
+manifest would carry — 12 roles, 64 permissions, 191 `role_permissions`, 11 principals — and goes
+further: it resolves every `role_permissions` row back to its key and compares each role's whole
+permission set against what §B3.2 derives. That catches a changed payload. It does not catch a
+changed payload accompanied by a matching test edit, which is exactly what a checksum in a
+separate file is for.
+
+**Payoff trigger.** The first "works on my machine" traced to seed drift — or CI job 11 landing,
+whichever is sooner. **Sprint 6 at the latest**, because that is when payment fixtures start
+carrying money figures and a silently-different seed stops being a debugging annoyance.
+
+**Related.** `SD-2`, `SD-3`, `SD-4`, `SE5` (environment parity), `Scalability.md` §10.2 (the volume
+overlay preserves these exact identifiers, so it depends on the seed being reproducible).
 
 ---
 

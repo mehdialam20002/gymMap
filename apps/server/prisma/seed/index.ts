@@ -1,20 +1,80 @@
 /**
- * M-006 · The seed. Deliberately EMPTY at 0.1 (R-M2).
+ * The seed entry point. v0.2 at M-019 — the first version with a payload of its own.
  *
- * `0_init` creates no tables, so there is nothing to seed. The file exists now rather than
- * later because `pnpm infra:reset` must have a stable command to call from the day the reset
- * script is written — adding the hook later means every developer's muscle memory is wrong
- * for one release.
- *
- * The v0.1 payload — three tenants — arrives with M-009, which creates the first table.
+ * ┌─ IT PRINTS SQL. IT DOES NOT CONNECT, UNLESS ASKED ──────────────────────────────────────────┐
+ * │ `--apply` runs the statements through the local Postgres container; without it the SQL goes │
+ * │ to stdout. That default is deliberate:                                                       │
+ * │                                                                                              │
+ * │   Every isolation spec seeds its OWN fixtures, by importing `seedTenantsSql()` and the       │
+ * │   functions below and running them itself (see `rls-policy.int-spec.ts`). A seed binary      │
+ * │   that also held a connection would be a second path to the same rows, and the two would     │
+ * │   drift.                                                                                     │
+ * │                                                                                              │
+ * │   The composition — which tables, in which order — is the part worth having in one place.    │
+ * │   Order matters here: `user_roles` has foreign keys to all three of `users`, `roles` and     │
+ * │   `tenants`, so those must land first.                                                       │
+ * │                                                                                              │
+ * │   And printing means the seed can be READ before it is run, which is what you want from a    │
+ * │   script that writes eleven principals and 12 roles into a database.                          │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
-import { SEED_VERSION } from './version.js';
 
-async function main(): Promise<void> {
-  console.log(`seed ${SEED_VERSION}: no payload — 0_init creates no tables (R-M1, R-M2).`);
+import { execFileSync } from 'node:child_process';
+
+import { SEED_VERSION } from './version.ts';
+import { seedTenantsSql } from './tenants.ts';
+import { SEED_ROLE_COUNTS, seedRolesSql } from './roles.ts';
+import { SEED_USER_COUNTS, seedUsersSql } from './users.ts';
+
+const CONTAINER = 'gymmap-postgres';
+const DATABASE = 'gymmap';
+
+/**
+ * The whole payload, in dependency order.
+ *
+ * tenants → roles + permissions → users → user_roles. `user_roles` references all three of the
+ * others, and `role_permissions` references two, so nothing here is reorderable.
+ */
+export function seedSql(): string {
+  return [
+    `-- GymMap seed v${SEED_VERSION}`,
+    '-- Generated. Do not edit by hand — edit prisma/seed/*.ts and regenerate.',
+    '',
+    seedTenantsSql(),
+    '',
+    seedRolesSql(),
+    '',
+    seedUsersSql(),
+    '',
+  ].join('\n');
 }
 
-main().catch((error: unknown) => {
-  console.error(error);
-  process.exit(1);
-});
+function apply(sql: string): void {
+  execFileSync(
+    'docker',
+    ['exec', '-i', CONTAINER, 'psql', '-U', 'postgres', '-d', DATABASE, '-v', 'ON_ERROR_STOP=1'],
+    { input: sql, encoding: 'utf8', stdio: ['pipe', 'inherit', 'inherit'] },
+  );
+}
+
+function main(): void {
+  const sql = seedSql();
+
+  if (!process.argv.includes('--apply')) {
+    process.stdout.write(sql);
+    process.stderr.write(
+      `\nseed ${SEED_VERSION}: printed. Re-run with --apply to execute against ${CONTAINER}.\n`,
+    );
+    return;
+  }
+
+  apply(sql);
+  process.stderr.write(
+    `seed ${SEED_VERSION} applied: ${SEED_ROLE_COUNTS.roles} roles · ` +
+      `${SEED_ROLE_COUNTS.permissions} permissions · ${SEED_ROLE_COUNTS.rolePermissions} ` +
+      `role_permissions · ${SEED_USER_COUNTS.users} principals ` +
+      `(${SEED_USER_COUNTS.platformGrants} platform, ${SEED_USER_COUNTS.tenantGrants} tenant).\n`,
+  );
+}
+
+main();

@@ -44,7 +44,29 @@ WITH tenant_owned AS (
           'report_definitions',   -- G-REF
           'roles',                -- IDENTITY class, GLOBAL (Schema.md §1.3)
           'permissions',
-          'role_permissions'
+          'role_permissions',
+
+          -- ─────────────────────────────────────────────────────────────────────────────────
+          -- THE ONE REVIEWED EXCEPTION. `user_roles` HAS a tenant_id and has NO policy.
+          --
+          -- M-019, AC-2. Everything above is exempt because it has no tenant to be scoped to.
+          -- This one is different in kind, so its reason is written out rather than tagged:
+          --
+          --   A platform-role grant has `tenant_id IS NULL` — the nullable column IS the
+          --   discriminator (ERD.md §3.1). A policy `tenant_id = current_setting(...)`
+          --   evaluates NULL = <uuid> for every one of those rows, which is NULL, which is
+          --   not TRUE. Every platform grant becomes invisible to every session, including
+          --   the platform's own, and super-admins silently lose their own permissions.
+          --
+          --   `user_roles` is also what resolves an identity INTO a tenant membership. A row
+          --   that must be read in order to decide which tenant you are cannot itself be
+          --   filtered by which tenant you are.
+          --
+          -- Isolation is not weakened: the table is scoped by `user_id` and protected by
+          -- authorisation (Schema.md §1.3 IDENTITY class), and PC2-IDENTITY below asserts
+          -- this is the ONLY table allowed to sit here. A second one cannot be added quietly.
+          -- ─────────────────────────────────────────────────────────────────────────────────
+          'user_roles'
       )
       AND (
           c.relname = 'tenants'                                     -- P-SELF
@@ -107,4 +129,40 @@ WHERE n.nspname = 'public'
       'help_articles', 'feature_flags', 'notification_templates', 'subscription_tiers',
       'tax_profiles', 'kyc_checklists', 'commission_rules', 'report_definitions',
       'roles', 'permissions', 'role_permissions'
+      -- `user_roles` is deliberately NOT in this list. It is on CI-01's exemption list AND it
+      -- has a tenant_id, which is exactly what PC2 exists to forbid — so it is held to
+      -- PC2-IDENTITY below instead, which is a stricter check, not a weaker one.
   );
+
+-- ═══════════════════════════════════════════════════════════════════════════════════════════
+-- PC2-IDENTITY · `user_roles` is the ONLY table permitted a tenant_id without policies.
+--
+-- M-019, AC-2. PC2 above assumes an exempted table has no tenant to be scoped to. `user_roles`
+-- breaks that assumption for a documented reason (see CI-01's list, and the migration header),
+-- and one reviewed exception is a decision. TWO is a pattern, and the second one arrives in a
+-- pull request that cites the first as precedent.
+--
+-- So this query allows exactly one name. Any other table that acquires a tenant_id and no
+-- policy — whether by being added to CI-01's list or by a policy being dropped from a table
+-- already there — is reported by name. Adding a second entry means editing this query too, in
+-- a diff a reviewer cannot miss.
+-- ═══════════════════════════════════════════════════════════════════════════════════════════
+SELECT
+    c.relname AS table_name,
+    'has a tenant_id column and NO RLS policy. `user_roles` is the single reviewed exception ' ||
+    '(Schema.md §4.7, M-019 AC-2); every other tenant_id-bearing table must carry both ' ||
+    'policies. If this exception is genuinely correct, it needs its own written reason in ' ||
+    'CI-01''s list AND an amendment to PC2-IDENTITY — not a quiet addition to an allowlist'
+        AS finding
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+JOIN pg_attribute a ON a.attrelid = c.oid AND a.attname = 'tenant_id' AND a.attnum > 0
+                   AND NOT a.attisdropped
+WHERE n.nspname = 'public'
+  AND c.relkind = 'r'
+  AND c.relname <> 'user_roles'
+  AND NOT EXISTS (
+      SELECT 1 FROM pg_policies p
+      WHERE p.schemaname = 'public' AND p.tablename = c.relname
+  );
+

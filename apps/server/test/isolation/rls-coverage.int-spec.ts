@@ -156,6 +156,56 @@ it('PC2 · a tenant_id column on an exempted table is reported', () => {
   assert.match(probe.out, /exemption list but HAS a tenant_id/);
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// M-019 · PC2-IDENTITY — one reviewed exception is a decision, two is a pattern.
+// ═══════════════════════════════════════════════════════════════════════════
+
+it('PC2-IDENTITY · `user_roles` really is the exception it claims to be', () => {
+  // If a later milestone gives `user_roles` policies, the exception becomes stale and the
+  // paragraph of justification in three files becomes misleading. Assert the actual state
+  // rather than trusting the comment that describes it.
+  const hasTenantId = psql(
+    `SELECT count(*) FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'user_roles' AND column_name = 'tenant_id';`,
+  );
+  assert.equal(hasTenantId.out, '1', '`user_roles` lost its tenant_id — the exception is moot');
+
+  const policies = psql(`SELECT count(*) FROM pg_policies WHERE tablename = 'user_roles';`);
+  assert.equal(
+    policies.out,
+    '0',
+    '`user_roles` acquired a policy. If that is intended, the reviewed exception in ' +
+      'rls-coverage.sql, the migration header and Schema.md §4.7 are all now wrong — and a ' +
+      'policy here makes every platform-role row (tenant_id IS NULL) invisible to every ' +
+      'session, so super-admins silently lose their own permissions.',
+  );
+});
+
+it('PC2-IDENTITY · a SECOND policy-less tenant_id table is reported by name', () => {
+  // The escape hatch this closes: adding a table to CI-01's exemption list. PC2 catches that
+  // only for names already on the list; a NEW table added to the list would sail through both.
+  // This query looks at the schema rather than at the list, so it cannot be edited around
+  // without editing the query — which is a diff a reviewer sees.
+  const probe = psql(
+    [
+      'BEGIN;',
+      'CREATE TABLE staff_invitations (id uuid PRIMARY KEY, tenant_id uuid NOT NULL);',
+      coverageSql,
+      'ROLLBACK;',
+    ].join('\n'),
+  );
+  assert.ok(probe.ok, probe.err);
+  assert.match(probe.out, /staff_invitations/);
+  assert.match(probe.out, /single reviewed exception/);
+});
+
+it('PC2-IDENTITY · it does not fire on `user_roles` itself', () => {
+  // The positive control. A query that reported every policy-less tenant_id table INCLUDING
+  // the sanctioned one would be red permanently, and a permanently red gate gets deleted.
+  const result = psql(coverageSql);
+  assert.doesNotMatch(result.out, /user_roles/);
+});
+
 it('the database is unchanged after the probes rolled back', () => {
   const result = psql(coverageSql);
   assert.equal(result.out, '', 'a probe leaked out of its transaction');

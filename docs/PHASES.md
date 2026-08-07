@@ -471,7 +471,7 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 
 **Goal.** Build the platform, milestone by milestone, per `/docs/roadmap/`.
 **Depends on.** Phases 0–7 and G, all `DONE`, plus explicit owner approval.
-**Status.** `IN PROGRESS — Sprint 0 foundations, plus the three UI shells pulled ahead. 18 of 120 milestones. The customer website and admin console shells both build and serve, the cross-tenant isolation suite is green on a real PostgreSQL 16, and the transactional outbox dispatches exactly once under four concurrent workers.`
+**Status.** `IN PROGRESS — Sprint 0 complete, the auth track begun, plus the three UI shells pulled ahead. 19 of 120 milestones. The five identity tables carry the correct tenancy class, all 504 §B3.2 authorisation cells are verified against the PRD on every test run, and all ten migrations replay from an empty volume.`
 
 ### Pre-flight, mandatory before *any* code
 
@@ -513,7 +513,94 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-016 | `Money`, the Indian formatter, the `Clock` port, time discipline | ✅ `DONE` | — | **36 money + 27 time + 17 Money/Clock** · 10,000-split property test · TR-24 asserted at 18:30 UTC · **`pnpm lint` passes for the first time** |
 | M-017 | `idempotency_keys` and the idempotency interceptor | ✅ `DONE` | — | **11 integration on real PG16** incl. the twenty-way concurrency case · 17 fingerprint · 15 interceptor · found 1 real defect |
 | M-018 | The transactional **outbox**, the `SKIP LOCKED` dispatcher, the §C5 job harness | ✅ `DONE` | — | **12 outbox integration on real PG16** — 4 concurrent dispatchers × 500 rows, each claimed **exactly once** · 23 job-harness incl. the `TR-25` deliberate double-trigger · 14 channel-port · found 1 real defect in M-017 · raised `BLK-07`, `BLK-08` |
-| M-019…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+| M-019 | Identity and RBAC tables — `users` … `role_permissions` | ✅ `DONE` | — | **69 integration on real PG16** + 19 matrix · all **504** §B3.2 cells re-parsed from the PRD and compared · `app_rw` proved unable to write `role_permissions` · found **2 real defects in the schema spec** |
+| M-020…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+
+**M-019 found two defects, both in constraints that would have failed in production and not in CI.**
+
+**1. `ck_users__has_contact` made `BR-DAT-04` erasure impossible.** `Schema.md` §4.6 states two
+rules one sentence apart: `CHECK (email IS NOT NULL OR phone IS NOT NULL)`, and *"erasure sets
+email, phone, full_name, password_hash to NULL"*. Taken literally the second violates the first
+**every time** — `data.retention-sweep` would raise 23514 on every DPDP erasure, and a legal
+obligation would be unexecutable. The predicate is widened to
+`erased_at IS NOT NULL OR email IS NOT NULL OR phone IS NOT NULL`, which makes **both** rules true:
+a LIVE user with no contact point is still refused. Asserted from both sides, plus the real
+`UPDATE` the sweep will run rather than an insert-shaped approximation.
+
+**2. `UNIQUE (user_id, role_id, tenant_id)` was inert for exactly the rows that matter.** PostgreSQL
+treats two NULLs as distinct, and **every platform-role grant has `tenant_id IS NULL`** — so the
+constraint permitted `(alice, SUPER_ADMIN, NULL)` twice. Revoking one duplicate would leave the user
+still a super-admin, from a row nobody was looking at. Fixed with `UNIQUE NULLS NOT DISTINCT`
+(PostgreSQL 15+; this repository targets 16), with a positive control proving the same role at two
+*different* tenants is still permitted.
+
+**The one table in this schema with a `tenant_id` and no RLS policy.**
+
+`user_roles`, and it is deliberate. A policy `tenant_id = current_setting('app.tenant_id')`
+evaluates `NULL = <uuid>` for every platform grant — NULL, not TRUE — so every one becomes invisible
+to every session including the platform's own, and the symptom is super-admins losing their own
+permissions while the RBAC seed looks correct. `user_roles` is also what resolves an identity *into*
+a tenant membership: a row that must be read to decide which tenant you are cannot be filtered by
+which tenant you are.
+
+M-019 adds **PC2-IDENTITY** to `rls-coverage.sql` so this stays one exception and not a precedent —
+it reads the schema rather than the allowlist, so a second policy-less `tenant_id` table is reported
+by name and cannot be added by editing a list.
+
+**The permission catalogue is generated from the PRD, not transcribed.**
+
+§B3.2 is 42 capabilities × 12 roles = **504 authorisation cells**, and one `—` typed as `●` is a
+silent privilege change that no diff looks like. So `rbac-matrix.spec.ts` re-parses
+`MASTER_PRD.md` §B3.2 at test time and compares every cell; the PRD stays the source of truth and
+an edit to either side that is not mirrored fails the build. The `●`/`▪`/`○` legend is kept as three
+distinct grants — flattening `○` into `●` would give a support agent write access to tenant pricing,
+which is `PE-T5`'s refusal one layer down.
+
+`Schema.md` §4.7's *"permissions **~180**"* is in its **Volume** sentence, beside `user_roles`
+**520,000** and a 10× column — a capacity projection, not a register. The enumerated binding source
+is §B3.2, which yields **64** keys. Seeding 180 invented keys to match a projection would put an
+authorisation matrix nobody specified into the database.
+
+**Twenty control tests had stopped running, and the suite still printed `fail 0`.**
+
+The worst finding of the milestone, and it was found by accident. `pnpm infra:reset` destroys the
+volume; the migrations recreate `gymmap_platform` and `gymmap_audit` with `LOGIN` and **no
+password**, and `set-local-role-password.sql` set only `gymmap_app`'s. Neither role could connect.
+
+Every isolation spec had the same `try { connect } catch { available = false }` shape, and every one
+called that outcome *"no database"*. So the whole of `platform-elevation.int-spec.ts` reported
+**SKIP** — `runElevated()`'s audit-row-before-work ordering, the `PE-T4` grant refusals, the `PE-T5`
+refusal inside a tenant scope and during impersonation — and the run reported **`fail 0`**.
+
+A control that silently stops running is worse than one that was never written: the green tick
+becomes evidence for a claim nobody is checking. Two fixes:
+
+- `set-local-role-password.sql` now provisions **all three** login roles and asserts, at apply time,
+  that each reaches exactly one group role — memberships are exclusive because RLS policies are
+  permissive and OR together.
+- `test/isolation/_availability.ts` separates **"no database at all"** (a legitimate skip; a
+  developer without Docker should not face 200 red tests) from **"database up, role out"**, which
+  now **throws**. Verified by breaking the password on purpose and watching the suite go red.
+
+Isolation is now **212 passing, 0 skipped** — up from a reported 137 that was really 137 of 157.
+
+**A second real defect in M-017, from the same clock family as M-018's.**
+
+`IdempotencyStore.claim()` supplied `expires_at` from the injected `Clock` and left `created_at` to
+the column's `DEFAULT now()` — so `ck_idempotency_keys__expiry` was comparing **two machines'
+clocks**. Skew larger than the retention window makes every claim raise 23514: on the payment path,
+a total outage caused by NTP rather than by anything in the request. It surfaced because the
+suite's `FixedClock` is pinned to a literal instant, real UTC passed it during the working day, and
+a one-hour-retention fixture began failing on a test nobody had touched. Both timestamps now come
+from the same clock, and the skew case is pinned by a test that sets the clock six years back.
+
+**The migration ledger had drifted, and the fix was to prove the migrations from scratch.**
+
+`_prisma_migrations` showed M-017 unfinished and M-018 absent, while both sets of objects existed —
+they had been applied by hand during development. Rather than `prisma migrate resolve --applied`,
+which would have papered over any real divergence, the database was **reset and all ten migrations
+replayed on an empty volume**. That is what CI job 11 does, and it is the stronger evidence: the
+migration files alone now demonstrably produce the schema.
 
 **M-018 · `SELECT … FOR UPDATE SKIP LOCKED` is a lock, not a claim — and the difference cost 100 rows.**
 

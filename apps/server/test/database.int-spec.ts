@@ -151,6 +151,14 @@ const EXPECTED_APPLICATION_TABLES = [
   'audit_log', // M-013 — the partitioned parent
   'idempotency_keys', // M-017
   'outbox', // M-018
+  // M-019 · the five identity tables. `users` and `user_roles` are IDENTITY class and the other
+  // three are GLOBAL, so none carries an RLS policy — the reviewed exemptions are in
+  // `test/isolation/reference-exemption.int-spec.ts`, each with its reason.
+  'users',
+  'user_roles',
+  'roles',
+  'permissions',
+  'role_permissions',
 ];
 
 /**

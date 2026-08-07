@@ -91,6 +91,60 @@ _To be populated by **M-020** (credentials, lockout, `RL-AUTH`), **M-021** (OTP 
   hash. Redis holds an HMAC; the Pino redaction list covers `otp` and `phone`; `BR-DAT-06` and the
   `Monitoring.md` §3.7 label ban apply to every panel above.
 
+## Sprint 0 state — the tables and the catalogue exist; nothing can log in (`M-019`)
+
+Everything above describes `iam/` at the end of the auth track. What is deployed today is the five
+tables, their tenancy class, and the seeded §B3.1 / §B3.2 catalogue. Login arrives at M-020–M-022.
+
+| Question | Answer today |
+| :--- | :--- |
+| Can anyone authenticate? | **No.** Every seeded principal has `password_hash IS NULL`, and no auth endpoint exists. Tests mint tokens directly through `test/harness/mint-token.ts`. |
+| What is seeded? | 12 roles · 64 permissions · 191 `role_permissions` · 11 principals (7 platform-scoped, 4 tenant-scoped). `SEED_VERSION = 0.2`. |
+| Where does the permission catalogue come from? | `MASTER_PRD.md` §B3.2, mechanically — `rbac-matrix.spec.ts` re-parses the PRD and compares all 504 cells on every run. Edit the PRD or `iam/permissions.ts` alone and the build fails. |
+| Why 64 and not the "~180" in `Schema.md` §4.7? | That figure is in §4.7's **Volume** sentence, beside `user_roles` **520,000** and a 10× column — a capacity projection for a table that grows as endpoints land, not a register. The enumerated source is §B3.2's 42 capabilities. |
+
+### The two things about this schema that will confuse you at 3am
+
+**1. `users` and `user_roles` have NO RLS policy, and that is correct.**
+
+Every other tenant-bearing table in this database has `ENABLE` + `FORCE` and two policies. These do
+not. `Schema.md` §1.3 classes them **IDENTITY** — scoped by `user_id`, protected by authorisation.
+
+If someone "fixes" this by adding a policy, here is what you will see:
+
+| Table given a policy | Symptom | Why |
+| :--- | :--- | :--- |
+| `users` | A member with memberships at three gyms sees an empty list at `/me/memberships`. **Looks exactly like data loss.** | A user belongs to no single tenant. |
+| `user_roles` | Super-admins lose their own permissions. Platform staff can no longer do anything. | A platform grant has `tenant_id IS NULL`; `NULL = <uuid>` is NULL, not TRUE, so every platform row becomes invisible to every session — including the platform's own. |
+
+`user_roles` is **the only table in the schema with a `tenant_id` and no policy.** The reviewed
+exception is in `apps/server/test/isolation/rls-coverage.sql`, and **PC2-IDENTITY** in the same
+file fails the build if a second table ever joins it.
+
+**2. `app_rw` cannot write `roles`, `permissions` or `role_permissions`.**
+
+`SELECT` and nothing else — grant class **G-REF** (`Constraints.md` §9). If you are debugging
+"permission denied for table role_permissions" on the request path, that is the control working.
+The write path is `admin/`, gated by permission **and a written reason** (`FR-ADMN-02`), and it
+arrives with **M-116**. Until then a catalogue change is a migration or a seed re-run, both as the
+migration role.
+
+### Re-seeding
+
+```bash
+pnpm --filter @gymmap/server exec node prisma/seed/index.ts           # print the SQL, change nothing
+pnpm --filter @gymmap/server exec node prisma/seed/index.ts --apply   # execute it
+```
+
+Idempotent: every id is derived from its key (UUIDv5 over a fixed namespace), and every insert is
+`ON CONFLICT (id) DO NOTHING`. Running it twice does not duplicate anything —
+`roles-seed.int-spec.ts` asserts exactly that by running it a second time mid-suite.
+
+**It will not update an existing row.** `DO NOTHING`, not `DO UPDATE`. If a role description or a
+permission's `resource` changed in the catalogue, the seed leaves the old value in place and the
+suite goes red on the comparison rather than silently converging. Fix it with a migration, or drop
+the rows and re-seed on a local database.
+
 ## Known incidents
 
 _None yet._

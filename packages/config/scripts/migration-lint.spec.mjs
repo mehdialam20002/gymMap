@@ -219,6 +219,71 @@ test('a rule never fires on prose that merely discusses it', () => {
 });
 
 // ---------------------------------------------------------------------------
+// MG10's §1.3 class exemption — M-019. The most dangerous code in this linter.
+// ---------------------------------------------------------------------------
+
+test('MG10 · a new tenant-owned table with no RLS is still refused', () => {
+  // The baseline. Everything below widens MG10; this proves it still bites.
+  const { name, sql } = migration(
+    `CREATE TABLE IF NOT EXISTS staff_invitations (id uuid PRIMARY KEY, tenant_id uuid NOT NULL);
+     GRANT SELECT ON staff_invitations TO app_rw;`,
+  );
+  assert.ok(rules(lintMigration(name, sql)).includes('MG10'));
+});
+
+test('MG10 · an IDENTITY-class table may be created with no RLS', () => {
+  const { name, sql } = migration(
+    `CREATE TABLE IF NOT EXISTS users (id uuid PRIMARY KEY, email text);
+     GRANT SELECT ON users TO app_rw;`,
+  );
+  assert.deepEqual(rules(lintMigration(name, sql)), []);
+});
+
+test('MG10 · `user_roles` may carry a tenant_id — the one reviewed exception', () => {
+  const { name, sql } = migration(
+    `CREATE TABLE IF NOT EXISTS user_roles (id uuid PRIMARY KEY, user_id uuid NOT NULL, tenant_id uuid NULL);
+     GRANT SELECT ON user_roles TO app_rw;`,
+  );
+  assert.deepEqual(rules(lintMigration(name, sql)), []);
+});
+
+test('MG10 · adding a tenant_id to any OTHER exempt table is refused', () => {
+  // The escape hatch this closes. Exempting a genuinely tenant-owned table is one line in
+  // MG10_NO_RLS_BY_CLASS; the counter-check reads the DDL rather than trusting the list.
+  const { name, sql } = migration(
+    `CREATE TABLE IF NOT EXISTS roles (id uuid PRIMARY KEY, tenant_id uuid NOT NULL, key text);
+     GRANT SELECT ON roles TO app_rw;`,
+  );
+  const problems = lintMigration(name, sql);
+  assert.ok(rules(problems).includes('MG10'));
+  assert.match(problems[0].message, /declares a tenant_id/);
+});
+
+test('MG10 · an exempt table alongside a tenant-owned one does NOT exempt the migration', () => {
+  // Per-table, not per-migration. A migration-level opt-out would exempt whatever else the
+  // migration happened to create, which is exactly how one reviewed exception becomes five.
+  const { name, sql } = migration(
+    `CREATE TABLE IF NOT EXISTS users (id uuid PRIMARY KEY, email text);
+     CREATE TABLE IF NOT EXISTS gyms (id uuid PRIMARY KEY, tenant_id uuid NOT NULL);
+     GRANT SELECT ON users, gyms TO app_rw;`,
+  );
+  const problems = lintMigration(name, sql);
+  assert.ok(rules(problems).includes('MG10'));
+  assert.match(problems[0].message, /"gyms"/);
+  assert.doesNotMatch(problems[0].message, /"users"/);
+});
+
+test('P10 · an exempt table still has to GRANT something', () => {
+  // The RLS exemption must not carry the grant check with it. 0_init revoked default
+  // privileges, so a table with neither is simply unreachable — and the symptom is
+  // "permission denied" on a route somebody thinks they wired.
+  const { name, sql } = migration(
+    `CREATE TABLE IF NOT EXISTS permissions (id uuid PRIMARY KEY, key text);`,
+  );
+  assert.ok(rules(lintMigration(name, sql)).includes('P10'));
+});
+
+// ---------------------------------------------------------------------------
 // The real 0_init.
 // ---------------------------------------------------------------------------
 

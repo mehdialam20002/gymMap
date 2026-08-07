@@ -29,6 +29,7 @@ import {
 import { runWithTenant, runWithoutTenant } from '../../dist/tenancy/context/tenant-context.als.js';
 import { TENANT_A, TENANT_B, seedTenantsSql } from '../../prisma/seed/tenants.ts';
 import { tenantId } from '@gymmap/types';
+import { requireRole } from './_availability.ts';
 
 const PLATFORM_URL =
   process.env['PLATFORM_DATABASE_URL_TEST'] ??
@@ -78,21 +79,17 @@ function psql(sql: string): string {
 }
 
 before(async () => {
-  try {
+  // `requireRole` THROWS when PostgreSQL is up and only this role cannot connect — see
+  // `_availability.ts`. Before M-019 this block caught that case and called it "no database",
+  // and the entire elevation suite reported SKIP while the run printed `fail 0`.
+  ({ available } = await requireRole('gymmap_platform', async () => {
     // Seed only — never DELETE. `--test-concurrency=1` serialises the suites, but a suite that
     // removes shared fixtures still leaves the NEXT one asserting against rows that are gone,
     // and a subject that has vanished makes an isolation assertion pass for the wrong reason.
     psql(seedTenantsSql());
     platform = new PrismaClient({ datasources: { db: { url: PLATFORM_URL } } });
     await platform.$connect();
-    available = true;
-  } catch (error) {
-    console.error(
-      `\n  SKIPPING the elevation assertions — cannot connect as gymmap_platform.\n` +
-        `    pnpm infra:up && pnpm --filter @gymmap/server db:setup\n` +
-        `  ${error instanceof Error ? error.message.split('\n')[0] : String(error)}\n`,
-    );
-  }
+  }));
 });
 
 after(async () => {

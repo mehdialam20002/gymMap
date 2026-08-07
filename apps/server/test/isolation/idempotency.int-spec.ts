@@ -204,6 +204,37 @@ it('an EXPIRED record does not replay, even before the sweep has run', async () 
   });
 });
 
+it('CLOCK SKEW · a claim survives the app clock running behind the database', async () => {
+  // ┌─ FOUND BY ACCIDENT, PINNED ON PURPOSE ────────────────────────────────────────────────┐
+  // │ `created_at` carries a `DEFAULT now()`. Leaving it to the database while the           │
+  // │ application supplies `expires_at` makes `ck_idempotency_keys__expiry` a comparison of  │
+  // │ TWO MACHINES' CLOCKS. Skew larger than the retention window makes every claim raise    │
+  // │ 23514 — on the payment path, a total outage caused by NTP.                              │
+  // │                                                                                         │
+  // │ M-019 hit it for real: the suite's FixedClock is pinned to a literal instant, real UTC │
+  // │ passed 12:00Z during the working day, and a one-hour-retention fixture began failing   │
+  // │ on a test nobody had touched. Both timestamps now come from the injected clock.        │
+  // └─────────────────────────────────────────────────────────────────────────────────────────┘
+  const key = `spec-skew-${randomUUID()}`;
+  clock.set('2020-01-01T00:00:00Z'); // six years behind the database. Absurd, and that is the point.
+
+  await runWithTenant(tenantId(TENANT_A), async () => {
+    // One hour of retention, six years in the past. Against a DEFAULT now() created_at this is
+    // `expires_at` five years and 364 days BEFORE `created_at`, and the CHECK refuses it.
+    const claimed = await store.claim(claimFor(key, { retentionSeconds: 3600 }));
+    assert.equal(claimed.outcome, 'CLAIMED');
+  });
+
+  // And the row's two timestamps agree with each other, not with the server.
+  const row = psql(
+    `SELECT created_at < expires_at, extract(year from created_at)::int
+       FROM idempotency_keys WHERE key = '${key}';`,
+  );
+  assert.match(row, /^t\|2020$/m, `created_at did not come from the injected clock: ${row}`);
+
+  clock.set('2026-08-07T12:00:00Z');
+});
+
 it('a FAILED request releases its claim, so a retry can execute', async () => {
   // Otherwise the stored failure replays for the whole retention window and a transient fault
   // becomes a permanent one that no retry can clear.

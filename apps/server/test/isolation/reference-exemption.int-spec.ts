@@ -62,7 +62,21 @@ function rows(sql: string): string[] {
  * the two the toolchain creates. Each entry is a decision somebody made, not a table that was
  * overlooked — and that is the whole difference between this file and a `SELECT`.
  */
-const EXEMPT: readonly { table: string; reason: string }[] = [
+interface Exemption {
+  readonly table: string;
+  readonly reason: string;
+  /**
+   * Set ONLY where the table legitimately carries a `tenant_id` and still has no policy.
+   *
+   * Every other exemption rests on "there is no tenant data here", and `PC2` below enforces
+   * that by reading the schema. This flag says the exemption rests on something else, and it
+   * is capped at exactly one table by `PC2-IDENTITY`. A boolean rather than an absence, so
+   * granting it is a visible edit rather than a column somebody forgot to add.
+   */
+  readonly tenantIdReviewed?: true;
+}
+
+const EXEMPT: readonly Exemption[] = [
   {
     table: '_prisma_migrations',
     reason:
@@ -75,6 +89,57 @@ const EXEMPT: readonly { table: string; reason: string }[] = [
       'PostGIS reference data — the EPSG projection catalogue. Created by CREATE EXTENSION, ' +
       'identical in every installation on earth, and read by ST_Transform on every geography ' +
       'query. It is public knowledge, not tenant data.',
+  },
+
+  // ── M-019 · Schema.md §1.3 IDENTITY class ────────────────────────────────────────────────
+  //
+  // Not "reference data" like the two above — a different reason entirely, and the distinction
+  // is worth keeping visible. These hold the most sensitive data in the platform. They are
+  // exempt because RLS is the WRONG CONTROL for them, not because the data is public.
+  {
+    table: 'users',
+    reason:
+      'IDENTITY class (Schema.md §1.3, §4.6). A user belongs to no single tenant — they may ' +
+      'hold memberships at three gyms — so there is no tenant_id to scope by and the column ' +
+      'does not exist. The control is authorisation on user_id. §1.3 names the failure mode ' +
+      'directly: classing this RLS makes /me/memberships return an empty list, and the bug ' +
+      'looks like data loss rather than like a policy.',
+  },
+  {
+    table: 'user_roles',
+    tenantIdReviewed: true,
+    reason:
+      'IDENTITY class (Schema.md §4.7), and THE ONE TABLE IN THIS SCHEMA WITH A tenant_id AND ' +
+      'NO POLICY — M-019 AC-2, reviewed. A policy `tenant_id = current_setting(...)` evaluates ' +
+      'NULL = <uuid> for every platform-role grant, which is NULL, which is not TRUE: every ' +
+      "platform grant becomes invisible to every session including the platform's own, and " +
+      'super-admins silently lose their own permissions. This row is also what resolves an ' +
+      'identity INTO a tenant membership, so it cannot be filtered by which tenant you are. ' +
+      'Held to PC2-IDENTITY in rls-coverage.sql, which fails if a SECOND such table appears.',
+  },
+
+  // ── M-019 · GLOBAL platform reference, grant class G-REF ─────────────────────────────────
+  //
+  // These three ARE reference data, in the §C2.3 sense — the first of the eleven that file
+  // names to actually exist. app_rw holds SELECT and nothing else; the write path is admin/,
+  // gated by permission and a written reason (FR-ADMN-02), arriving with M-116.
+  {
+    table: 'roles',
+    reason:
+      'GLOBAL platform reference (Schema.md §4.7, §C2.3), G-REF. The twelve §B3.1 roles are ' +
+      'the same twelve for every tenant; there is nothing for a policy to scope to.',
+  },
+  {
+    table: 'permissions',
+    reason:
+      'GLOBAL platform reference, G-REF. A permission key is a property of an ENDPOINT ' +
+      '(FR-RBAC-01), not of a tenant.',
+  },
+  {
+    table: 'role_permissions',
+    reason:
+      'GLOBAL platform reference, G-REF. The §B3.2 matrix is platform-wide. Tenant-specific ' +
+      'authority comes from user_roles.tenant_id, not from a per-tenant copy of the matrix.',
   },
 ];
 
@@ -131,7 +196,8 @@ it('PC2 — the converse: nothing on the exemption list has quietly gained a ten
   // exempted because "it has no tenant data". Someone adds a `tenant_id` column six months
   // later. The exemption is still there, the review was of a migration rather than of a policy,
   // and the table now leaks across tenants while looking entirely ordinary.
-  for (const { table } of EXEMPT) {
+  for (const { table, tenantIdReviewed } of EXEMPT) {
+    if (tenantIdReviewed) continue; // held to PC2-IDENTITY below instead, which is stricter.
     const hasTenantColumn = psql(
       `SELECT count(*) FROM information_schema.columns
        WHERE table_schema = 'public' AND table_name = '${table}' AND column_name = 'tenant_id';`,
@@ -144,6 +210,29 @@ it('PC2 — the converse: nothing on the exemption list has quietly gained a ten
         `now readable across every tenant.`,
     );
   }
+});
+
+it('PC2-IDENTITY — exactly ONE exemption rests on anything other than "no tenant data"', () => {
+  // M-019 AC-2. One reviewed exception is a decision; two is a pattern, and the second arrives
+  // in a pull request citing the first as precedent. Adding a name here is a deliberate edit
+  // to an assertion, which is a diff a reviewer cannot skim past.
+  const reviewed = EXEMPT.filter((e) => e.tenantIdReviewed).map((e) => e.table);
+  assert.deepEqual(
+    reviewed,
+    ['user_roles'],
+    `${reviewed.length} exemptions claim a reviewed tenant_id. Schema.md §4.7 permits exactly ` +
+      'one — user_roles — and anything else on this list is readable across every tenant.',
+  );
+});
+
+it('PC2-IDENTITY — the reviewed exception really does carry a tenant_id', () => {
+  // The positive control. If `user_roles` ever loses the column, the exemption is moot and the
+  // paragraph of justification in four files becomes misleading rather than merely redundant.
+  const hasTenantColumn = psql(
+    `SELECT count(*) FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'user_roles' AND column_name = 'tenant_id';`,
+  );
+  assert.equal(hasTenantColumn, '1', 'user_roles has no tenant_id — the exemption is stale');
 });
 
 it('every exemption states a real reason, not a placeholder', () => {
@@ -159,9 +248,10 @@ it('the exemption list has not grown silently', () => {
   // those individually looks reasonable; the total is what nobody reviews unless it is printed.
   console.log(`  RLS exemptions declared: ${EXEMPT.length}`);
   assert.ok(
-    EXEMPT.length <= 13,
-    `${EXEMPT.length} tables are RLS-exempt. §C2.3 allows eleven reference tables plus the two ` +
-      'toolchain tables. Beyond that, an exemption is being used as a workaround.',
+    EXEMPT.length <= 15,
+    `${EXEMPT.length} tables are RLS-exempt. The ceiling is §C2.3's eleven reference tables, ` +
+      'plus the two toolchain tables, plus the two IDENTITY-class tables of Schema.md §1.3 ' +
+      '(users, user_roles). Beyond fifteen, an exemption is being used as a workaround.',
   );
 });
 

@@ -51,6 +51,72 @@ export const HEADER_KEYS = [
   'docs',
 ];
 
+/**
+ * `Schema.md` §1.3 — the tables that legitimately carry no RLS, by name and with the reason.
+ *
+ * ┌─ THIS IS AN EXCEPTION LIST, WHICH IS THE MOST DANGEROUS KIND OF CODE IN A LINTER ───────────┐
+ * │ MG10 refuses a new table with no row-level security, and that refusal is the mechanical      │
+ * │ form of `BR-TEN-01`. Every entry here is a hole in it.                                       │
+ * │                                                                                              │
+ * │ So the list is by TABLE NAME, never by migration and never by pattern. A migration-level     │
+ * │ opt-out would exempt every table the migration happens to create; a pattern would exempt     │
+ * │ tables nobody has written yet. Naming the table means the next one needs a diff to this      │
+ * │ file, which is a diff a reviewer sees.                                                       │
+ * │                                                                                              │
+ * │ `MG10_IDENTITY_EXEMPT_MUST_HAVE_NO_TENANT_ID` below is the counter-check: all but one of     │
+ * │ these must have no `tenant_id` in their DDL. `user_roles` is the single reviewed exception   │
+ * │ (M-019 AC-2), and it is spelled out separately rather than folded in.                         │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export const MG10_NO_RLS_BY_CLASS = {
+  // IDENTITY (§1.3) — scoped by `user_id`, protected by authorisation. RLS on `users` is the
+  // /me/memberships bug: a member with memberships at three gyms sees an empty list.
+  users: 'IDENTITY · Schema.md §4.6 — no tenant_id, scoped by user_id',
+  user_roles:
+    'IDENTITY · Schema.md §4.7 — HAS a tenant_id and no policy, the one reviewed exception ' +
+    '(M-019 AC-2). A policy evaluates NULL = <uuid> for every platform grant, so super-admins ' +
+    'become invisible to themselves. Held to PC2-IDENTITY in test/isolation/rls-coverage.sql.',
+
+  // GLOBAL platform reference (§C2.3, grant class G-REF). There is no tenant whose rows these
+  // are, so there is nothing for a policy to scope to.
+  roles: 'GLOBAL · Schema.md §4.7 — platform reference, G-REF',
+  permissions: 'GLOBAL · Schema.md §4.7 — platform reference, G-REF',
+  role_permissions: 'GLOBAL · Schema.md §4.7 — platform reference, G-REF',
+};
+
+/**
+ * Of the exempt tables, the ONE permitted to carry a `tenant_id`.
+ *
+ * Every other name in `MG10_NO_RLS_BY_CLASS` must have no such column, and this linter checks
+ * the DDL rather than trusting the classification — the escape hatch it closes is exempting a
+ * genuinely tenant-owned table by adding it to the list above.
+ */
+export const MG10_TENANT_ID_PERMITTED = ['user_roles'];
+
+/** Table names a `CREATE TABLE` statement declares, in order. */
+function createdTables(code) {
+  return [...code.matchAll(/CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+([a-z_][a-z0-9_]*)/gi)].map(
+    (match) => match[1].toLowerCase(),
+  );
+}
+
+/**
+ * The column list of one `CREATE TABLE`, from its opening paren to the next `CREATE`/`ALTER`.
+ *
+ * Deliberately crude — it is used only to ask "does this table declare a tenant_id", and the
+ * alternative is a SQL parser for a question a substring answers. Erring wide is safe here: a
+ * false positive means an exempt table is refused and a human looks at it.
+ */
+function tableBody(code, table) {
+  const start = new RegExp(`CREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?\\s+${table}\\b`, 'i').exec(
+    code,
+  );
+  if (start === null) return '';
+  const rest = code.slice(start.index + start[0].length);
+  const next = /\b(?:CREATE|ALTER|GRANT|COMMENT)\b/i.exec(rest);
+  return next === null ? rest : rest.slice(0, next.index);
+}
+
 /** §4.4 ceilings. CI must fail EARLIER than production, never later. */
 export const LOCK_TIMEOUT_CEILING_MS = 5_000;
 export const STATEMENT_TIMEOUT_CEILING_MS = 300_000;
@@ -205,12 +271,43 @@ export function lintMigration(name, sql) {
 
   // --- P9 / MG10: a new table must bring its policy and grants ----------------------------
   const createsTable = /CREATE\s+TABLE/i.test(code);
-  if (createsTable) {
-    if (!/ENABLE\s+ROW\s+LEVEL\s+SECURITY/i.test(code)) {
+  const tables = createdTables(code);
+
+  // Schema.md §1.3's IDENTITY and GLOBAL classes carry no RLS, legitimately. The exemption is
+  // per TABLE and applies only when EVERY table this migration creates is exempt — a migration
+  // that creates `users` alongside a tenant-owned table is still held to MG10.
+  const exemptTables = tables.filter((table) => table in MG10_NO_RLS_BY_CLASS);
+  const rlsExempt = tables.length > 0 && exemptTables.length === tables.length;
+
+  // The counter-check, and the reason this exemption is not an escape hatch: an exempt table
+  // must have no `tenant_id`, with `user_roles` the single reviewed exception. Adding a
+  // tenant-owned table to the class list therefore fails HERE rather than passing silently.
+  for (const table of exemptTables) {
+    if (MG10_TENANT_ID_PERMITTED.includes(table)) continue;
+    const ddl = tableBody(code, table);
+    // A COLUMN named tenant_id: at the start of a line, or after the opening paren or a comma.
+    // `\s` after the name is what excludes the references — `FOREIGN KEY (tenant_id)` and
+    // `UNIQUE (user_id, role_id, tenant_id)` are followed by `)`, not by a type.
+    if (/(^|[(,])\s*tenant_id\s/im.test(ddl)) {
       fail(
         'MG10',
-        `creates a table but never enables row-level security. BR-TEN-01 is enforced in the ` +
-          `database. A table without a policy, even for one commit, is queryable across tenants.`,
+        `"${table}" is on the §1.3 no-RLS class list but its DDL declares a tenant_id. It is ` +
+          `tenant-owned and needs both policies, not an exemption. If the exemption is genuinely ` +
+          `correct it needs a written reason in MG10_NO_RLS_BY_CLASS and an entry in ` +
+          `MG10_TENANT_ID_PERMITTED — and user_roles is the only one that has ever earned that.`,
+      );
+    }
+  }
+
+  if (createsTable && !rlsExempt) {
+    if (!/ENABLE\s+ROW\s+LEVEL\s+SECURITY/i.test(code)) {
+      const unexplained = tables.filter((table) => !(table in MG10_NO_RLS_BY_CLASS));
+      fail(
+        'MG10',
+        `creates ${unexplained.map((t) => `"${t}"`).join(', ')} but never enables row-level ` +
+          `security. BR-TEN-01 is enforced in the database. A table without a policy, even for ` +
+          `one commit, is queryable across tenants. If these are IDENTITY or GLOBAL class ` +
+          `(Schema.md §1.3), add them to MG10_NO_RLS_BY_CLASS with the reason.`,
       );
     } else if (!/FORCE\s+ROW\s+LEVEL\s+SECURITY/i.test(code)) {
       fail(
@@ -220,13 +317,17 @@ export function lintMigration(name, sql) {
           `most able to do damage.`,
       );
     }
-    if (!/GRANT\s+/i.test(code)) {
-      fail(
-        'P10',
-        `creates a table but grants nothing. 0_init revoked default privileges, so this table ` +
-          `is unreachable by the application (see prisma/grants/_grant-classes.sql).`,
-      );
-    }
+  }
+
+  // P10 is NOT under the RLS exemption. An IDENTITY or GLOBAL table still needs its grants —
+  // 0_init revoked default privileges, so a table with neither a policy nor a grant is simply
+  // unreachable, and the symptom is "permission denied" on a route that was never wired.
+  if (createsTable && !/GRANT\s+/i.test(code)) {
+    fail(
+      'P10',
+      `creates a table but grants nothing. 0_init revoked default privileges, so this table ` +
+        `is unreachable by the application (see prisma/grants/_grant-classes.sql).`,
+    );
   }
 
   // --- the fail-closed rule, §8.3 ---------------------------------------------------------

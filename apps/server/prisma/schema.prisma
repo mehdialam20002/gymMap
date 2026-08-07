@@ -93,6 +93,10 @@ model Tenant {
   /// Soft delete (ADR-0024). Financial and audit records are retained regardless (BR-TEN-04).
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
+  /// M-019. The back-relation for `user_roles.tenant_id`. Present so the FK is visible in the
+  /// datamodel; `user_roles` itself is IDENTITY-class and carries no RLS policy.
+  userRoles UserRole[]
+
   @@index([status, createdAt(sort: Desc)], map: "idx_tenants__status_created_at")
   @@map("tenants")
 }
@@ -227,4 +231,184 @@ enum OutboxStatusEnum {
   DEAD
 
   @@map("outbox_status_enum")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// M-019 · Identity and RBAC — Schema.md §4.6, §4.7, MASTER_PRD.md §B3.1.
+//
+// NONE of these five models is backed by a table with RLS. `users` and `userRoles` are the
+// IDENTITY class — scoped by `user_id`, protected by authorisation — and the other three are
+// platform-global reference data. Reaching them therefore does NOT require a tenant context,
+// which is why `iam/` may hold the raw client where a tenant-scoped repository may not.
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+/// Schema.md §4.6. A platform identity — a person with credentials, contact points and
+/// verification state.
+///
+/// IDENTITY class: no `tenantId`, no RLS. Classing this RLS is the `/me/memberships` bug of
+/// §1.3 — a member holding memberships at three gyms would see an empty list, and it would
+/// look like data loss rather than like a policy.
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  /// Nullable, and at least one of email/phone is required by `ck_users__has_contact`. An
+  /// India walk-in member may have only a phone (FR-CRM-04).
+  ///
+  /// NO `@unique` on either contact point, deliberately. The real indexes are PARTIAL on
+  /// `deleted_at IS NULL` (SD7) so a soft-deleted account frees its address; `@unique` would
+  /// generate a TOTAL unique index, and a person who deleted their account could never
+  /// register again with the same email. Uniqueness is asserted in `users-constraints`.
+  email           String?   @db.Text
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(6)
+  phone           String?   @db.Text
+  phoneVerifiedAt DateTime? @map("phone_verified_at") @db.Timestamptz(6)
+
+  /// Argon2id. NULL for OTP-only accounts, which in India is the common case. NEVER logged,
+  /// never exported (NFR-SEC-01, BR-DAT-06).
+  passwordHash String? @map("password_hash")
+
+  fullName      String? @map("full_name")
+  displayLocale String  @default("en-IN") @map("display_locale")
+
+  /// TM6, TM11 — presentation and quiet hours ONLY. A validity window uses the GYM's zone.
+  presentationTimezone String? @map("presentation_timezone")
+
+  status      UserStatusEnum @default(PENDING_VERIFICATION)
+  mfaEnabled  Boolean        @default(false) @map("mfa_enabled")
+  lastLoginAt DateTime?      @map("last_login_at") @db.Timestamptz(6)
+
+  /// BR-DAT-04. The durable reference a financial record keeps after the identity is gone.
+  pseudonymToken String?   @unique @map("pseudonym_token")
+  erasedAt       DateTime? @map("erased_at") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  roles UserRole[]
+
+  @@index([status, createdAt(sort: Desc)], map: "ix_users__status_created_at")
+  @@map("users")
+}
+
+/// Schema.md §4.7. One role granted to one user, optionally scoped to one tenant.
+///
+/// THE ONE TABLE IN THIS SCHEMA WITH A `tenant_id` AND NO RLS POLICY, by reviewed exception —
+/// see `test/isolation/rls-coverage.sql`. A policy would evaluate `NULL = <uuid>` for every
+/// platform-role row and make super-admins invisible to themselves.
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  userId String @map("user_id") @db.Uuid
+  roleId String @map("role_id") @db.Uuid
+
+  /// ERD.md §3.1 — NULLABLE IS THE DISCRIMINATOR. NULL is a platform role; a value is a
+  /// tenant role. Never fill it with a sentinel.
+  tenantId String? @map("tenant_id") @db.Uuid
+
+  grantedAt DateTime  @default(now()) @map("granted_at") @db.Timestamptz(6)
+  /// AC-STAF-01.4 — revocation is a timestamp, never a delete, so attribution survives.
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  role   Role    @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  /// The unique index is `UNIQUE NULLS NOT DISTINCT`, which Prisma cannot express. It lives in
+  /// the migration and is asserted by `identity-tenancy-class.int-spec.ts`; declaring a plain
+  /// `@@unique` here would generate a WEAKER constraint on any future `prisma db push`.
+  @@index([userId, tenantId], map: "ix_user_roles__user_active")
+  @@map("user_roles")
+}
+
+/// MASTER_PRD.md §B3.1. Exactly twelve. GLOBAL, G-REF.
+model Role {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  key PlatformRoleEnum @unique
+
+  /// §B3.1 — evaluation is (role, scope, resource, action), NEVER role alone.
+  scope       String
+  description String
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+/// FR-RBAC-01. One atomic capability an endpoint declares. GLOBAL, G-REF.
+model Permission {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  /// `<module>.<resource>.<action>` — the shape api-gates PG-3 enforces on every route.
+  key         String @unique
+  resource    String
+  action      String
+  description String
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+/// §B3.2. The composition of the matrix. GLOBAL, G-REF.
+model RolePermission {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  roleId       String @map("role_id") @db.Uuid
+  permissionId String @map("permission_id") @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Restrict)
+
+  @@unique([roleId, permissionId], map: "uq_role_permissions__role_permission")
+  @@index([permissionId], map: "ix_role_permissions__permission_id")
+  @@map("role_permissions")
+}
+
+/// FR-AUTH, BR-DAT-04. `ERASED` is the terminal pseudonymised state.
+enum UserStatusEnum {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+  ERASED
+
+  @@map("user_status_enum")
+}
+
+/// §B3.1, verbatim. Twelve values; a thirteenth requires a PRD amendment.
+enum PlatformRoleEnum {
+  VISITOR
+  USER
+  MEMBER
+  GYM_OWNER
+  GYM_MANAGER
+  RECEPTIONIST
+  TRAINER
+  SUPER_ADMIN
+  VERIFICATION_OFFICER
+  SUPPORT_AGENT
+  FINANCE
+  MODERATOR
+
+  @@map("platform_role_enum")
 }
