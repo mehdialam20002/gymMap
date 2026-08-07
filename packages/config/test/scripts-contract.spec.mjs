@@ -68,13 +68,18 @@ const DEFERRED = {
     'test:e2e': 'M-034',
     size: 'M-034',
   },
-  server: {
-    // `test:int` was deferred to M-005 and is now DISCHARGED — apps/server/test/*.int-spec.ts
-    // runs 23 assertions against a real PostgreSQL 16 container. Removing the entry is what
-    // this map is for: it makes "not yet" expire on a schedule rather than decay into "never",
-    // and the test failed the moment the script became real, which is how the expiry works.
-    'test:isolation': 'M-015 — THE CROSS-TENANT ISOLATION SUITE',
-  },
+  // Both server entries are now DISCHARGED, and both were discharged the same way: the test
+  // below failed the moment the script stopped being a no-op. That is what this map is for —
+  // it makes "not yet" expire on a schedule rather than decay into "never".
+  //
+  //   test:int        M-005 · 23 assertions against a real PostgreSQL 16 container
+  //   test:isolation  M-009 · RS-1, RS-2, RS-3, RS-7, RS-8, RS-10 plus IS6 coverage
+  //
+  // `test:isolation` is REAL but not yet COMPLETE: M-009 proves the six cases a single table
+  // can carry. M-015 parameterises RS-4…RS-6, RS-9, RS-11 and RS-12 across every table and
+  // generates a case group per route from the OpenAPI document. A partially-implemented script
+  // does not belong in a map of no-ops, so it is tracked in docs/PHASES.md instead.
+  server: {},
 };
 
 function workspacePackages() {

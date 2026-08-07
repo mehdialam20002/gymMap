@@ -28,5 +28,112 @@ datasource db {
 
 // §8.6 — models are PascalCase and map to snake_case tables via @@map. The database is the
 // contract with SQL, psql and every report; the model name is a TypeScript convenience.
-//
-// No models yet. R-M1.
+
+/// M-009 · The gym business — Schema.md §4.1.
+///
+/// Tenancy class RLS, policy class **P-SELF**: this table has no `tenant_id` column because
+/// its own primary key IS the tenant id. Adding one would be a second copy of the same fact,
+/// and the two could disagree.
+///
+/// Prisma cannot express RLS, so nothing below hints that reading this model is scoped. It is
+/// scoped by the policy in the migration and by the tenant-context extension (M-010), and a
+/// repository that reaches the raw client bypasses both — which is why
+/// `no-raw-prisma-outside-tenancy` is a build-failing dependency-cruiser rule and not advice.
+model Tenant {
+  id        String   @id @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  legalName          String  @map("legal_name")
+  tradingName        String? @map("trading_name")
+  entityType         EntityTypeEnum @map("entity_type")
+  registrationNumber String? @map("registration_number")
+  countryCode        String  @default("IN") @map("country_code") @db.Char(2)
+  currency           String  @default("INR") @db.Char(3)
+  /// AUTHORITATIVE for all validity computation (TM3, ADR-0025).
+  timezone           String  @default("Asia/Kolkata")
+  status             TenantStatusEnum @default(DRAFT)
+
+  subscriptionTierId       String?  @map("subscription_tier_id") @db.Uuid
+  subscriptionStatus       SubscriptionStatusEnum @default(TRIAL) @map("subscription_status")
+  subscriptionPastDueSince DateTime? @map("subscription_past_due_since") @db.Timestamptz(6)
+
+  /// Basis points, never a decimal fraction (§10.4, R3). NULL resolves from tier then platform.
+  commissionRateBps        Int? @map("commission_rate_bps")
+  renewalCommissionRateBps Int? @map("renewal_commission_rate_bps")
+  settlementCycleDays      Int  @default(7) @map("settlement_cycle_days")
+  reserveBps               Int  @default(500) @map("reserve_bps")
+  reserveReleaseDays       Int  @default(30) @map("reserve_release_days")
+  payoutHoldUntil          DateTime? @map("payout_hold_until") @db.Date
+  /// BigInt, never Float. Integer minor units (BR-PAY-01, NFR-DQ-02).
+  minimumPayoutMinor       BigInt @default(0) @map("minimum_payout_minor")
+
+  taxProfileId          String? @map("tax_profile_id") @db.Uuid
+  /// PERSONAL/FINANCIAL IDENTIFIER. Redacted from logs (BR-DAT-06).
+  pan                   String? @db.Text
+  gstin                 String? @db.Text
+  /// Decides CGST+SGST versus IGST.
+  stateCode             String? @map("state_code") @db.Char(2)
+  taxRegistrationStatus TaxRegistrationStatusEnum @default(NOT_REGISTERED) @map("tax_registration_status")
+
+  registeredAddressLine1 String? @map("registered_address_line1")
+  registeredAddressLine2 String? @map("registered_address_line2")
+  registeredCity         String? @map("registered_city")
+  registeredState        String? @map("registered_state")
+  registeredPostalCode   String? @map("registered_postal_code")
+
+  /// Snapshotted onto every order at sale time (BR-REF-01).
+  refundPolicy Json @default("{\"schema_version\":1}") @map("refund_policy")
+
+  /// Soft delete (ADR-0024). Financial and audit records are retained regardless (BR-TEN-04).
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@index([status, createdAt(sort: Desc)], map: "idx_tenants__status_created_at")
+  @@map("tenants")
+}
+
+// The enums below are a SUBSET of the 81 created by 0_init — only those `tenants` references.
+// Prisma requires a declaration for each enum it maps; the migration remains the source of
+// truth, and `prisma migrate diff` is the check that the two have not drifted.
+
+enum EntityTypeEnum {
+  SOLE_PROPRIETOR
+  PARTNERSHIP
+  COMPANY
+  OTHER
+
+  @@map("entity_type_enum")
+}
+
+enum TenantStatusEnum {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  INFO_REQUESTED
+  APPROVED
+  REJECTED
+  SUSPENDED
+  CLOSED
+
+  @@map("tenant_status_enum")
+}
+
+enum SubscriptionStatusEnum {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+
+  @@map("subscription_status_enum")
+}
+
+enum TaxRegistrationStatusEnum {
+  NOT_REGISTERED
+  REGISTERED
+  COMPOSITION
+  PENDING
+
+  @@map("tax_registration_status_enum")
+}

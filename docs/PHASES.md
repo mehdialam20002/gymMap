@@ -499,7 +499,9 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-005 | Docker Compose: Postgres 16 + PostGIS, Redis 7, MinIO, Mailpit | ✅ `DONE` | `6e54781` | **4/4 services healthy · infra:verify 7/7** |
 | M-006 | Prisma init and `0_init` — extensions, domains, enums, four roles | ✅ `DONE` | `075bd88` | **23/23 integration tests on real PG16** · 81 enums · 460 values · 12 domains · 4 roles · 0 tables |
 | M-007 | `pr.yml` — the ten always-on gates, 23 modules, 23 runbooks | ✅ `DONE` | `075bd88` | 15/15 structure tests · 3 violation fixtures prove the gates bite |
-| M-008 | OpenAPI generation, `/v1` versioning, api-gates, the drift gate | ✅ `DONE` | — | 45/45 gate fixtures · byte-stable emission · 4 absence proofs |
+| M-008 | OpenAPI generation, `/v1` versioning, api-gates, the drift gate | ✅ `DONE` | `3fdac69` | 45/45 gate fixtures · byte-stable emission · 4 absence proofs |
+| M-009 | `tenants` — the first tenant-owned table, RLS enabled and FORCED | ✅ `DONE` | — | **23/23 isolation tests on real PG16** · RS-1/2/3/7/8/10 · IS6 coverage proved non-vacuous |
+| M-010 | The Prisma tenant-context client extension (ADR-0005) | ⬜ `NEXT` | — | highest-consequence task in the programme |
 | M-007…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
 
 **M-002 deferrals**, made under the owner's *"do what is necessary, otherwise move on"* steer.

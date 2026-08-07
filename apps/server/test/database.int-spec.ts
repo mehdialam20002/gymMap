@@ -21,6 +21,8 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 const CONTAINER = 'gymmap-postgres';
 const DB = 'gymmap';
@@ -136,18 +138,48 @@ it('AC-2 · the four roles are exactly the expected four', () => {
 // AC-6 — R-M1: zero tables.
 // ---------------------------------------------------------------------------
 
-it('AC-6 · 0_init creates ZERO application tables (R-M1)', () => {
+/**
+ * Tables the migrations have deliberately created, in order. One entry per table milestone.
+ *
+ * This is an ALLOW-LIST, not a count. The failure it exists to catch is a table nobody
+ * intended: `prisma migrate dev` generating a model-derived table, a hand-applied DDL that
+ * never made it into a migration, or a merge that brought two migrations whose combined effect
+ * nobody reviewed. Any of those produces a table that works fine and has no RLS policy.
+ */
+const EXPECTED_APPLICATION_TABLES = [
+  'tenants', // M-009
+];
+
+it('the application tables are exactly the ones a migration created', () => {
   const tables = sql(
     `SELECT table_name FROM information_schema.tables
      WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name`,
   );
-  // `_prisma_migrations` is Prisma's own bookkeeping and `spatial_ref_sys` ships with PostGIS.
-  // Neither is an application table; both are expected and neither is created by this migration.
+  // `_prisma_migrations` is Prisma's bookkeeping and `spatial_ref_sys` ships with PostGIS.
   const application = tables.filter((t) => t !== '_prisma_migrations' && t !== 'spatial_ref_sys');
   assert.deepEqual(
     application,
-    [],
-    `0_init must create no application tables (R-M1). Found: ${application.join(', ')}`,
+    [...EXPECTED_APPLICATION_TABLES].sort(),
+    'an unexpected table exists. A table that no migration created has no RLS policy and no ' +
+      'grants, so it is readable across tenants by anything that can reach the database.',
+  );
+});
+
+it('AC-6 · R-M1 — 0_init itself still creates ZERO tables', () => {
+  // Asserted against the FILE, not the database. Once M-009 landed, "no tables exist" stopped
+  // being a statement about 0_init and became a statement about how far the roadmap has got —
+  // which is not what R-M1 says. The ruling is about what that one migration contains.
+  const zeroInit = readFileSync(
+    resolve(process.cwd(), 'prisma/migrations/0_init/migration.sql'),
+    'utf8',
+  );
+  const executable = zeroInit
+    .split('\n')
+    .map((l) => l.replace(/--.*$/, ''))
+    .join('\n');
+  assert.ok(
+    !/CREATE\s+TABLE/i.test(executable),
+    'R-M1: 0_init carries the physical foundations only',
   );
 });
 
