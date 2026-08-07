@@ -15,6 +15,7 @@ import { resolve } from 'node:path';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from '../../app.module.js';
+import { configureApp } from '../bootstrap/configure-app.js';
 import { createOpenApiDocument, serialiseOpenApiDocument } from './document.factory.js';
 
 const OUTPUT = resolve(process.cwd(), '../../openapi.json');
@@ -87,6 +88,9 @@ async function emit(): Promise<void> {
   // a broken script rather than a broken module graph. With `false` the failure rejects and
   // reaches the catch below, which prints the stack.
   const app = await NestFactory.create(AppModule, { logger: false, abortOnError: false });
+  // The SAME configuration the server applies. Without this the document advertises
+  // unversioned routes while the server serves /v1 — and every generated client 404s.
+  configureApp(app);
   await app.init();
 
   const document = createOpenApiDocument(app);

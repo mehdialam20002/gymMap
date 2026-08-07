@@ -45,6 +45,76 @@
         "x-gymmap-public": true,
         "x-gymmap-rate-limit": "RL-READ"
       }
+    },
+    "/v1/tenant/ping": {
+      "get": {
+        "description": "Proves the tenant context resolved and RLS is applying. The tenant is derived from the access token — there is no parameter, because there is nothing for a caller to choose.",
+        "operationId": "ping",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "status": {
+                      "example": "APPROVED",
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "example": "Asia/Kolkata",
+                      "type": "string"
+                    },
+                    "trading_name": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Returns the caller's own tenant.",
+        "tags": ["tenancy"],
+        "x-gymmap-error-codes": ["RESOURCE_NOT_FOUND", "UNAUTHENTICATED", "PERMISSION_DENIED"],
+        "x-gymmap-permission": "tenancy.ping.read",
+        "x-gymmap-rate-limit": "RL-READ",
+        "x-gymmap-tenant-scoped": true
+      }
+    },
+    "/v1/tenant/{tenantRef}/ping": {
+      "get": {
+        "description": "A tenant in another scope returns 404, never 403 — a 403 would confirm the id exists and turn a uuid list into a customer census (RSK-08).",
+        "operationId": "pingById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantRef",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Returns a tenant by id, if it is visible to the caller.",
+        "tags": ["tenancy"],
+        "x-gymmap-error-codes": ["RESOURCE_NOT_FOUND", "UNAUTHENTICATED", "PERMISSION_DENIED"],
+        "x-gymmap-permission": "tenancy.ping.read",
+        "x-gymmap-rate-limit": "RL-READ",
+        "x-gymmap-tenant-scoped": true
+      }
     }
   },
   "servers": [],

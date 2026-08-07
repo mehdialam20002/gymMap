@@ -19,10 +19,18 @@ import { Global, Module } from '@nestjs/common';
 
 import { APP_CONFIG, type AppConfig } from '../common/config/app-config.schema.js';
 import { PrismaService } from './prisma/prisma.service.js';
+import { TenantPingController } from './controllers/tenant-ping.controller.js';
+import { TenantPrismaRepository } from './infrastructure/tenant.prisma-repository.js';
 
 @Global()
 @Module({
+  // §8.2 says tenancy/ is provider-only because exposing tenant CONTEXT over HTTP is the
+  // §11.3 failure. TenantPingController does not do that: it exposes the caller own tenant,
+  // resolved from the token, with no parameter a caller can choose. The Sprint-0 exit condition
+  // (E0.1-E0.3) requires exactly one such route to prove the chain end to end.
+  controllers: [TenantPingController],
   providers: [
+    TenantPrismaRepository,
     {
       provide: PrismaService,
       // An explicit factory rather than `@Inject(APP_CONFIG)` on the constructor: the service
@@ -33,6 +41,6 @@ import { PrismaService } from './prisma/prisma.service.js';
       inject: [APP_CONFIG],
     },
   ],
-  exports: [PrismaService],
+  exports: [PrismaService, TenantPrismaRepository],
 })
 export class TenancyModule {}

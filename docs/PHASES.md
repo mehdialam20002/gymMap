@@ -503,7 +503,8 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-009 | `tenants` — the first tenant-owned table, RLS enabled and FORCED | ✅ `DONE` | — | **23/23 isolation tests on real PG16** · RS-1/2/3/7/8/10 · IS6 coverage proved non-vacuous |
 | M-010 | The Prisma tenant-context client extension (ADR-0005) | ✅ `DONE` | — | **PX-1…PX-6 on real PG16** · 16/16 extension · 39/39 isolation · found 4 real defects |
 | M-011 | `TenantContextMiddleware`, the ALS carrier, the principal scaffold | ✅ `DONE` | — | 20/20 guard · 29/29 middleware · 5 spellings × 3 locations refused |
-| M-012 | `TenantScopedRepository` and `GET /v1/tenant/ping` | ⬜ `NEXT` | — | — |
+| M-012 | `TenantScopedRepository` and `GET /v1/tenant/ping` | ✅ `DONE` | — | 50/50 isolation · A1–A4 incl. the positive control · 404 not 403 proved byte-identical |
+| M-013 | `audit_log`, the append-only writer, the `@Audited()` interceptor | ⬜ `NEXT` | — | ⚠️ blocked on **BLK-06** if it needs Prisma writes |
 | M-007…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
 
 **M-002 deferrals**, made under the owner's *"do what is necessary, otherwise move on"* steer.
@@ -554,6 +555,47 @@ there is no defensible answer to "which milestone builds the admin dashboard she
 **Resolution required from the project owner:** declare which document is normative for milestone
 identity, then correct the other. Record in `DECISION_LOG.md`. Work below M-019 (the current
 front) is unaffected and continues.
+
+### 🔴 BLK-06 — Prisma cannot WRITE to a PostgreSQL domain column
+
+**Status: OPEN. Blocks every write path from M-013 onward. Found by running M-012.**
+
+Two binding decisions do not compose:
+
+| Decision | Source |
+| :--- | :--- |
+| The schema uses **12 custom domains** — `money_minor`, `basis_points`, `currency_code`, `pan_in`, … | `Schema.md` §2.4 |
+| **Prisma** is the ORM | `STACK_ADDITIONS.md` A-01 |
+
+**Reads work. Writes fail.** A `prisma.tenant.create()` raises before the statement reaches the
+RLS policy:
+
+```
+SQLSTATE 22P03 — incorrect binary data format in bind parameter 12
+```
+
+Parameter 12 is `reserve_bps`, domain `basis_points` over `integer`. Parameter 11
+(`settlement_cycle_days`, a plain `integer`) binds fine.
+
+**Proved, not inferred.** Altering that one column to plain `integer` makes the identical insert
+succeed; altering it back reproduces the failure. Prisma sends the base type's binary format
+while Postgres describes the parameter as the domain's own type.
+
+**Why this is not resolvable in code.** Dropping the domains is a change to a binding
+specification, and adopting a different ORM is a substitution `STACK_ADDITIONS.md` forbids.
+CLAUDE.md §3 puts this decision with the owner.
+
+**The options, with what each costs:**
+
+| Option | Keeps | Loses |
+| :--- | :--- | :--- |
+| **A · Domains become table-level `CHECK` constraints** | Every validation rule, unchanged. Prisma writes work. | The named reusable type; §2.4's "would otherwise be restated on 200 columns" becomes literally true — the CHECK is restated per column. Recommended: the *validation* is what protects data, and it is fully preserved. |
+| **B · Keep domains; writes go through `$queryRaw`** | §2.4 exactly as written. | Every write in the system becomes hand-written SQL, which defeats the ORM and multiplies the injection surface. |
+| **C · Keep domains only on read-only columns** | Both, partially. | An inconsistent schema where the type of a column depends on whether the application writes it — the least defensible of the three. |
+
+**Interim state.** M-012 is complete and its isolation assertions are proved: A2's cross-tenant
+INSERT is exercised in raw SQL, which confirms `WITH CHECK` refuses it. Nothing has been silently
+worked around, and no domain has been dropped.
 
 ### 🟠 Coverage gaps found while scoping the two front ends
 

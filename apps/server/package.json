@@ -14,7 +14,7 @@
     "test:unit": "node --test test/*.spec.ts",
     "test:int": "node --test --test-concurrency=1 test/*.int-spec.ts",
     "test:contract": "echo \"no-op\"",
-    "test:isolation": "node --test --test-concurrency=1 test/isolation/*.int-spec.ts",
+    "test:isolation": "node --test --test-concurrency=1 test/isolation/*.int-spec.ts test/isolation/*.isolation-spec.ts",
     "test:e2e": "echo \"no-op\"",
     "test:a11y": "echo \"no-op\"",
     "size": "echo \"no-op\"",

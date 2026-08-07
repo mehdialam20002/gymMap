@@ -9,12 +9,12 @@
 
 import 'reflect-metadata';
 
-import { Logger, VersioningType } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module.js';
 import { APP_CONFIG, type AppConfig } from './common/config/app-config.schema.js';
-import { DomainExceptionFilter } from './common/errors/domain-exception.filter.js';
+import { configureApp } from './common/bootstrap/configure-app.js';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('bootstrap');
@@ -26,18 +26,9 @@ async function bootstrap(): Promise<void> {
 
   const config = app.get<AppConfig>(APP_CONFIG);
 
-  // M-008 · URI versioning. `/v1/...` on every route except the probes.
-  //
-  // URI rather than header or media-type versioning because §C3.1 fixes it: "URL-versioned;
-  // breaking changes require a new version with >= 6 months' deprecation". A URL is also the
-  // only form that survives a curl in a support ticket, a CDN cache key and a log line.
-  //
-  // `/healthz` and `/readyz` opt out with VERSION_NEUTRAL (AC-5). A load balancer cannot be
-  // asked to negotiate an API version, and a probe that 404s after a version bump takes the
-  // whole deployment out while every instance is healthy.
-  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
-
-  app.useGlobalFilters(new DomainExceptionFilter());
+  // M-012 · One configuration, shared with openapi/emit.ts. Anything applied here and not
+  // there produces a contract that does not describe this server.
+  configureApp(app);
 
   // No GLOBAL validation pipe. Validation is per-route with `ZodValidationPipe`, because a Zod
   // schema is specific to one payload — there is no equivalent of class-validator's "infer the
