@@ -89,3 +89,71 @@ content:
 ## Known incidents
 
 _None yet._
+
+---
+
+## M-010 · The Prisma tenant-context extension — operational notes
+
+Added when the extension landed. These are the failure modes it introduces.
+
+### 1 · Pool exhaustion under interactive transactions
+
+**Signal.** p95 latency climbs on every endpoint at once; `pg_stat_activity` shows many rows in
+`idle in transaction`; Prisma raises `Timed out fetching a new connection from the pool`.
+
+**Why this module causes it.** Every tenant-scoped operation opens an INTERACTIVE transaction,
+which pins one pooled connection for its whole body — not just for the query. A slow external
+call inside a transaction holds a connection for its entire duration. This is the cost of
+ADR-0005, accepted deliberately: the alternative is a session-level `SET` that a pooled
+connection carries into the next request.
+
+**First action.**
+
+```sql
+SELECT pid, state, now() - xact_start AS age, query
+FROM pg_stat_activity
+WHERE datname = 'gymmap' AND state = 'idle in transaction'
+ORDER BY age DESC LIMIT 20;
+```
+
+Anything older than the 10 s transaction timeout is a leak, not load.
+
+**Escalation.** If every age is short, this is genuine load — raise the pool. If one query
+dominates, it is holding a connection across an `await` it should not.
+
+### 2 · `TENANT_CONTEXT_MISSING` storm
+
+**Signal.** A run of 500s carrying `TENANT_CONTEXT_MISSING`, usually on one route or one job.
+
+**Read the code before the database.** This error means the server reached a query without
+knowing whose data it was about. It is never caused by user input and cannot be provoked by a
+caller — which is why it is a 500 that pages someone rather than a 403 a dashboard absorbs.
+
+**Three causes, in order of likelihood.**
+
+1. A route that skipped `TenantContextMiddleware` — check the module's middleware registration.
+2. A background job that ran outside `runWithTenant()`.
+3. An async boundary that escaped the `AsyncLocalStorage` frame: a `setTimeout`, an un-awaited
+   promise, or an `EventEmitter` listener registered inside a request and fired outside it.
+
+**Do not "fix" it by relaxing the RLS policy.** The error is the system refusing to run an
+unscoped query. A permissive policy converts this loud failure into a silent one that returns
+another tenant's rows.
+
+### 3 · Transaction timeout tuning
+
+**Signal.** `Transaction already closed` or `Transaction API error` in logs.
+
+The 10 s default is a POOL-PROTECTION control (`TR-37`), not a performance setting. Raising it
+trades one problem for a worse one: a longer timeout means a stuck transaction holds its
+connection longer, so the pool exhausts sooner under the same fault.
+
+**First action.** Find what the transaction is waiting on. Work that legitimately needs more
+than 10 s does not belong inside one.
+
+### The two configuration facts that are not in this repository
+
+| Fact | Enforced by | Why it matters here |
+| :--- | :--- | :--- |
+| The pooler runs in **session mode**, never transaction mode | M-005 compose, Terraform | `ADR-0004`. A transaction-mode pooler can hand the `set_config` and the query to different server connections — `PX-1`'s failure with a different actor. No application code defends against it. |
+| The application connects as `gymmap_app`, never a superuser | Terraform · `pnpm db:setup` | A superuser bypasses RLS entirely. `FORCE` lifts the exemption for the table OWNER and does nothing about superusers, so an app connected as `postgres` has RLS in its schema and none at runtime. This was a real gap, found by M-010's own test. |

@@ -18,7 +18,10 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
+  // No custom output. pnpm puts @prisma/client in a content-addressed store directory, and
+  // the runtime resolves the generated client RELATIVE TO ITSELF — so an output path that
+  // looks right (apps/server/node_modules/.prisma/client) leaves the package unable to find
+  // what was just generated, and every import fails with "did not initialize yet".
 }
 
 datasource db {

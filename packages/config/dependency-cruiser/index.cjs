@@ -63,7 +63,7 @@ const TENANCY_RULES = [
       'is valid, it simply has no tenant, and the failure surfaces as missing data rather than ' +
       'as an isolation breach.',
     severity: 'error',
-    from: { path: '^apps/server/src', pathNot: '^apps/server/src/(tenancy|prisma)/' },
+    from: { path: '^apps/server/src', pathNot: '^apps/server/src/tenancy/prisma/' },
     to: { path: 'node_modules/@prisma/client' },
   },
 ];

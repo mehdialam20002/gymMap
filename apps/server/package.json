@@ -12,9 +12,9 @@
     "lint": "echo \"no-op\"",
     "architecture": "echo \"no-op\"",
     "test:unit": "node --test test/*.spec.ts",
-    "test:int": "node --test test/*.int-spec.ts",
+    "test:int": "node --test --test-concurrency=1 test/*.int-spec.ts",
     "test:contract": "echo \"no-op\"",
-    "test:isolation": "node --test test/isolation/*.int-spec.ts",
+    "test:isolation": "node --test --test-concurrency=1 test/isolation/*.int-spec.ts",
     "test:e2e": "echo \"no-op\"",
     "test:a11y": "echo \"no-op\"",
     "size": "echo \"no-op\"",
@@ -23,7 +23,8 @@
     "start:worker": "node dist/worker.js",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsc -p tsconfig.build.json && node dist/../prisma/seed/index.js",
-    "openapi:emit": "tsc -p tsconfig.build.json && node dist/common/openapi/emit.js"
+    "openapi:emit": "tsc -p tsconfig.build.json && node dist/common/openapi/emit.js",
+    "db:setup": "prisma migrate deploy && docker exec -i gymmap-postgres psql -U postgres -d gymmap -v ON_ERROR_STOP=1 -f - < ../../infra/compose/set-local-role-password.sql"
   },
   "devDependencies": {
     "@gymmap/config": "workspace:*",
