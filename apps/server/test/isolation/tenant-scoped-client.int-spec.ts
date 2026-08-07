@@ -24,6 +24,8 @@ import {
 } from '../../dist/tenancy/context/tenant-context.als.js';
 import {
   GLOBAL_MODELS,
+  IDENTITY_MODELS,
+  isUnscopedModel,
   currentTransactionDepth,
   runInTenantTransaction,
   withTenantContext,
@@ -233,7 +235,9 @@ it('PX-5 · the extension binds $allModels, so coverage is not a maintained list
 
   for (const model of modelNames) {
     const capitalised = model.charAt(0).toUpperCase() + model.slice(1);
-    if (GLOBAL_MODELS.has(capitalised)) continue;
+    // Two exempt classes, for two different reasons — see `tenant-scoped-client.ts`.
+    // GLOBAL has no tenant_id; IDENTITY is scoped by user_id and read BEFORE a tenant is known.
+    if (isUnscopedModel(capitalised)) continue;
 
     await runWithoutTenant(async () => {
       await assert.rejects(
@@ -252,6 +256,32 @@ it('PX-5 · a GLOBAL model is reachable WITHOUT a tenant context', async () => {
   assert.ok(GLOBAL_MODELS.has('Country'));
   assert.ok(GLOBAL_MODELS.has('SubscriptionTier'));
   assert.ok(!GLOBAL_MODELS.has('Tenant'), 'Tenant is tenant-owned and must never be global');
+
+  // M-020 · the IDENTITY class is a SECOND exemption with a different justification, and the
+  // two must not merge. GLOBAL rests on "there is no tenant_id here" — which `rls-coverage.sql`
+  // PC2 proves independently — and `UserRole` HAS one. Folding it into GLOBAL would make PC2's
+  // own premise false while every test still passed.
+  assert.deepEqual(
+    [...IDENTITY_MODELS].sort(),
+    ['AuthSession', 'RefreshToken', 'User', 'UserRole'],
+    'the IDENTITY set changed. Schema.md §1.3 names exactly these; a fifth entry is a table ' +
+      'being taken out of tenant scope, which needs the same review a policy exemption does.',
+  );
+  assert.ok(!IDENTITY_MODELS.has('Tenant'));
+
+  // The two sets are DISJOINT. An entry in both would mean nobody can say which reason applies,
+  // and the reasons carry different obligations.
+  for (const model of IDENTITY_MODELS) {
+    assert.ok(!GLOBAL_MODELS.has(model), `${model} is in both exemption sets`);
+  }
+
+  // `isUnscopedModel` is the union and nothing more — no third source of exemption.
+  for (const model of [...GLOBAL_MODELS, ...IDENTITY_MODELS]) {
+    assert.ok(isUnscopedModel(model), `${model} is exempt by set but not by isUnscopedModel`);
+  }
+  assert.ok(!isUnscopedModel('Tenant'));
+  assert.ok(!isUnscopedModel('IdempotencyKey'), 'idempotency_keys is tenant-owned and has RLS');
+  assert.ok(!isUnscopedModel('OutboxEvent'), 'outbox is tenant-owned and has RLS');
   await Promise.resolve();
 });
 

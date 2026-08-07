@@ -27,7 +27,9 @@
             "description": ""
           }
         },
-        "tags": ["Health"],
+        "tags": [
+          "Health"
+        ],
         "x-gymmap-public": true,
         "x-gymmap-rate-limit": "RL-READ"
       }
@@ -41,7 +43,9 @@
             "description": ""
           }
         },
-        "tags": ["Health"],
+        "tags": [
+          "Health"
+        ],
         "x-gymmap-public": true,
         "x-gymmap-rate-limit": "RL-READ"
       }
@@ -70,7 +74,9 @@
           }
         },
         "summary": "Verifies a password.",
-        "tags": ["iam"],
+        "tags": [
+          "iam"
+        ],
         "x-gymmap-error-codes": [
           "VALIDATION_FAILED",
           "UNAUTHENTICATED",
@@ -105,7 +111,9 @@
           }
         },
         "summary": "Requests a password reset link.",
-        "tags": ["iam"],
+        "tags": [
+          "iam"
+        ],
         "x-gymmap-error-codes": [
           "VALIDATION_FAILED",
           "RATE_LIMIT_EXCEEDED",
@@ -139,7 +147,9 @@
           }
         },
         "summary": "Completes a password reset.",
-        "tags": ["iam"],
+        "tags": [
+          "iam"
+        ],
         "x-gymmap-error-codes": [
           "VALIDATION_FAILED",
           "RESET_TOKEN_INVALID",
@@ -182,7 +192,9 @@
           }
         },
         "summary": "Registers an account with a password.",
-        "tags": ["iam"],
+        "tags": [
+          "iam"
+        ],
         "x-gymmap-error-codes": [
           "VALIDATION_FAILED",
           "EMAIL_ALREADY_REGISTERED",
@@ -231,8 +243,14 @@
           }
         },
         "summary": "Returns the caller's own tenant.",
-        "tags": ["tenancy"],
-        "x-gymmap-error-codes": ["RESOURCE_NOT_FOUND", "UNAUTHENTICATED", "PERMISSION_DENIED"],
+        "tags": [
+          "tenancy"
+        ],
+        "x-gymmap-error-codes": [
+          "RESOURCE_NOT_FOUND",
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED"
+        ],
         "x-gymmap-permission": "tenancy.ping.read",
         "x-gymmap-rate-limit": "RL-READ",
         "x-gymmap-tenant-scoped": true
@@ -258,8 +276,14 @@
           }
         },
         "summary": "Returns a tenant by id, if it is visible to the caller.",
-        "tags": ["tenancy"],
-        "x-gymmap-error-codes": ["RESOURCE_NOT_FOUND", "UNAUTHENTICATED", "PERMISSION_DENIED"],
+        "tags": [
+          "tenancy"
+        ],
+        "x-gymmap-error-codes": [
+          "RESOURCE_NOT_FOUND",
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED"
+        ],
         "x-gymmap-permission": "tenancy.ping.read",
         "x-gymmap-rate-limit": "RL-READ",
         "x-gymmap-tenant-scoped": true

@@ -83,6 +83,42 @@ export const GLOBAL_MODELS = new Set<string>([
 ]);
 
 /**
+ * Models in the IDENTITY class — `Schema.md` §1.3. Also unscoped, for a DIFFERENT reason.
+ *
+ * ┌─ WHY THIS IS A SECOND SET AND NOT FOUR MORE LINES ABOVE ────────────────────────────────────┐
+ * │ `GLOBAL_MODELS` rests on "there is no tenant_id here", and `rls-coverage.sql` PC2 proves it │
+ * │ independently. Folding these in would make that sentence false: `UserRole` HAS a            │
+ * │ `tenant_id`, and the reason it is unscoped is not that it lacks one.                        │
+ * │                                                                                              │
+ * │ The IDENTITY reason is different and worth keeping legible. These rows are scoped by        │
+ * │ `user_id` and protected by AUTHORISATION, not by RLS (§1.3), and the tenant is a            │
+ * │ CONSEQUENCE of the roles an identity holds — so it is not knowable at the moment they are   │
+ * │ read. Login resolves an identity; the tenant follows from it.                                │
+ * │                                                                                              │
+ * │ M-020 found this by writing the endpoint: every `/v1/auth/*` route returned                  │
+ * │ `TENANT_CONTEXT_MISSING`, because the extension wrapped a `users` lookup in a transaction   │
+ * │ demanding an `app.tenant_id` that cannot exist before authentication. The whole auth track  │
+ * │ is unbuildable without this distinction.                                                     │
+ * │                                                                                              │
+ * │ `UserRole` carrying a `tenant_id` and still being unscoped is the SAME reviewed exception   │
+ * │ as `PC2-IDENTITY` in `rls-coverage.sql`: an RLS policy on it evaluates `NULL = <uuid>` for   │
+ * │ every platform-role grant, making super-admins invisible to themselves. There is no policy  │
+ * │ to enforce, so there is nothing for a scoped transaction to enforce it with.                 │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export const IDENTITY_MODELS = new Set<string>([
+  'User', // §4.6 — no tenant_id at all
+  'UserRole', // §4.7 — HAS a tenant_id, no policy, the one reviewed exception
+  'AuthSession', // §4.8
+  'RefreshToken', // §4.8
+]);
+
+/** Reachable without a tenant context: GLOBAL reference data, or IDENTITY-class rows. */
+export function isUnscopedModel(model: string): boolean {
+  return GLOBAL_MODELS.has(model) || IDENTITY_MODELS.has(model);
+}
+
+/**
  * Depth guard for P4 — exactly one interactive transaction per unit of work.
  *
  * ┌─ THIS IS ASYNCLOCALSTORAGE, NOT A MODULE-LEVEL COUNTER. THE DIFFERENCE IS A REAL BUG. ─────┐
@@ -166,10 +202,16 @@ export function withTenantContext(client: PrismaClient) {
         }) {
           const context = currentTenantContext();
 
-          // Reference data is reachable without a tenant. It has no tenant_id column and no
-          // RLS policy, so scoping it would be meaningless — and requiring a context would make
-          // `GET /v1/cities` unreachable before login.
-          if (GLOBAL_MODELS.has(model)) return query(args);
+          // Reachable without a tenant, for two distinct reasons — see both sets.
+          //
+          //   GLOBAL   reference data with no tenant_id and no policy. Scoping it would be
+          //            meaningless, and requiring a context would make `GET /v1/cities`
+          //            unreachable before login.
+          //   IDENTITY scoped by `user_id` and protected by authorisation (Schema.md §1.3).
+          //            The tenant is a CONSEQUENCE of the roles an identity holds, so it
+          //            cannot be known at the moment these rows are read — which is why
+          //            every /v1/auth/* route 500'd with TENANT_CONTEXT_MISSING until M-020.
+          if (isUnscopedModel(model)) return query(args);
 
           // Already inside our transaction: `set_config` has run on this connection, and
           // re-entering would open a savepoint that inherits the outer scope while looking
