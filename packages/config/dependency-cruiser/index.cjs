@@ -67,6 +67,25 @@ const TENANCY_RULES = [
     to: { path: 'node_modules/@prisma/client' },
   },
   {
+    name: 'no-platform-prisma-outside-allowlist',
+    comment:
+      'AC-FND-05.3 / PE4 / BR-TEN-01 / NFR-SEC-09 (M-014) — PlatformPrismaService and ' +
+      'runElevated() read ACROSS tenants. ' +
+      'Only four modules have a reason to: admin/ (the approval queue and the audit explorer), ' +
+      'reporting/ (platform aggregates), settlements/ (reconciliation spans tenants by ' +
+      'definition) and audit/ (the read port). Anywhere else, a cross-tenant read is a bug that ' +
+      'looks like a feature — it returns MORE rows than expected, so it never fails a test and ' +
+      "never throws; it just quietly shows one tenant another tenant's data. " +
+      'The runtime guard refuses outside runElevated(); this rule refuses at the import, which ' +
+      'is the layer a reviewer actually reads.',
+    severity: 'error',
+    from: {
+      path: '^apps/server/src',
+      pathNot: '^apps/server/src/(tenancy/|admin/|reporting/|settlements/|audit/)',
+    },
+    to: { path: '^apps/server/src/tenancy/prisma/(platform-prisma\\.service|platform-elevation)' },
+  },
+  {
     name: 'no-test-harness-in-src',
     comment:
       'NFR-SEC-09 / FR-RBAC-01, §12.3 (M-011 AC-8) — application code may not import ' +

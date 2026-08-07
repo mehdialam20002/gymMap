@@ -15,7 +15,13 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { runApiGates, MODULES, FORBIDDEN_PREFIXES, UNVERSIONED } from './api-gates.mjs';
+import {
+  runApiGates,
+  loadRealConfig,
+  MODULES,
+  FORBIDDEN_PREFIXES,
+  UNVERSIONED,
+} from './api-gates.mjs';
 import { runAbsenceAssertions } from './api-absence-assertions.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -405,13 +411,37 @@ test('I4 · the same decision under /admin is correct and passes', () => {
 // The live document.
 // ---------------------------------------------------------------------------
 
+const liveDocument = () => JSON.parse(readFileSync(resolve(REPO_ROOT, 'openapi.json'), 'utf8'));
+
 test('the committed openapi.json passes both gates', () => {
-  const document = JSON.parse(readFileSync(resolve(REPO_ROOT, 'openapi.json'), 'utf8'));
-  assert.deepEqual(gates(document).problems, []);
+  // The REAL registries, not the three-code fixture set above. Sharing the fixtures here was a
+  // bug: it made this assertion fail the moment M-012 shipped a route emitting UNAUTHENTICATED,
+  // a code that is registered — the gate passed, the test did not, and the test was wrong.
+  const document = liveDocument();
+  const real = loadRealConfig(REPO_ROOT);
+
+  assert.ok(real.errorCodes.size > 10, 'the registry failed to load — this test proves nothing');
+  assert.deepEqual(runApiGates({ document, ...real }).problems, []);
   assert.deepEqual(runAbsenceAssertions(document).problems, []);
 });
 
-test('the committed openapi.json has the probes unversioned (AC-5)', () => {
-  const document = JSON.parse(readFileSync(resolve(REPO_ROOT, 'openapi.json'), 'utf8'));
-  assert.deepEqual(Object.keys(document.paths).sort(), ['/healthz', '/readyz']);
+test('AC-5 — the probes are unversioned and everything else is under /v1', () => {
+  // Asserted as a PROPERTY, not as a frozen list. The previous version demanded the document
+  // contain exactly ['/healthz','/readyz'], which was true at M-008 and became a false failure
+  // the day the first real endpoint shipped. A test that has to be edited whenever a route is
+  // added is a test that gets edited without being read.
+  const paths = Object.keys(liveDocument().paths);
+
+  for (const probe of UNVERSIONED) {
+    assert.ok(paths.includes(probe), `${probe} is missing — the probe must stay unversioned`);
+  }
+  for (const path of paths) {
+    if (UNVERSIONED.includes(path)) continue;
+    assert.match(
+      path,
+      /^\/v\d+\//,
+      `${path} is neither a probe nor versioned. An unversioned public route cannot be changed ` +
+        'without breaking every client at once.',
+    );
+  }
 });

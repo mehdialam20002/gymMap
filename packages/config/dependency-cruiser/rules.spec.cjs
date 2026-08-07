@@ -37,6 +37,33 @@ test('every forbidden rule carries a comment citing its clause', () => {
   }
 });
 
+test('AC-FND-05.3 — the platform client is importable only by the four allowed modules', () => {
+  const rule = byName.get('no-platform-prisma-outside-allowlist');
+  assert.ok(rule, 'AC-FND-05.3 is unenforced without this rule');
+  assert.equal(rule.severity, 'error');
+
+  // Both files must be covered. Guarding only the service would leave runElevated() importable
+  // anywhere — and runElevated() is the capability; the service is merely the connection.
+  // Matched loosely on purpose — `rule.to.path` is itself a regex SOURCE, so it contains an
+  // escaped dot (`platform-prisma\.service`) that a literal-dot pattern here would miss.
+  assert.match(rule.to.path, /platform-prisma/);
+  assert.match(rule.to.path, /platform-elevation/);
+
+  // `tenancy` is exempt because it owns both files; a module cannot be forbidden from importing
+  // itself. The other four are the ones §14 gives a cross-tenant reason to.
+  for (const allowed of ['tenancy', 'admin', 'reporting', 'settlements', 'audit']) {
+    assert.ok(rule.from.pathNot.includes(`${allowed}/`), `'${allowed}/' must be exempt`);
+  }
+  // The negative half. A rule that exempts everything is a rule that forbids nothing, and this
+  // assertion is the only thing standing between the allow-list and a stray `|.*` in the regex.
+  for (const denied of ['memberships', 'payments', 'catalog', 'discovery']) {
+    assert.ok(
+      !new RegExp(rule.from.pathNot).test(`apps/server/src/${denied}/application/x.ts`),
+      `'${denied}/' is not on the allow-list but the pattern lets it through`,
+    );
+  }
+});
+
 test('the raw-Prisma prohibition exists and exempts only tenancy and prisma', () => {
   const rule = byName.get('no-raw-prisma-outside-tenancy');
   assert.ok(rule, 'ADR-0005 is unenforced without this rule');

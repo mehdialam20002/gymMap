@@ -21,6 +21,8 @@ import { APP_CONFIG, type AppConfig } from '../common/config/app-config.schema.j
 import { PrismaService } from './prisma/prisma.service.js';
 import { TenantPingController } from './controllers/tenant-ping.controller.js';
 import { TenantPrismaRepository } from './infrastructure/tenant.prisma-repository.js';
+import { PlatformPrismaService } from './prisma/platform-prisma.service.js';
+import { AuditPrismaService } from './prisma/audit-prisma.service.js';
 
 @Global()
 @Module({
@@ -32,6 +34,18 @@ import { TenantPrismaRepository } from './infrastructure/tenant.prisma-repositor
   providers: [
     TenantPrismaRepository,
     {
+      provide: PlatformPrismaService,
+      useFactory: (config: AppConfig) => new PlatformPrismaService(config),
+      inject: [APP_CONFIG],
+    },
+    // The append-only pool. Owned here rather than in `audit/` so that every `new PrismaClient()`
+    // in this codebase sits in one directory — see the note at the top of the service.
+    {
+      provide: AuditPrismaService,
+      useFactory: (config: AppConfig) => new AuditPrismaService(config),
+      inject: [APP_CONFIG],
+    },
+    {
       provide: PrismaService,
       // An explicit factory rather than `@Inject(APP_CONFIG)` on the constructor: the service
       // takes a validated `AppConfig`, and wiring it here keeps `PrismaService` free of Nest
@@ -41,6 +55,6 @@ import { TenantPrismaRepository } from './infrastructure/tenant.prisma-repositor
       inject: [APP_CONFIG],
     },
   ],
-  exports: [PrismaService, TenantPrismaRepository],
+  exports: [PrismaService, TenantPrismaRepository, PlatformPrismaService, AuditPrismaService],
 })
 export class TenancyModule {}

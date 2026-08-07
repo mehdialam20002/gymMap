@@ -1,58 +1,33 @@
 /**
- * M-013 · The audit writer — a SEPARATE connection, authenticated as `gymmap_audit`.
+ * M-013 · The audit writer — the `AuditWritePort` implementation.
  *
- * ┌─ WHY A SECOND POOL AND NOT `SET ROLE` ──────────────────────────────────────────────────────┐
- * │ `SET ROLE app_append` on the request connection would be shorter and is wrong. It is one    │
- * │ forgotten `RESET ROLE` away from leaving the request path holding INSERT on the audit log,  │
- * │ and the forgetting is invisible: everything keeps working, and the extra privilege sits     │
- * │ there until somebody exploits it.                                                            │
- * │                                                                                             │
- * │ Two physically separate connections also make "which connection wrote this row" answerable  │
- * │ from `pg_stat_activity` during an incident, which the SET ROLE version cannot.              │
- * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+ * ┌─ THE CONNECTION IS NOT OWNED HERE, AND THAT IS A CORRECTION ────────────────────────────────┐
+ * │ This class built its own `new PrismaClient()` until M-014, and `no-raw-prisma-outside-      │
+ * │ tenancy` was right to reject it. The pool now lives in `tenancy/prisma/audit-prisma.        │
+ * │ service.ts` alongside the other two, so a reviewer grepping for `new PrismaClient` finds    │
+ * │ every connection in this system in one directory.                                            │
+ * │                                                                                              │
+ * │ Nothing about the isolation property changed: it was, and remains, the `app_append` grant —  │
+ * │ `gymmap_audit` CAN insert an audit row and CANNOT read one back, which is what stops a       │
+ * │ compromised request path enumerating its own trail.                                          │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
- * `gymmap_audit` is a member of `app_append` and nothing else, so this connection CAN insert an
- * audit row and CANNOT read one back — the property that stops a compromised request path
- * enumerating its own trail.
+ * `@prisma/client` is deliberately not imported here, not even as a type — `tsPreCompilationDeps`
+ * makes a type-only import a real edge, so `AuditPrismaService.executeRaw` takes and returns
+ * nothing Prisma-shaped.
  */
 
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Injectable, Logger } from '@nestjs/common';
 
-import type { AppConfig } from '../../common/config/app-config.schema.js';
 import { REDACTED_FIELD_NAMES } from '../../common/logging/redaction.js';
+import type { AuditPrismaService } from '../../tenancy/prisma/audit-prisma.service.js';
 import type { AuditEntry, AuditWritePort } from '../ports/audit-write.port.js';
 
 @Injectable()
-export class AuditPrismaRepository implements AuditWritePort, OnModuleInit, OnModuleDestroy {
+export class AuditPrismaRepository implements AuditWritePort {
   private readonly logger = new Logger(AuditPrismaRepository.name);
-  private readonly appendOnly: PrismaClient;
 
-  constructor(private readonly config: AppConfig) {
-    // The audit URL, or the application URL as a documented fallback. In a deployed environment
-    // AUDIT_DATABASE_URL is set by Terraform to the gymmap_audit credential; locally, falling
-    // back keeps `pnpm infra:up` a one-step setup. The fallback is visible in the log below so
-    // nobody discovers it by reading the source during an incident.
-    // '' means unset — see the schema for why empty and absent must behave identically.
-    const url = this.config.AUDIT_DATABASE_URL || this.config.DATABASE_URL;
-    this.appendOnly = new PrismaClient({ datasources: { db: { url } } });
-  }
-
-  async onModuleInit(): Promise<void> {
-    await this.appendOnly.$connect();
-    if (!this.config.AUDIT_DATABASE_URL) {
-      this.logger.warn(
-        'AUDIT_DATABASE_URL is unset — audit rows are being written on the APPLICATION ' +
-          'connection. That connection is a member of app_rw, which holds SELECT on audit_log, ' +
-          'so the "writer cannot read the log" property does not hold in this environment. ' +
-          'Acceptable locally; set it in anything deployed.',
-      );
-    }
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    await this.appendOnly.$disconnect();
-  }
+  constructor(private readonly db: AuditPrismaService) {}
 
   /**
    * Appends one row.
@@ -76,7 +51,7 @@ export class AuditPrismaRepository implements AuditWritePort, OnModuleInit, OnMo
    */
   async append(entry: AuditEntry): Promise<void> {
     try {
-      await this.appendOnly.$executeRaw`
+      await this.db.executeRaw`
         INSERT INTO audit_log (
           id, occurred_at, tenant_id, actor_id, actor_type, actor_label, impersonated_by,
           entity_type, entity_id, action, before, after,

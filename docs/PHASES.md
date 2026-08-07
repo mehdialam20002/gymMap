@@ -471,7 +471,7 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 
 **Goal.** Build the platform, milestone by milestone, per `/docs/roadmap/`.
 **Depends on.** Phases 0–7 and G, all `DONE`, plus explicit owner approval.
-**Status.** `IN PROGRESS — Sprint 0, foundations. 3 of 120 milestones complete.`
+**Status.** `IN PROGRESS — Sprint 0, foundations. 14 of 120 milestones complete.`
 
 ### Pre-flight, mandatory before *any* code
 
@@ -505,8 +505,17 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-011 | `TenantContextMiddleware`, the ALS carrier, the principal scaffold | ✅ `DONE` | — | 20/20 guard · 29/29 middleware · 5 spellings × 3 locations refused |
 | M-012 | `TenantScopedRepository` and `GET /v1/tenant/ping` | ✅ `DONE` | — | 50/50 isolation · A1–A4 incl. the positive control · 404 not 403 proved byte-identical |
 | M-013 | `audit_log`, the append-only writer, the `@Audited()` interceptor | ✅ `DONE` | — | 19/19 audit-grant tests · trigger refuses even a superuser · CI-10 partition trap proved |
-| M-014 | `runElevated()` — platform scope as a named, audited call | ⬜ `NEXT` | — | — |
-| M-007…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+| M-014 | `runElevated()` — platform scope as a named, audited call | ✅ `DONE` | — | **20/20 elevation tests on real PG16** · PE-T1 positive control returns 2 tenants · 13/13 inventory tests · found 3 real defects |
+| M-015…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+
+**M-014 found three defects that were not in its scope**, all of them gates that were reporting
+success without doing any work. Each is fixed in the same commit:
+
+| Defect | How long it had been wrong | Why nothing caught it |
+| :--- | :--- | :--- |
+| `apps/server/src/audit/infrastructure/` built its own `new PrismaClient()`, violating `no-raw-prisma-outside-tenancy` | Since M-013 | The local sweep ran `turbo run architecture`, and **every workspace's `architecture` script is `echo "no-op"`** — so three milestones were verified as "depcruise 0 errors" having cruised nothing. CI job 5 runs the real command and would have caught it on the first PR. The root script now runs what CI runs. The pool moved to `tenancy/prisma/audit-prisma.service.ts`, so all three `PrismaClient` constructions now sit in one directory. |
+| `api-gates.spec.mjs` checked the LIVE `openapi.json` against its own three-code **fixture** registry | Since M-012 | It passed while there were no endpoints. The first real route emitted `UNAUTHENTICATED` — which *is* registered — so the spec failed and the gate passed. The live-document test now loads the real registry via `loadRealConfig()`. |
+| `apps/server`'s `openapi:check` resolved `openapi.json` against `process.cwd()` | Since M-008 | It exited 1 every time it ran from the workspace, while the root `pnpm ci:api-gates` worked — two entry points disagreeing about where the repository is. Fixed with a `pnpm-workspace.yaml` walk-up. |
 
 **M-002 deferrals**, made under the owner's *"do what is necessary, otherwise move on"* steer.
 Each is deferred to the milestone that first creates a consumer for it — none is dropped:

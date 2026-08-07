@@ -150,6 +150,13 @@ jobs:
       - name: dependency-cruiser — full graph
         run: pnpm exec depcruise --config .dependency-cruiser.cjs apps packages --output-type err
 
+      # M-014 AC-7. `no-platform-prisma-outside-allowlist` above answers "MAY this module cross
+      # the boundary". It cannot answer "how many places DO, and did that grow this quarter" —
+      # once `admin/` is on the allow-list, its fortieth cross-tenant read passes every gate.
+      # The committed inventory puts the total in the diff, where a reviewer sees it.
+      - name: elevation-inventory — every cross-tenant read, diffed
+        run: pnpm ci:elevation-inventory
+
       - name: Publish the module graph
         if: always()
         run: |

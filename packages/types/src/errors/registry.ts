@@ -197,6 +197,19 @@ export const ERROR_REGISTRY = {
     // Re-entrant context means one transaction spans two tenants. Fail before the query runs.
     retryable: false,
   },
+  ELEVATION_REFUSED: {
+    module: 'tenancy',
+    class: 'System',
+    httpStatus: 500,
+    messageKey: 'error.tenancy.elevation_refused',
+    enforces: ['AC-FND-05.1', 'AC-AUTH-03.2', 'BR-TEN-01'],
+    // Distinct from TENANT_CONTEXT_ALREADY_SET on purpose. Both refusals protect the same
+    // boundary, but they are provoked by different mistakes and are fixed in different places:
+    // one means a use case entered a second tenant, this one means somebody tried to cross the
+    // boundary DELIBERATELY and was not entitled to. Collapsing them would make the alert on a
+    // refused elevation — the interesting one — indistinguishable from an ordinary context bug.
+    retryable: false,
+  },
 
   // --- iam ----------------------------------------------------------------
   PERMISSION_DENIED: {

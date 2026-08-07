@@ -70,6 +70,18 @@ export const appConfigSchema = z
      * exactly that.
      */
     AUDIT_DATABASE_URL: z.string().url().startsWith('postgresql://').or(z.literal('')).default(''),
+    /**
+     * M-014 · The elevation connection, as gymmap_platform — a member of app_platform_ro and
+     * nothing else, holding SELECT grants only. Cross-tenant reads run here.
+     *
+     * Same empty-string convention as the two URLs above, and the same loud fallback.
+     */
+    PLATFORM_DATABASE_URL: z
+      .string()
+      .url()
+      .startsWith('postgresql://')
+      .or(z.literal(''))
+      .default(''),
     REDIS_URL: z.string().url().startsWith('redis://'),
     /**
      * M-005 AC-2 · Three logical Redis databases, matching the Terraform module's split.

@@ -15,7 +15,8 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "architecture": "turbo run architecture",
+    "//architecture": "NOT `turbo run architecture`. Every workspace's own `architecture` script is a no-op, so the turbo form cruised nothing while reporting success — and a local sweep reported '0 errors' for three milestones while apps/server/src/audit held a real no-raw-prisma-outside-tenancy violation. This is byte-identical to what pr.yml job 5 runs. The rules are also mostly CROSS-workspace (no-app-to-app, no-ui-to-utils), which a per-workspace cruise cannot see at all.",
+    "architecture": "depcruise --config .dependency-cruiser.cjs apps packages",
     "test:unit": "turbo run test:unit",
     "test:int": "turbo run test:int",
     "test:contract": "turbo run test:contract",
@@ -41,7 +42,8 @@
     "ci:deps-approved": "node packages/config/scripts/dependency-approval.mjs",
     "ci:violations": "for f in .github/deliberate-violations/*.spec.sh; do bash \"$f\" || exit 1; done",
     "ci:api-gates": "node packages/config/scripts/api-gates.mjs",
-    "ci:api-absence": "node packages/config/scripts/api-absence-assertions.mjs"
+    "ci:api-absence": "node packages/config/scripts/api-absence-assertions.mjs",
+    "ci:elevation-inventory": "node packages/config/scripts/elevation-inventory.mjs --check"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",

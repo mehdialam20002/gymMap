@@ -12,7 +12,7 @@
 
 import { Global, Module } from '@nestjs/common';
 
-import { APP_CONFIG, type AppConfig } from '../common/config/app-config.schema.js';
+import { AuditPrismaService } from '../tenancy/prisma/audit-prisma.service.js';
 import { AuditPrismaRepository } from './infrastructure/audit.prisma-repository.js';
 import { AUDIT_WRITE_PORT } from './ports/audit-write.port.js';
 
@@ -21,8 +21,10 @@ import { AUDIT_WRITE_PORT } from './ports/audit-write.port.js';
   providers: [
     {
       provide: AuditPrismaRepository,
-      useFactory: (config: AppConfig) => new AuditPrismaRepository(config),
-      inject: [APP_CONFIG],
+      // The connection comes from TenancyModule, which is @Global. This module owns the ROW
+      // shape and the redaction; it does not own a database connection (M-014 correction).
+      useFactory: (db: AuditPrismaService) => new AuditPrismaRepository(db),
+      inject: [AuditPrismaService],
     },
     // The port, not the class, is what consumers inject. The interceptor depends on the
     // INTERFACE, so an integration test can substitute a recording double without a database.

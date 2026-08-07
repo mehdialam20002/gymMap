@@ -21,7 +21,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
 
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'];
 
@@ -237,11 +237,58 @@ export function runApiGates({ document, publicAllowlist, errorCodes, rateLimitCl
   return { problems, operationCount: operations.length };
 }
 
+/**
+ * The real allow-list and registries, read from source.
+ *
+ * EXPORTED, and that matters more than it looks. The spec used to check the live `openapi.json`
+ * against its own three-code FIXTURE set, so the moment M-012 shipped an endpoint emitting
+ * `UNAUTHENTICATED` — a code that is in the registry — the spec failed while the actual gate
+ * passed. A fixture set is the right thing for "does PG-5 bite"; it is the wrong thing for "is
+ * the committed contract valid", and the two tests must not share one.
+ *
+ * Read from source rather than from `dist/` so the gate and the application agree by
+ * construction rather than by two lists staying in step.
+ */
+export function loadRealConfig(root) {
+  const source = (relPath) => readFileSync(resolve(root, relPath), 'utf8');
+
+  const allowlistSource = source('apps/server/src/common/openapi/public-allowlist.ts');
+  const registrySource = source('packages/types/src/errors/registry.ts');
+  const rateLimitSource = source('apps/server/src/common/decorators/rate-limit.decorator.ts');
+
+  return {
+    publicAllowlist: new Set([...allowlistSource.matchAll(/route:\s*'([^']+)'/g)].map((m) => m[1])),
+    errorCodes: new Set(
+      [...registrySource.matchAll(/^\s{2}([A-Z][A-Z0-9_]*):\s*\{$/gm)].map((m) => m[1]),
+    ),
+    rateLimitClasses: new Set([...rateLimitSource.matchAll(/'(RL-[A-Z]+)'/g)].map((m) => m[1])),
+  };
+}
+
 // --- CLI ---------------------------------------------------------------------
 
-const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
+/**
+ * Walks up to the directory holding `pnpm-workspace.yaml`.
+ *
+ * `process.cwd()` was wrong here and had been since M-008: `apps/server`'s `openapi:check` runs
+ * this script with the cwd set to `apps/server`, so it looked for `openapi.json` there, did not
+ * find it, and exited 1 — every time, for four milestones. The root `pnpm ci:api-gates` worked,
+ * which is why nobody noticed: the two entry points disagreed about where the repository is.
+ */
+function repoRoot(from = process.cwd()) {
+  let dir = resolve(from);
+  for (let i = 0; i < 8; i += 1) {
+    if (existsSync(resolve(dir, 'pnpm-workspace.yaml'))) return dir;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return resolve(from);
+}
+
+const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].replaceAll('\\', '/'));
 if (isMain) {
-  const root = process.cwd();
+  const root = repoRoot();
   const documentPath = resolve(root, 'openapi.json');
 
   if (!existsSync(documentPath)) {
@@ -252,32 +299,7 @@ if (isMain) {
   }
 
   const document = JSON.parse(readFileSync(documentPath, 'utf8'));
-
-  // The allowlist and the registries are read from the built server/types output so the gate
-  // and the application agree by construction rather than by two lists staying in step.
-  const allowlistSource = readFileSync(
-    resolve(root, 'apps/server/src/common/openapi/public-allowlist.ts'),
-    'utf8',
-  );
-  const publicAllowlist = new Set(
-    [...allowlistSource.matchAll(/route:\s*'([^']+)'/g)].map((m) => m[1]),
-  );
-
-  const registrySource = readFileSync(
-    resolve(root, 'packages/types/src/errors/registry.ts'),
-    'utf8',
-  );
-  const errorCodes = new Set(
-    [...registrySource.matchAll(/^\s{2}([A-Z][A-Z0-9_]*):\s*\{$/gm)].map((m) => m[1]),
-  );
-
-  const rateLimitSource = readFileSync(
-    resolve(root, 'apps/server/src/common/decorators/rate-limit.decorator.ts'),
-    'utf8',
-  );
-  const rateLimitClasses = new Set(
-    [...rateLimitSource.matchAll(/'(RL-[A-Z]+)'/g)].map((m) => m[1]),
-  );
+  const { publicAllowlist, errorCodes, rateLimitClasses } = loadRealConfig(root);
 
   const { problems, operationCount } = runApiGates({
     document,

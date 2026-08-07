@@ -157,3 +157,92 @@ than 10 s does not belong inside one.
 | :--- | :--- | :--- |
 | The pooler runs in **session mode**, never transaction mode | M-005 compose, Terraform | `ADR-0004`. A transaction-mode pooler can hand the `set_config` and the query to different server connections — `PX-1`'s failure with a different actor. No application code defends against it. |
 | The application connects as `gymmap_app`, never a superuser | Terraform · `pnpm db:setup` | A superuser bypasses RLS entirely. `FORCE` lifts the exemption for the table OWNER and does nothing about superusers, so an app connected as `postgres` has RLS in its schema and none at runtime. This was a real gap, found by M-010's own test. |
+
+---
+
+## M-014 · `runElevated()` — elevation, and the three connections
+
+### The three pools, and which role each one holds
+
+Every `new PrismaClient()` in this codebase lives in `apps/server/src/tenancy/prisma/`. If you find
+a fourth somewhere else, that is the incident — a raw client bypasses the tenant-context extension
+while looking like ordinary code.
+
+| Service | Login role | Group | Capability |
+| :--- | :--- | :--- | :--- |
+| `PrismaService` | `gymmap_app` | `app_rw` | The request path. Extended: every operation is wrapped in a transaction that sets `app.tenant_id` first. |
+| `AuditPrismaService` | `gymmap_audit` | `app_append` | `INSERT` on `audit_log` and **no `SELECT` anywhere**. The writer cannot read its own trail. |
+| `PlatformPrismaService` | `gymmap_platform` | `app_platform_ro` | Cross-tenant `SELECT` only. No write grant exists for it anywhere in the schema. |
+
+Memberships are **exclusive**. RLS policies are permissive and OR'd, so a role holding both
+`app_rw` and `app_platform_ro` would match `platform_read`'s `USING (true)` on *every ordinary
+query* — reading every tenant, all the time, without anyone calling `runElevated()`. Verify with:
+
+```sql
+SELECT g.rolname AS login, r.rolname AS group_role
+FROM pg_auth_members m
+JOIN pg_roles r ON r.oid = m.roleid
+JOIN pg_roles g ON g.oid = m.member
+WHERE g.rolname LIKE 'gymmap%' ORDER BY 1, 2;
+-- Exactly three rows. Any login with two groups is a P1.
+```
+
+### 4 · "An admin says they cannot see another tenant's data"
+
+Usually correct behaviour, not a fault. Elevation is **not** a session state — it is bounded to one
+`runElevated()` callback. If the code called it for the list query and not for the detail query,
+the detail query is tenant-scoped and returns nothing. That is the design (`PE-T6`).
+
+**First action.** Confirm the audit row exists before concluding anything:
+
+```sql
+SELECT occurred_at, actor_id, permission, elevation_scope, reason, correlation_id
+FROM audit_log
+WHERE action = 'ELEVATE' AND occurred_at > now() - interval '1 hour'
+ORDER BY occurred_at DESC LIMIT 50;
+```
+
+No row means `runElevated()` was never called — the fix is in the code, not in a grant. A row with
+the wrong `elevation_scope` means it was called for a narrower purpose than the screen needs.
+
+### 5 · "Grant this admin BYPASSRLS so they can see everything"
+
+**Refuse.** This request arrives during an incident, sounds reasonable, and is the one change that
+would quietly end tenant isolation for this system.
+
+`BYPASSRLS` is an attribute in `pg_roles`. Nothing in `pg_policies` changes. Every policy still
+reads correctly, every isolation test still passes, and the database ignores all of them for that
+role. The next person to audit the schema will see a correctly isolated system and be wrong.
+
+The supported path is a `FOR SELECT` policy naming `app_platform_ro`, which is visible in
+`pg_policies` next to the rule it excepts. To confirm none has been granted:
+
+```sql
+SELECT rolname, rolbypassrls, rolsuper FROM pg_roles
+WHERE rolname IN ('app_migrator','app_rw','app_append','app_platform_ro',
+                  'gymmap_app','gymmap_audit','gymmap_platform');
+-- Seven rows, all f/f. Anything else is a P1.
+```
+
+### 6 · The elevation count grew and nobody decided it should
+
+`pnpm ci:elevation-inventory` diffs every `runElevated()` call site against
+`apps/server/test/isolation/_elevation-inventory.committed.json`.
+
+This gate is not about a breach. It is about drift: `admin/` is on the allow-list, so its fortieth
+cross-tenant read passes every other check in the repository — each one reviewed alone, each one
+fine, and nobody ever decided that forty was acceptable. Accept a change with `--write`, commit the
+inventory alongside the code, and say in the PR body why one more place needs to read across
+tenants.
+
+### A failed audit write blocks an elevation, and that is deliberate
+
+`AuditPrismaRepository.append()` is **best-effort** — a failed write logs at error level and the
+request proceeds, because an audit outage should not become a total outage.
+
+`runElevated()` is the opposite: the row is written **first**, and if it fails the elevation does
+not happen. A failed audit on an ordinary mutation costs one missing record; a cross-tenant read
+that happened with no record is the exact event the audit log exists for.
+
+So if `AUDIT_DATABASE_URL` points somewhere broken, ordinary traffic degrades quietly while the
+admin console fails loudly. That asymmetry is the design, not a bug to smooth over.

@@ -1,0 +1,10 @@
+{
+  "total": 0,
+  "byScope": {
+    "READ_ALL_TENANTS": 0,
+    "READ_ONE_TENANT": 0,
+    "READ_FINANCIAL_AGGREGATE": 0,
+    "READ_AUDIT": 0
+  },
+  "sites": []
+}

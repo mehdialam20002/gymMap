@@ -123,6 +123,35 @@ export class TenantHeaderNotAcceptedError extends DomainException {
 }
 
 /**
+ * `AC-FND-05.1`, `AC-AUTH-03.2`, `PE-T5`, `PE-T9` — an elevation was asked for and refused.
+ *
+ * Deliberately NOT `TenantContextAlreadySetError`, though the first draft reused it. That error's
+ * message is fixed at "a second, different tenant context was entered", which is a true statement
+ * about the mechanism and a misleading one about the cause: an operator reading it after an
+ * elevation was refused during impersonation would go looking for a nested `runWithTenant`, and
+ * there is none. The two are also worth alerting on differently — a refused elevation is somebody
+ * deliberately reaching across the boundary, which is the interesting event; a re-entered tenant
+ * context is an ordinary bug.
+ *
+ * The `refusal` text lands in the message because there is nothing sensitive in it — it names a
+ * scope and a rule, never a person or a tenant's data (BR-DAT-06).
+ */
+export class ElevationRefusedError extends DomainException {
+  constructor(refusal: string, scope: string) {
+    super('ELEVATION_REFUSED', `Elevation to ${scope} was refused: ${refusal}`, [
+      {
+        field: 'elevation',
+        scope,
+        diagnosis:
+          'runElevated() refuses rather than narrowing its scope or proceeding unaudited. An ' +
+          'elevation that silently downgrades returns fewer rows than the caller expected, and ' +
+          'the caller reads that as "no data" rather than "refused".',
+      },
+    ]);
+  }
+}
+
+/**
  * `PX-6`, `P4` — exactly one interactive transaction per unit of work.
  *
  * A nested `$transaction` inside the extension's own transaction is a SAVEPOINT, not a
