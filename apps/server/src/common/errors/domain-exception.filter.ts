@@ -96,6 +96,25 @@ export const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
     'This password reset link is invalid or has expired. Please request a new one.',
   VERIFICATION_TOKEN_INVALID:
     'This verification link is invalid or has expired. Please request a new one.',
+
+  // --- M-021, phone OTP ----------------------------------------------------
+  //
+  // OTP_INVALID carries `attempts_remaining` in details and a per-request clientMessage that
+  // quotes it — AC-AUTH-01.3, because "wrong code" without a count leaves the member guessing
+  // whether the next attempt locks them out. This is the floor if that is ever absent.
+  OTP_INVALID: 'That code is not correct. Please check the message and try again.',
+  OTP_EXPIRED: 'That code has expired — codes are valid for 5 minutes. Please request a new one.',
+  OTP_ATTEMPTS_EXCEEDED:
+    'Too many incorrect attempts. That code is no longer valid — please request a new one.',
+  OTP_RESEND_LIMIT_REACHED:
+    'You have requested several codes recently. Please wait before requesting another, or ' +
+    'sign in with your password instead.',
+  OTP_RESEND_TOO_SOON:
+    'A code was just sent. Please wait a moment before requesting another — it can take up to ' +
+    'a minute to arrive.',
+  CAPTCHA_REQUIRED:
+    'Please complete the verification challenge to continue. This protects the service from ' +
+    'automated abuse.',
 };
 
 const GENERIC_500 = 'An internal error occurred.';

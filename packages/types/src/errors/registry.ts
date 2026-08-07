@@ -282,6 +282,68 @@ export const ERROR_REGISTRY = {
     enforces: ['FR-AUTH-10', 'NFR-SEC-07'],
     retryable: false,
   },
+  // --- iam · M-021, phone OTP (FR-AUTH-05, Authentication.md §14.3) --------
+  //
+  // Note again what is ABSENT. There is no OTP_NUMBER_NOT_REGISTERED and no OTP_NO_ACCOUNT: a
+  // LOGIN request for a number with no account returns the SAME 202 as one with an account, and
+  // simply sends nothing. §8.1's future-compatibility table calls a 404 here forbidden rather
+  // than merely breaking — it is an enumeration oracle over every mobile number in India.
+  OTP_INVALID: {
+    module: 'iam',
+    class: 'Validation',
+    // 400, and it carries `attempts_remaining`. AC-AUTH-01.3: a wrong guess does not consume
+    // the code beyond the counter, so the member can correct a typo.
+    httpStatus: 400,
+    messageKey: 'error.iam.otp_invalid',
+    enforces: ['FR-AUTH-05', 'AC-AUTH-01.3'],
+    retryable: false,
+  },
+  OTP_EXPIRED: {
+    module: 'iam',
+    class: 'Validation',
+    httpStatus: 400,
+    messageKey: 'error.iam.otp_expired',
+    enforces: ['FR-AUTH-05'],
+    // A NEW code will work. Not the same request, so not retryable in the envelope's sense.
+    retryable: false,
+  },
+  OTP_ATTEMPTS_EXCEEDED: {
+    module: 'iam',
+    class: 'RateLimit',
+    httpStatus: 429,
+    messageKey: 'error.iam.otp_attempts_exceeded',
+    enforces: ['FR-AUTH-05'],
+    retryable: true,
+  },
+  OTP_RESEND_LIMIT_REACHED: {
+    module: 'iam',
+    class: 'RateLimit',
+    httpStatus: 429,
+    messageKey: 'error.iam.otp_resend_limit_reached',
+    // AC-AUTH-01.4 — and NO SMS IS SENT. The budget is checked before the enqueue, never after,
+    // or the limit costs money on every attempt it refuses.
+    enforces: ['FR-AUTH-05', 'AC-AUTH-01.4', 'CON-02'],
+    retryable: true,
+  },
+  OTP_RESEND_TOO_SOON: {
+    module: 'iam',
+    class: 'RateLimit',
+    httpStatus: 429,
+    messageKey: 'error.iam.otp_resend_too_soon',
+    enforces: ['FR-AUTH-05'],
+    retryable: true,
+  },
+  CAPTCHA_REQUIRED: {
+    module: 'iam',
+    class: 'Authorisation',
+    // 403 rather than 429: the caller is not rate-limited, they are being asked to prove they
+    // are human. A 429 would tell them to wait, and waiting does not help.
+    httpStatus: 403,
+    messageKey: 'error.iam.captcha_required',
+    enforces: ['FR-AUTH-05', 'CON-02'],
+    retryable: false,
+  },
+
   VERIFICATION_TOKEN_INVALID: {
     module: 'iam',
     class: 'Validation',

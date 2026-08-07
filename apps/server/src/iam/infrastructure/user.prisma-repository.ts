@@ -151,4 +151,23 @@ export class UserPrismaRepository {
       data: { status: 'ACTIVE' },
     });
   }
+
+  /**
+   * M-021. Marks the phone verified after a successful OTP.
+   *
+   * Same conditional status transition as `markEmailVerified`, for the same reason: a suspended
+   * account must not be revived by proving control of a number. In the launch market this is the
+   * common path — `FR-AUTH-02` makes the phone the primary identifier, so most accounts reach
+   * `ACTIVE` through here rather than through an email link.
+   */
+  async markPhoneVerified(userId: string, at: Date): Promise<void> {
+    await this.db.client.user.update({
+      where: { id: userId },
+      data: { phoneVerifiedAt: at },
+    });
+    await this.db.client.user.updateMany({
+      where: { id: userId, status: 'PENDING_VERIFICATION' },
+      data: { status: 'ACTIVE' },
+    });
+  }
 }

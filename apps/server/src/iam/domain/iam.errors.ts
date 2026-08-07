@@ -106,3 +106,84 @@ export class VerificationTokenInvalidError extends DomainException {
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// M-021 · phone OTP — FR-AUTH-05.
+//
+// Note once more what is ABSENT: no error says a number has no account. A LOGIN request for an
+// unregistered number returns the same 202 as a registered one and simply sends nothing —
+// §8.1's future-compatibility table calls a 404 here FORBIDDEN, not merely breaking.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * `400`. The code did not match, and attempts remain.
+ *
+ * `AC-AUTH-01.3` requires `attempts_remaining` in the body: a bare "wrong code" leaves the member
+ * guessing whether the next try destroys the code, and the ones who guess wrong stop trying.
+ */
+export class OtpInvalidError extends DomainException {
+  constructor(attemptsRemaining: number) {
+    super(
+      'OTP_INVALID',
+      `OTP verification failed with ${String(attemptsRemaining)} attempt(s) remaining.`,
+      [{ attempts_remaining: attemptsRemaining }],
+      attemptsRemaining === 1
+        ? 'That code is not correct. You have 1 attempt left before you need a new code.'
+        : `That code is not correct. You have ${String(attemptsRemaining)} attempts left.`,
+    );
+  }
+}
+
+/** `400`. No live challenge — expired, never issued, or already consumed. */
+export class OtpExpiredError extends DomainException {
+  constructor() {
+    // ONE error for all three states. "Never issued" and "expired" told apart would say whether
+    // a number had recently been used, which is the same oracle in a different place.
+    super('OTP_EXPIRED', 'OTP verification found no live challenge for this number and purpose.');
+  }
+}
+
+/** `429`. The fifth wrong attempt destroys the code. */
+export class OtpAttemptsExceededError extends DomainException {
+  constructor(retryAfterSeconds: number) {
+    super('OTP_ATTEMPTS_EXCEEDED', 'OTP verify attempts exhausted; the challenge was destroyed.', [
+      { retry_after_seconds: retryAfterSeconds },
+    ]);
+  }
+}
+
+/**
+ * `429`. The fourth send inside the window — and **no SMS is sent**.
+ *
+ * `AC-AUTH-01.4`. The budget is checked BEFORE the outbox enqueue: a limit enforced after the
+ * send costs ₹0.15 on every request it refuses, which makes the control itself the exposure
+ * (`CON-02`).
+ */
+export class OtpResendLimitError extends DomainException {
+  constructor(retryAfterSeconds: number) {
+    super('OTP_RESEND_LIMIT_REACHED', 'OTP resend budget exhausted for this number; no SMS sent.', [
+      { retry_after_seconds: retryAfterSeconds },
+    ]);
+  }
+}
+
+/** `429`. Inside the 30-second cool-down. */
+export class OtpResendTooSoonError extends DomainException {
+  constructor(retryAfterSeconds: number) {
+    super('OTP_RESEND_TOO_SOON', 'OTP requested inside the resend cool-down.', [
+      { retry_after_seconds: retryAfterSeconds },
+    ]);
+  }
+}
+
+/**
+ * `403`. The per-IP challenge threshold, which arrives BEFORE the hard ceiling.
+ *
+ * A 403 and not a 429, deliberately: the caller is not being rate-limited, they are being asked
+ * to prove they are human. A 429 says "wait", and waiting does not help.
+ */
+export class CaptchaRequiredError extends DomainException {
+  constructor() {
+    super('CAPTCHA_REQUIRED', 'OTP request from an IP above the captcha threshold, unsolved.');
+  }
+}

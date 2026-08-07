@@ -88,6 +88,101 @@
         "x-gymmap-rate-limit": "RL-AUTH"
       }
     },
+    "/v1/auth/otp/request": {
+      "post": {
+        "description": "ALWAYS 202 for a well-formed number, whether or not it has an account — the same status, body and latency. §8.1 calls a 404 here forbidden rather than merely breaking: it would be an existence oracle over every mobile number in India. Five limits apply: 6 digits, 300s validity, 5 verify attempts, 3 sends per 30 minutes per number with a 30s cool-down, and 20 operations per hour per IP with a captcha demanded from the 11th. The per-number and per-IP ceilings are INDEPENDENT — one protects the member from being SMS-bombed, the other protects the platform from a ₹0.15-a-message bill (CON-02).",
+        "operationId": "requestOtpCode",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "channel": {
+                      "enum": [
+                        "SMS",
+                        "EMAIL"
+                      ],
+                      "type": "string"
+                    },
+                    "expires_in_seconds": {
+                      "example": 300,
+                      "type": "integer"
+                    },
+                    "fallback": {
+                      "enum": [
+                        "EMAIL"
+                      ],
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Sends a six-digit code to an Indian mobile number.",
+        "tags": [
+          "iam"
+        ],
+        "x-gymmap-error-codes": [
+          "VALIDATION_FAILED",
+          "OTP_RESEND_LIMIT_REACHED",
+          "OTP_RESEND_TOO_SOON",
+          "CAPTCHA_REQUIRED",
+          "RATE_LIMIT_EXCEEDED",
+          "DEPENDENCY_UNAVAILABLE"
+        ],
+        "x-gymmap-public": true,
+        "x-gymmap-rate-limit": "RL-OTP"
+      }
+    },
+    "/v1/auth/otp/verify": {
+      "post": {
+        "description": "Single-use: the code is compared and consumed in ONE atomic Redis operation, so five simultaneous submissions yield exactly one verification. A wrong code returns 400 with attempts_remaining (AC-AUTH-01.3) and does NOT consume the challenge; the fifth wrong attempt destroys it. NO SESSION IS ISSUED — an SMS is the channel most exposed to interception, and session creation is M-022 (ADR-0011).",
+        "operationId": "verifyOtpCode",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "user_id": {
+                      "format": "uuid",
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "verified": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Verifies a six-digit code.",
+        "tags": [
+          "iam"
+        ],
+        "x-gymmap-error-codes": [
+          "VALIDATION_FAILED",
+          "OTP_INVALID",
+          "OTP_EXPIRED",
+          "OTP_ATTEMPTS_EXCEEDED",
+          "RATE_LIMIT_EXCEEDED"
+        ],
+        "x-gymmap-public": true,
+        "x-gymmap-rate-limit": "RL-OTP"
+      }
+    },
     "/v1/auth/password/forgot": {
       "post": {
         "description": "ALWAYS 202, whether or not the address is known. The caller here is guessing rather than asserting, so a differing status, body or latency would be an account-existence oracle over any address anyone cares to try — the unknown path performs equivalent work.",

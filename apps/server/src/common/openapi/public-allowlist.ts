@@ -92,6 +92,38 @@ export const PUBLIC_ALLOWLIST: readonly PublicRoute[] = [
       'most of that work. An unknown, spent and expired token are one indistinguishable 422, ' +
       'so a guess never reveals whether a value was ever real.',
   },
+
+  // ── M-021 · phone OTP. The FR-AUTH-01 consumer default in the launch market ──────────────
+  //
+  // These two are the most expensive public routes in the system to abuse, and the only ones
+  // where abuse costs REAL MONEY per request rather than CPU: roughly ₹0.15 an SMS (CON-02).
+  {
+    route: 'POST /v1/auth/otp/request',
+    reason:
+      'Phone-OTP sign-in and registration. In India the phone is the primary identifier ' +
+      '(FR-AUTH-02) and most members have no password at all, so this is the main way in.',
+    abuseControl:
+      'FIVE limits, and two of them are independent ceilings rather than one: 3 sends per 30 ' +
+      'minutes PER NUMBER with a 30-second cool-down, and 20 operations per hour PER IP with a ' +
+      'captcha demanded from the 11th. The per-number limit protects a member from being ' +
+      'SMS-bombed; the per-IP limit protects the platform from an attacker cycling ten thousand ' +
+      'numbers, who would never trip a per-number limit once. Implementing only one of the two ' +
+      'is the documented trap. Every budget is checked BEFORE the enqueue — a limit enforced ' +
+      'after the send costs ₹0.15 on each request it refuses. RL-OTP is tier 1 and fails closed.',
+  },
+  {
+    route: 'POST /v1/auth/otp/verify',
+    reason:
+      'Completes the above. The code IS the credential; requiring a session would mean only an ' +
+      'already-signed-in member could verify a number.',
+    abuseControl:
+      'Six digits is a million possibilities, so the attempt ceiling is what matters: 5 per ' +
+      'code, enforced inside the same atomic Redis script that does the comparison, so it ' +
+      'cannot be raced to stay below the limit. The fifth wrong attempt destroys the challenge ' +
+      'and a new one costs a 30-second cool-down — about 3 guesses a minute against 10^6. ' +
+      'RL-OTP applies on top. The stored value is an HMAC bound to the purpose, the number and ' +
+      'the generation, so a code cannot be replayed across purposes or after a resend.',
+  },
 ];
 
 /** Fast lookup for the gate. */

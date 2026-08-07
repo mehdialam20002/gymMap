@@ -34,6 +34,8 @@ import { LoginWithPasswordUseCase } from './application/login-with-password.use-
 import { RegisterWithPasswordUseCase } from './application/register-with-password.use-case.js';
 import { ResetPasswordUseCase } from './application/reset-password.use-case.js';
 import { VerifyEmailUseCase } from './application/verify-email.use-case.js';
+import { OTP_DELIVERY, RequestOtpUseCase } from './application/request-otp.use-case.js';
+import { VerifyOtpUseCase } from './application/verify-otp.use-case.js';
 import {
   BREACHED_PASSWORD_CHECKER,
   NoBreachCheckConfigured,
@@ -46,8 +48,16 @@ import { AuthSessionPrismaRepository } from './infrastructure/auth-session.prism
 import { RedisCredentialTokenStore } from './infrastructure/redis-credential-token.store.js';
 import { RedisLockoutCounter } from './infrastructure/redis-lockout-counter.adapter.js';
 import { UserPrismaRepository } from './infrastructure/user.prisma-repository.js';
+import { OtpRedisStore } from './infrastructure/otp.redis-store.js';
+import { OtpDeliveryAdapter } from './infrastructure/otp-delivery.adapter.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 
 @Module({
+  // M-021 needs the channel registry to deliver an OTP. `notifications/` remains the only
+  // module that decides a channel (ModuleDependency.md §4.2) — `iam/` asks, through
+  // OtpDeliveryAdapter, and owns only the SMS-then-email fallback POLICY that
+  // AC-AUTH-01.5 states in authentication terms.
+  imports: [NotificationsModule],
   controllers: [AuthController],
   providers: [
     redisProvider,
@@ -71,10 +81,16 @@ import { UserPrismaRepository } from './infrastructure/user.prisma-repository.js
     { provide: CREDENTIAL_TOKEN_STORE, useExisting: RedisCredentialTokenStore },
     { provide: BREACHED_PASSWORD_CHECKER, useClass: NoBreachCheckConfigured },
 
+    OtpRedisStore,
+    OtpDeliveryAdapter,
+    { provide: OTP_DELIVERY, useExisting: OtpDeliveryAdapter },
+
     LoginWithPasswordUseCase,
     RegisterWithPasswordUseCase,
     ResetPasswordUseCase,
     VerifyEmailUseCase,
+    RequestOtpUseCase,
+    VerifyOtpUseCase,
   ],
   // Only the session repository leaves the module, and only because M-023's session-management
   // endpoints will need it. Nothing that can hash, mint a token or verify a password is

@@ -107,3 +107,56 @@ export type RegisterBody = z.infer<typeof registerBody>;
 export type LoginBody = z.infer<typeof loginBody>;
 export type ForgotPasswordBody = z.infer<typeof forgotPasswordBody>;
 export type ResetPasswordBody = z.infer<typeof resetPasswordBody>;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// M-021 · phone OTP — FR-AUTH-05, Authentication.md §8.1.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * `+91` then 6–9 then nine digits. `LAUNCH_MARKET_INDIA.md` — Phase 1 is India-only.
+ *
+ * Stricter than `indianPhone` above, which accepts any E.164. An OTP costs money to send: a
+ * `+1` or `+971` number is rejected at the pipe rather than dispatched and silently undelivered,
+ * and a `+91` followed by 1–5 is a landline or an unallocated range.
+ *
+ * A BARE TEN-DIGIT NUMBER IS REJECTED, NOT GUESSED. Prefixing `+91` for the caller looks helpful
+ * and is exactly how a foreign number becomes an Indian one — the same ten digits are a valid
+ * subscriber number in several countries.
+ */
+export const indianMobile = z
+  .string()
+  .regex(/^\+91[6-9]\d{9}$/, 'phone_not_indian_mobile')
+  .describe('Indian mobile in E.164, e.g. +919876543210');
+
+/** The five purposes. An OTP is cryptographically bound to one — Security.md §2.3.5. */
+export const otpPurpose = z.enum([
+  'REGISTER',
+  'LOGIN',
+  'PHONE_CHANGE',
+  'UNLOCK',
+  'SENSITIVE_STEP_UP',
+]);
+
+export const otpRequestBody = z
+  .object({
+    phone: indianMobile,
+    purpose: otpPurpose,
+    /** Required from the 11th per-IP operation in an hour — §8.1's validation table. */
+    captcha_token: z.string().min(1).max(4096).nullish(),
+  })
+  .strict();
+
+export const otpVerifyBody = z
+  .object({
+    phone: indianMobile,
+    purpose: otpPurpose,
+    // Exactly six digits. `.length(6)` and not `.min(6)`: a longer string whose first six digits
+    // match must not verify, and a client sending `"123456\n"` should get a 400 rather than a
+    // confusing OTP_INVALID.
+    code: z.string().regex(/^\d{6}$/, 'otp_code_malformed'),
+  })
+  .strict();
+
+export type OtpPurposeValue = z.infer<typeof otpPurpose>;
+export type OtpRequestBody = z.infer<typeof otpRequestBody>;
+export type OtpVerifyBody = z.infer<typeof otpVerifyBody>;

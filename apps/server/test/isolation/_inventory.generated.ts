@@ -53,6 +53,16 @@ export const GENERATED_INVENTORY: Inventory = {
     },
     {
       "method": "POST",
+      "path": "/v1/auth/otp/request",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/auth/otp/verify",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "POST",
       "path": "/v1/auth/password/forgot",
       "audience": "PUBLIC"
     },

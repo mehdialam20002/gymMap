@@ -24,7 +24,7 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Ip, Post } from '@nestjs/common';
 import {
   ApiAcceptedResponse,
   ApiCreatedResponse,
@@ -36,10 +36,14 @@ import {
 import {
   forgotPasswordBody,
   loginBody,
+  otpRequestBody,
+  otpVerifyBody,
   registerBody,
   resetPasswordBody,
   type ForgotPasswordBody,
   type LoginBody,
+  type OtpRequestBody,
+  type OtpVerifyBody,
   type RegisterBody,
   type ResetPasswordBody,
 } from '@gymmap/types';
@@ -48,9 +52,12 @@ import { EmitsErrors } from '../../common/decorators/emits-errors.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { RateLimit } from '../../common/decorators/rate-limit.decorator.js';
 import { zodPipe } from '../../common/validation/zod-validation.pipe.js';
+import { OTP_TTL_SECONDS } from '../domain/otp.policy.js';
 import { LoginWithPasswordUseCase } from '../application/login-with-password.use-case.js';
 import { RegisterWithPasswordUseCase } from '../application/register-with-password.use-case.js';
 import { ResetPasswordUseCase } from '../application/reset-password.use-case.js';
+import { RequestOtpUseCase } from '../application/request-otp.use-case.js';
+import { VerifyOtpUseCase } from '../application/verify-otp.use-case.js';
 
 /** `Authentication.md` §8.7 — one message for both branches, so the two are indistinguishable. */
 const FORGOT_ACKNOWLEDGEMENT =
@@ -64,6 +71,8 @@ export class AuthController {
     private readonly register: RegisterWithPasswordUseCase,
     private readonly login: LoginWithPasswordUseCase,
     private readonly reset: ResetPasswordUseCase,
+    private readonly requestOtp: RequestOtpUseCase,
+    private readonly verifyOtp: VerifyOtpUseCase,
   ) {}
 
   @Post('register')
@@ -205,5 +214,105 @@ export class AuthController {
     // The count is returned because §8.8 asks for it, and because "3 other devices were signed
     // out" is how a member notices the one they do not recognise.
     return { sessions_revoked: result.sessionsRevoked };
+  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // M-021 · phone OTP — the FR-AUTH-01 consumer default in the launch market.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @Post('otp/request')
+  @Public()
+  @RateLimit('RL-OTP')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @EmitsErrors(
+    'VALIDATION_FAILED',
+    'OTP_RESEND_LIMIT_REACHED',
+    'OTP_RESEND_TOO_SOON',
+    'CAPTCHA_REQUIRED',
+    'RATE_LIMIT_EXCEEDED',
+    'DEPENDENCY_UNAVAILABLE',
+  )
+  @ApiOperation({
+    summary: 'Sends a six-digit code to an Indian mobile number.',
+    description:
+      'ALWAYS 202 for a well-formed number, whether or not it has an account — the same status, ' +
+      'body and latency. §8.1 calls a 404 here forbidden rather than merely breaking: it would ' +
+      'be an existence oracle over every mobile number in India. Five limits apply: 6 digits, ' +
+      '300s validity, 5 verify attempts, 3 sends per 30 minutes per number with a 30s cool-down, ' +
+      'and 20 operations per hour per IP with a captcha demanded from the 11th. The per-number ' +
+      'and per-IP ceilings are INDEPENDENT — one protects the member from being SMS-bombed, the ' +
+      'other protects the platform from a ₹0.15-a-message bill (CON-02).',
+  })
+  @ApiAcceptedResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        channel: { type: 'string', enum: ['SMS', 'EMAIL'] },
+        fallback: { type: 'string', enum: ['EMAIL'], nullable: true },
+        expires_in_seconds: { type: 'integer', example: 300 },
+      },
+    },
+  })
+  async requestOtpCode(
+    @Body(zodPipe(otpRequestBody)) body: OtpRequestBody,
+    @Ip() ip: string,
+  ): Promise<{ channel: string; fallback: string | null; expires_in_seconds: number }> {
+    const result = await this.requestOtp.execute({
+      phone: body.phone,
+      purpose: body.purpose,
+      ip,
+      // Verification of the token itself arrives with the captcha provider. Presence is what
+      // §8.1's validation table gates on today, and treating an unverified token as satisfied
+      // would make the threshold decorative — recorded as the reason this is not `!== undefined`
+      // alone once a provider exists.
+      captchaSatisfied: typeof body.captcha_token === 'string' && body.captcha_token.length > 0,
+    });
+
+    // A RELATIVE expiry, not an absolute timestamp. A client with a skewed clock renders an
+    // absolute one wrongly, and the member is told a code expired that has not.
+    return {
+      channel: result.channel,
+      fallback: result.fallback,
+      expires_in_seconds: OTP_TTL_SECONDS,
+    };
+  }
+
+  @Post('otp/verify')
+  @Public()
+  @RateLimit('RL-OTP')
+  @HttpCode(HttpStatus.OK)
+  @EmitsErrors(
+    'VALIDATION_FAILED',
+    'OTP_INVALID',
+    'OTP_EXPIRED',
+    'OTP_ATTEMPTS_EXCEEDED',
+    'RATE_LIMIT_EXCEEDED',
+  )
+  @ApiOperation({
+    summary: 'Verifies a six-digit code.',
+    description:
+      'Single-use: the code is compared and consumed in ONE atomic Redis operation, so five ' +
+      'simultaneous submissions yield exactly one verification. A wrong code returns 400 with ' +
+      'attempts_remaining (AC-AUTH-01.3) and does NOT consume the challenge; the fifth wrong ' +
+      'attempt destroys it. NO SESSION IS ISSUED — an SMS is the channel most exposed to ' +
+      'interception, and session creation is M-022 (ADR-0011).',
+  })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        verified: { type: 'boolean' },
+        user_id: { type: 'string', format: 'uuid', nullable: true },
+      },
+    },
+  })
+  async verifyOtpCode(
+    @Body(zodPipe(otpVerifyBody)) body: OtpVerifyBody,
+  ): Promise<{ verified: boolean; user_id: string | null }> {
+    const result = await this.verifyOtp.execute({
+      phone: body.phone,
+      purpose: body.purpose,
+      code: body.code,
+    });
+    return { verified: true, user_id: result.userId };
   }
 }
