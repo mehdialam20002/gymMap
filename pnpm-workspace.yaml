@@ -36,3 +36,20 @@ allowBuilds:
   # package's actual installation, not telemetry and not a nag banner. The binary's integrity is
   # pinned by the lockfile.
   esbuild: true
+
+  # A-12 · Argon2id, the password hasher (`FR-AUTH-04`, `NFR-SEC-01`). M-020.
+  #
+  # `true`, and this one deserves more than a line. `argon2` is a native binding: its install
+  # script fetches the prebuilt `.node` for the host platform, or compiles it. Without that the
+  # module does not load at all — this is the package's installation, not telemetry.
+  #
+  # It is also the single most security-sensitive dependency in the tree. A compromised install
+  # script here does not leak an install ping; it sees every password on the way to being
+  # hashed. That argues for scrutiny, not for `false` — `false` does not sandbox the package,
+  # it only stops it working, and the runtime code would still be loaded either way.
+  #
+  # What actually bounds the risk: the tarball's integrity is pinned in `pnpm-lock.yaml`, the
+  # lockfile is supply-chain-verified on every install, and `argon2.hasher.adapter.spec.ts`
+  # asserts the recorded A-12 parameters on every test run — so a substituted implementation
+  # that quietly weakened them fails the build rather than shipping.
+  argon2: true

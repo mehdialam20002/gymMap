@@ -49,9 +49,11 @@
     "@nestjs/platform-express": "^10.4.22",
     "@nestjs/swagger": "^8.1.1",
     "@prisma/client": "^6.19.3",
+    "argon2": "^0.45.1",
     "nestjs-pino": "^4.6.1",
     "pino": "^9.14.0",
     "pino-http": "^10.5.0",
+    "rate-limiter-flexible": "^11.2.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "zod": "^3.25.76"

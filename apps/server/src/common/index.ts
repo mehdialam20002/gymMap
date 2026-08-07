@@ -58,8 +58,27 @@ export { appConfigSchema, type AppConfig } from './config/app-config.schema.js';
 export { CommonModule } from './common.module.js';
 
 // --- ports (§9.5 D4) ------------------------------------------------------
-export { CLOCK, type Clock } from './application/ports/clock.port.js';
-export { ID_GENERATOR, type IdGenerator } from './application/ports/id-generator.port.js';
+//
+// ┌─ FROM `clock/`, WHICH IS WHERE `CommonModule` REGISTERS THEM ──────────────────────────────┐
+// │ These two lines used to point at `./application/ports/clock.port.js` and                   │
+// │ `./application/ports/id-generator.port.js` — a SECOND pair of `Symbol('Clock')` and        │
+// │ `Symbol('IdGenerator')` values, with a differently-shaped `Clock` interface                │
+// │ (`{ now, nowMs }` rather than `{ now }`).                                                   │
+// │                                                                                             │
+// │ `common.module.ts` has always registered the `clock/` pair. So any module importing         │
+// │ `CLOCK` from this barrel would have injected a token no provider answers, and Nest would    │
+// │ fail at RUNTIME — "Nest can't resolve dependencies" — not at compile time, because the      │
+// │ symbol types are identical and the interfaces are structurally compatible for `now()`.      │
+// │                                                                                             │
+// │ It never fired because nothing had imported from the barrel yet. Every existing consumer    │
+// │ reaches into `common/clock/clock.port.js` directly. M-020 is the first milestone that       │
+// │ would plausibly have used the public surface, and it would have been the one to find it.    │
+// │                                                                                             │
+// │ `common-barrel.spec.ts` now asserts these are the SAME symbols the module registers, by     │
+// │ identity — the only assertion that can catch a duplicate `Symbol()` with the same           │
+// │ description, because every other comparison passes.                                         │
+// └─────────────────────────────────────────────────────────────────────────────────────────────┘
+export { CLOCK, ID_GENERATOR, type Clock, type IdGenerator } from './clock/clock.port.js';
 
 // --- types ----------------------------------------------------------------
 export type { CorrelationId, DependencyHealth } from './types/index.js';
