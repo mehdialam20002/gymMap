@@ -9,7 +9,8 @@
     "./tsconfig/base": "./tsconfig/base.json",
     "./tsconfig/node": "./tsconfig/node.json",
     "./tsconfig/react": "./tsconfig/react.json",
-    "./tsconfig/nest": "./tsconfig/nest.json"
+    "./tsconfig/nest": "./tsconfig/nest.json",
+    "./tailwind/preset": "./tailwind/preset.ts"
   },
   "//": "M-001 · §3.6 script contract. A no-op is the literal string, never a missing script — a missing script makes `turbo run` succeed by omission, which is indistinguishable from passing.",
   "scripts": {
@@ -26,8 +27,10 @@
     "size": "echo \"no-op\"",
     "openapi:check": "echo \"no-op\""
   },
+  "//tailwind": "DesignSystem.md §2.4 and FolderStructure.md §14 put the Tailwind preset re-export HERE, so apps import one thing. That makes config depend on ui, so ui must NOT depend on config — turbo rejects the cycle outright. packages/ui/tsconfig.json therefore extends the preset by relative path, with the reason recorded there.",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@gymmap/ui": "workspace:*",
     "@types/jest": "^30.0.0",
     "@typescript-eslint/parser": "^8.66.0",
     "eslint": "^9.39.5",

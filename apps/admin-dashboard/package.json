@@ -4,14 +4,14 @@
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
-  "//": "M-001 · §3.6 script contract. build/dev become real in the milestone that scaffolds the framework; they are no-ops now rather than absent so `turbo run` never passes by omission.",
   "scripts": {
-    "build": "echo \"no-op\"",
-    "dev": "echo \"no-op\"",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "dev": "vite --port 3003",
+    "preview": "vite preview --port 3003",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo \"no-op\"",
     "architecture": "echo \"no-op\"",
-    "test:unit": "echo \"no-op\"",
+    "test:unit": "node --test test/*.spec.ts",
     "test:int": "echo \"no-op\"",
     "test:contract": "echo \"no-op\"",
     "test:isolation": "echo \"no-op\"",
@@ -20,8 +20,24 @@
     "size": "echo \"no-op\"",
     "openapi:check": "echo \"no-op\""
   },
+  "dependencies": {
+    "@gymmap/types": "workspace:*",
+    "@gymmap/ui": "workspace:*",
+    "@tanstack/react-query": "^5.62.11",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.1"
+  },
   "devDependencies": {
     "@gymmap/config": "workspace:*",
-    "typescript": "^6.0.3"
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^6.0.3",
+    "vite": "^6.0.7"
   }
 }

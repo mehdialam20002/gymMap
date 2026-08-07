@@ -1,0 +1,105 @@
+/*
+ * The focus ring — `DesignSystem.md` §3.7. `NFR-USE-02`, `AX2`.
+ *
+ * ONE definition, no exceptions. `FR1`: `outline: none` without an equally visible replacement is
+ * a lint failure — there is no design in this product worth an invisible focus state.
+ *
+ * `FR2` — the ring is drawn OUTSIDE the control via `outline-offset`, so it never overlaps the
+ * control's own border and never reduces the painted contrast measured in §3.6. A ring drawn
+ * inside would silently invalidate every ratio in the register.
+ *
+ * `FR4` — `:focus-visible`, not `:focus`. A mouse click on a button must not paint a ring; a Tab
+ * onto it must.
+ */
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: var(--gm-focus-ring-width) solid var(--gm-color-border-focus);
+  outline-offset: var(--gm-focus-ring-offset);
+  border-radius: inherit;
+}
+
+/*
+ * `FR5` — on any `*-solid` fill the ring inverts, so it is never indigo-on-indigo. Measured at
+ * 17.06:1 against #0F172A and >= 4.5:1 against every solid in §3.5.
+ */
+[data-on-solid='true']:focus-visible {
+  outline-color: var(--gm-color-content-inverse);
+}
+
+/*
+ * §7.4 `HT1` — the painted control may shrink with density; the POINTER target may not.
+ *
+ * Compact paints a 36px control and `NFR-USE-03` still requires 44 x 44. Both are true: the
+ * pseudo-element expands the hit area vertically without changing the paint. `HT3` — where 44px
+ * targets would collide, the row gains an overflow menu instead; a target that steals its
+ * neighbour's tap is worse than a small one.
+ */
+.gm-hit-target {
+  position: relative;
+}
+
+.gm-hit-target::after {
+  content: '';
+  position: absolute;
+  inset: calc((var(--gm-size-target-min) - 100%) / -2) 0;
+  min-height: var(--gm-size-target-min);
+  min-width: var(--gm-size-target-min);
+}
+
+/*
+ * `HT2` — a coarse pointer promotes compact to comfortable wholesale. A gym owner on an iPad gets
+ * 44px painted controls even though the viewport reports `screen-lg`. Viewport width is not an
+ * input device, and treating it as one is why tablet UIs feel cramped.
+ */
+@media (pointer: coarse) {
+  [data-density='compact'] {
+    --gm-control-height: 44px;
+    --gm-input-height: 44px;
+    --gm-table-row-height: 56px;
+    --gm-icon-size: 20px;
+    --gm-badge-height: 24px;
+    --gm-avatar-default: 40px;
+  }
+}
+
+/*
+ * The skip link — `AX2`. Visually hidden until focused, then above everything at `z-skip-link`.
+ *
+ * Positioned rather than `display: none`, because a display-none element is not focusable, and a
+ * skip link that cannot be reached by Tab is decoration.
+ */
+.gm-skip-link {
+  position: absolute;
+  left: var(--gm-space-inset-md);
+  top: calc(-1 * var(--gm-size-control-xl));
+  z-index: var(--gm-z-skip-link);
+  padding: var(--gm-space-inset-sm) var(--gm-space-inset-md);
+  background-color: var(--gm-color-surface-default);
+  color: var(--gm-color-content-link);
+  border-radius: var(--gm-radius-control);
+  transition: top var(--gm-motion-duration-fast) var(--gm-motion-ease-enter);
+}
+
+.gm-skip-link:focus-visible {
+  top: var(--gm-space-inset-md);
+}
+
+/*
+ * `AX8` — the live-region announcer. A denial that is only red is a denial a screen-reader user
+ * never receives, and the check-in desk's whole obligation is that a verdict is carried by icon
+ * AND word AND colour.
+ *
+ * Not `display: none` and not `visibility: hidden`: both remove the node from the accessibility
+ * tree, which is exactly the thing that must not happen here.
+ */
+.gm-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+}

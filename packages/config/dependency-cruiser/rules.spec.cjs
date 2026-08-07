@@ -64,6 +64,39 @@ test('AC-FND-05.3 — the platform client is importable only by the four allowed
   }
 });
 
+test('not-to-dev-dep exempts build config, and nothing that ships', () => {
+  const rule = byName.get('not-to-dev-dep');
+  assert.ok(rule);
+  const exempt = new RegExp(rule.from.pathNot);
+
+  // Build configuration is executed by the build TOOL in the dev environment. `tailwind.config.ts`
+  // importing tailwindcss for its `Config` type is the tool reading its own configuration, not a
+  // runtime import — and the failure this rule prevents (a pruned production image) cannot occur
+  // for a file that never enters one.
+  for (const path of [
+    'apps/customer-web/tailwind.config.ts',
+    'apps/admin-dashboard/vite.config.ts',
+    'apps/customer-web/postcss.config.mjs',
+    'packages/ui/tailwind-preset.ts',
+    'packages/config/dependency-cruiser/rules.spec.cjs',
+  ]) {
+    assert.ok(exempt.test(path), `${path} should be exempt from not-to-dev-dep`);
+  }
+
+  // The negative half, and the one that matters: application code is NOT exempt. A rule whose
+  // exemption pattern quietly widened to cover src/ would let a devDependency into the runtime
+  // path, and it would work locally and fail at container start — a deploy-time surprise rather
+  // than a build error.
+  for (const path of [
+    'apps/server/src/main.ts',
+    'apps/customer-web/app/page.tsx',
+    'apps/admin-dashboard/src/routes/router.tsx',
+    'packages/ui/src/tokens/primitive/palette.ts',
+  ]) {
+    assert.ok(!exempt.test(path), `${path} must NOT be exempt from not-to-dev-dep`);
+  }
+});
+
 test('the raw-Prisma prohibition exists and exempts only tenancy and prisma', () => {
   const rule = byName.get('no-raw-prisma-outside-tenancy');
   assert.ok(rule, 'ADR-0005 is unenforced without this rule');

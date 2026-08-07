@@ -29,3 +29,10 @@ allowBuilds:
   # silent outbound call at install time exactly the kind of thing that should be opted into
   # rather than out of.
   "@scarf/scarf": false
+
+  # Vite's bundler (A-06 test stack, and Part 1's locked choice for both dashboards). Same
+  # category as the Prisma engines above: the postinstall resolves the platform-specific native
+  # binary that IS the package. Without it `vite build` cannot run at all — this is the
+  # package's actual installation, not telemetry and not a nag banner. The binary's integrity is
+  # pinned by the lockfile.
+  esbuild: true

@@ -4,29 +4,35 @@
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
-  "//": "Consumed as SOURCE, not as build output — Next.js transpilePackages and Vite both compile workspace TS directly. A dist/ step here would add a build edge to every front-end change for no benefit.",
+  "//": "Consumed as SOURCE, not as build output — Next.js transpilePackages and Vite both compile workspace TS directly. A dist/ step here would add a build edge to every front-end change for no benefit. That is also why the source imports carry `.ts` extensions: allowImportingTsExtensions is on in the react preset, and Node 22's type stripping resolves them for the token scripts.",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./tailwind-preset": "./tailwind-preset.ts",
+    "./tokens.css": "./src/tokens/tokens.css",
+    "./a11y.css": "./src/a11y/focus.css",
     "./*": "./src/*"
   },
   "scripts": {
     "build": "echo \"no-op\"",
+    "tokens:build": "node scripts/tokens.mjs --build",
+    "tokens:check": "node scripts/tokens.mjs --check",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo \"no-op\"",
     "architecture": "echo \"no-op\"",
-    "test:unit": "echo \"no-op\"",
+    "test:unit": "node --test test/*.spec.ts && node scripts/tokens.mjs --check",
     "test:int": "echo \"no-op\"",
     "test:contract": "echo \"no-op\"",
     "test:isolation": "echo \"no-op\"",
     "test:e2e": "echo \"no-op\"",
-    "test:a11y": "echo \"no-op\"",
+    "test:a11y": "node --test test/contrast.spec.ts",
     "size": "echo \"no-op\"",
     "openapi:check": "echo \"no-op\""
   },
   "devDependencies": {
-    "@gymmap/config": "workspace:*",
+    "@types/node": "^22.10.5",
+    "tailwindcss": "^3.4.17",
     "typescript": "^6.0.3"
   }
 }

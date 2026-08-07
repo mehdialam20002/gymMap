@@ -1,0 +1,65 @@
+/*
+ * The Tailwind entry — `DesignSystem.md` §2.4, `FolderStructure.md` §4.
+ *
+ * The token layers are imported BEFORE Tailwind's own, so `:root` custom properties are defined
+ * by the time any utility resolves `var(--gm-…)`. The reverse order works in a browser (custom
+ * properties resolve at use, not at parse) and breaks the moment a build step tries to inline
+ * them — so the order is correct rather than merely working.
+ */
+
+@import '@gymmap/ui/tokens.css';
+@import '@gymmap/ui/a11y.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /*
+   * `TS2` / root sizing. 16px root, never overridden — a user who has set a larger browser
+   * default gets it, which is the whole reason the scale is expressed in rem.
+   */
+  html {
+    font-family: var(--gm-font-sans);
+    background-color: var(--gm-color-surface-default);
+    color: var(--gm-color-content-primary);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    /* Admin runs COMPACT at screen-md and above (§7.1) — Anita reviews 30-60 applications a
+     * day and SCR-ADM-003's split review needs documents and a checklist on one screen. The
+     * attribute is set on <html> in index.html, and `pointer: coarse` promotes it back to
+     * comfortable wholesale (HT2): viewport width is not an input device. */
+    font-size: var(--gm-body-font);
+    /* BP2 — no horizontal page scroll at any width (NFR-USE-07). Wide content scrolls inside
+     * its own container instead. */
+    overflow-x: hidden;
+  }
+
+  /*
+   * `DV2` — no fixed-height single-line container anywhere. Devanagari's shirorekha plus vowel
+   * signs above and matras below occupy noticeably more vertical space than Latin at the same
+   * font size, so a 32px pill clips the top of a conjunct. Buttons, chips, table cells and nav
+   * items size from padding + line-height.
+   *
+   * Stated as a comment rather than enforced in CSS because it is a rule about what NOT to
+   * write; the lint rule that catches `h-[32px]` is `UI3`.
+   */
+
+  /* DV6 — truncation is CSS, never a JavaScript character slice. Slicing a Devanagari string
+   * mid-cluster produces a broken grapheme, and the same rule protects emoji and combining
+   * marks in a gym name today. */
+  .gm-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Photography is never dimmed, tinted or filtered in dark mode (§9.4): a gym owner comparing
+   * their own cover photo across themes must see the same photo. The one permitted change is a
+   * hairline so a white-heavy image does not appear to float on the dark canvas. */
+  :root[data-theme='dark'] img[data-photo='true'] {
+    border: 1px solid var(--gm-color-border-subtle);
+  }
+}

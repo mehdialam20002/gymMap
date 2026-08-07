@@ -4,14 +4,14 @@
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
-  "//": "M-001 · §3.6 script contract. build/dev become real in the milestone that scaffolds the framework; they are no-ops now rather than absent so `turbo run` never passes by omission.",
   "scripts": {
-    "build": "echo \"no-op\"",
-    "dev": "echo \"no-op\"",
+    "build": "next build",
+    "dev": "next dev --port 3001",
+    "start": "next start --port 3001",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo \"no-op\"",
     "architecture": "echo \"no-op\"",
-    "test:unit": "echo \"no-op\"",
+    "test:unit": "node --test test/*.spec.ts",
     "test:int": "echo \"no-op\"",
     "test:contract": "echo \"no-op\"",
     "test:isolation": "echo \"no-op\"",
@@ -20,8 +20,21 @@
     "size": "echo \"no-op\"",
     "openapi:check": "echo \"no-op\""
   },
+  "dependencies": {
+    "@gymmap/types": "workspace:*",
+    "@gymmap/ui": "workspace:*",
+    "next": "^14.2.21",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
   "devDependencies": {
     "@gymmap/config": "workspace:*",
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
     "typescript": "^6.0.3"
   }
 }

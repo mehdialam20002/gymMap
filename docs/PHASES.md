@@ -471,7 +471,7 @@ Each milestone contains: Goal · Files · Dependencies · Acceptance Criteria ·
 
 **Goal.** Build the platform, milestone by milestone, per `/docs/roadmap/`.
 **Depends on.** Phases 0–7 and G, all `DONE`, plus explicit owner approval.
-**Status.** `IN PROGRESS — Sprint 0, foundations. 14 of 120 milestones complete.`
+**Status.** `IN PROGRESS — Sprint 0 foundations, plus the three UI shells pulled ahead. 14 of 120 milestones, and the customer website and admin console shells both build and serve.`
 
 ### Pre-flight, mandatory before *any* code
 
@@ -506,7 +506,39 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-012 | `TenantScopedRepository` and `GET /v1/tenant/ping` | ✅ `DONE` | — | 50/50 isolation · A1–A4 incl. the positive control · 404 not 403 proved byte-identical |
 | M-013 | `audit_log`, the append-only writer, the `@Audited()` interceptor | ✅ `DONE` | — | 19/19 audit-grant tests · trigger refuses even a superuser · CI-10 partition trap proved |
 | M-014 | `runElevated()` — platform scope as a named, audited call | ✅ `DONE` | — | **20/20 elevation tests on real PG16** · PE-T1 positive control returns 2 tenants · 13/13 inventory tests · found 3 real defects |
+| **UI-1** | `packages/ui` — the three token tiers, both themes, the contrast proof | ✅ `DONE` | — | **85/85** · all 60 documented contrast ratios recomputed and verified · 530 CSS declarations generated |
+| **UI-2** | `apps/customer-web` — the Next.js 14 App Router shell | ✅ `DONE` | — | **23/23** · builds · served and curled · 87.4 kB first load · CSP nonce per response |
+| **UI-3** | `apps/admin-dashboard` — the React 18 + Vite shell, MFA-gated | ✅ `DONE` | — | **24/24** · builds · served and curled · 15 SCR-ADM routes declared |
 | M-015…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+
+### The UI shells were pulled ahead of the roadmap, deliberately
+
+`docs/roadmap/` puts the first `packages/ui` tokens in **M-036** and the `customer-web` shell in
+**M-048** — sprint 2 and sprint 3, roughly twenty and thirty-four milestones out. On 2026-08-07 the
+project owner directed that the shells be built first, so that something is visible while the
+backend milestones continue.
+
+This is a change to the **plan of work**, which `CLAUDE.md` §2 places below the derived
+specification and which the owner may re-order. It is **not** a change to any requirement: every
+shell is built against `docs/ui/DesignSystem.md`, `Accessibility.md` and `Security.md` §11 as
+written, and the three numbered items above cite the same acceptance criteria their original
+milestones do.
+
+What the re-ordering costs, stated rather than discovered later:
+
+| Cost | Detail |
+| :--- | :--- |
+| `packages/ui` tokens were fixed before their first component | §12's process governs a token change, so a component that needs a value the scale lacks now requires an amendment rather than an edit. Accepted: the scale is taken verbatim from a specification that already enumerated every step. |
+| M-036 and M-048 shrink | Both keep their screens (`SCR-ADM-002/003`, `SCR-WEB-002`) and lose their scaffolding. Their `PHASES.md` rows will say so when they land. |
+| Two `M-002` deferrals discharged early | Tailwind preset + design tokens (was M-036) and the front-end `build` scripts (was M-034/M-048). Playwright and `size-limit` stay deferred — there is no journey to drive and no bundle whose budget means anything against a static page. |
+
+**Three defects found while building the shells**, each fixed in the same change:
+
+| Defect | Why it mattered |
+| :--- | :--- |
+| `DesignSystem.md` §2.4 puts the Tailwind preset re-export in `packages/config`, which makes `config` depend on `ui`. `packages/ui` already depended on `config` for its tsconfig preset, and **turbo refuses the resulting `build → build` cycle outright**. | Resolved by breaking the weaker edge: `packages/ui/tsconfig.json` extends the preset by relative path. The normative file location is preserved; the convenience is not. Recorded here because a relative tsconfig path looks like an oversight. |
+| `not-to-dev-dep` rejected `tailwind.config.ts` importing `tailwindcss` for its `Config` type. | A false positive of the rule, not of the code: build configuration is executed by the build tool in the dev environment and never enters a pruned production image. The exemption now covers `*.config.*` and the preset, and `rules.spec.cjs` asserts application code is still **not** exempt. |
+| A third structural test failed on its own documentation — a scan for `<MfaGate>` matched the header describing where the gate goes, after earlier scans matched `runElevated(` and `unsafe-inline` in comments. | Fixed structurally rather than case by case: both shell specs now strip comments before any structural assertion, and the CSP is asserted against the **emitted** policy string rather than the source that produces it. |
 
 **M-014 found three defects that were not in its scope**, all of them gates that were reporting
 success without doing any work. Each is fixed in the same commit:

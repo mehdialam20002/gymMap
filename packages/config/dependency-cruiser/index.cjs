@@ -118,7 +118,15 @@ const STRUCTURAL_RULES = [
       'bundle weight (NFR-PERF-10). A warning rather than an error because a genuinely new module ' +
       'is briefly an orphan between the commit that creates it and the one that wires it in.',
     severity: 'warn',
-    from: { orphan: true, pathNot: '\\.(spec|test|d)\\.[cm]?tsx?$|^packages/config/' },
+    // Build configuration is orphaned BY DESIGN — nothing imports `vite.config.ts`; the tool
+    // loads it. Listing those files as warnings every run is how a warning list becomes one
+    // nobody reads, and the genuinely-dead module hides among them.
+    from: {
+      orphan: true,
+      pathNot:
+        '\\.(spec|test|d)\\.[cm]?tsx?$|^packages/config/|\\.config\\.[cm]?[jt]s$|' +
+        '/tailwind-preset\\.ts$|^apps/[^/]+/public/',
+    },
     to: {},
   },
   {
@@ -128,9 +136,22 @@ const STRUCTURAL_RULES = [
       'image, where devDependencies are pruned. The failure appears at container start, not in ' +
       'CI, which makes it a deploy-time surprise rather than a build error.',
     severity: 'error',
-    // The exemption must cover .cjs and .mjs, not only .ts — the custom-rule specs are CommonJS
-    // because ESLint's RuleTester is, and they legitimately import eslint itself.
-    from: { path: '^(apps|packages)', pathNot: '\\.(spec|test)\\.[cm]?[jt]sx?$' },
+    // Three exemptions, each for the same underlying reason: the file never reaches a pruned
+    // production image, so the failure this rule prevents cannot occur.
+    //
+    //   *.spec / *.test        the custom-rule specs are CommonJS because ESLint's RuleTester
+    //                          is, and they legitimately import eslint itself
+    //   *.config.[cm]?[jt]s    build configuration, executed by the build TOOL in the dev
+    //                          environment. `tailwind.config.ts` importing tailwindcss for its
+    //                          `Config` type is not a runtime import — it is the tool reading
+    //                          its own configuration, and tailwindcss is correctly a devDep
+    //   tailwind-preset.ts     the same thing under a different name: packages/ui's preset is
+    //                          build configuration that three apps compose, and calling it
+    //                          `*.config.ts` would imply it configures packages/ui itself
+    from: {
+      path: '^(apps|packages)',
+      pathNot: '\\.(spec|test)\\.[cm]?[jt]sx?$|\\.config\\.[cm]?[jt]s$|/tailwind-preset\\.ts$',
+    },
     to: {
       dependencyTypes: ['npm-dev'],
       // `@types/*` packages are ERASED at compile time — `import type { Request } from 'express'`

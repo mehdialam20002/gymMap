@@ -53,10 +53,13 @@ const REAL = {
  * schedule instead of decaying into "never".
  */
 const DEFERRED = {
+  // `build` DISCHARGED for both front-end apps by the shell milestones, which were pulled ahead
+  // of their roadmap positions at the owner's direction so something is visible early. The two
+  // shells build, serve and render; what is deferred is now only what genuinely has no subject:
+  // there is no journey to drive with Playwright and no page whose bundle is worth a budget.
   'customer-web': {
-    build: 'M-048 — the customer-web Next.js shell',
-    'test:e2e': 'M-048 — first Playwright journey needs a rendered app',
-    size: 'M-048 — no bundle exists to measure (NFR-PERF-10)',
+    'test:e2e': 'M-048 — a Playwright journey needs a rendered SEARCH result, not a shell',
+    size: 'M-048 — the 200 KB NFR-PERF-10 budget is meaningless against a static home page',
   },
   'gym-dashboard': {
     build: 'M-069 — the check-in desk is the first real dash surface',
@@ -64,9 +67,8 @@ const DEFERRED = {
     size: 'M-069',
   },
   'admin-dashboard': {
-    build: 'M-034 — SCR-ADM-003 Application Review is the first admin surface',
-    'test:e2e': 'M-034',
-    size: 'M-034',
+    'test:e2e': 'M-036 — SCR-ADM-002/003 is the first admin screen with a journey to drive',
+    size: 'M-036 — admin is behind MFA and has no NFR-PERF-10 budget; the number needs a subject',
   },
   // Both server entries are now DISCHARGED, and both were discharged the same way: the test
   // below failed the moment the script stopped being a no-op. That is what this map is for —

@@ -1,0 +1,37 @@
+<!doctype html>
+<!--
+  DesignSystem.md §7.1 — `data-density="compact"` on <html>. Admin runs compact at screen-md and
+  above; `@media (pointer: coarse)` in a11y/focus.css promotes it back to comfortable wholesale
+  (HT2), because viewport width is not an input device.
+
+  `lang="en"` — DV8. Screen-reader pronunciation and browser font-fallback selection both depend
+  on it, and a Devanagari gym name inside this page will need `lang="hi"` on that element.
+-->
+<html lang="en" data-density="compact">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      maximum-scale=5, and NOT user-scalable=no. Disabling zoom breaks WCAG 1.4.4 outright, and
+      the iOS zoom-on-focus problem it is usually reached for is already solved by TS2 keeping
+      form inputs at 16px.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <!--
+      Security.md §11.5. The admin console is never indexed: it can read across every gym on the
+      platform, and a crawled admin URL in a search result is a reconnaissance gift.
+    -->
+    <meta name="robots" content="noindex, nofollow" />
+    <title>GymMap Admin</title>
+    <!--
+      DM2 — the theme before first paint. An EXTERNAL classic script, not an inline one: §11.5
+      gives this surface `script-src 'self'` with no nonce and no unsafe-inline, so an inline
+      script here would have forced one of the two. Classic and not `type="module"`, because a
+      module script is deferred and the flash it is meant to prevent would happen anyway.
+    -->
+    <script src="/theme.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

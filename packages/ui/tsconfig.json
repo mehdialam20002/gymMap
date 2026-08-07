@@ -1,5 +1,18 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "@gymmap/config/tsconfig/react",
-  "include": ["src/**/*.ts", "src/**/*.tsx"]
+  "//extends": "A RELATIVE path, and the only one in the workspace. DesignSystem.md §2.4 puts the Tailwind preset re-export in packages/config, which makes config depend on ui. If ui also declared @gymmap/config, turbo would refuse the whole task graph: `@gymmap/ui#build -> @gymmap/config#build -> @gymmap/ui#build`. The dependency broken here is the weaker of the two — a build-time tsconfig convenience, versus a normative file location — and it costs one relative path in one file.",
+  "extends": "../config/tsconfig/react.json",
+  "//include": "`tailwind-preset.ts` and `test/` are included deliberately. The preset is real code that three apps depend on — leaving it out of the project meant a type error in it surfaced only when an app built, which is the slowest possible place to find one. It caught two on the first run.",
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "test/**/*.ts",
+    "tailwind-preset.ts",
+    "scripts/**/*.mjs"
+  ],
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "types": ["node"]
+  }
 }
