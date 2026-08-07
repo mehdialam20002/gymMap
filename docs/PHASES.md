@@ -504,7 +504,7 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-010 | The Prisma tenant-context client extension (ADR-0005) | ✅ `DONE` | — | **PX-1…PX-6 on real PG16** · 16/16 extension · 39/39 isolation · found 4 real defects |
 | M-011 | `TenantContextMiddleware`, the ALS carrier, the principal scaffold | ✅ `DONE` | — | 20/20 guard · 29/29 middleware · 5 spellings × 3 locations refused |
 | M-012 | `TenantScopedRepository` and `GET /v1/tenant/ping` | ✅ `DONE` | — | 50/50 isolation · A1–A4 incl. the positive control · 404 not 403 proved byte-identical |
-| M-013 | `audit_log`, the append-only writer, the `@Audited()` interceptor | ⬜ `NEXT` | — | ⚠️ blocked on **BLK-06** if it needs Prisma writes |
+| M-013 | `audit_log`, the append-only writer, the `@Audited()` interceptor | ⬜ `NEXT` | — | — |
 | M-007…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
 
 **M-002 deferrals**, made under the owner's *"do what is necessary, otherwise move on"* steer.
@@ -556,9 +556,26 @@ there is no defensible answer to "which milestone builds the admin dashboard she
 identity, then correct the other. Record in `DECISION_LOG.md`. Work below M-019 (the current
 front) is unaffected and continues.
 
-### 🔴 BLK-06 — Prisma cannot WRITE to a PostgreSQL domain column
+### ✅ BLK-06 — RESOLVED by ADR-0031. Scope was ONE domain, not twelve.
 
-**Status: OPEN. Blocks every write path from M-013 onward. Found by running M-012.**
+**Found by running M-012. Resolved 2026-08-07.**
+
+The first reading was alarming and wrong. The conflict is not "domains versus Prisma" but
+**`int4` domains specifically** — and exactly one domain in this schema is over `int4`. Testing
+each numeric domain in isolation is what narrowed it:
+
+| Domain | Base | Prisma write |
+| :--- | :--- | :--- |
+| `basis_points` | `integer` | **fails** |
+| `money_minor` | `bigint` | works |
+| `money_minor_nonneg` | `bigint` | works |
+| the nine text/char domains | — | work |
+
+`basis_points` is now a plain `integer` with an equivalent per-column `CHECK`. Every validation
+rule survives; the other **eleven domains are untouched**. See ADR-0031.
+
+<details><summary>The original analysis, kept for the record</summary>
+
 
 Two binding decisions do not compose:
 
@@ -593,9 +610,11 @@ CLAUDE.md §3 puts this decision with the owner.
 | **B · Keep domains; writes go through `$queryRaw`** | §2.4 exactly as written. | Every write in the system becomes hand-written SQL, which defeats the ORM and multiplies the injection surface. |
 | **C · Keep domains only on read-only columns** | Both, partially. | An inconsistent schema where the type of a column depends on whether the application writes it — the least defensible of the three. |
 
-**Interim state.** M-012 is complete and its isolation assertions are proved: A2's cross-tenant
-INSERT is exercised in raw SQL, which confirms `WITH CHECK` refuses it. Nothing has been silently
-worked around, and no domain has been dropped.
+**Interim state at the time.** M-012 was complete and its isolation assertions proved: A2's
+cross-tenant INSERT is exercised in raw SQL, which confirms `WITH CHECK` refuses it. Option A was
+chosen — see ADR-0031 for the narrowed analysis and what it actually cost.
+
+</details>
 
 ### 🟠 Coverage gaps found while scoping the two front ends
 

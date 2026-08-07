@@ -5235,9 +5235,76 @@ contractual rule to the decision that makes it true.
 | **BR-DAT-04** — erasure or irreversible pseudonymisation | ADR-0024 |
 | **BR-DAT-06** — no personal data in logs, traces or analytics events | ADR-0012 (token payload), ADR-0016 (stored responses), ADR-0017 (event payloads) |
 
+### ADR-0031 — `basis_points` becomes a plain `integer` with per-column `CHECK`
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-07 |
+| **Decided by** | Project owner, on the analysis below |
+| **Supersedes** | Nothing. Amends `Schema.md` §2.4 for one of its twelve domains |
+| **Tracked as** | `BLK-06` in `PHASES.md` — now resolved |
+
+**Context.** M-012 found that a Prisma write to a column typed with a PostgreSQL **domain over
+`integer`** fails before the statement reaches the database's row-level security policy:
+
+```text
+SQLSTATE 22P03 — incorrect binary data format in bind parameter N
+```
+
+Read on first sight, this looked like an irreconcilable conflict between two binding decisions:
+`Schema.md` §2.4 mandates twelve custom domains, and `STACK_ADDITIONS.md` A-01 locks Prisma as
+the ORM. Reads worked; every write failed.
+
+**Investigation.** Each numeric domain was tested in isolation against a real PostgreSQL 16:
+
+| Domain | Base type | Prisma write |
+| :--- | :--- | :--- |
+| `basis_points` | `integer` | **fails** |
+| `money_minor` | `bigint` | works |
+| `money_minor_nonneg` | `bigint` | works |
+| *(plain `integer`, control)* | `integer` | works |
+| the nine `text`/`char` domains | — | work — bound in the same statement, ahead of the failure |
+
+The conflict is therefore **not** "domains versus Prisma". It is `int4` domains specifically, and
+exactly one domain in this schema is over `int4`.
+
+**Options considered.**
+
+| | Keeps | Costs |
+| :--- | :--- | :--- |
+| **A · chosen** — `basis_points` becomes `integer` with an equivalent per-column `CHECK` | Every validation rule. The other eleven domains, untouched. Prisma writes work. | The named type on ~3 columns today; the `CHECK` is restated per column, which is the duplication §2.4 exists to avoid. |
+| **B** — keep the domain, write through `$queryRaw` | §2.4 verbatim | Every write in the system becomes hand-written SQL. Defeats the ORM and widens the injection surface for one column's type name. |
+| **C** — domain on read-only columns only | Both, partially | A schema where a column's type depends on whether the application writes it. Indefensible to the next reader. |
+
+**Decision.** **A.** The `CHECK (VALUE >= 0 AND VALUE <= 1000000)` that `basis_points` carried is
+reproduced on every basis-points column with the same bounds and a named constraint. No
+validation is weakened: a negative or absurd rate is still rejected by the database.
+
+The domain is `DROP`ped rather than left defined. An unused domain is dead code the next person
+will reasonably assume is safe to use, and using it would reintroduce this failure on a table
+nobody is looking at.
+
+**What is genuinely lost.** A schema browser now shows `integer` rather than `basis_points`, so
+the column no longer states why it is an integer. §2.4's own justification — *"a rule that would
+otherwise be restated on 200 columns"* — is diminished for this one rule. Accepted, because the
+alternatives are worse and the rule itself survives intact.
+
+**§10.4 R3 is unaffected.** A rate remains an integer count of basis points; `0.10` is still
+unrepresentable, which is the property R3 actually protects.
+
+**Consequences.**
+
+- Every future table with a basis-points column adds its own range `CHECK`. `migration-lint`
+  should grow a rule requiring one on any column matching `%_bps` — recorded as follow-up work.
+- If Prisma later fixes `int4` domain binding, this is reversible: recreate the domain and alter
+  the columns back. Nothing depends on the base type having changed.
+
+---
+
 ## Appendix C — Superseded and deprecated decisions
 
-None. All thirty ADRs in this log are `Accepted` and in force as of 2026-08-06.
+None. All thirty-one ADRs in this log are `Accepted` and in force as of 2026-08-07.
 
 When the first supersession occurs, the superseded ADR **remains in place** with its status changed
 to `Superseded`, its `Superseded by` field populated, and its content otherwise unaltered — matching

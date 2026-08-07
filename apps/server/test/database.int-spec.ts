@@ -183,7 +183,7 @@ it('AC-6 · R-M1 — 0_init itself still creates ZERO tables', () => {
   );
 });
 
-it('AC-6 · 81 enum types, 460 values, 12 domains', () => {
+it('AC-6 · 81 enum types, 460 values, 11 domains (ADR-0031 removed basis_points)', () => {
   assert.equal(
     one(`SELECT count(*) FROM pg_type WHERE typtype='e' AND typnamespace='public'::regnamespace`),
     '81',
@@ -191,7 +191,9 @@ it('AC-6 · 81 enum types, 460 values, 12 domains', () => {
   assert.equal(one('SELECT count(*) FROM pg_enum'), '460');
   assert.equal(
     one(`SELECT count(*) FROM pg_type WHERE typtype='d' AND typnamespace='public'::regnamespace`),
-    '12',
+    '11',
+    'ADR-0031 dropped basis_points — a domain over int4, which Prisma cannot bind. The other ' +
+      'eleven are untouched, and the range CHECK it carried now sits on each bps column.',
   );
 });
 
@@ -227,7 +229,6 @@ const DOMAIN_CASES: ReadonlyArray<[string, string, string, string]> = [
   ['country_code', 'ind', 'IN', 'ISO-3166-1 alpha-2, uppercase'],
   ['slug', '-bad-', 'south-delhi-gym', 'no leading or trailing hyphen'],
   ['money_minor_nonneg', '-1', '50000', 'a negative price is always a bug'],
-  ['basis_points', '-5', '1000', 'a negative rate is always a bug'],
   ['email_address', 'not-an-email', 'a@b.co', 'must have an @ and a dot'],
 ];
 
@@ -276,7 +277,7 @@ it('AC-3 · the application roles CAN use the domains', () => {
       `SELECT count(*) FROM information_schema.usage_privileges
        WHERE grantee='app_rw' AND object_schema='public' AND object_type='DOMAIN'`,
     ),
-    '12',
+    '11',
   );
 });
 
