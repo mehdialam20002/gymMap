@@ -28,6 +28,7 @@ import { useSession, useSessionController } from '../shared/auth/session.tsx';
 import { platformOverview } from '../shared/api/admin.ts';
 import { ImpersonationBanner } from '../shared/impersonation/banner.tsx';
 import { ThemeToggle } from '../shared/theme/theme-toggle.tsx';
+import { NavGlyph } from '../shared/icons/index.tsx';
 import { MfaGate } from './mfa-gate.tsx';
 import { NAV, PENDING_ROUTES, type NavItem } from './nav.ts';
 import { PlatformDashboardRoute } from './platform-dashboard.route.tsx';
@@ -224,14 +225,17 @@ function NavItemLink({
       className={({ isActive }) =>
         `gm-hit-target flex items-center justify-between gap-inline-xs rounded-control px-inset-sm py-inset-2xs text-sm transition-colors duration-fast ease-standard ${
           isActive
-            ? 'bg-surface-brand-subtle font-semibold text-content-brand'
+            ? 'border-l-2 border-brand bg-surface-brand-subtle font-semibold text-content-brand'
             : pending
               ? 'text-content-muted hover:bg-surface-sunken'
               : 'text-content-secondary hover:bg-surface-sunken hover:text-content'
         }`
       }
     >
-      <span className="truncate">{collapsed ? t(item.label).slice(0, 2) : t(item.label)}</span>
+      <span className="flex min-w-0 items-center gap-inline-xs">
+        <NavGlyph icon={item.icon} className="shrink-0" />
+        {!collapsed && <span className="truncate">{t(item.label)}</span>}
+      </span>
 
       {!collapsed && (
         <>

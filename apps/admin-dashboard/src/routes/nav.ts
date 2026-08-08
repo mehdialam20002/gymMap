@@ -20,9 +20,35 @@ import type { MessageKey } from '../shared/i18n/index.ts';
 
 export type NavState = 'BUILT' | 'IN_DEVELOPMENT';
 
+/**
+ * The Phosphor glyph for an item, by name.
+ *
+ * A NAME rather than a component, so `nav.ts` stays data and does not import React. The router
+ * maps the name to a per-icon import — never the barrel, which pulls in every glyph Phosphor
+ * ships and would put well over a megabyte into a bundle-budgeted app (`NFR-PERF-10`).
+ */
+export type NavIcon =
+  | 'dashboard'
+  | 'approvals'
+  | 'application'
+  | 'gyms'
+  | 'categories'
+  | 'accounts'
+  | 'devices'
+  | 'orders'
+  | 'settlements'
+  | 'refunds'
+  | 'disputes'
+  | 'reconciliation'
+  | 'moderation'
+  | 'support'
+  | 'analytics'
+  | 'audit';
+
 export interface NavItem {
   readonly path: string;
   readonly label: MessageKey;
+  readonly icon: NavIcon;
   readonly state: NavState;
   /** The `SCR-ADM-*` screen id, for the placeholder panel. */
   readonly screen?: string;
@@ -40,13 +66,14 @@ export interface NavGroup {
 export const NAV: readonly NavGroup[] = [
   {
     label: null,
-    items: [{ path: '/', label: 'adm.chrome.nav.dashboard', state: 'BUILT' }],
+    items: [{ path: '/', icon: 'dashboard', label: 'adm.chrome.nav.dashboard', state: 'BUILT' }],
   },
   {
     label: 'adm.chrome.group.gyms',
     items: [
       {
         path: '/approvals',
+        icon: 'approvals',
         label: 'adm.chrome.nav.approvals',
         // The QUEUE is real — it lists live rows from the real state machine. Acting on one
         // (approve, reject, request info) is SCR-ADM-003 below.
@@ -56,6 +83,7 @@ export const NAV: readonly NavGroup[] = [
       },
       {
         path: '/approvals/:applicationId',
+        icon: 'application',
         label: 'adm.chrome.nav.approvalDetail',
         state: 'IN_DEVELOPMENT',
         screen: 'SCR-ADM-003',
@@ -63,6 +91,7 @@ export const NAV: readonly NavGroup[] = [
       },
       {
         path: '/gyms',
+        icon: 'gyms',
         label: 'adm.chrome.nav.allGyms',
         // The register. Real: it reads the tenants table through an audited elevation.
         state: 'BUILT',
@@ -70,6 +99,7 @@ export const NAV: readonly NavGroup[] = [
       },
       {
         path: '/categories',
+        icon: 'categories',
         label: 'adm.chrome.nav.categories',
         state: 'IN_DEVELOPMENT',
         screen: 'SCR-ADM-011',
@@ -82,6 +112,7 @@ export const NAV: readonly NavGroup[] = [
     items: [
       {
         path: '/people',
+        icon: 'accounts',
         label: 'adm.chrome.nav.people',
         // Role-grant counts are real. The per-person list needs the B3.2 matrix to decide which
         // operator may see which account, so it arrives with M-023.
@@ -91,7 +122,7 @@ export const NAV: readonly NavGroup[] = [
       // No SCR-ADM id: FR-AUTH-09's own-devices screen is not one of the fifteen. It exists
       // because M-022 made it real, and inventing an id for it would corrupt the numbering the
       // route-table assertion depends on.
-      { path: '/sessions', label: 'adm.chrome.nav.sessions', state: 'BUILT' },
+      { path: '/sessions', icon: 'devices', label: 'adm.chrome.nav.sessions', state: 'BUILT' },
     ],
   },
   {
@@ -99,6 +130,7 @@ export const NAV: readonly NavGroup[] = [
     items: [
       {
         path: '/finance/orders',
+        icon: 'orders',
         label: 'adm.chrome.nav.orders',
         state: 'IN_DEVELOPMENT',
         screen: 'SCR-ADM-006',
@@ -106,6 +138,7 @@ export const NAV: readonly NavGroup[] = [
       },
       {
         path: '/finance/settlements',
+        icon: 'settlements',
         label: 'adm.chrome.nav.settlements',
         state: 'IN_DEVELOPMENT',
         screen: 'SCR-ADM-007',
@@ -113,6 +146,7 @@ export const NAV: readonly NavGroup[] = [
       },
       {
         path: '/finance/refunds',
+        icon: 'refunds',
         label: 'adm.chrome.nav.refunds',
         state: 'IN_DEVELOPMENT',
         screen: 'SCR-ADM-008',
@@ -120,6 +154,7 @@ export const NAV: readonly NavGroup[] = [
       },
       {
         path: '/finance/disputes',
+        icon: 'disputes',
         label: 'adm.chrome.nav.disputes',
         state: 'IN_DEVELOPMENT',
         screen: 'SCR-ADM-009',
@@ -127,6 +162,7 @@ export const NAV: readonly NavGroup[] = [
       },
       {
         path: '/finance/reconciliation',
+        icon: 'reconciliation',
         label: 'adm.chrome.nav.reconciliation',
         state: 'IN_DEVELOPMENT',
         screen: 'SCR-ADM-010',
@@ -139,6 +175,7 @@ export const NAV: readonly NavGroup[] = [
     items: [
       {
         path: '/moderation',
+        icon: 'moderation',
         label: 'adm.chrome.nav.moderation',
         state: 'IN_DEVELOPMENT',
         screen: 'SCR-ADM-012',
@@ -146,6 +183,7 @@ export const NAV: readonly NavGroup[] = [
       },
       {
         path: '/support',
+        icon: 'support',
         label: 'adm.chrome.nav.support',
         state: 'IN_DEVELOPMENT',
         screen: 'SCR-ADM-013',
@@ -153,6 +191,7 @@ export const NAV: readonly NavGroup[] = [
       },
       {
         path: '/analytics',
+        icon: 'analytics',
         label: 'adm.chrome.nav.analytics',
         state: 'IN_DEVELOPMENT',
         screen: 'SCR-ADM-014',
@@ -160,6 +199,7 @@ export const NAV: readonly NavGroup[] = [
       },
       {
         path: '/audit',
+        icon: 'audit',
         label: 'adm.chrome.nav.audit',
         state: 'IN_DEVELOPMENT',
         screen: 'SCR-ADM-015',

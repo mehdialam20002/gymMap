@@ -45,6 +45,7 @@ import {
   formatMinor,
 } from '../shared/api/demo-figures.ts';
 import { AreaChart, Donut, Legend, MultiLine } from '../shared/viz/charts.tsx';
+import { SeverityGlyph, TileGlyph, type TileIcon } from '../shared/icons/index.tsx';
 import { PENDING_ROUTES } from './nav.ts';
 import { GYM_STATUS_LABEL, STATUS_BAR_CLASS, StatusPill } from './status-pill.tsx';
 
@@ -120,24 +121,28 @@ export function PlatformDashboardRoute() {
           label={t('adm.dashboard.tile.awaiting')}
           value={gyms?.awaitingReview}
           tone={gyms !== undefined && gyms.awaitingReview > 0 ? 'warning' : 'brand'}
+          icon="approvals"
           to="/approvals"
         />
         <LiveTile
           label={t('adm.dashboard.tile.listed')}
           value={gyms?.listed}
           tone="success"
+          icon="gyms"
           to="/gyms"
         />
         <LiveTile
           label={t('adm.dashboard.tile.accounts')}
           value={people?.count}
           tone="info"
+          icon="accounts"
           to="/people"
         />
         <LiveTile
           label={t('adm.dashboard.tile.sessions')}
           value={people?.activeSessions}
           tone="brand"
+          icon="devices"
           to="/sessions"
         />
       </div>
@@ -347,12 +352,10 @@ export function PlatformDashboardRoute() {
               {SYSTEM_ALERTS.map((alert) => (
                 <li key={alert.key} className="flex gap-inline-xs">
                   {/* Icon AND colour AND the severity word in the label — never colour alone. */}
-                  <span
-                    aria-hidden="true"
-                    className={`shrink-0 text-sm ${SEVERITY_INK[alert.severity]}`}
-                  >
-                    {SEVERITY_GLYPH[alert.severity]}
-                  </span>
+                  <SeverityGlyph
+                    severity={alert.severity}
+                    className={`mt-[0.125rem] shrink-0 ${SEVERITY_INK[alert.severity]}`}
+                  />
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-content">{t(alert.key as MessageKey)}</p>
                     <p className="text-xs text-content-muted">{t(alert.detailKey as MessageKey)}</p>
@@ -404,12 +407,15 @@ const SEVERITY_INK = {
   good: 'text-content-success',
 } as const;
 
-const SEVERITY_GLYPH = {
-  critical: '▲',
-  serious: '▲',
-  info: 'ⓘ',
-  good: '✓',
-} as const;
+/** Which glyph each sample headline wears. Keyed by message key, so the fixture stays data. */
+const SAMPLE_ICON: Record<string, TileIcon> = {
+  'adm.sample.totalRevenue': 'revenue',
+  'adm.sample.todayRevenue': 'revenue',
+  'adm.sample.commission': 'commission',
+  'adm.sample.activeMemberships': 'memberships',
+  'adm.sample.supportTickets': 'support',
+  'adm.sample.refundRequests': 'refunds',
+};
 
 const TONE_ACCENT = {
   brand: 'bg-surface-brand-subtle text-content-brand',
@@ -442,7 +448,9 @@ function Panel({
   className?: string;
 }) {
   return (
-    <section className={`rounded-card border border-subtle bg-surface p-inset-md ${className}`}>
+    <section
+      className={`rounded-card border border-subtle bg-surface p-inset-md shadow-xs dark:shadow-none ${className}`}
+    >
       <div className="flex items-center justify-between gap-inline-sm">
         <h2 className="text-sm font-semibold text-content">{title}</h2>
         {/* Repeated per panel, not only in the banner. A reader who scrolled past the banner,
@@ -470,25 +478,31 @@ function LiveTile({
   label,
   value,
   tone,
+  icon,
   to,
 }: {
   label: string;
   value: number | undefined;
   tone: keyof typeof TONE_ACCENT;
+  icon: TileIcon;
   to: string;
 }) {
   return (
     <Link
       to={to}
-      className="gm-hit-target block rounded-card border border-subtle bg-surface p-inset-md transition-colors duration-fast ease-standard hover:border-strong"
+      className="gm-hit-target block rounded-card border border-subtle bg-surface p-inset-md shadow-xs transition-colors duration-fast ease-standard hover:border-strong dark:shadow-none"
     >
       <div className="flex items-start justify-between gap-inline-sm">
-        <p className="text-xs font-medium uppercase tracking-wide text-content-muted">{label}</p>
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wide text-content-muted">{label}</p>
+          <p className="mt-stack-2xs text-xs font-semibold text-content-success">
+            {t('adm.dashboard.live')}
+          </p>
+        </div>
         <span
-          aria-hidden="true"
-          className={`shrink-0 rounded-control px-inset-2xs text-xs font-semibold ${TONE_ACCENT[tone]}`}
+          className={`grid h-[2.25rem] w-[2.25rem] shrink-0 place-items-center rounded-control ${TONE_ACCENT[tone]}`}
         >
-          {t('adm.dashboard.live')}
+          <TileGlyph icon={icon} />
         </span>
       </div>
       {/* `undefined` renders the loading word, never a `0`. */}
@@ -511,9 +525,10 @@ function SampleTile({ figure }: { figure: (typeof HEADLINES)[number] }) {
           {t(figure.key as MessageKey)}
         </p>
         <span
-          aria-hidden="true"
-          className={`h-[1.75rem] w-[1.75rem] shrink-0 rounded-control ${TONE_ACCENT[figure.tone]}`}
-        />
+          className={`grid h-[2.25rem] w-[2.25rem] shrink-0 place-items-center rounded-control ${TONE_ACCENT[figure.tone]}`}
+        >
+          <TileGlyph icon={SAMPLE_ICON[figure.key] ?? 'revenue'} />
+        </span>
       </div>
 
       <p className="mt-stack-2xs text-2xl font-semibold tabular-nums text-content">

@@ -106,6 +106,9 @@ const APPROVED_PREFIXES = [
   // A-29 size-limit
   'size-limit',
   '@size-limit/',
+  // A-40 icon set. Per-icon imports only — the barrel pulls in every glyph, and a 1.2 MB
+  // import in a bundle-budgeted app is how `NFR-PERF-10` is missed by one line nobody reads.
+  '@phosphor-icons/react',
   // A-30 Bull Board
   '@bull-board/',
   'bullmq',

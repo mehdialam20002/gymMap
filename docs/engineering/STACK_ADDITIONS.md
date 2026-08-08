@@ -102,6 +102,15 @@ Status values: `PROPOSED` · `APPROVED` · `REJECTED` · `DEFERRED`
 | **A-28** | Local dev environment | **Docker Compose** (Postgres+PostGIS, Redis, MinIO, Mailpit) | §C7 *Local* environment row | `APPROVED` |
 | **A-29** | Bundle-size budget gate | **`size-limit`** | `NFR-PERF-10` (≤200 KB gzipped) | `APPROVED` |
 | **A-30** | Queue observability | **Bull Board** (admin-only, behind RBAC) | `FR-ADMN-13` system health view | `APPROVED` |
+| **A-40** | Icon set | **`@phosphor-icons/react`** (tree-shaken, per-icon imports) | `DesignSystem.md` §8 iconography; `SCR-ADM-001`…`015` and the dashboards need a consistent icon vocabulary. Hand-rolled SVG paths were the alternative and are a review liability: inconsistent optical sizing, no shared stroke weight, and every new glyph a fresh accessibility decision | `APPROVED` |
+
+> **A-40 skipped the `A-31`…`A-39` block deliberately, and that is not tidiness.**
+> Those numbers are contested. `CI_CD.md` §13 claims `A-31`…`A-39` as a range; `A-32` is claimed
+> separately by `Security.md` §0.4 (breach corpus), `CI_CD.md` (artefact signing) and
+> `Monitoring.md` §11.2 (log store); `A-33` is claimed by `CI_CD.md` (SBOM), `Monitoring.md`
+> (paging) and `Security.md` §2.8 (TOTP). That collision is **`BLK-09`**, it is open, and it is
+> the project owner's to resolve — taking another number inside the contested block would have
+> made it worse while looking like progress. `A-40` is unreferenced anywhere in `docs/`.
 
 ---
 
@@ -182,6 +191,7 @@ mention it because it is the kind of detail that is cheap now and expensive in m
 | 2026-08-06 | Project owner | **A-01 Prisma — APPROVED**, conditional on the mandatory tenant-context client extension in Part 4 | A-01, A-07 |
 | 2026-08-06 | Project owner | **A-08 — polling APPROVED for Phase 1; Socket.IO DEFERRED to Phase 2** behind `release.attendance.realtime_transport` | A-08 |
 | 2026-08-06 | Project owner | **Remaining 28 additions APPROVED as a block** — conventional tooling, no PRD conflict | A-02…A-07, A-09…A-30 |
+| 2026-08-08 | Project owner | **Icon set APPROVED** — asked for during the admin console work: *"jo chahiye install kar lo"*. Recorded as a row because approval without a row is still a review blocker (§Standing rule) | A-40 |
 
 ### Current status roll-up
 
