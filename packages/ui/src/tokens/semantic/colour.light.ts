@@ -133,28 +133,29 @@ export const light = {
 
   // --- border: separation and control edges ---------------------------------
   /**
-   * ┌─ RE-MEASURED. THE FIRST ANSWER HERE WAS ASSERTED, NOT MEASURED, AND IT WAS WRONG ──────────┐
-   * │ When the surfaces were lightened this dropped from `neutral-300` to `neutral-200`, on the    │
-   * │ reasoning that "a 300 outline around a white card on a 50 canvas draws more attention than   │
-   * │ the card does". That was written without computing anything, and the numbers say otherwise:  │
+   * ┌─ A WHISPER, BECAUSE THE SHADOW SEPARATES THE CARD NOW ─────────────────────────────────────┐
+   * │ This value was argued over three times and the last two were both wrong, in opposite         │
+   * │ directions. Measured against a white card on a `neutral-50` canvas:                          │
    * │                                                                                            │
-   * │     slate-200   1.23:1 on a white card · 1.18:1 on the canvas   ← effectively invisible      │
-   * │     slate-300   1.48:1 on a white card · 1.42:1 on the canvas   ← a faint seam                │
-   * │     slate-400   2.56:1 on a white card · 2.45:1 on the canvas   ← a definite line              │
+   * │     slate-200   1.23:1   a hint                                                              │
+   * │     slate-300   1.48:1   a visible line — and it reads as a FRAME around every panel          │
+   * │     slate-400   2.56:1   an outline                                                          │
    * │                                                                                            │
-   * │ At 1.23 the card edge was carried entirely by `shadow-sm`, so every panel looked like it was │
-   * │ floating with no boundary — and in dark mode, where the shadow is suppressed, by nothing at   │
-   * │ all. 1.48 is a seam rather than a frame, which is what a card wants.                          │
+   * │ There is no step that both separates a card and stays quiet, because a border cannot do      │
+   * │ that: it is a uniform line on all four sides, which is what "framed" means. Nudging the step │
+   * │ a third time would have produced a third wrong answer.                                       │
    * │                                                                                            │
-   * │ None of these clears the 3:1 non-text floor and none needs to: `AX4` governs boundaries that │
-   * │ CARRY meaning, and a card edge does not — the fill does. This is legibility, and the honest  │
-   * │ way to settle it was to measure it rather than to argue about it twice.                       │
+   * │ `shadow.sm` now carries the separation as depth — see the note there — so this is back to    │
+   * │ 200 and its job is only to stop the card's fill bleeding into the canvas where the shadow    │
+   * │ falls away. In DARK mode the shadow is suppressed and the card lifts by `surface-raised`     │
+   * │ instead, so the border is not load-bearing in either theme.                                  │
    * └────────────────────────────────────────────────────────────────────────────────────────────┘
    */
-  'color-border-subtle': p.neutral[300],
-  'color-border-default': p.neutral[400],
-  /** Hover, and any edge that has to be found rather than merely seen. 3.94:1 on white. */
-  'color-border-strong': p.neutral[500],
+  'color-border-subtle': p.neutral[200],
+  /** A divider that has to be seen: a table row rule, a section split. */
+  'color-border-default': p.neutral[300],
+  /** Hover, and any edge that has to be FOUND rather than merely seen. */
+  'color-border-strong': p.neutral[400],
 
   'color-border-input': p.neutral[500],
   'color-border-input-hover': p.neutral[600],

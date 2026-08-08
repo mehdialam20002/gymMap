@@ -214,7 +214,25 @@ export const measure = {
 export const shadow = {
   none: 'none',
   xs: '0 1px 2px 0 rgb(2 6 23 / 0.05)',
-  sm: '0 1px 3px 0 rgb(2 6 23 / 0.10), 0 1px 2px -1px rgb(2 6 23 / 0.10)',
+  /**
+   * The card lift. TWO layers, and the wide one is the point.
+   *
+   * +- A CARD SHOULD BE SEPARATED BY DEPTH, NOT BY AN OUTLINE ----------------------------------+
+   * | This was Tailwind's default `shadow-sm` - one tight 3px blur - which on a near-white canvas |
+   * | is almost nothing, so the border had to do the separating. A border that is strong enough   |
+   * | to separate is also strong enough to read as a FRAME, and a screen of framed boxes looks    |
+   * | drawn rather than laid out. Two attempts at nudging the border step proved that: 200 was    |
+   * | invisible, 300 was an outline. There is no step that is both.                              |
+   * |                                                                                          |
+   * | So the mechanism changed rather than the value. A 1px contact shadow at 4% plus a soft      |
+   * | 10px ambient one at 7% reads as the card sitting ABOVE the page, which is what a card is,   |
+   * | and it frees the border to be a 1.23:1 whisper.                                            |
+   * |                                                                                          |
+   * | Suppressed in dark (§9.4), where the card lifts by `surface-raised` instead - lightness is  |
+   * | the only elevation a dark surface has.                                                     |
+   * +-------------------------------------------------------------------------------------------+
+   */
+  sm: '0 1px 2px 0 rgb(2 6 23 / 0.04), 0 4px 10px -3px rgb(2 6 23 / 0.07)',
   md: '0 4px 6px -1px rgb(2 6 23 / 0.10), 0 2px 4px -2px rgb(2 6 23 / 0.10)',
   lg: '0 10px 15px -3px rgb(2 6 23 / 0.10), 0 4px 6px -4px rgb(2 6 23 / 0.10)',
   xl: '0 20px 25px -5px rgb(2 6 23 / 0.12), 0 8px 10px -6px rgb(2 6 23 / 0.10)',
