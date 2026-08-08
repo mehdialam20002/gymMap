@@ -228,6 +228,49 @@ export const preset = {
   theme: {
     // REPLACED, not extended. See the header.
     colors,
+
+    /**
+     * `borderColor` DECLARED EXPLICITLY, and this is not tidiness — it was a silent bug.
+     *
+     * ┌─ EVERY `border-subtle` IN THE REPOSITORY WAS EMITTING NOTHING ────────────────────────────┐
+     * │ The border roles live at `colors.border.*`, and Tailwind derives `borderColor` from        │
+     * │ `colors` — so the generated class is `border-border-subtle`, not `border-subtle`. Nothing  │
+     * │ used that name. `.border-subtle` did not exist in the compiled stylesheet at all: measured │
+     * │ with `grep -c '\.border-subtle{'` on the built CSS, which returned 0 while `.bg-surface`   │
+     * │ returned 1.                                                                                │
+     * │                                                                                          │
+     * │ So `class="border border-subtle"` set a border WIDTH with no colour, and CSS falls back to │
+     * │ `currentColor` — the element's TEXT colour. Every card, panel and table rule in the console │
+     * │ was outlined in near-black ink in light mode. It looked like a deliberate hard outline,     │
+     * │ which is why it survived review: nothing about it looked broken, it just looked bad.        │
+     * │                                                                                          │
+     * │ Three rounds of adjusting `color-border-subtle` had no effect for exactly this reason, and  │
+     * │ the only thing that found it was reading the RENDERED value out of the browser instead of   │
+     * │ reasoning about the token.                                                                 │
+     * │                                                                                          │
+     * │ Spreading `colors` first keeps `border-transparent` and `border-current` working; the       │
+     * │ explicit keys then put the border ROLES at the top level where the class names expect them. │
+     * └──────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    borderColor: {
+      ...colors,
+      DEFAULT: v('color-border-default'),
+      subtle: v('color-border-subtle'),
+      strong: v('color-border-strong'),
+      input: v('color-border-input'),
+      'input-hover': v('color-border-input-hover'),
+      focus: v('color-border-focus'),
+      brand: v('color-border-brand'),
+      success: v('color-border-success'),
+      warning: v('color-border-warning'),
+      danger: v('color-border-danger'),
+      info: v('color-border-info'),
+      'brand-subtle': v('color-border-brand-subtle'),
+      'success-subtle': v('color-border-success-subtle'),
+      'warning-subtle': v('color-border-warning-subtle'),
+      'danger-subtle': v('color-border-danger-subtle'),
+      'info-subtle': v('color-border-info-subtle'),
+    },
     spacing,
     screens,
     fontSize: themeFontSize,

@@ -456,7 +456,10 @@ function NavItemLink({
               // `content-tertiary` (7.58:1) rather than muted (4.76:1). Muted passes the floor and
               // still fails the badge: this is 12px inside a 1px pill, and the floor is a minimum
               // for BODY text, not a target for the smallest text on the screen.
-              className="shrink-0 rounded-control border border-subtle px-inset-2xs text-xs font-medium text-content-tertiary"
+              // A FILL rather than an outline. Once `border-subtle` started resolving, a 1.23:1 line
+              // around an 11px chip read as nothing at all and the badge became bare text. The
+              // reference gives it a tinted pill, which is also what makes it scan as a chip.
+              className="shrink-0 rounded-full bg-surface-subtle px-inset-sm py-[0.0625rem] text-xs font-medium text-content-tertiary"
             >
               {t('adm.chrome.inDevelopmentShort')}
             </span>

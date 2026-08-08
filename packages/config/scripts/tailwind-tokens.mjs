@@ -163,6 +163,41 @@ export function fontWeightScale(repoRoot = process.cwd()) {
   return keys;
 }
 
+/**
+ * Reads the `borderColor` keys straight out of the preset.
+ *
+ * +- THE THIRD FAMILY OF SILENTLY-DEAD UTILITY, AND THE WORST ONE ------------------------------+
+ * | `border-subtle` did not exist as a class for the whole life of this console. The border roles |
+ * | live at `colors.border.*`, so Tailwind generated `border-border-subtle`; nothing used that     |
+ * | name, and `.border-subtle` was absent from the compiled stylesheet entirely.                  |
+ * |                                                                                          |
+ * | A missing spacing utility collapses a gap. A missing font weight inherits its parent's. A      |
+ * | missing BORDER COLOUR falls back to `currentColor` - the element's TEXT colour - so every      |
+ * | card and panel was outlined in near-black ink in light mode. It looked like a deliberate hard  |
+ * | outline, which is exactly why it survived: nothing about it looked broken, it just looked bad, |
+ * | and three rounds of adjusting the token had no effect because the token was never being read.  |
+ * +-------------------------------------------------------------------------------------------+
+ */
+export function borderColorScale(repoRoot = process.cwd()) {
+  const preset = resolve(repoRoot, 'packages/ui/tailwind-preset.ts');
+  const source = readFileSync(preset, 'utf8');
+  const block = /borderColor: \{([\s\S]*?)\n {4}\},/.exec(source);
+  if (block === null) {
+    throw new Error(
+      'could not find `borderColor: { … }` in the preset. Without it `border-subtle` silently ' +
+        'falls back to currentColor — see the note above. Update the pattern here in the same ' +
+        'change that reshapes the preset.',
+    );
+  }
+
+  const keys = new Set(['transparent', 'current', 'inherit']);
+  for (const match of block[1].matchAll(/^\s*'?([a-zA-Z0-9-]+)'?:/gm)) keys.add(match[1]);
+  // The spread of `colors` brings every role group in as a PREFIX — `border-surface-sunken`,
+  // `border-content-muted`. Those are legitimate and cannot be enumerated from this block, so the
+  // check below skips anything whose first segment names a role group.
+  return keys;
+}
+
 /** Strips block and line comments so the gate never fires on prose that discusses a class. */
 function withoutComments(text) {
   return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -231,6 +266,9 @@ function sourceFiles(dir, out = []) {
 export function checkTailwindTokens(repoRoot = process.cwd()) {
   const scale = spacingScale(repoRoot);
   const weights = fontWeightScale(repoRoot);
+  const borders = borderColorScale(repoRoot);
+  /** Role groups the preset spreads in from `colors`; `border-surface-sunken` is legitimate. */
+  const ROLE_PREFIXES = new Set(['surface', 'content', 'border', 'viz', 'brand', 'success', 'warning', 'danger', 'info']);
   const problems = [];
 
     /**
@@ -247,6 +285,9 @@ export function checkTailwindTokens(repoRoot = process.cwd()) {
    * | then proved to bite by temporarily introducing `font-extrabold` and watching it fail.       |
    * +-------------------------------------------------------------------------------------------+
    */
+  const borderPatternFor = () =>
+    /\b(?:(?:sm|md|lg|xl|2xl|hover|focus|active|disabled|dark|group-hover):)*border-([a-z0-9-]+)\b/g;
+
   const weightPatternFor = () =>
     /\b(?:(?:sm|md|lg|xl|2xl|hover|focus|active|disabled|dark|group-hover):)*font-([a-z]+)\b/g;
 
@@ -303,6 +344,31 @@ export function checkTailwindTokens(repoRoot = process.cwd()) {
           });
         }
 
+        for (const [, border] of region.matchAll(borderPatternFor())) {
+          if (borders.has(border)) continue;
+          // `border-2`, `border-t`, `border-x` and friends are WIDTH and SIDE utilities that share
+          // the prefix. And a compound like `border-surface-sunken` is a role-group colour.
+          // WIDTH and SIDE utilities share the `border-` prefix: `border-2`, `border-t`,
+          // `border-b-2`, `border-x-0`, plus the border-STYLE keywords. `border-b-2` was the false
+          // positive that proved this list needed the combined side-and-width form.
+          if (
+            /^(?:\d+|[trblxy](?:-\d+)?|solid|dashed|dotted|none|hidden|double|collapse|separate)$/.test(
+              border,
+            )
+          )
+            continue;
+          if (ROLE_PREFIXES.has(border.split('-')[0] ?? '')) continue;
+          problems.push({
+            file: relative(repoRoot, file).split('\\').join('/'),
+            class: `border-${border}`,
+            message:
+              `\`border-${border}\` is not in the borderColor scale, so Tailwind emits NOTHING and ` +
+              "the border falls back to `currentColor` — the element's TEXT colour, which on a card " +
+              'is near-black ink and looks like a deliberate outline. Available: ' +
+              `${[...borders].filter((k) => !ROLE_PREFIXES.has(k)).join(', ')}.`,
+          });
+        }
+
         for (const [, weight] of region.matchAll(weightPatternFor())) {
           // `font-mono`, `font-sans` and `font-serif` are FAMILIES and share the prefix.
           if (weight === 'mono' || weight === 'sans' || weight === 'serif') continue;
@@ -331,7 +397,7 @@ if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.a
   const problems = checkTailwindTokens();
 
   if (problems.length === 0) {
-    process.stdout.write('tailwind-tokens: OK — every spacing and font-weight utility resolves.\n');
+    process.stdout.write('tailwind-tokens: OK — every spacing, font-weight and border-colour utility resolves.\n');
   } else {
     process.stdout.write(`tailwind-tokens: ${problems.length} dead utility class(es)\n`);
     for (const problem of problems) {
