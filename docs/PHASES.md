@@ -516,7 +516,45 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-019 | Identity and RBAC tables — `users` … `role_permissions` | ✅ `DONE` | — | **69 integration on real PG16** + 19 matrix · all **504** §B3.2 cells re-parsed from the PRD and compared · `app_rw` proved unable to write `role_permissions` · found **2 real defects in the schema spec** |
 | M-020 | Argon2id credentials, password policy, lockout, the four `/v1/auth/*` routes | ✅ `DONE` | — | **21 endpoint tests over real HTTP** incl. the enumeration assertion measured against real Argon2id · 18 hasher · 19 policy · 18 Redis · found **6 real defects, 5 pre-existing** · raised `BLK-09` |
 | M-021 | Phone OTP — the `FR-AUTH-05` limits, two independent ceilings | ✅ `DONE` | — | **18 endpoint over real HTTP** + 18 Redis + 19 policy · every limit asserted from both sides · "no SMS is sent" asserted by COUNTING deliveries · found 1 real off-by-one |
-| M-022…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+| M-022 | `auth_sessions`, `refresh_tokens`, JWT issue and rotation with reuse detection | ✅ `DONE` | — | **11 revocation over real HTTP** (AC-6, AC-10) · **6 reuse/family** (E1.2) · **5 parallel-tab under genuine concurrency** (TR-28, up to 5-way) · **15 grant** incl. a write-once trigger the column GRANT could not express · 12 rotation-policy unit · 9 contract · found **3 real defects** |
+| M-023…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+
+**M-022's trap is the FALSE POSITIVE, and the roadmap says so before the code exists.**
+
+A mobile browser restoring two tabs fires two refreshes within milliseconds carrying the same
+generation. A naive detector reads the second as a replay, revokes the family, signs the member out
+of every device they own, and files a security event that did not happen. `docs/runbooks/iam.md`
+names this one of the module's top three failure modes because the damage is silent: members are
+logged out at random, support cannot reproduce it, and the alert that would catch a real theft
+drowns. `TR-28` permits a grace window **or** a rotation lock; the grace was chosen.
+
+| | A distributed rotation lock | The 10-second grace (chosen) |
+| :--- | :--- | :--- |
+| Mechanism | serialise every refresh on a family through one mutex | compare `used_at` against a timestamp already on the row |
+| Cost | a lock on the hottest authenticated path in the system | a stolen token stays worth something for ten seconds |
+| Failure mode | a lock left holding after a crash signs the member out for its whole TTL | an attacker must replay **inside** ten seconds of a legitimate rotation |
+
+The second failure mode is the smaller one. An attacker who can replay within ten seconds of the
+real rotation was already watching in real time, and a real-time attacker holds the live token
+anyway. `AC-5` demands the proof be **genuinely concurrent**, so `refresh-parallel-tabs.int-spec.ts`
+fires with `Promise.all` and no clock manipulation at all — two tabs, then five.
+
+**Three real defects, and the first one only a grant test could have found.**
+
+| Defect | Why it mattered | Fix |
+| :--- | :--- | :--- |
+| `GRANT UPDATE (used_at, superseded_by_id)` permits `used_at = NULL` | The table comment already claimed *"append-only with ONE completion transition"*, and the grant was written to enforce it. A column-scoped GRANT restricts **which** column, never how many times or in which direction — so `app_rw` could un-spend a generation and silence reuse detection for the theft it was committing. | Migration `20260808100000_expand_add_refresh_token_write_once`: a `BEFORE UPDATE` trigger, because write-once is a statement about the **transition** and a CHECK cannot see `OLD` |
+| The M-020 cleanup hook was failing silently | Every identity FK is `ON DELETE RESTRICT`. The moment login started minting a refresh token, the two-statement cleanup hit the FK instead of cleaning, and left accounts, sessions and tokens behind. The symptom surfaced in a different file — `users-constraints` counted 39 users against a seed of 11 and blamed its own probes. | Children first, and the cleanup now runs on **entry** as well as exit, so an interrupted run cannot fail the next one |
+| `@ApiOkResponse` on login still described the pre-session body | Three front-ends and the generated client are built from `openapi.json`, not from the controller. The route returned a token the contract did not mention, so no typed client could read it. | `auth-sessions.contract-spec.ts` asserts the document, and asserts the refresh token is **absent** from every session-route body (`SE1`, `TK7`) |
+
+**`AC-10` is the criterion that separates revocation from wishful thinking.** An access token is a
+signed assertion with a fifteen-minute life, and revoking a session changes none of its bytes.
+Without a denylist, *"revoked"* means *"the next refresh fails"* — and a thief whose family was just
+detected and revoked stays authenticated for the rest of the quarter hour, after detection, after
+the member pressed the button the product gave them. The Redis denylist is keyed on `family_id` with
+a TTL equal to the access-token lifetime, so it holds only families revoked inside the current token
+window. It is asserted **through the guard over HTTP**, never by reading the key back: a denylist
+nobody consults is precisely the defect worth catching.
 
 **M-021's two ceilings are independent, and implementing one is the documented trap.**
 

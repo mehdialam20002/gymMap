@@ -53,6 +53,14 @@ export interface AccessTokenClaims {
   readonly roles: readonly string[];
   /** `ACCESS`. A refresh token presented here is rejected — see the note on `typ` below. */
   readonly typ: string;
+  /**
+   * M-022 · The token FAMILY, for the `AC-10` revocation denylist.
+   *
+   * Optional because tokens minted before M-022 — and the M-011 test harness — carry none. A
+   * token without it simply cannot be revoked early, which is the pre-M-022 behaviour rather
+   * than a new hole.
+   */
+  readonly fam?: string;
   readonly iss: string;
   readonly aud: string;
   readonly exp: number;

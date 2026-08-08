@@ -53,6 +53,11 @@ export const GENERATED_INVENTORY: Inventory = {
     },
     {
       "method": "POST",
+      "path": "/v1/auth/logout",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "POST",
       "path": "/v1/auth/otp/request",
       "audience": "PUBLIC"
     },
@@ -73,7 +78,22 @@ export const GENERATED_INVENTORY: Inventory = {
     },
     {
       "method": "POST",
+      "path": "/v1/auth/refresh",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "POST",
       "path": "/v1/auth/register",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/auth/sessions",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/auth/sessions/{sessionId}",
       "audience": "PUBLIC"
     }
   ]

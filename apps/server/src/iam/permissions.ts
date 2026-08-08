@@ -1000,3 +1000,32 @@ export function describePermission(key: string): string {
   const half = capability.readKey === key ? 'Read' : 'Write';
   return `§B3.2 “${capability.capability}” (${half}). ${capability.description}`;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// M-022 · session-management keys, which are NOT in the §B3.2 matrix.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * `iam/`'s own endpoint permissions — `FR-RBAC-01`, `PG-3`.
+ *
+ * ┌─ WHY THESE ARE NOT IN `CAPABILITY_MATRIX` ──────────────────────────────────────────────────┐
+ * │ §B3.2's forty-two capabilities describe what a ROLE may do to the platform. Reading and     │
+ * │ revoking your own sessions is not one of those: every authenticated principal has it,       │
+ * │ including a `USER` with no memberships, because it is the mechanism by which a member       │
+ * │ secures their own account. Adding rows to the matrix for them would put twelve `●` cells    │
+ * │ into a grid that is verified against the PRD, and the verification would fail — correctly.  │
+ * │                                                                                              │
+ * │ They exist as KEYS anyway because `FR-RBAC-01` requires every endpoint to declare one and   │
+ * │ `PG-1` fails a route that does not. What actually scopes them is the `/me` audience: `AZ4`  │
+ * │ says a `/me` route acts on the caller's own rows, and the repository enforces that in its   │
+ * │ `WHERE` clause rather than trusting the permission to have done it.                          │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export const IAM_PERMISSIONS = {
+  /** `FR-AUTH-09`. Read your own device sessions. */
+  OWN_SESSION_READ: 'iam.own_session.read',
+  /** `FR-AUTH-10`. Sign one of your own devices out. */
+  OWN_SESSION_REVOKE: 'iam.own_session.revoke',
+} as const;
+
+export type IamPermission = (typeof IAM_PERMISSIONS)[keyof typeof IAM_PERMISSIONS];

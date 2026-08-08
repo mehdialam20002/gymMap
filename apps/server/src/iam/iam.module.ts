@@ -28,14 +28,15 @@
 
 import { Module } from '@nestjs/common';
 
-import { RedisConnectionLifecycle, redisProvider } from '../common/persistence/redis.provider.js';
 import { AuthController } from './controllers/auth.controller.js';
+import { SessionController } from './controllers/session.controller.js';
 import { LoginWithPasswordUseCase } from './application/login-with-password.use-case.js';
 import { RegisterWithPasswordUseCase } from './application/register-with-password.use-case.js';
 import { ResetPasswordUseCase } from './application/reset-password.use-case.js';
 import { VerifyEmailUseCase } from './application/verify-email.use-case.js';
 import { OTP_DELIVERY, RequestOtpUseCase } from './application/request-otp.use-case.js';
 import { VerifyOtpUseCase } from './application/verify-otp.use-case.js';
+import { SessionUseCases } from './application/session.use-cases.js';
 import {
   BREACHED_PASSWORD_CHECKER,
   NoBreachCheckConfigured,
@@ -50,6 +51,8 @@ import { RedisLockoutCounter } from './infrastructure/redis-lockout-counter.adap
 import { UserPrismaRepository } from './infrastructure/user.prisma-repository.js';
 import { OtpRedisStore } from './infrastructure/otp.redis-store.js';
 import { OtpDeliveryAdapter } from './infrastructure/otp-delivery.adapter.js';
+import { JwtSignerAdapter } from './infrastructure/jwt.signer.adapter.js';
+import { RefreshTokenPrismaRepository } from './infrastructure/refresh-token.prisma-repository.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 
 @Module({
@@ -58,13 +61,10 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
   // OtpDeliveryAdapter, and owns only the SMS-then-email fallback POLICY that
   // AC-AUTH-01.5 states in authentication terms.
   imports: [NotificationsModule],
-  controllers: [AuthController],
+  controllers: [AuthController, SessionController],
   providers: [
-    redisProvider,
-    // Closes the connection on SIGTERM. Without it the process never exits — an ioredis
-    // connection is an active handle, so a rolling deploy would hit its grace period and be
-    // SIGKILLed, dropping in-flight requests every time.
-    RedisConnectionLifecycle,
+    // The Redis connection and the family denylist are `CommonModule`'s — the guard needs them
+    // on every request, so they belong to the kernel rather than to this module.
 
     // Repositories. `iam/` OWNS these tables, so they are classes and not ports — a port to
     // your own table is indirection with no seam in it.
@@ -91,6 +91,12 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
     VerifyEmailUseCase,
     RequestOtpUseCase,
     VerifyOtpUseCase,
+
+    // M-022 · sessions. `JwtSignerAdapter` is NOT exported — a module holding the signer could
+    // mint a token for any user and any role, which is every authorisation control bypassed.
+    JwtSignerAdapter,
+    RefreshTokenPrismaRepository,
+    SessionUseCases,
   ],
   // Only the session repository leaves the module, and only because M-023's session-management
   // endpoints will need it. Nothing that can hash, mint a token or verify a password is

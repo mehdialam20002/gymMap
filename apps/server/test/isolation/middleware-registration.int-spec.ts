@@ -202,15 +202,24 @@ it('an INVALID token gets 401 with no hint about which check failed', async () =
   );
 });
 
-it('the middleware verifies ONCE — the guard does not re-verify', async () => {
-  // Not a performance assertion. Two verifications means two places deciding what a valid token
-  // is, and they drift; the looser one is discovered by whoever it lets through. The guard
-  // trusting `request.principal` is safe precisely because the SAME verifier set it, on this
-  // request, microseconds earlier.
+it('there is exactly ONE implementation of token verification', async () => {
+  // Two verifications means two places deciding what a valid token is, and they drift — with the
+  // looser one deciding who gets in. The guard verifies only when the middleware has NOT already
+  // resolved a principal, and it never implements the signature check itself.
+  //
+  // The "does not re-verify" half of this claim used to be a regex over the early-return line
+  // here. M-022 restructured that line — the guard now falls through to the AC-10 denylist
+  // instead of returning early — and the regex failed for a shape change while the property was
+  // intact. It now lives in `jwt-auth.guard.spec.ts` as a call count against a counting
+  // verifier, which a restructuring cannot break and a genuine regression cannot survive.
   const { readFileSync } = await import('node:fs');
   const guard = readFileSync('src/common/guards/jwt-auth.guard.ts', 'utf8');
-  assert.match(guard, /if \(request\.principal\) return true;/);
+
   assert.match(guard, /this\.verifier\.verify\(token\)/);
-  // And there is exactly one implementation of the verification itself.
+  assert.match(
+    guard,
+    /if \(!request\.principal\) \{/,
+    'the verification is no longer conditional on the middleware having missed it',
+  );
   assert.ok(!guard.includes('createHmac'), 'the guard verifies a signature itself again');
 });

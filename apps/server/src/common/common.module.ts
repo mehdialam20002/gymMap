@@ -15,6 +15,12 @@ import { HealthController } from './health/health.controller.js';
 import { ReadinessService } from './health/readiness.service.js';
 import { AccessTokenVerifier } from './auth/access-token.verifier.js';
 import { CLOCK, ID_GENERATOR } from './clock/clock.port.js';
+import { FamilyDenylist } from './auth/family-denylist.redis.js';
+import {
+  REDIS_CLIENT,
+  RedisConnectionLifecycle,
+  redisProvider,
+} from './persistence/redis.provider.js';
 import { IdempotencyStore } from './idempotency/idempotency.store.js';
 import { OUTBOX_PORT } from './outbox/outbox.port.js';
 import { OutboxWriter } from './outbox/outbox.writer.js';
@@ -41,6 +47,12 @@ import { SystemClock, SystemIdGenerator } from './clock/system-clock.adapter.js'
     AccessTokenVerifier,
     // AC-FND-13.3 — the ONE place the ambient clock enters the application. Every consumer
     // injects the port, so a test substitutes a FixedClock without a global monkey-patch.
+    // M-022 · the guard consults the denylist on every authenticated request, so both it
+    // and the Redis connection it needs are part of the kernel rather than of `iam/`.
+    redisProvider,
+    RedisConnectionLifecycle,
+    FamilyDenylist,
+
     { provide: CLOCK, useClass: SystemClock },
     { provide: ID_GENERATOR, useClass: SystemIdGenerator },
     // BR-PAY-03. In place BEFORE the first payment path, not retrofitted — retrofitting
@@ -66,6 +78,8 @@ import { SystemClock, SystemIdGenerator } from './clock/system-clock.adapter.js'
     AccessTokenVerifier,
     CLOCK,
     ID_GENERATOR,
+    FamilyDenylist,
+    REDIS_CLIENT,
     IdempotencyStore,
 
     // M-018. The writer is exported as a PORT so a use case depends on "record that this

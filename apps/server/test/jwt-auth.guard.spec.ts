@@ -45,25 +45,36 @@ const config = { JWT_ACCESS_SECRET: testSecret() } as never;
 // from the other side.
 const verifier = new AccessTokenVerifier(config, new SystemClock());
 
-const guard = (isPublic = false) => new JwtAuthGuard(reflector(isPublic), verifier);
+/**
+ * A denylist that denies nothing, unless a test says otherwise.
+ *
+ * M-022 gave the guard a second job — `AC-10`'s family denylist — and these specs are about
+ * SIGNATURE verification. A double keeps them that way; `session-revocation.int-spec.ts` covers
+ * the denylist against real Redis, where its behaviour actually lives.
+ */
+const denylist = (revoked: readonly string[] = []) =>
+  ({ isRevoked: (family: string) => Promise.resolve(revoked.includes(family)) }) as never;
+
+const guard = (isPublic = false, revoked: readonly string[] = []) =>
+  new JwtAuthGuard(reflector(isPublic), verifier, denylist(revoked));
 
 // ---------------------------------------------------------------------------
 // Accept.
 // ---------------------------------------------------------------------------
 
-test('a well-formed token is accepted and the principal is attached', () => {
+test('a well-formed token is accepted and the principal is attached', async () => {
   const token = mintAccessToken({ sub: SUBJECT, tenantId: '01912f00-0000-7000-8000-00000000000a' });
   const context = contextWith(`Bearer ${token}`);
 
-  assert.equal(guard().canActivate(context as never), true);
+  assert.equal(await guard().canActivate(context as never), true);
 
   const principal = (context as unknown as { __request: { principal?: { sub: string } } }).__request
     .principal;
   assert.equal(principal?.sub, SUBJECT);
 });
 
-test('a @Public() route needs no token at all', () => {
-  assert.equal(guard(true).canActivate(contextWith() as never), true);
+test('a @Public() route needs no token at all', async () => {
+  assert.equal(await guard(true).canActivate(contextWith() as never), true);
 });
 
 // ---------------------------------------------------------------------------
@@ -93,15 +104,15 @@ const REJECTIONS: ReadonlyArray<[string, string, string]> = [
 ];
 
 for (const [name, token, why] of REJECTIONS) {
-  test(`AC-7 · rejects a token that is ${name} — ${why}`, () => {
-    assert.throws(
+  test(`AC-7 · rejects a token that is ${name} — ${why}`, async () => {
+    await assert.rejects(
       () => guard().canActivate(contextWith(`Bearer ${token}`) as never),
       UnauthenticatedException,
     );
   });
 }
 
-test('AC-7 · every rejection is the SAME error body — no oracle', () => {
+test('AC-7 · every rejection is the SAME error body — no oracle', async () => {
   // The assertion that matters. If these messages differed, an attacker could binary-search
   // their way to a valid token by watching which guess changed the response.
   const messages = new Set<string>();
@@ -109,7 +120,7 @@ test('AC-7 · every rejection is the SAME error body — no oracle', () => {
 
   for (const [, token] of REJECTIONS) {
     try {
-      guard().canActivate(contextWith(`Bearer ${token}`) as never);
+      await guard().canActivate(contextWith(`Bearer ${token}`) as never);
       assert.fail('expected a rejection');
     } catch (error) {
       assert.ok(error instanceof UnauthenticatedException);
@@ -128,12 +139,12 @@ test('AC-7 · every rejection is the SAME error body — no oracle', () => {
   assert.deepEqual([...codes], ['UNAUTHENTICATED']);
 });
 
-test('every rejection is a 401, never a 403', () => {
+test('every rejection is a 401, never a 403', async () => {
   // 403 means "authenticated, not allowed" — a different fact, and the client's next action
   // differs: re-authenticate versus give up.
   for (const [, token] of REJECTIONS) {
     try {
-      guard().canActivate(contextWith(`Bearer ${token}`) as never);
+      await guard().canActivate(contextWith(`Bearer ${token}`) as never);
     } catch (error) {
       assert.equal((error as UnauthenticatedException).httpStatus, 401);
     }
@@ -153,8 +164,8 @@ for (const [name, header] of [
   ['a token with four segments', 'Bearer aaa.bbb.ccc.ddd'],
   ['unparseable base64 in the header segment', 'Bearer !!!.bbb.ccc'],
 ] as const) {
-  test(`rejects ${name}`, () => {
-    assert.throws(
+  test(`rejects ${name}`, async () => {
+    await assert.rejects(
       () => guard().canActivate(contextWith(header) as never),
       UnauthenticatedException,
     );
@@ -165,17 +176,64 @@ for (const [name, header] of [
 // The bearer parser.
 // ---------------------------------------------------------------------------
 
-test('extractBearerToken is case-insensitive on the scheme', () => {
+test('extractBearerToken is case-insensitive on the scheme', async () => {
   assert.equal(extractBearerToken('Bearer abc'), 'abc');
   assert.equal(extractBearerToken('bearer abc'), 'abc');
   assert.equal(extractBearerToken('BEARER abc'), 'abc');
 });
 
-test('extractBearerToken refuses anything that is not exactly one bearer token', () => {
+test('extractBearerToken refuses anything that is not exactly one bearer token', async () => {
   for (const header of ['', 'Basic abc', 'Bearer', 'Bearer ', 'Bearer a b', 'abc']) {
     assert.equal(extractBearerToken(header), null, `"${header}" should not parse`);
   }
   assert.equal(extractBearerToken(undefined), null);
+});
+
+// ---------------------------------------------------------------------------
+// One verification per request — M-015's whole point.
+// ---------------------------------------------------------------------------
+
+test('the guard does NOT re-verify a principal the middleware already resolved', async () => {
+  // Not a performance assertion. Two verifications means two places deciding what a valid token
+  // is, and they drift — with the looser one deciding who gets in. The guard trusting
+  // `request.principal` is safe precisely because the SAME verifier set it, on this request,
+  // microseconds earlier in `TenantContextMiddleware`.
+  //
+  // This lived in `middleware-registration.int-spec.ts` as a regex over the guard's source until
+  // M-022 restructured the early return — the property survived, the text did not, and the test
+  // failed for a shape change rather than a behaviour change. Counting the calls cannot.
+  let verifications = 0;
+  const counting = {
+    verify: (token: string) => {
+      verifications += 1;
+      return verifier.verify(token);
+    },
+  } as never;
+
+  const context = contextWith('Bearer irrelevant.to.this.test');
+  (context as unknown as { __request: Record<string, unknown> }).__request['principal'] = {
+    sub: SUBJECT,
+    // No `fam`, so the denylist is not consulted either — see the AC-10 cases below.
+  };
+
+  const sut = new JwtAuthGuard(reflector(), counting, denylist());
+  assert.equal(await sut.canActivate(context as never), true);
+  assert.equal(verifications, 0, 'the guard verified a token the middleware had already verified');
+});
+
+test('AC-10 · a revoked family is rejected even when the middleware resolved the principal', async () => {
+  // The other side of the test above: trusting `request.principal` must NOT mean skipping the
+  // denylist. Revocation has to reach an access token that is still perfectly well-signed, which
+  // is the only reason AC-10 exists — otherwise "revoked" means "fails at the next refresh", and
+  // a detected thief stays authenticated for the remaining fifteen minutes.
+  const context = contextWith();
+  (context as unknown as { __request: Record<string, unknown> }).__request['principal'] = {
+    sub: SUBJECT,
+    fam: 'family-under-revocation',
+  };
+
+  const sut = new JwtAuthGuard(reflector(), verifier, denylist(['family-under-revocation']));
+  await assert.rejects(() => sut.canActivate(context as never));
 });
 
 // ---------------------------------------------------------------------------

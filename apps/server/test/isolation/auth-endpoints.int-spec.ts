@@ -48,7 +48,10 @@ function psql(sql: string): string {
   ).trim();
 }
 
-const post = async (path: string, body: unknown): Promise<{ status: number; body: any }> => {
+const post = async (
+  path: string,
+  body: unknown,
+): Promise<{ status: number; body: any; setCookie: string | null }> => {
   const response = await fetch(`${baseUrl}${path}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -57,16 +60,48 @@ const post = async (path: string, body: unknown): Promise<{ status: number; body
   // Read ONCE. A second `.json()` on a consumed body throws, and the failure looks like a
   // network error rather than a test bug — M-015 lost an afternoon to exactly this.
   const raw = await response.text();
-  return { status: response.status, body: raw === '' ? null : JSON.parse(raw) };
+  return {
+    status: response.status,
+    body: raw === '' ? null : JSON.parse(raw),
+    setCookie: response.headers.get('set-cookie'),
+  };
 };
 
 /** A fresh address per test, so no test depends on another's leftovers. */
 let seq = 0;
 const freshEmail = (): string => `m020.${String((seq += 1))}.${randomUUID().slice(0, 8)}@seed.test`;
 
+/**
+ * Removes only the accounts this suite creates, and everything hanging off them.
+ *
+ * ┌─ CHILDREN FIRST, AND WHY THAT IS NOT A DETAIL ──────────────────────────────────────────────┐
+ * │ Every foreign key in the identity tables is `ON DELETE RESTRICT`, deliberately: nothing that │
+ * │ recorded a fact about a session may vanish because a row upstream did.                       │
+ * │                                                                                              │
+ * │ Which means the moment M-022 made login mint a refresh token, the old two-statement cleanup  │
+ * │ started failing on the FK instead of cleaning — and left the accounts, the sessions AND the  │
+ * │ tokens behind. The visible symptom was somewhere else entirely: `users-constraints`' "the    │
+ * │ seed is intact" counted 39 users instead of 11 and blamed its own probes.                    │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+const removeSuiteAccounts = (): void => {
+  psql(`DELETE FROM refresh_tokens WHERE session_id IN (
+          SELECT s.id FROM auth_sessions s JOIN users u ON u.id = s.user_id
+          WHERE u.email LIKE 'm020.%');
+        DELETE FROM auth_sessions WHERE user_id IN (
+          SELECT id FROM users WHERE email LIKE 'm020.%');
+        DELETE FROM user_roles WHERE user_id IN (
+          SELECT id FROM users WHERE email LIKE 'm020.%');
+        DELETE FROM users WHERE email LIKE 'm020.%';`);
+};
+
 before(async () => {
   ({ available } = await requireRole('the API and its dependencies', async () => {
     psql('SELECT 1;');
+    // ON ENTRY as well as on exit. `after` does not run when a suite is killed by a timeout or a
+    // ^C, and the leftovers then fail a LATER suite — which is a genuinely confusing way to find
+    // out that this one was interrupted. Cleaning up front makes the run self-healing.
+    removeSuiteAccounts();
     redis = new Redis(process.env['REDIS_URL'] ?? 'redis://localhost:6379/2', {
       maxRetriesPerRequest: 1,
       lazyConnect: true,
@@ -84,8 +119,7 @@ after(async () => {
   if (!available) return;
   // Only the accounts this suite created. The eleven seeded principals are shared fixtures and
   // deleting them would break every suite that runs afterwards.
-  psql(`DELETE FROM auth_sessions WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'm020.%');
-        DELETE FROM users WHERE email LIKE 'm020.%';`);
+  removeSuiteAccounts();
   redis.disconnect();
   await app.close();
 });
@@ -230,7 +264,7 @@ it('§1.6 · they are indistinguishable in LATENCY too', async () => {
   );
 });
 
-it('a correct password returns 200 and the user id — and NO token', async () => {
+it('a correct password returns 200, the user id and an ACCESS token', async () => {
   const email = freshEmail();
   const registered = await post('/v1/auth/register', { email, password: GOOD_PASSWORD });
 
@@ -238,9 +272,31 @@ it('a correct password returns 200 and the user id — and NO token', async () =
   assert.equal(login.status, 200, JSON.stringify(login.body));
   assert.equal(login.body.user_id, registered.body.user_id);
 
-  // SE1 / TK7 — no bearer string in a body, ever. M-020 issues no session at all.
-  assert.equal(login.body.access_token, undefined);
-  assert.equal(login.body.refresh_token, undefined);
+  // M-020 proved the credential and stopped there. M-022 opens the session, so the access token
+  // now comes back — it lives fifteen minutes and the SPA has to put it in an Authorization
+  // header, so a body is the only place it can go. Three segments, i.e. an actual JWS.
+  assert.equal(typeof login.body.access_token, 'string');
+  assert.equal(login.body.access_token.split('.').length, 3);
+  assert.ok(login.body.expires_in_seconds > 0);
+});
+
+it('SE1 / TK7 · the REFRESH token is an httpOnly cookie and never a body field', async () => {
+  // The distinction the previous test's older form was really protecting: a 30-day credential
+  // must not be readable by script. If it appeared in the body, an XSS would lift it straight
+  // out of whatever the SPA stored it in, and `httpOnly` on the cookie would have bought nothing.
+  const email = freshEmail();
+  await post('/v1/auth/register', { email, password: GOOD_PASSWORD });
+
+  const login = await post('/v1/auth/login', { identifier: email, password: GOOD_PASSWORD });
+  assert.equal(login.body.refresh_token, undefined, 'a 30-day credential was returned in a body');
+
+  const cookie = login.setCookie ?? '';
+  assert.match(cookie, /__Host-gm_rt=/, 'no refresh cookie was set');
+  assert.match(cookie, /HttpOnly/i, 'the refresh cookie is readable by script');
+  assert.match(cookie, /Secure/i, 'the refresh cookie may cross plain HTTP');
+  assert.match(cookie, /SameSite=Strict/i, 'the refresh cookie rides cross-site requests');
+  assert.match(cookie, /Path=\//, '__Host- requires path /');
+  assert.ok(!/Domain=/i.test(cookie), '__Host- forbids Domain — it must not widen to a sibling');
 });
 
 it('the identifier is case-insensitive, because it is lowercased on both sides', async () => {

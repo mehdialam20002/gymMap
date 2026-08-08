@@ -52,7 +52,7 @@
     },
     "/v1/auth/login": {
       "post": {
-        "description": "Returns 401 UNAUTHENTICATED for an unknown identifier AND for a wrong password — the same status, the same code, the same message and the same latency (Security.md §1.6). A locked account is 403 ACCOUNT_LOCKED, never 429: a lockout is about this account and clears with an unlock, while a 429 tells the victim of credential stuffing to try again in a minute. NO SESSION IS ISSUED — that is M-022 (SE1, ADR-0011).",
+        "description": "Returns 401 UNAUTHENTICATED for an unknown identifier AND for a wrong password — the same status, the same code, the same message and the same latency (Security.md §1.6). A locked account is 403 ACCOUNT_LOCKED, never 429: a lockout is about this account and clears with an unlock, while a 429 tells the victim of credential stuffing to try again in a minute. On success a session is opened (M-022): the ACCESS token is returned here because the SPA must place it in an Authorization header, while the 30-day REFRESH token is set as an httpOnly cookie and never appears in this body (SE1, TK7, ADR-0011).",
         "operationId": "loginWithPassword",
         "parameters": [],
         "responses": {
@@ -61,6 +61,13 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "access_token": {
+                      "type": "string"
+                    },
+                    "expires_in_seconds": {
+                      "example": 900,
+                      "type": "integer"
+                    },
                     "user_id": {
                       "format": "uuid",
                       "type": "string"
@@ -70,7 +77,7 @@
                 }
               }
             },
-            "description": ""
+            "description": "Sets the `__Host-gm_rt` refresh cookie — httpOnly, Secure, SameSite=Strict, path `/`."
           }
         },
         "summary": "Verifies a password.",
@@ -83,6 +90,27 @@
           "ACCOUNT_LOCKED",
           "RATE_LIMIT_EXCEEDED",
           "DEPENDENCY_UNAVAILABLE"
+        ],
+        "x-gymmap-public": true,
+        "x-gymmap-rate-limit": "RL-AUTH"
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "description": "204 UNCONDITIONALLY, including for a missing, unknown or already-spent cookie. A logout that can fail is a logout a member cannot rely on, and the failure would arrive at the exact moment they are trying to leave a shared device. The cookie is cleared either way.",
+        "operationId": "logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Ends the current session.",
+        "tags": [
+          "iam"
+        ],
+        "x-gymmap-error-codes": [
+          "RATE_LIMIT_EXCEEDED"
         ],
         "x-gymmap-public": true,
         "x-gymmap-rate-limit": "RL-AUTH"
@@ -256,6 +284,44 @@
         "x-gymmap-rate-limit": "RL-AUTH"
       }
     },
+    "/v1/auth/refresh": {
+      "post": {
+        "description": "Each rotation mints generation N+1 and spends N, so a refresh token is usable exactly once. A SECOND use of a spent generation means two parties hold it, which revokes the ENTIRE FAMILY and signs out every device on it (E1.2) — the thief and the member each hold some generation of the same chain and the replay does not say which is which. A replay within a short grace is treated as a parallel tab rather than theft (TR-28). Roles are RE-READ on every rotation, so a revoked role stops working within one refresh rather than at the end of the token lifetime (FR-RBAC-04).",
+        "operationId": "refresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    },
+                    "expires_in_seconds": {
+                      "example": 900,
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Rotates the refresh token and issues a new access token.",
+        "tags": [
+          "iam"
+        ],
+        "x-gymmap-error-codes": [
+          "UNAUTHENTICATED",
+          "RATE_LIMIT_EXCEEDED"
+        ],
+        "x-gymmap-public": true,
+        "x-gymmap-rate-limit": "RL-AUTH"
+      }
+    },
     "/v1/auth/register": {
       "post": {
         "description": "At least one of email or phone is required — an India walk-in member may have only a phone (FR-CRM-04). The account is created PENDING_VERIFICATION; an email registration receives a verification link valid for 24 hours. No session is created: verifying an email must not sign anyone in, because the link travels through an inbox.",
@@ -300,6 +366,96 @@
         ],
         "x-gymmap-public": true,
         "x-gymmap-rate-limit": "RL-AUTH"
+      }
+    },
+    "/v1/auth/sessions": {
+      "get": {
+        "description": "FR-AUTH-09. Device, address and start time — enough to recognise the one you do not. Each row is flagged `current` so a member can tell which entry not to revoke; without it the most common outcome of this screen is signing yourself out by accident.",
+        "operationId": "listSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "sessions": {
+                      "items": {
+                        "properties": {
+                          "current": {
+                            "type": "boolean"
+                          },
+                          "device_label": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "ip": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "started_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Lists the active sessions of the calling member.",
+        "tags": [
+          "iam"
+        ],
+        "x-gymmap-error-codes": [
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED"
+        ],
+        "x-gymmap-permission": "iam.own_session.read",
+        "x-gymmap-rate-limit": "RL-READ"
+      }
+    },
+    "/v1/auth/sessions/{sessionId}": {
+      "delete": {
+        "description": "A session belonging to anyone else is a 404 and not a 403 — a 403 confirms the uuid exists, and \"not yours\" and \"already revoked\" must be one answer. Revocation reaches the already-issued access token through the family denylist (AC-10) rather than waiting for the next refresh to fail.",
+        "operationId": "revokeSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Revokes one of the calling member’s own sessions.",
+        "tags": [
+          "iam"
+        ],
+        "x-gymmap-error-codes": [
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED",
+          "RESOURCE_NOT_FOUND"
+        ],
+        "x-gymmap-permission": "iam.own_session.revoke",
+        "x-gymmap-rate-limit": "RL-WRITE"
       }
     },
     "/v1/tenant/ping": {

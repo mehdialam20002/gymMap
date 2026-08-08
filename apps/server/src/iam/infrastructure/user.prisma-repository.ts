@@ -170,4 +170,37 @@ export class UserPrismaRepository {
       data: { status: 'ACTIVE' },
     });
   }
+
+  /**
+   * M-022 · The role scope codes for an access token — `SE2`, `FR-RBAC-04`.
+   *
+   * ┌─ RE-READ ON EVERY REFRESH, NEVER COPIED FROM THE PREVIOUS TOKEN ────────────────────────┐
+   * │ `FR-RBAC-04` requires a role change to take effect within 60 seconds without forcing a  │
+   * │ re-authentication. A refresh that copied its predecessor's claims would carry a REVOKED │
+   * │ role for the full 15-minute access-token lifetime — and after a staff member is         │
+   * │ offboarded, that is fifteen minutes of authority nobody intended.                        │
+   * │                                                                                          │
+   * │ Reading is also what makes `revoked_at` mean anything: revocation is a timestamp rather │
+   * │ than a delete (`AC-STAF-01.4`), so only a live query sees it.                            │
+   * └──────────────────────────────────────────────────────────────────────────────────────────┘
+   *
+   * `SE2` — SCOPE CODES, never a permission list. `MEMBER@self`, `GYM_OWNER@t:9f2a…`. A client
+   * rendering navigation from these is doing presentation, and the server still refuses
+   * independently (`AZ5`, `FR-RBAC-02`).
+   */
+  async roleScopesFor(userId: string): Promise<string[]> {
+    const grants = await this.db.client.userRole.findMany({
+      // `revokedAt: null` is the whole point — see above.
+      where: { userId, revokedAt: null },
+      select: { tenantId: true, role: { select: { key: true, scope: true } } },
+    });
+
+    return grants
+      .map((grant) =>
+        grant.tenantId === null
+          ? `${grant.role.key}@${grant.role.scope.toLowerCase()}`
+          : `${grant.role.key}@t:${grant.tenantId}`,
+      )
+      .sort();
+  }
 }

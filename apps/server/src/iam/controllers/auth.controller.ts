@@ -24,7 +24,8 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { Body, Controller, HttpCode, HttpStatus, Ip, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Ip, Post, Req, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import {
   ApiAcceptedResponse,
   ApiCreatedResponse,
@@ -58,6 +59,9 @@ import { RegisterWithPasswordUseCase } from '../application/register-with-passwo
 import { ResetPasswordUseCase } from '../application/reset-password.use-case.js';
 import { RequestOtpUseCase } from '../application/request-otp.use-case.js';
 import { VerifyOtpUseCase } from '../application/verify-otp.use-case.js';
+import { SessionUseCases } from '../application/session.use-cases.js';
+import { setRefreshCookie } from './refresh-cookie.js';
+import { requestFacts } from './request-facts.js';
 
 /** `Authentication.md` §8.7 — one message for both branches, so the two are indistinguishable. */
 const FORGOT_ACKNOWLEDGEMENT =
@@ -73,6 +77,7 @@ export class AuthController {
     private readonly reset: ResetPasswordUseCase,
     private readonly requestOtp: RequestOtpUseCase,
     private readonly verifyOtp: VerifyOtpUseCase,
+    private readonly sessions: SessionUseCases,
   ) {}
 
   @Post('register')
@@ -142,20 +147,46 @@ export class AuthController {
       'same status, the same code, the same message and the same latency (Security.md §1.6). ' +
       'A locked account is 403 ACCOUNT_LOCKED, never 429: a lockout is about this account and ' +
       'clears with an unlock, while a 429 tells the victim of credential stuffing to try again ' +
-      'in a minute. NO SESSION IS ISSUED — that is M-022 (SE1, ADR-0011).',
+      'in a minute. On success a session is opened (M-022): the ACCESS token is returned here ' +
+      'because the SPA must place it in an Authorization header, while the 30-day REFRESH token ' +
+      'is set as an httpOnly cookie and never appears in this body (SE1, TK7, ADR-0011).',
   })
   @ApiOkResponse({
+    description:
+      'Sets the `__Host-gm_rt` refresh cookie — httpOnly, Secure, SameSite=Strict, path `/`.',
     schema: {
       type: 'object',
-      properties: { user_id: { type: 'string', format: 'uuid' } },
+      properties: {
+        user_id: { type: 'string', format: 'uuid' },
+        access_token: { type: 'string' },
+        expires_in_seconds: { type: 'integer', example: 900 },
+      },
     },
   })
-  async loginWithPassword(@Body(zodPipe(loginBody)) body: LoginBody): Promise<{ user_id: string }> {
+  async loginWithPassword(
+    @Body(zodPipe(loginBody)) body: LoginBody,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{ user_id: string; access_token: string; expires_in_seconds: number }> {
     const result = await this.login.execute({
       identifier: body.identifier,
       password: body.password,
     });
-    return { user_id: result.userId };
+
+    // M-022 · the credential is proved, so a session opens here.
+    //
+    // The REFRESH token goes into an httpOnly cookie and never into this body (`SE1`, `TK7`) —
+    // it is a 30-day credential, and JavaScript must not be able to read it. The ACCESS token
+    // DOES come back in the body: it lives fifteen minutes and the SPA has to put it in an
+    // Authorization header, so there is nowhere else for it to go.
+    const issued = await this.sessions.issueFor(result.userId, requestFacts(request));
+    setRefreshCookie(response, issued.refreshToken);
+
+    return {
+      user_id: result.userId,
+      access_token: issued.accessToken,
+      expires_in_seconds: this.sessions.secondsUntil(issued.accessExpiresAt),
+    };
   }
 
   @Post('password/forgot')
@@ -307,12 +338,45 @@ export class AuthController {
   })
   async verifyOtpCode(
     @Body(zodPipe(otpVerifyBody)) body: OtpVerifyBody,
-  ): Promise<{ verified: boolean; user_id: string | null }> {
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{
+    verified: boolean;
+    user_id: string | null;
+    access_token: string | null;
+    expires_in_seconds: number | null;
+  }> {
     const result = await this.verifyOtp.execute({
       phone: body.phone,
       purpose: body.purpose,
       code: body.code,
     });
-    return { verified: true, user_id: result.userId };
+
+    // A session opens ONLY for a purpose that is a way IN, and only when the number resolves to
+    // an account. A REGISTER verification proves control of the number and nothing more — the
+    // account does not exist yet — and PHONE_CHANGE and SENSITIVE_STEP_UP are re-proofs inside
+    // a session that already exists. Minting one for those would turn a re-proof into a
+    // second way in.
+    const opensSession =
+      result.userId !== null && (body.purpose === 'LOGIN' || body.purpose === 'UNLOCK');
+
+    if (!opensSession || result.userId === null) {
+      return {
+        verified: true,
+        user_id: result.userId,
+        access_token: null,
+        expires_in_seconds: null,
+      };
+    }
+
+    const issued = await this.sessions.issueFor(result.userId, requestFacts(request));
+    setRefreshCookie(response, issued.refreshToken);
+
+    return {
+      verified: true,
+      user_id: result.userId,
+      access_token: issued.accessToken,
+      expires_in_seconds: this.sessions.secondsUntil(issued.accessExpiresAt),
+    };
   }
 }

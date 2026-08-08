@@ -32,6 +32,7 @@ import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/commo
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 
+import { FamilyDenylist } from '../auth/family-denylist.redis.js';
 import { UnauthenticatedException } from '../errors/domain-exception.js';
 import { IS_PUBLIC } from '../decorators/public.decorator.js';
 import {
@@ -52,9 +53,10 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly verifier: AccessTokenVerifier,
+    private readonly denylist: FamilyDenylist,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [
       context.getHandler(),
       context.getClass(),
@@ -66,16 +68,36 @@ export class JwtAuthGuard implements CanActivate {
     // The middleware has usually resolved this already. Re-verifying would be wasted work AND a
     // second place where "what counts as a valid token" is decided — so the principal is trusted
     // here precisely because the SAME verifier put it there, on this request, moments ago.
-    if (request.principal) return true;
+    if (!request.principal) {
+      const token = extractBearerToken(request.headers.authorization);
+      if (!token) throw new UnauthenticatedException('No bearer token presented.');
 
-    const token = extractBearerToken(request.headers.authorization);
-    if (!token) throw new UnauthenticatedException('No bearer token presented.');
-
-    try {
-      request.principal = this.verifier.verify(token);
-    } catch (error) {
-      throw this.reject(error instanceof TokenRejected ? error.reason : 'verification failed');
+      try {
+        request.principal = this.verifier.verify(token);
+      } catch (error) {
+        throw this.reject(error instanceof TokenRejected ? error.reason : 'verification failed');
+      }
     }
+
+    // ┌─ M-022 `AC-10` · REVOCATION THAT REACHES AN ALREADY-ISSUED TOKEN ─────────────────────┐
+    // │ Everything above is pure signature verification, which is why it is fast enough to    │
+    // │ run on every request — and why a revoked session's access token keeps verifying for   │
+    // │ the rest of its fifteen minutes.                                                       │
+    // │                                                                                        │
+    // │ Without this lookup, "revoked" means "the next refresh fails", and a token thief whose │
+    // │ family we have just detected and revoked stays authenticated for a quarter of an hour  │
+    // │ AFTER detection. `AC-10` says that is not revocation.                                  │
+    // │                                                                                        │
+    // │ One Redis `EXISTS` against a list that holds only families revoked in the last fifteen │
+    // │ minutes — small by construction, because the TTL equals the token lifetime. It fails   │
+    // │ OPEN: see `family-denylist.redis.ts` for why signing out the entire platform because a │
+    // │ cache restarted is the worse of the two failures.                                      │
+    // └────────────────────────────────────────────────────────────────────────────────────────┘
+    const family = request.principal.fam;
+    if (family !== undefined && (await this.denylist.isRevoked(family))) {
+      throw this.reject('the token family has been revoked');
+    }
+
     return true;
   }
 

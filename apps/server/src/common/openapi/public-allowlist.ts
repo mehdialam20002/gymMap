@@ -124,6 +124,44 @@ export const PUBLIC_ALLOWLIST: readonly PublicRoute[] = [
       'RL-OTP applies on top. The stored value is an HMAC bound to the purpose, the number and ' +
       'the generation, so a code cannot be replayed across purposes or after a resend.',
   },
+
+  // ── M-022 · session rotation. Public for a reason that is easy to state and easy to get wrong ─
+  //
+  // Both routes are reached by a caller whose ACCESS token has expired — that is the entire
+  // premise of refreshing, and of signing out a stale tab. Requiring a valid access token here
+  // would make the refresh route usable only by callers who do not need it, and the fifteen-minute
+  // token would become the real session length.
+  //
+  // "Public" here means "no ACCESS token required", not "unauthenticated". Both routes demand the
+  // `__Host-gm_rt` cookie, which is a 30-day credential the browser will not surrender to script
+  // and will not send cross-site.
+  {
+    route: 'POST /v1/auth/refresh',
+    reason:
+      'Rotates the refresh token. The caller has an expired access token by definition — that ' +
+      'is what they are here to replace (Authentication.md §8.5, ADR-0011).',
+    abuseControl:
+      'The httpOnly, Secure, SameSite=Strict `__Host-gm_rt` cookie IS the credential, so this ' +
+      'is not reachable by script from another origin and not reachable cross-site at all — ' +
+      'which is what makes a CSRF against it inert. RL-AUTH applies. Guessing is not a threat ' +
+      'model: the token is compared by SHA-256 against a stored digest, and a WRONG guess is a ' +
+      'plain 401 that revokes nothing. A CORRECT guess of a SPENT generation is reuse, and ' +
+      'revokes the entire family (E1.2) — so a successful brute-force ends the session it was ' +
+      'aimed at. The ten-second TR-28 grace is the only window in which a spent token still ' +
+      'works, and only for the successor the legitimate rotation already minted.',
+  },
+  {
+    route: 'POST /v1/auth/logout',
+    reason:
+      'Ends the current session. A member on a shared device must be able to sign out after ' +
+      'their access token has expired — which is exactly when they are most likely to try ' +
+      '(Authentication.md §8.6).',
+    abuseControl:
+      'Returns 204 unconditionally and reveals nothing: a missing, unknown or already-spent ' +
+      'cookie is answered identically to a valid one, so it is not an oracle for whether a ' +
+      'token exists. The worst an attacker can do with a token they already hold is end the ' +
+      'session that token belongs to, which they could do by discarding it. RL-AUTH applies.',
+  },
 ];
 
 /** Fast lookup for the gate. */
