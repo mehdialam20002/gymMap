@@ -15,10 +15,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
+import { code, source, tsxFiles } from './helpers.ts';
 import { en } from '../src/shared/i18n/messages/en.ts';
 import { t, DEFAULT_LOCALE, LOCALES } from '../src/shared/i18n/index.ts';
 import { themeScript, THEME_STORAGE_KEY } from '../src/shared/theme/theme-script.ts';
@@ -28,62 +25,6 @@ import {
   generateNonce,
   type CspHosts,
 } from '../src/shared/security/csp.ts';
-
-const APP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const source = (rel: string) => readFileSync(join(APP_ROOT, rel), 'utf8');
-
-/**
- * The file with comments blanked, newlines preserved.
- *
- * ┌─ USE THIS FOR EVERY STRUCTURAL ASSERTION ───────────────────────────────────────────────────┐
- * │ Tests in this repository have repeatedly failed on their own documentation: a scan for      │
- * │ `runElevated(` matched a doc comment, and a scan for `unsafe-inline` matched the comment    │
- * │ explaining why it is forbidden. Same pattern, same fix — a test that asserts something      │
- * │ about CODE must not read PROSE. Well-commented code is not a hazard to work around.          │
- * └──────────────────────────────────────────────────────────────────────────────────────────────┘
- */
-function code(rel: string): string {
-  const text = source(rel);
-  let out = '';
-  let i = 0;
-  const blank = (s: string) => s.replace(/[^\n]/g, ' ');
-
-  while (i < text.length) {
-    const two = text.slice(i, i + 2);
-    if (two === '//') {
-      const end = text.indexOf('\n', i);
-      const stop = end === -1 ? text.length : end;
-      out += blank(text.slice(i, stop));
-      i = stop;
-    } else if (two === '/*') {
-      const end = text.indexOf('*/', i + 2);
-      const stop = end === -1 ? text.length : end + 2;
-      out += blank(text.slice(i, stop));
-      i = stop;
-    } else if (two === '{/') {
-      // A JSX comment `{/* … */}` — the brace comes first, so the block branch would leave a
-      // stray `}` behind and shift every index after it.
-      const end = text.indexOf('*/}', i);
-      const stop = end === -1 ? text.length : end + 3;
-      out += blank(text.slice(i, stop));
-      i = stop;
-    } else {
-      out += text[i];
-      i += 1;
-    }
-  }
-  return out;
-}
-
-function tsxFiles(dir: string): string[] {
-  const out: string[] = [];
-  for (const name of readdirSync(join(APP_ROOT, dir))) {
-    const rel = `${dir}/${name}`;
-    if (statSync(join(APP_ROOT, rel)).isDirectory()) out.push(...tsxFiles(rel));
-    else if (name.endsWith('.tsx')) out.push(rel);
-  }
-  return out;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // NFR-SEC-12 · the CSP. Security.md §11.3.

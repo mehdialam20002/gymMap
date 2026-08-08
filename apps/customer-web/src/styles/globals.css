@@ -236,6 +236,19 @@
   }
 
   /*
+   * `SCR-WEB-003`'s plan card. Same offset as the filter rail, and no max-height: three plans is
+   * a short card, and capping it would add a scrollbar to something that never needs one. If a
+   * gym ever lists ten plans the card grows past the viewport and simply stops being sticky at
+   * the bottom, which is the correct degradation.
+   */
+  @media (min-width: 1024px) {
+    .gm-plan-card {
+      position: sticky;
+      top: calc(var(--gm-chrome-height) + var(--gm-space-inset-md));
+    }
+  }
+
+  /*
    * The filter rail follows the results down — but it is nearly 2,000px tall with five facet
    * groups open, so a plain `position: sticky` would pin its TOP and leave the last two groups
    * permanently below the fold with no way to reach them. It scrolls inside itself instead, and

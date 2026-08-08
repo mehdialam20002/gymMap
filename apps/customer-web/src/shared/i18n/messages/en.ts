@@ -279,6 +279,28 @@ export const en = {
     'No reviews yet. On GymMap a review can only be written by a member who has checked in at this gym — so a new listing starts empty rather than starting with reviews nobody earned.',
   'web.gym.reviews.earned':
     'members have reviewed this gym, and every one of them checked in first. Individual reviews appear here once the reviews module is live.',
+  'web.gym.gallery.label': 'Photos of this gym',
+  // Stated on the page rather than only in a code comment: a member looking at four photos of a
+  // gym they are about to pay for is entitled to know whose photos they are.
+  'web.gym.gallery.provenance':
+    'Sample photography. A listed gym uploads its own photos before it goes live.',
+  'web.gym.facts.from': 'From',
+  'web.gym.facts.perMonth': 'per month',
+  'web.gym.facts.distance': 'Distance',
+  'web.gym.facts.km': 'km away',
+  'web.gym.facts.rating': 'Rating',
+  'web.gym.facts.unrated': 'Not yet rated',
+  // "4.7 213 reviews" ran together in the facts strip and read as one number. The preposition is
+  // doing real work; `{count}` is substituted at the call site so a translator can move it.
+  'web.gym.facts.reviewCount': 'from {count} reviews',
+  'web.gym.facts.open': 'Opening hours',
+  'web.gym.section.similar': 'Other verified gyms in this city',
+  'web.gym.similar.none':
+    'This is the only verified gym listed in this city so far. More appear as they are approved.',
+  'web.gym.directions': 'Open in maps',
+  // Says where the link goes. An external destination announced as "Open in maps" alone is a
+  // surprise for anyone who did not expect to leave the site (AX2, NFR-USE-*).
+  'web.gym.directionsHint': 'opens Google Maps in a new tab',
   'web.gym.plans.title': 'Membership plans',
   'web.gym.plans.days': 'days',
   'web.gym.plans.join': 'Join this gym',

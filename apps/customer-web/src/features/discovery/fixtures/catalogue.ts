@@ -63,12 +63,40 @@ export interface SearchResult {
   readonly photoAlt: string;
 }
 
+/** One image in a gym's gallery. `alt` describes what is IN it, never "gym photo 2 of 4". */
+export interface Photo {
+  readonly src: string;
+  readonly alt: string;
+}
+
 export interface GymDetail extends SearchResult {
   readonly about: string;
   readonly address: string;
   readonly openingHours: string;
   readonly plans: readonly PlanSummary[];
+  /**
+   * The gallery, EXCLUDING the cover — the detail page renders `photo` first and these after it,
+   * so a photo never appears twice in the same mosaic.
+   *
+   * Three each, and each one verified to resolve rather than typed from memory: every id here was
+   * fetched through the running image optimiser before it was committed, because a mistyped digit
+   * is a broken image that only shows up on one gym's page, at one breakpoint, in a demo.
+   */
+  readonly gallery: readonly Photo[];
 }
+
+/**
+ * The gallery URL shape, in one place.
+ *
+ * `w=1600` and not the card's `w=1200`: the gallery's lead image is up to 60% of a 1440px viewport
+ * and the card's is a third of it. Requesting the same width for both means one of them is wrong,
+ * and the one that is wrong is the larger — a soft, upscaled hero on the page whose whole job is
+ * making a gym look like somewhere you would go.
+ */
+const galleryPhoto = (id: number, alt: string): Photo => ({
+  src: `https://images.pexels.com/photos/${String(id)}/pexels-photo-${String(id)}.jpeg?auto=compress&cs=tinysrgb&w=1600`,
+  alt,
+});
 
 /**
  * Eight gyms across four cities.
@@ -95,6 +123,12 @@ export const CATALOGUE: readonly GymDetail[] = [
     photo:
       'https://images.pexels.com/photos/9958669/pexels-photo-9958669.jpeg?auto=compress&cs=tinysrgb&w=1200',
     photoAlt: 'barbell floor',
+    gallery: [
+      galleryPhoto(3916766, 'dumbbell rack'),
+      galleryPhoto(6389067, 'gymnastic rings'),
+      galleryPhoto(6389513, 'dumbbells and medicine balls'),
+      galleryPhoto(9545909, 'conditioning corner'),
+    ],
     about:
       'A barbell-first gym with four competition platforms and coaches who compete. Not a circuit ' +
       'studio — if you want to learn to squat, deadlift and press properly, this is the room.',
@@ -123,6 +157,12 @@ export const CATALOGUE: readonly GymDetail[] = [
     photo:
       'https://images.pexels.com/photos/7031706/pexels-photo-7031706.jpeg?auto=compress&cs=tinysrgb&w=1200',
     photoAlt: 'machine floor',
+    gallery: [
+      galleryPhoto(12250460, 'treadmill row'),
+      galleryPhoto(17211446, 'weights and free-weight area'),
+      galleryPhoto(8933584, 'stationary bikes'),
+      galleryPhoto(29224211, 'floor under geometric lighting'),
+    ],
     about:
       'A large mixed-use floor with a full cardio deck, three studios and classes running from ' +
       '06:00. Busy between 19:00 and 21:00 — the app shows live occupancy before you leave home.',
@@ -150,6 +190,12 @@ export const CATALOGUE: readonly GymDetail[] = [
     photo:
       'https://images.pexels.com/photos/7186312/pexels-photo-7186312.jpeg?auto=compress&cs=tinysrgb&w=1200',
     photoAlt: 'empty studio floor',
+    gallery: [
+      galleryPhoto(25599832, 'Pilates tower studio'),
+      galleryPhoto(17227607, 'daylit floor'),
+      galleryPhoto(6389067, 'rings over the mat floor'),
+      galleryPhoto(17211446, 'open practice floor'),
+    ],
     about:
       'Small classes, capped at twelve. Ashtanga and Iyengar in the mornings, restorative in the ' +
       'evenings. Two women-only slots a day.',
@@ -177,6 +223,12 @@ export const CATALOGUE: readonly GymDetail[] = [
     photo:
       'https://images.pexels.com/photos/9545914/pexels-photo-9545914.jpeg?auto=compress&cs=tinysrgb&w=1200',
     photoAlt: 'rig and conditioning',
+    gallery: [
+      galleryPhoto(17227607, 'daylit conditioning floor'),
+      galleryPhoto(8611382, 'row of rowing machines'),
+      galleryPhoto(9545909, 'conditioning floor'),
+      galleryPhoto(6389067, 'gymnastic rings'),
+    ],
     about:
       'An affiliate box running five classes a day plus open gym. Coaches scale every workout, so ' +
       'a first-timer and a regional competitor train in the same hour.',
@@ -204,6 +256,12 @@ export const CATALOGUE: readonly GymDetail[] = [
     photo:
       'https://images.pexels.com/photos/12250460/pexels-photo-12250460.jpeg?auto=compress&cs=tinysrgb&w=1200',
     photoAlt: 'cardio row',
+    gallery: [
+      galleryPhoto(20418606, 'treadmills under blue light'),
+      galleryPhoto(34761566, 'treadmills, ellipticals and bikes'),
+      galleryPhoto(29224211, 'floor under geometric lighting'),
+      galleryPhoto(7031705, 'bikes and treadmills'),
+    ],
     about:
       'A premium floor overlooking the bay, with personal training as the default rather than an ' +
       'upsell. Every membership includes an assessment and a written programme.',
@@ -233,6 +291,12 @@ export const CATALOGUE: readonly GymDetail[] = [
     photo:
       'https://images.pexels.com/photos/3916766/pexels-photo-3916766.jpeg?auto=compress&cs=tinysrgb&w=1200',
     photoAlt: 'dumbbell rack',
+    gallery: [
+      galleryPhoto(8611297, 'boxing ring and bags'),
+      galleryPhoto(5750886, 'heavy bags'),
+      galleryPhoto(29392546, 'mirrored weights floor'),
+      galleryPhoto(6389513, 'dumbbells and medicine balls'),
+    ],
     about:
       'Opened this quarter. Weights floor plus a full ring, with boxing classes four evenings a ' +
       'week. No reviews yet — reviews here can only be left by members who actually checked in.',
@@ -262,6 +326,12 @@ export const CATALOGUE: readonly GymDetail[] = [
     photo:
       'https://images.pexels.com/photos/17211446/pexels-photo-17211446.jpeg?auto=compress&cs=tinysrgb&w=1200',
     photoAlt: 'small floor',
+    gallery: [
+      galleryPhoto(3916766, 'dumbbell rack'),
+      galleryPhoto(12250460, 'treadmill row'),
+      galleryPhoto(6389513, 'free weights corner'),
+      galleryPhoto(7031705, 'cardio corner'),
+    ],
     about:
       'No frills and no contract pressure. Machines, dumbbells to 40 kg, and a treadmill row. ' +
       'The cheapest verified listing in South Delhi.',
@@ -286,6 +356,12 @@ export const CATALOGUE: readonly GymDetail[] = [
     photo:
       'https://images.pexels.com/photos/8933584/pexels-photo-8933584.jpeg?auto=compress&cs=tinysrgb&w=1200',
     photoAlt: 'bikes and pool hall',
+    gallery: [
+      galleryPhoto(7031705, 'bikes and treadmills'),
+      galleryPhoto(33966785, 'training track'),
+      galleryPhoto(29526371, 'weights floor'),
+      galleryPhoto(9545909, 'weights floor'),
+    ],
     about:
       'A 25-metre pool with lane hours from 05:30, plus a weights floor. Swim-only and combined ' +
       'memberships are priced separately.',
