@@ -132,17 +132,30 @@ export const light = {
   'color-content-info': p.sky[800],
 
   // --- border: separation and control edges ---------------------------------
-  // ┌─ THE BORDERS FOLLOWED THE SURFACES UP ────────────────────────────────────────────────────┐
-  // │ A `neutral-300` outline around a white card on a `neutral-50` canvas draws more attention    │
-  // │ than the card does. The reference uses `slate-200`, which reads as a seam rather than as a    │
-  // │ frame — and the card is then defined by its fill and its shadow, which is the point.          │
-  // │                                                                                            │
-  // │ `strong` stays clear of `default` by two steps so a hover state is still visible.             │
-  // └────────────────────────────────────────────────────────────────────────────────────────────┘
-  'color-border-subtle': p.neutral[200],
-  'color-border-default': p.neutral[300],
-  'color-border-strong': p.neutral[400],
-  /** `N01` — the border IS the control boundary, so it carries the 3:1 obligation. 4.76:1. */
+  /**
+   * ┌─ RE-MEASURED. THE FIRST ANSWER HERE WAS ASSERTED, NOT MEASURED, AND IT WAS WRONG ──────────┐
+   * │ When the surfaces were lightened this dropped from `neutral-300` to `neutral-200`, on the    │
+   * │ reasoning that "a 300 outline around a white card on a 50 canvas draws more attention than   │
+   * │ the card does". That was written without computing anything, and the numbers say otherwise:  │
+   * │                                                                                            │
+   * │     slate-200   1.23:1 on a white card · 1.18:1 on the canvas   ← effectively invisible      │
+   * │     slate-300   1.48:1 on a white card · 1.42:1 on the canvas   ← a faint seam                │
+   * │     slate-400   2.56:1 on a white card · 2.45:1 on the canvas   ← a definite line              │
+   * │                                                                                            │
+   * │ At 1.23 the card edge was carried entirely by `shadow-sm`, so every panel looked like it was │
+   * │ floating with no boundary — and in dark mode, where the shadow is suppressed, by nothing at   │
+   * │ all. 1.48 is a seam rather than a frame, which is what a card wants.                          │
+   * │                                                                                            │
+   * │ None of these clears the 3:1 non-text floor and none needs to: `AX4` governs boundaries that │
+   * │ CARRY meaning, and a card edge does not — the fill does. This is legibility, and the honest  │
+   * │ way to settle it was to measure it rather than to argue about it twice.                       │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  'color-border-subtle': p.neutral[300],
+  'color-border-default': p.neutral[400],
+  /** Hover, and any edge that has to be found rather than merely seen. 3.94:1 on white. */
+  'color-border-strong': p.neutral[500],
+
   'color-border-input': p.neutral[500],
   'color-border-input-hover': p.neutral[600],
   /** 3.89:1 on the canvas. `pear-600` measures 1.87:1 and would be a ring nobody can see. */

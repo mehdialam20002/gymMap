@@ -117,3 +117,58 @@
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════
+ * SCROLLBARS — thin, token-coloured, and never a design element.
+ *
+ * ┌─ WHY THIS IS NOT COSMETIC ──────────────────────────────────────────────────────────────────┐
+ * │ The admin shell has two independent scroll regions — the sidebar's nav list and `<main>` — so │
+ * │ the platform draws two 15px scrollbars, and on the sidebar that bar was wider than the gap    │
+ * │ between a nav icon and its label. `color-scheme` already fixed their COLOUR in dark mode;     │
+ * │ nothing had touched their WIDTH, so the most prominent vertical line on the screen was a      │
+ * │ piece of browser furniture rather than anything in the design.                                │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ WHAT IS DELIBERATELY NOT DONE HERE ────────────────────────────────────────────────────────┐
+ * │ The thumb is never hidden and never made transparent-until-hover. A scrollbar is the only     │
+ * │ persistent indication that a region scrolls at all, and a region whose scrollability is       │
+ * │ revealed by hovering it is undiscoverable to anyone navigating by keyboard or reading the      │
+ * │ screen at a glance. `scrollbar-width: thin` keeps it present and reduces it; `none` would be   │
+ * │ the version that breaks.                                                                      │
+ * │                                                                                              │
+ * │ The thumb also stays at `border-strong` rather than `border-subtle`: at 8px wide a 1.48:1     │
+ * │ line is not findable, and the one thing a scrollbar must do is be grabbable.                   │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+
+/* The standard property. Firefox, and Chromium 121+. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gm-color-border-strong) transparent;
+}
+
+/* WebKit's older model, still what Safari and older Chromium read. */
+*::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+*::-webkit-scrollbar-track {
+  /* Transparent, so the track takes whichever surface the scrolling region already has. A tinted
+     track would be a second, contradicting surface running down the edge of every panel. */
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--gm-color-border-strong);
+  border-radius: var(--gm-radius-full);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--gm-color-content-muted);
+}
+
+/* Where both axes scroll, the corner is track rather than a third colour. */
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}

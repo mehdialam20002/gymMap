@@ -317,9 +317,9 @@
   --gm-color-content-warning: #78350F;
   --gm-color-content-danger: #991B1B;
   --gm-color-content-info: #075985;
-  --gm-color-border-subtle: #E2E8F0;
-  --gm-color-border-default: #CBD5E1;
-  --gm-color-border-strong: #94A3B8;
+  --gm-color-border-subtle: #CBD5E1;
+  --gm-color-border-default: #94A3B8;
+  --gm-color-border-strong: #64748B;
   --gm-color-border-input: #64748B;
   --gm-color-border-input-hover: #475569;
   --gm-color-border-focus: #047857;
