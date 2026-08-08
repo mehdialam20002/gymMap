@@ -91,16 +91,31 @@ export class UserRolePrismaRepository implements UserRoleStore {
   /**
    * Replaces one user's role within the current tenant, returning the role they held before.
    *
-   * ┌─ REVOKE-THEN-GRANT IN ONE TRANSACTION, AND NEVER AN UPDATE ────────────────────────────────┐
-   * │ The obvious implementation is `update({ where: { userId, tenantId }, data: { roleId } })`.   │
-   * │ It is wrong for the reason the schema comment on `revoked_at` gives: rewriting the row       │
-   * │ destroys the record that the previous grant ever existed, and `granted_at` then describes a  │
-   * │ grant that never happened. Attribution is the point of the column.                          │
+   * ┌─ THE GRANT TRIPLE IS UNIQUE REGARDLESS OF REVOCATION, SO A RE-GRANT IS AN UPDATE ──────────┐
+   * │ `uq_user_roles__user_role_tenant UNIQUE NULLS NOT DISTINCT (user_id, role_id, tenant_id)` —  │
+   * │ and `revoked_at` IS NOT IN IT. The first version of this method revoked the live rows and    │
+   * │ then INSERTED, which is correct exactly once per (user, role, tenant) and then throws:       │
    * │                                                                                            │
-   * │ So the old rows are stamped revoked and a new row is inserted. Both in one interactive       │
-   * │ transaction, because the state in between — a user with no role at all — is one a concurrent │
-   * │ authorisation check could observe, and it would deny a request the user was entitled to make.│
+   * │   owner → manager   revokes (ana, owner, t1), inserts (ana, manager, t1)      fine           │
+   * │   manager → owner   revokes (ana, manager, t1), inserts (ana, owner, t1)      P2002          │
+   * │                                                                                            │
+   * │ …because the revoked owner row still occupies that triple. Changing somebody's role BACK is  │
+   * │ an ordinary thing to do, and it would have surfaced as a raw constraint violation — a 500 on │
+   * │ a perfectly valid request. Found by reading the migration rather than by trusting the comment │
+   * │ that used to be here, which asserted the index without having checked which columns it names.│
+   * │                                                                                            │
+   * │ So the triple is the grant's IDENTITY and `revoked_at` is its STATE: re-granting clears the  │
+   * │ revocation and re-stamps `granted_at`. The history of grant/revoke cycles is not lost, it    │
+   * │ lives in the audit log — which is precisely why `ChangeUserRoleUseCase` writes one.          │
+   * │                                                                                            │
+   * │ Prisma cannot `upsert` onto this constraint: the schema deliberately declares no `@@unique`  │
+   * │ for it (a plain one would generate a WEAKER index on `db push`), so Prisma's only unique     │
+   * │ input is `id`. The find-then-update-or-create below is that limitation, not a preference.    │
    * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   *
+   * One interactive transaction, because the state in between — a user with no live role at all —
+   * is one a concurrent authorisation check could observe, and it would deny a request the user was
+   * entitled to make.
    *
    * Returns `null` when the user held nothing here, which is the correct answer for a first grant
    * rather than an error: the audit row's `before` is then honestly empty.
@@ -110,33 +125,55 @@ export class UserRolePrismaRepository implements UserRoleStore {
     const now = this.clock.now();
 
     return this.db.client.$transaction(async (tx) => {
-      const existing = await tx.userRole.findMany({
-        where: { tenantId, userId, revokedAt: null },
-        select: { id: true, role: { select: { key: true } } },
-      });
-
-      // Plural on purpose. The unique index is `UNIQUE NULLS NOT DISTINCT` on the grant triple, so
-      // one user CAN legitimately hold two different roles in the same tenant. Revoking only the
-      // first would leave the other live and the caller would believe the role had been replaced.
-      if (existing.length > 0) {
-        await tx.userRole.updateMany({
-          where: { id: { in: existing.map((row) => row.id) } },
-          data: { revokedAt: now, updatedBy: null },
-        });
-      }
-
+      // Resolved first, so the row we must not revoke is known before anything is written.
       const nextRole = await tx.role.findUniqueOrThrow({
         where: { key: role },
         select: { id: true },
       });
 
-      await tx.userRole.create({
-        data: { userId, tenantId, roleId: nextRole.id, grantedAt: now },
+      const live = await tx.userRole.findMany({
+        where: { tenantId, userId, revokedAt: null },
+        select: { id: true, roleId: true, role: { select: { key: true } } },
       });
+
+      /*
+       * Plural, and it excludes the target row.
+       *
+       * Plural because the triple makes (user, role, tenant) unique but not (user, tenant): one
+       * user can legitimately hold two different roles in one tenant, and revoking only the first
+       * would leave the other live while the caller believed the role had been replaced.
+       *
+       * Excluding the target because re-granting a role somebody already holds must not restamp
+       * `granted_at` — that would rewrite the date they actually got it for what is a no-op.
+       */
+      const toRevoke = live.filter((row) => row.roleId !== nextRole.id);
+      if (toRevoke.length > 0) {
+        await tx.userRole.updateMany({
+          where: { id: { in: toRevoke.map((row) => row.id) } },
+          data: { revokedAt: now },
+        });
+      }
+
+      // Any state — the whole point is that a REVOKED row still owns the triple.
+      const existingTarget = await tx.userRole.findFirst({
+        where: { tenantId, userId, roleId: nextRole.id },
+        select: { id: true, revokedAt: true },
+      });
+
+      if (existingTarget === null) {
+        await tx.userRole.create({
+          data: { userId, tenantId, roleId: nextRole.id, grantedAt: now },
+        });
+      } else if (existingTarget.revokedAt !== null) {
+        await tx.userRole.update({
+          where: { id: existingTarget.id },
+          data: { revokedAt: null, grantedAt: now },
+        });
+      }
 
       // The role they held before. When there were several, the one the domain cares about is an
       // owner if any of them was — the last-owner policy is about owners, not about ordering.
-      const before = existing.find((row) => row.role.key === 'GYM_OWNER') ?? existing[0];
+      const before = live.find((row) => row.role.key === 'GYM_OWNER') ?? live[0];
       return before?.role.key ?? null;
     });
   }
