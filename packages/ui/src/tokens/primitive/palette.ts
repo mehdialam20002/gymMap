@@ -11,12 +11,35 @@
  * │ merely fail review — it does not exist as a class.                                            │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
- * ┌─ THE BRAND IS INDIGO, AND THAT IS A SAFETY DECISION ────────────────────────────────────────┐
- * │ `SCR-DASH-009` puts a green ALLOWED and a red DENIED in front of a receptionist a few        │
- * │ hundred times a day, and `NFR-USE-01` makes that screen a WCAG 2.1 AA surface. A green brand │
- * │ would put every primary button, active nav item and focus ring in the same perceptual        │
- * │ neighbourhood as "this member may enter" — a neighbourhood that already contains red under   │
- * │ deuteranopia, roughly 1 in 16 men (§4.2 measures it at 1.05:1).                              │
+ * ┌─ THE BRAND IS PEAR, AND THE GREEN OBJECTION WAS MEASURED RATHER THAN ASSUMED ───────────────┐
+ * │ This file previously argued that the brand could not be green: `SCR-DASH-009` puts a green   │
+ * │ ALLOWED and a red DENIED in front of a receptionist a few hundred times a day, and a green   │
+ * │ brand would put every primary button in the same perceptual neighbourhood as "this member    │
+ * │ may enter".                                                                                   │
+ * │                                                                                              │
+ * │ That argument is about a brand green at the SAME LIGHTNESS as the verdict green. Pear is not │
+ * │ one: it is L 0.822 against emerald-700's 0.15, so lightness separates them even after hue    │
+ * │ collapses. Simulated with Viénot deuteranopia and measured:                                   │
+ * │                                                                                              │
+ * │     pear vs success emerald-700   4.68:1                                                     │
+ * │     pear vs danger  red-700       4.46:1                                                     │
+ * │     pear vs warning amber-700     3.66:1   ← the tightest pair; both read yellow             │
+ * │                                                                                              │
+ * │ The amber pair is the one to watch: a warning badge beside a pear call to action will look   │
+ * │ RELATED to roughly 1 in 16 men. It clears the 3:1 non-text floor, and `AX8` already requires │
+ * │ icon AND word AND colour on every status, so the redundancy that carries it is present. It   │
+ * │ is recorded here so nobody later reads 3.66 as comfortable.                                   │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ WHAT INVERTS BECAUSE THE BRAND IS NOW A LIGHT COLOUR ──────────────────────────────────────┐
+ * │ White on pear is 1.20:1. The solid brand fill therefore carries a DARK foreground in BOTH    │
+ * │ themes, not just in dark — and §3.5's state derivation flips with it: hover and active must  │
+ * │ LIGHTEN (400 → 300 → 200), because darkening a light fill under dark text reduces contrast.  │
+ * │ The rule that hover never reduces contrast is unchanged; only its direction is.               │
+ * │                                                                                              │
+ * │ Pear is also unusable as TEXT on a light canvas — 1.00:1 on `neutral-200`. Links, active nav │
+ * │ and the focus ring take the deep steps (800 and 700) instead, which is why this ramp's dark  │
+ * │ end is pushed further down than the indigo ramp it replaces.                                  │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
  * Twelve steps per family. A step is a POSITION, not a value (`NG4`) — which is what lets §3.2's
@@ -27,34 +50,64 @@ export const palette = {
   white: '#FFFFFF',
   black: '#000000',
 
-  /** Cool slate. Deliberately cool so warm, artificially-lit gym photography reads as the warm thing. */
+  /**
+   * Warm-neutral, carrying a faint olive cast from `laurel leaf`. Four steps are the brand's own
+   * named colours; the rest are generated along the same hue at the luminance profile the previous
+   * slate ramp used, so every §3.6 pairing keeps its ratio and the migration stayed a palette
+   * change rather than sixty separate re-arguments.
+   *
+   *   200 `ceiling white`   300 `celeste`   400 `laurel leaf`   950 `rich black`
+   */
   neutral: {
-    50: '#F8FAFC',
-    100: '#F1F5F9',
-    200: '#E2E8F0',
-    300: '#CBD5E1',
-    400: '#94A3B8',
-    500: '#64748B',
-    600: '#475569',
-    700: '#334155',
-    800: '#1E293B',
-    900: '#0F172A',
-    950: '#020617',
+    /*
+     * 50 and 100 were `#F7FCE7` and `#F1F6E2` — a markedly stronger yellow-green than the rest
+     * of the ramp, which from 200 on is an almost-neutral grey-olive (`#E9EBE6`, `#D2D3CE`).
+     * The two lightest steps did not sit on the same hue line as the family they belong to.
+     *
+     * That is a ramp defect rather than a taste question, and it was highly visible: the admin
+     * canvas is `surface-sunken` (100), so every light-mode screen in the console rendered on a
+     * pale yellow-green wash while the cards on top of it were near-neutral.
+     *
+     * Re-stepped onto the same hue as 200-400, lighter. The brand's olive character is kept —
+     * these are not grey — and the cast that read as "wrong colour" is gone.
+     */
+    50: '#FAFBF8',
+    100: '#F3F5F0',
+    /** `ceiling white`. */
+    200: '#E9EBE6',
+    /** `celeste`. */
+    300: '#D2D3CE',
+    /** `laurel leaf`. Cannot carry text on a light canvas — 2.42:1. A surface, or ink on dark. */
+    400: '#96998C',
+    500: '#72746A',
+    600: '#53554D',
+    700: '#3F413A',
+    800: '#282925',
+    900: '#171815',
+    /** `rich black`. The dark canvas, and `surface-media` in BOTH themes. */
+    950: '#061414',
   },
 
-  /** `brand`. Far from green and from red in every dichromat projection — see the header. */
-  indigo: {
-    50: '#EEF2FF',
-    100: '#E0E7FF',
-    200: '#C7D2FE',
-    300: '#A5B4FC',
-    400: '#818CF8',
-    500: '#6366F1',
-    600: '#4F46E5',
-    700: '#4338CA',
-    800: '#3730A3',
-    900: '#312E81',
-    950: '#1E1B4B',
+  /**
+   * `brand`. The seed sits at 400 — the conventional solid step — and the deep end runs further
+   * down than a mid-lightness family would need, because 700 and 800 are what carry the focus
+   * ring and links on a light canvas. See the header for why pear itself cannot.
+   */
+  pear: {
+    50: '#F7FFEF',
+    100: '#EDFFD9',
+    200: '#DFFFB6',
+    300: '#D1FF8E',
+    /** `pear`. The brand. Takes a dark foreground: white on it is 1.20:1. */
+    400: '#BCFF00',
+    500: '#9DD600',
+    600: '#7CAA00',
+    /** Focus ring on a light canvas — 3.89:1. Also the step white must clear, at 4.68:1. */
+    700: '#5C7F00',
+    /** Links and brand text on a light canvas — 5.27:1. */
+    800: '#4B6900',
+    900: '#374E00',
+    950: '#233400',
   },
 
   /** `success` — it worked. Payment captured, member checked in, plan published. */

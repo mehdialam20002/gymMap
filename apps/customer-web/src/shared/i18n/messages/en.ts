@@ -35,7 +35,14 @@ export const en = {
   'web.home.meta.title': 'GymMap — find and join a gym near you',
   'web.home.meta.description':
     'Compare gyms near you by price, distance and facilities. See the real price before you visit, and join online.',
-  'web.home.hero.title': 'Find a gym that fits your life',
+  // Split so one phrase can carry the brand accent. Kept as two keys rather than markup inside
+  // one string: a translator must be able to move the accent, and in several languages the
+  // emphasised phrase is not the tail of the sentence.
+  'web.home.hero.titleLead': 'Find a gym that fits',
+  'web.home.hero.titleAccent': 'your life',
+  // NOT "India's #1". Every superlative on this page has to be defensible, and a marketplace
+  // with no live listings cannot defend a ranking claim to a consumer or to ASCI.
+  'web.home.hero.badge': 'Verified gyms, real prices',
   // BR-PLN-03 is a product promise, so the home page states it rather than implying it.
   'web.home.hero.subtitle':
     'Compare gyms near you by price, distance and facilities. The price you see is the price you pay.',
@@ -51,6 +58,36 @@ export const en = {
   // glyph on a page with no audio reads as a media player.
   'web.home.hero.motionPause': 'Pause background video',
   'web.home.hero.motionPlay': 'Play background video',
+
+  // The combined search control. The city select is a real <select> inside the GET form, so it
+  // works before hydration and lands in a shareable URL.
+  'web.home.hero.cityLabel': 'City',
+  'web.home.hero.cityAny': 'All cities',
+
+  /*
+   * The three promises, in the compact form the hero needs. Deliberately the SAME three claims
+   * the cards below make at length, because they are the differentiators (BR-GYM-01, BR-PLN-03,
+   * BR-REV-01) and a hero that gestures at them while a strip of invented statistics does the
+   * persuading has its priorities backwards.
+   */
+  'web.home.hero.promise.verified.title': 'Verified gyms',
+  'web.home.hero.promise.verified.note': 'Approved by a person',
+  'web.home.hero.promise.pricing.title': 'Real price',
+  'web.home.hero.promise.pricing.note': 'No hidden fees',
+  'web.home.hero.promise.reviews.title': 'Earned reviews',
+  'web.home.hero.promise.reviews.note': 'Only after a check-in',
+
+  'web.home.hero.browseLabel': 'Browse by activity',
+  /*
+   * The chip LABEL is translatable; the query value it links to is not. The value has to stay the
+   * literal string the catalogue carries, or the filter matches nothing the moment a second
+   * language exists — a bug that would look like "search is broken in Hindi".
+   */
+  'web.home.hero.category.strength': 'Strength',
+  'web.home.hero.category.cardio': 'Cardio',
+  'web.home.hero.category.yoga': 'Yoga',
+  'web.home.hero.category.boxing': 'Boxing',
+  'web.home.hero.category.swimming': 'Swimming',
 
   'web.home.value.verified.title': 'Every gym is checked',
   // BR-GYM-01. Stated plainly because it is the differentiator, not a footnote.

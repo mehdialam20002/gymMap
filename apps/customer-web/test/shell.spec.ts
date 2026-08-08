@@ -143,6 +143,24 @@ test('script-src takes the nonce and NEVER unsafe-inline', () => {
   assert.ok(!csp.includes('unsafe-eval'), 'the emitted CSP contains unsafe-eval');
 });
 
+test('unsafe-eval is a DEVELOPMENT concession and never reaches production', () => {
+  // Next's dev server compiles with `eval` and serves HMR chunks with no nonce, so the production
+  // policy blocks the entire client bundle. The page still renders — server-rendered markup looks
+  // perfect — and nothing hydrates. It presents as "the button does nothing", not as a CSP error,
+  // which is why it needs a test rather than a comment.
+  const dev = buildContentSecurityPolicy(NONCE, {}, true);
+  assert.ok(dev.includes("'unsafe-eval'"), 'dev cannot run without it');
+  assert.ok(!dev.includes('unsafe-inline'), 'dev still refuses unsafe-inline');
+
+  // The half that matters. Default and explicit-false must both be clean.
+  assert.ok(!buildContentSecurityPolicy(NONCE, {}).includes('unsafe-eval'));
+  assert.ok(!buildContentSecurityPolicy(NONCE, {}, false).includes('unsafe-eval'));
+
+  // And the concession is scoped to scripts — it must not leak into any other directive.
+  assert.equal(directive(dev, 'style-src'), `'self' 'nonce-${NONCE}'`);
+  assert.equal(directive(dev, 'default-src'), "'none'");
+});
+
 test('style-src takes the nonce, because Tailwind compiles to a static stylesheet', () => {
   // unsafe-inline on styles is the cargo-culted default. A-03 makes it unnecessary here, and
   // that is a real property of the Tailwind choice worth keeping.
@@ -251,7 +269,11 @@ test('the middleware attaches the policy and every static header', () => {
   // The tests above prove the policy is right; this proves it is actually attached. A perfect
   // CSP that no response carries is the failure neither half catches alone.
   const mw = code('middleware.ts');
-  assert.match(mw, /buildContentSecurityPolicy\(nonce, cspHostsFromEnv\(process\.env\)\)/);
+  // Whitespace-tolerant: the call gained a third argument and prettier split it across lines, and
+  // a single-line regex would fail on a reformat that changed no behaviour.
+  assert.match(mw, /buildContentSecurityPolicy\(\s*nonce,\s*cspHostsFromEnv\(process\.env\)/);
+  // The dev concession must be DERIVED, never hard-coded to true.
+  assert.match(mw, /process\.env\.NODE_ENV !== 'production'/);
   assert.match(mw, /Object\.entries\(STATIC_SECURITY_HEADERS\)/);
   assert.match(mw, /requestHeaders\.set\('x-nonce', nonce\)/);
 });

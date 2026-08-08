@@ -32,7 +32,13 @@ export function middleware(request: NextRequest): NextResponse {
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set(
     'Content-Security-Policy',
-    buildContentSecurityPolicy(nonce, cspHostsFromEnv(process.env)),
+    // The dev flag comes from NODE_ENV, which `next build` sets to 'production' itself — so a
+    // production bundle cannot take the relaxed branch even if this line were edited carelessly.
+    buildContentSecurityPolicy(
+      nonce,
+      cspHostsFromEnv(process.env),
+      process.env.NODE_ENV !== 'production',
+    ),
   );
   for (const [header, value] of Object.entries(STATIC_SECURITY_HEADERS)) {
     response.headers.set(header, value);

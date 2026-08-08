@@ -30,7 +30,7 @@
  * `preload="metadata"`, so 2.5 MB does not compete with the LCP text on 4G (`NFR-PERF-02`).
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { t } from '../../shared/i18n/index.ts';
 
@@ -67,9 +67,28 @@ function attemptPlay(el: HTMLVideoElement): void {
 export function HeroVideo() {
   /** Separate from playback: the fade must not start until there is a frame to fade in. */
   const [ready, setReady] = useState(false);
+  const ref = useRef<HTMLVideoElement>(null);
 
-  const onLoaded = useCallback((el: HTMLVideoElement | null) => {
+  useEffect(() => {
+    const el = ref.current;
     if (!el) return;
+
+    /*
+     * ┌─ POLL THE STATE FIRST, THEN SUBSCRIBE ────────────────────────────────────────────────┐
+     * │ `onCanPlay` alone is a race, and on a fast connection the browser wins it: the file    │
+     * │ reaches `readyState 4` BEFORE React attaches the listener, the event is never          │
+     * │ delivered, and `data-ready` stays false forever — leaving a fully-loaded video sitting │
+     * │ at `opacity-0`. Diagnosed exactly that way: readyState 4, error null, paused true,     │
+     * │ dataReady "false".                                                                      │
+     * │                                                                                        │
+     * │ It only reproduces on a fast server, which is why it survived the first screenshots.   │
+     * └────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    if (el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) setReady(true);
+    const onReady = () => setReady(true);
+    el.addEventListener('loadeddata', onReady);
+    el.addEventListener('canplay', onReady);
+
     /*
      * `RM1`'s duration collapse cannot help here. The motion rules are explicit that anything
      * looping goes STATIC under reduced motion rather than fast — a 1 ms infinite loop is still
@@ -78,14 +97,18 @@ export function HeroVideo() {
      * Data-saver joins it for a different reason and the same answer: a visitor who asked their
      * browser to spend less data meant exactly this kind of megabyte.
      */
-    if (prefersLessMotion() || prefersLessData()) return;
-    attemptPlay(el);
+    if (!prefersLessMotion() && !prefersLessData()) attemptPlay(el);
+
+    return () => {
+      el.removeEventListener('loadeddata', onReady);
+      el.removeEventListener('canplay', onReady);
+    };
   }, []);
 
   return (
     <video
       id={VIDEO_ID}
-      ref={onLoaded}
+      ref={ref}
       // Decoration. A screen reader that announces "video" here has nothing to offer next.
       aria-hidden="true"
       // Without this the element is focusable in some browsers, putting a Tab stop that does
@@ -97,7 +120,9 @@ export function HeroVideo() {
       playsInline
       preload="metadata"
       disablePictureInPicture
-      onCanPlay={() => setReady(true)}
+      // Readiness is decided in the effect, which polls `readyState` BEFORE subscribing. An
+      // `onCanPlay` prop here would be a second listener for an event that has often already
+      // fired by the time React attaches it — which is the bug this replaced.
       data-ready={ready ? 'true' : 'false'}
       className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-deliberate ease-enter data-[ready=true]:opacity-100 motion-reduce:transition-none"
     >

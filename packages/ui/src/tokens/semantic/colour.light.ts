@@ -20,13 +20,22 @@ import { palette as p } from '../primitive/palette.ts';
 
 export const light = {
   // --- surface: what a thing sits on ----------------------------------------
-  'color-surface-default': p.white,
-  'color-surface-subtle': p.neutral[50],
-  'color-surface-sunken': p.neutral[100],
-  'color-surface-raised': p.white,
-  'color-surface-overlay': p.white,
-  'color-surface-inverse': p.neutral[900],
-  'color-surface-disabled': p.neutral[100],
+  /*
+   * PAPER, not white. The canvas is a warm off-white and cards lift ABOVE it, which is what puts
+   * `ceiling white` and `celeste` on screen as bands and wells rather than as swatches nobody
+   * ever sees. Pure `#FFFFFF` is now reserved for nothing: the ramp starts at `neutral-50`.
+   */
+  'color-surface-default': p.neutral[100],
+  /** `ceiling white` — the alternating section band. */
+  'color-surface-subtle': p.neutral[200],
+  /** `celeste` — wells, zebra rows, the recessed half of a split. */
+  'color-surface-sunken': p.neutral[300],
+  /** Cards and sheets lift by going LIGHTER than the canvas. */
+  'color-surface-raised': p.neutral[50],
+  'color-surface-overlay': p.neutral[50],
+  /** `rich black`. */
+  'color-surface-inverse': p.neutral[950],
+  'color-surface-disabled': p.neutral[300],
   'color-surface-scrim': 'rgb(2 6 23 / 0.60)',
   /**
    * The ground a photograph or video is composited against, and the ONLY surface on which
@@ -48,7 +57,7 @@ export const light = {
   'color-surface-media': p.neutral[950],
   /** `LC5` — a poll that FAILED must not look like one that is merely a few seconds old. */
   'color-surface-stale': p.amber[50],
-  'color-surface-brand-subtle': p.indigo[50],
+  'color-surface-brand-subtle': p.pear[50],
   'color-surface-success-subtle': p.emerald[50],
   'color-surface-warning-subtle': p.amber[50],
   'color-surface-danger-subtle': p.red[50],
@@ -61,12 +70,22 @@ export const light = {
   'color-content-muted': p.neutral[500],
   'color-content-disabled': p.neutral[400],
   'color-content-inverse': p.neutral[50],
-  'color-content-link': p.indigo[700],
-  'color-content-link-hover': p.indigo[800],
-  'color-content-link-visited': p.indigo[900],
+  /*
+   * The deep end of the ramp, because pear itself is 1.00:1 on this canvas. 5.27:1 / 7.77:1 /
+   * 9.6:1 — and the visited state stays DARKER than the default, so the progression still reads
+   * as "already been there" rather than as a different link.
+   */
+  'color-content-link': p.pear[800],
+  'color-content-link-hover': p.pear[900],
+  'color-content-link-visited': p.pear[950],
   'color-content-stale': p.amber[900],
   // NG3 — one guaranteed-legible foreground per solid fill, so `text-white` is never a guess.
-  'color-content-on-brand': p.white,
+  /*
+   * DARK, not white, and in the LIGHT theme — the inversion the previous palette only needed in
+   * dark mode. White on pear is 1.20:1. A `text-white` here would be invisible and would look
+   * like a rendering bug rather than a contrast one.
+   */
+  'color-content-on-brand': p.neutral[900],
   'color-content-on-success': p.white,
   'color-content-on-warning': p.white,
   'color-content-on-danger': p.white,
@@ -74,15 +93,14 @@ export const light = {
   /** The foreground `surface-media` guarantees. Theme-invariant for the same reason it is. */
   'color-content-on-media': p.neutral[50],
   /**
-   * The brand, as it may appear ON the media band — an accented word in a hero headline.
+   * The brand, as it appears ON the media band — the accented word in a hero headline.
    *
-   * `indigo-300` rather than the `brand-solid` step, and it is not a preference: `indigo-600` on
-   * `#020617` measures **3.21:1** and fails the text floor outright. The band is near-black in
-   * both themes, so the accent has to be a LIGHT step in both, which no existing brand token is.
-   * 10.12:1 — `MD3`.
+   * The band is `rich black` in BOTH themes, so the accent must be a light step in both, which no
+   * theme-varying brand token is. Pear itself serves: 15.60:1 (`MD3`). This is also the one place
+   * the brand appears at full strength as TEXT, which it cannot do on the light canvas at all.
    */
-  'color-content-on-media-accent': p.indigo[300],
-  'color-content-brand': p.indigo[800],
+  'color-content-on-media-accent': p.pear[400],
+  'color-content-brand': p.pear[800],
   'color-content-success': p.emerald[800],
   'color-content-warning': p.amber[900],
   'color-content-danger': p.red[800],
@@ -95,20 +113,29 @@ export const light = {
   /** `N01` — the border IS the control boundary, so it carries the 3:1 obligation. 4.76:1. */
   'color-border-input': p.neutral[500],
   'color-border-input-hover': p.neutral[600],
-  'color-border-focus': p.indigo[600],
-  'color-border-brand': p.indigo[600],
+  /** 3.89:1 on the canvas. `pear-600` measures 1.87:1 and would be a ring nobody can see. */
+  'color-border-focus': p.pear[700],
+  'color-border-brand': p.pear[700],
   'color-border-success': p.emerald[700],
   'color-border-warning': p.amber[700],
   'color-border-danger': p.red[700],
   'color-border-info': p.sky[700],
 
   // --- brand: the one persuasive colour -------------------------------------
-  'color-brand-solid': p.indigo[600],
-  'color-brand-solid-hover': p.indigo[700],
-  'color-brand-solid-active': p.indigo[800],
-  'color-brand-solid-disabled': p.neutral[100],
-  'color-brand-subtle': p.indigo[50],
-  'color-brand-subtle-hover': p.indigo[100],
+  /*
+   * §3.5's direction INVERTS for this family, and the rule it serves does not.
+   *
+   * The rule is that hover and active may never reduce contrast. With a dark fill under white
+   * text, that means darkening. With a LIGHT fill under dark text — which is what pear is — it
+   * means lightening: 14.81 → 15.63 → 16.23 as the state escalates. Darkening here would have
+   * walked the button toward its own foreground.
+   */
+  'color-brand-solid': p.pear[400],
+  'color-brand-solid-hover': p.pear[300],
+  'color-brand-solid-active': p.pear[200],
+  'color-brand-solid-disabled': p.neutral[300],
+  'color-brand-subtle': p.pear[50],
+  'color-brand-subtle-hover': p.pear[100],
 
   // --- success: it worked ---------------------------------------------------
   // 700, NOT 600. White on emerald-600 measures 3.77:1 — below the text floor. §3.8 F4.

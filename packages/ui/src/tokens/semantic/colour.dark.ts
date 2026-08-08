@@ -29,8 +29,10 @@ import type { ColourTokenKey } from './colour.light.ts';
 export const dark = {
   // --- surface --------------------------------------------------------------
   'color-surface-default': p.neutral[900],
-  // Inverted direction. Subtle recedes by going darker on a dark canvas.
-  'color-surface-subtle': '#0B1120',
+  // Inverted direction. Subtle recedes by going darker on a dark canvas. Between neutral-900 and
+  // neutral-950 on the same olive axis; the ramp has no step there and inventing one for a single
+  // role would put an unproved value in Tier 1.
+  'color-surface-subtle': '#0F100E',
   'color-surface-sunken': p.neutral[950],
   // Elevation is lightness, not shadow.
   'color-surface-raised': p.neutral[800],
@@ -51,7 +53,7 @@ export const dark = {
   'color-surface-stale': p.amber[950],
   // Status fills go OPAQUE at the 900/950 step. A translucent status fill over a dark canvas
   // produces a muddy, unpredictable ratio; an opaque one is measurable.
-  'color-surface-brand-subtle': p.indigo[950],
+  'color-surface-brand-subtle': p.pear[950],
   'color-surface-success-subtle': p.emerald[950],
   'color-surface-warning-subtle': p.amber[950],
   'color-surface-danger-subtle': p.red[950],
@@ -65,9 +67,9 @@ export const dark = {
   'color-content-disabled': p.neutral[600],
   'color-content-inverse': p.neutral[900],
   // Links lighten by four ramp steps, not two — indigo darkens fast.
-  'color-content-link': p.indigo[300],
-  'color-content-link-hover': p.indigo[200],
-  'color-content-link-visited': p.indigo[400],
+  'color-content-link': p.pear[300],
+  'color-content-link-hover': p.pear[200],
+  'color-content-link-visited': p.pear[400],
   'color-content-stale': p.amber[300],
   // The inversion: dark foregrounds on lightened solids.
   'color-content-on-brand': p.neutral[950],
@@ -77,10 +79,10 @@ export const dark = {
   'color-content-on-info': p.neutral[950],
   /** The second token that does not flip. See `color-surface-media` above. */
   'color-content-on-media': p.neutral[50],
-  /** The third, and the same reason: the band is near-black in both themes. `MD3`, 10.12:1. */
-  'color-content-on-media-accent': p.indigo[300],
+  /** The third, and the same reason: the band is `rich black` in both themes. `MD3`, 15.60:1. */
+  'color-content-on-media-accent': p.pear[400],
   // Status TEXT lightens to the 300 step.
-  'color-content-brand': p.indigo[300],
+  'color-content-brand': p.pear[300],
   'color-content-success': p.emerald[300],
   'color-content-warning': p.amber[300],
   'color-content-danger': p.red[300],
@@ -94,20 +96,20 @@ export const dark = {
   // #64748B does: 4.76:1 light, 3.75:1 dark.
   'color-border-input': p.neutral[500],
   'color-border-input-hover': p.neutral[400],
-  'color-border-focus': p.indigo[400],
-  'color-border-brand': p.indigo[400],
+  'color-border-focus': p.pear[400],
+  'color-border-brand': p.pear[400],
   'color-border-success': p.emerald[400],
   'color-border-warning': p.amber[400],
   'color-border-danger': p.red[400],
   'color-border-info': p.sky[400],
 
   // --- brand ----------------------------------------------------------------
-  'color-brand-solid': p.indigo[400],
-  'color-brand-solid-hover': p.indigo[300],
-  'color-brand-solid-active': p.indigo[200],
+  'color-brand-solid': p.pear[400],
+  'color-brand-solid-hover': p.pear[300],
+  'color-brand-solid-active': p.pear[200],
   'color-brand-solid-disabled': p.neutral[800],
-  'color-brand-subtle': p.indigo[950],
-  'color-brand-subtle-hover': p.indigo[900],
+  'color-brand-subtle': p.pear[950],
+  'color-brand-subtle-hover': p.pear[900],
 
   // --- success --------------------------------------------------------------
   'color-success-solid': p.emerald[400],

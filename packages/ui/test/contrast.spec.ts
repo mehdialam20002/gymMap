@@ -144,7 +144,7 @@ test('§3.5 — hover and active can never REDUCE contrast', () => {
 });
 
 test('§3.2 — every ramp satisfies the step contract, so a family added later is built the same', () => {
-  const families: ColourFamily[] = ['neutral', 'indigo', 'emerald', 'amber', 'red', 'sky'];
+  const families: ColourFamily[] = ['neutral', 'pear', 'emerald', 'amber', 'red', 'sky'];
   const byUse = Object.fromEntries(RAMP_CONTRACT.map((r) => [r.steps.join('-'), r.property]));
 
   for (const family of families) {

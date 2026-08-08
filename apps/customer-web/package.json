@@ -23,6 +23,7 @@
   "dependencies": {
     "@gymmap/types": "workspace:*",
     "@gymmap/ui": "workspace:*",
+    "@phosphor-icons/react": "^2.1.10",
     "next": "^14.2.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

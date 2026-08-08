@@ -54,7 +54,28 @@ function sources(...parts: (string | undefined)[]): string {
  * The nonce is per response and must be — a constant nonce is `'unsafe-inline'` with extra steps,
  * defeated the moment an attacker reads one page.
  */
-export function buildContentSecurityPolicy(nonce: string, hosts: CspHosts = {}): string {
+export function buildContentSecurityPolicy(
+  nonce: string,
+  hosts: CspHosts = {},
+  /**
+   * Development only. Next's dev server compiles with `eval` and serves HMR chunks that carry no
+   * nonce, so the production policy blocks `webpack.js`, `main.js` and react-refresh outright —
+   * the page renders, no client JavaScript executes, and NOTHING hydrates.
+   *
+   * That failure is silent in the worst way: server-rendered markup looks completely correct, so
+   * it reads as "the video is broken" or "the button does nothing" rather than "the CSP killed
+   * the bundle". It cost an afternoon before the console was read carefully.
+   *
+   * `'unsafe-eval'` is granted HERE ONLY. `NODE_ENV` is set by `next build`, not by us, so a
+   * production bundle cannot reach this branch — and `shell.spec.ts` asserts the production
+   * policy never contains it.
+   */
+  dev = false,
+): string {
+  const scriptSrc = dev
+    ? sources("'self'", `'nonce-${nonce}'`, "'strict-dynamic'", "'unsafe-eval'")
+    : sources("'self'", `'nonce-${nonce}'`, "'strict-dynamic'");
+
   return [
     // Deny by default; grant each capability explicitly. `default-src 'self'` silently permits
     // every fetch type nobody thought about.
@@ -65,7 +86,7 @@ export function buildContentSecurityPolicy(nonce: string, hosts: CspHosts = {}):
     // Next's App Router emits inline hydration scripts; a nonce is the only way to allow them
     // without unsafe-inline. `strict-dynamic` lets the nonced loader load its own chunks and
     // makes host allowlists irrelevant for scripts — the stronger modern form.
-    `script-src ${sources("'self'", `'nonce-${nonce}'`, "'strict-dynamic'")}`,
+    `script-src ${scriptSrc}`,
     // Tailwind (A-03) compiles to a static stylesheet, so inline styles are not needed. The
     // nonce covers only the small amount of framework-injected critical CSS.
     `style-src ${sources("'self'", `'nonce-${nonce}'`)}`,
