@@ -217,6 +217,7 @@ export function ConfirmDialog({
   onConfirm,
   title,
   description,
+  reversibility,
   tone = 'danger',
   reason,
   labels,
@@ -227,7 +228,31 @@ export function ConfirmDialog({
   /** Receives the reason when one was asked for, otherwise the empty string. */
   readonly onConfirm: (reason: string) => void;
   readonly title: string;
+  /**
+   * `DC2` — what will happen TO WHOM, not what the operator is doing.
+   *
+   * *"This will suspend a tenant with 214 active members"*, never *"Are you sure?"*. `DC1` also
+   * requires the figures in it to be SERVER-computed and fetched before the dialog opens, never
+   * counted in the client - which is why this is a string the caller assembles rather than
+   * something derived here.
+   */
   readonly description: string;
+  /**
+   * `DC5` and `DC6` - REQUIRED, and required for a reason.
+   *
+   * +- THE SPEC SAYS "IN THE SAME POSITION, EVERY TIME" -----------------------------------------+
+   * | `DC5`: where the action is reversible, the dialog says so and NAMES the reverse -           |
+   * | *"Reinstate restores the listing and resumes payouts"*. `DC6`: where it is not, the dialog  |
+   * | says that too, *"in the same position, every time"*.                                       |
+   * |                                                                                          |
+   * | An optional prop would be omitted on the one dialog where it mattered, and the omission     |
+   * | reads as "reversible" because nothing says otherwise. So the type makes it unrepresentable: |
+   * | every caller states the direction and supplies the sentence.                                |
+   * +-------------------------------------------------------------------------------------------+
+   */
+  readonly reversibility:
+    | { readonly kind: 'REVERSIBLE'; readonly text: string }
+    | { readonly kind: 'PERMANENT'; readonly text: string };
   readonly tone?: 'danger' | 'primary';
   /** Omit to confirm without a reason. Present means the reason is MANDATORY. */
   readonly reason?: { readonly label: string; readonly hint: string; readonly minLength: number };
@@ -276,8 +301,24 @@ export function ConfirmDialog({
         </>
       }
     >
+      {/* The fixed position `DC5`/`DC6` demand. Above the reason box, because it is the fact that
+          should change what the operator writes in it - and below `description`, because the
+          consequence comes before its reversibility. */}
+      <p
+        className={`flex items-start gap-inline-2xs rounded-control px-inset-sm py-inset-xs text-sm ${
+          reversibility.kind === 'PERMANENT'
+            ? 'bg-surface-danger-subtle text-content-danger'
+            : 'bg-surface-sunken text-content-secondary'
+        }`}
+      >
+        {/* A glyph AND the tint AND the wording. `AX8`: never colour alone, and "permanent" is the
+            single most consequential word in this dialog. */}
+        <span aria-hidden="true">{reversibility.kind === 'PERMANENT' ? '\u26A0' : '\u21BA'}</span>
+        <span>{reversibility.text}</span>
+      </p>
+
       {reason !== undefined && (
-        <label className="flex flex-col gap-stack-2xs">
+        <label className="mt-stack-sm flex flex-col gap-stack-2xs">
           <span className="text-sm font-medium text-content">{reason.label}</span>
           <textarea
             value={text}

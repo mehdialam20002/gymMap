@@ -89,12 +89,19 @@ export const NAV: readonly NavGroup[] = [
         badge: 'awaitingReview',
       },
       {
-        path: '/approvals/:applicationId',
+        path: '/approvals/:gymId',
         icon: 'application',
         label: 'adm.chrome.nav.approvalDetail',
-        state: 'IN_DEVELOPMENT',
+        // BUILT, and the distinction is worth stating: the SCREEN exists and shows real business
+        // data, the SLA and the real approval state. The three DECISION endpoints do not, and the
+        // screen's own action bar says so at the point where the decision would be made — which is
+        // where an officer needs to read it, not in a sidebar badge.
+        //
+        // `state` declares whether the screen exists. Marking this IN_DEVELOPMENT while a real
+        // screen answers the route would make the sidebar and the screen disagree, which is the
+        // exact thing this field exists to prevent.
+        state: 'BUILT',
         screen: 'SCR-ADM-003',
-        milestone: 'M-036',
       },
       {
         path: '/gyms',

@@ -168,18 +168,28 @@ test('aria-hidden appears only on the scrim and on decorative glyphs', () => {
   assert.ok(occurrences.length > 0, 'the scan is wrong, not the file');
 
   for (const match of occurrences) {
-    // The window reaches FORWARD far enough to see the className, because `aria-hidden` is written
-    // before it on every one of these elements. 120 characters was not enough and the first run of
-    // this test failed on the scrim itself.
-    const window = OVERLAY.slice(Math.max(0, match.index - 320), match.index + 420);
-    const decorative =
-      /bg-surface-scrim/.test(window) || // the scrim
-      /fixed inset-0 z-sticky cursor-default/.test(window) || // the dropdown's outside-click layer
-      /&#215;/.test(window) || // the close glyph
-      /&#8943;/.test(window); // the overflow ellipsis
+    // Look BACKWARDS to the tag this attribute belongs to. That is the question the test is really
+    // asking - what kind of element is being hidden - and it does not depend on how long the
+    // className happens to be. An earlier version looked forward for a class name and failed on
+    // the scrim itself when the window was too short.
+    const before = OVERLAY.slice(Math.max(0, match.index - 400), match.index);
+    const tag = before.slice(before.lastIndexOf('<') + 1).split(/[\s>]/)[0] ?? '';
+    const window = OVERLAY.slice(Math.max(0, match.index - 400), match.index + 420);
+
+    // A `span` is an inline decorative glyph - an arrow, a warning sign, an ellipsis. Those carry
+    // no focusable content and their meaning is always ALSO in adjacent text or an aria-label.
+    if (tag === 'span') continue;
+
+    // The only two non-span cases: the scrim, and the dropdown's outside-click layer. Both are
+    // `tabIndex={-1}` buttons that exist to catch a click.
+    const clickCatcher =
+      /bg-surface-scrim/.test(window) || /fixed inset-0 z-sticky cursor-default/.test(window);
     assert.ok(
-      decorative,
-      `an aria-hidden was added to something that is not a scrim or a glyph:\n${window.slice(-200)}`,
+      clickCatcher,
+      `aria-hidden was added to a <${tag}> that is neither a decorative span nor a click ` +
+        `catcher. Hiding anything larger risks hiding focusable content from a screen reader ` +
+        `while leaving it in the tab order:
+${window.slice(300, 520)}`,
     );
   }
 });
@@ -356,4 +366,41 @@ test('no overlay names a raw colour or a numeric Tailwind spacing step', () => {
     [],
     'a hex colour appeared outside the token tiers',
   );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DC5 / DC6 — the reversibility line is required and always in the same place.
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('reversibility is a REQUIRED prop, so a dialog that omits it cannot compile', () => {
+  const confirm = body('ConfirmDialog');
+
+  // `DC5`/`DC6` require the direction to be stated "in the same position, every time". An optional
+  // prop would be omitted on the one dialog where it mattered, and the omission reads as
+  // "reversible" because nothing says otherwise.
+  assert.match(confirm, /readonly reversibility:/);
+  assert.ok(
+    !/readonly reversibility\?:/.test(confirm),
+    'reversibility became optional — DC6 is then forgettable exactly where it matters',
+  );
+  // A discriminated union, so "permanent" cannot be expressed as an empty string.
+  assert.match(confirm, /kind: 'REVERSIBLE'/);
+  assert.match(confirm, /kind: 'PERMANENT'/);
+});
+
+test('the reversibility line renders above the reason box, not below it', () => {
+  const confirm = body('ConfirmDialog');
+  const lineAt = confirm.indexOf('reversibility.text');
+  const reasonAt = confirm.indexOf('<textarea');
+
+  // The consequence should change what the operator writes in the box, which it cannot do if they
+  // read it afterwards.
+  assert.ok(lineAt > 0 && reasonAt > 0);
+  assert.ok(lineAt < reasonAt, 'the reversibility line moved below the reason field');
+});
+
+test('permanence is signalled by a glyph and a word, not only by a tint', () => {
+  const confirm = body('ConfirmDialog');
+  // AX8. "Permanent" is the most consequential word in this dialog; a red background is not a word.
+  assert.match(confirm, /aria-hidden="true">\{reversibility\.kind === 'PERMANENT'/);
 });

@@ -36,6 +36,7 @@ import { platformOverview } from '../shared/api/admin.ts';
 import { ImpersonationBanner } from '../shared/impersonation/banner.tsx';
 import { ThemeToggle } from '../shared/theme/theme-toggle.tsx';
 import { ChromeGlyph, NavGlyph } from '../shared/icons/index.tsx';
+import { ApplicationReviewRoute } from './application-review.route.tsx';
 import { MfaGate } from './mfa-gate.tsx';
 import { NAV, PENDING_ROUTES, type NavItem } from './nav.ts';
 import { PlatformDashboardRoute } from './platform-dashboard.route.tsx';
@@ -406,6 +407,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <PlatformDashboardRoute /> },
       { path: 'approvals', element: <ApprovalQueueRoute /> },
+      // `SCR-ADM-003`'s route, per 6.3. The DECISION actions are M-036; the screen is real.
+      { path: 'approvals/:gymId', element: <ApplicationReviewRoute /> },
       { path: 'gyms', element: <GymRegisterRoute /> },
       { path: 'gyms/:gymId', element: <GymDetailRoute /> },
       { path: 'people', element: <PeopleRoute /> },

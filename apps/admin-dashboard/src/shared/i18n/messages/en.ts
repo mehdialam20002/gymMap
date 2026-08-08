@@ -30,7 +30,77 @@ export const en = {
   'adm.sample.metric.gmv': 'GMV',
   'adm.sample.metric.commission': 'Commission',
   'adm.sample.metric.memberships': 'Memberships',
+  // -- SCR-ADM-003, Application Review. AdminDashboard.md 6.3.
+  //
+  // Every "not yet" string below names its milestone. On THIS screen that is not politeness: a
+  // fabricated pre-check pass would be a screenshot claiming a human verified a business, which is
+  // the exact claim the marketplace sells (OBJ-03, RSK-01 score 20).
+  'adm.review.region': 'Application review',
+  'adm.review.notFound': 'No application with that reference',
+  'adm.review.notFoundBody':
+    'The link may be stale, or the application may already have been decided. The queue has the current list.',
+  'adm.review.submitted': 'Submitted',
+  'adm.review.reassign': 'Reassign',
+  // The reason goes in the `title`, not the label. A button whose text carries its own excuse is
+  // three times the width of the control beside it and reads as a sentence rather than an action.
+  'adm.review.reassignWhy': 'Needs an assignee, which arrives with the applications table (M-036)',
+  'adm.review.tenantId': 'Tenant id',
+  'adm.review.applicationData': 'Application data',
+  'adm.review.dataNote':
+    'PAN, registration number, street address, contact number and bank details belong on this screen and are deliberately absent from the register response - BR-DAT-06 keeps them out of a list of gyms. They arrive with the dossier endpoint, which can log the access that reading them requires.',
+
+  // 6.3.4 PC1 - above the split, full width, first thing below the header.
+  'adm.review.prechecks': 'Pre-checks',
+  'adm.review.prechecksBody':
+    'The eight automated checks - geo distance, duplicate address, duplicate registration id, duplicate bank account, image quality, content screening, minimum photos, published plan - are not computed yet. Nothing here is passing or failing: it is unknown. Do not read the absence of failures as an absence of problems.',
+
+  // 6.3.3 - inline viewer, and DV1/DV2 make the missing download button a control.
+  'adm.review.documents': 'Documents',
+  'adm.review.documentsBody':
+    'KYC documents have no table until M-029. When they land they render in an inline viewer with zoom and rotate and NO download - BR-DAT-07 requires every KYC access to be logged, and a downloaded file is an access nobody logged and a copy nobody can revoke.',
+
+  // 6.3.5 - CL1 makes the checklist version part of the record.
+  'adm.review.checklist': 'Checklist',
+  'adm.review.checklistBody':
+    'The structured checklist is snapshotted at submit, so adding a tenth required document in March cannot make a February application incomplete. It needs the applications table (M-036), and each item needs an evidence reference into the document viewer.',
+
+  'adm.review.notes': 'Internal notes',
+  'adm.review.notesBody':
+    'Not shown to the gym owner. Needs somewhere to store them (M-036).',
+
+  'adm.review.history': 'History',
+  'adm.review.historyEmpty': 'Nothing recorded yet.',
+  'adm.review.timelineSubmitted': 'Application arrived',
+  'adm.review.timelineOnlyEvent':
+    'The only event on record. Prior versions and the field-level diff against them arrive with M-036 - BR-GYM-05 retains them, so the history exists in the data before it exists on this screen.',
+
+  // 6.3.2 - the bar is sticky at every width "because an officer must never scroll to decide".
+  'adm.review.barRegion': 'Decision',
+  'adm.review.barNote':
+    'The three decision endpoints arrive with M-036. The bar is here, and sticky, because the layout is what is being got right - not because a decision can be made yet.',
+  'adm.review.approve': 'Approve',
+  'adm.review.reject': 'Reject',
+  'adm.review.requestInfo': 'Request information',
+  'adm.detail.breadcrumb': 'Breadcrumb',
   // -- The verification SLA. AdminDashboard.md 6.2 column semantics; nothing here is computed.
+  // -- The reason dialog and the destructive confirmation. AdminDashboard.md 5.1 and 5.2.
+  // RD2: ten characters after trimming, matching the server's RS3.
+  'adm.reason.hint': 'Recorded in the audit log. Minimum 10 characters.',
+  'adm.reason.short': '{n} more characters needed.',
+  'adm.action.cancel': 'Cancel',
+  'adm.action.close': 'Close',
+  'adm.action.dismiss': 'Dismiss',
+  // 5.2 destructive action 6 - "Force logout / revoke sessions". DC4: the verb, never "OK".
+  'adm.sessions.confirm.verb': 'Sign out this device',
+  'adm.sessions.confirm.title': 'Sign out this device?',
+  'adm.sessions.confirm.titleHere': 'Sign out the device you are using?',
+  'adm.sessions.confirm.body':
+    '{d} will be signed out immediately. You have {n} active sessions in total.',
+  'adm.sessions.confirm.bodyHere':
+    'This is the device you are using right now. You will be returned to the sign-in screen and will need your password and second factor again.',
+  // DC5 - reversible, and the reverse is named.
+  'adm.sessions.confirm.reversible': 'Reversible - signing in again creates a new session.',
+  'adm.sessions.revoked': 'Signed out. Access stops within a minute on every service.',
   'adm.sla.header': 'SLA',
   'adm.sla.breached': 'SLA breached',
   'adm.sla.approaching': 'SLA approaching',
@@ -343,7 +413,7 @@ export const en = {
   'adm.reason.help':
     'Recorded in the audit log and readable by anyone reviewing this account later. Describe what you are doing and why.',
   'adm.reason.error.empty': 'A reason is required.',
-  'adm.reason.error.tooShort': 'Too short. Write at least 20 characters explaining why.',
+  'adm.reason.error.tooShort': 'Too short. Write at least 10 characters explaining why.',
 
   // --- SCR-ADM-001, the dashboard -------------------------------------------
   'adm.dashboard.title': 'Platform dashboard',

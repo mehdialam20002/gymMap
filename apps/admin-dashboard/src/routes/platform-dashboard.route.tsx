@@ -95,7 +95,7 @@ export function PlatformDashboardRoute() {
       const { gyms } = await platformGyms();
       return gyms
         .filter((gym) => AWAITING_STATUSES.includes(gym.status))
-        .sort((a, b) => b.age_hours - a.age_hours)
+        .sort((a, b) => (b.age_hours ?? 0) - (a.age_hours ?? 0))
         .slice(0, 5);
     },
     refetchInterval: 30_000,

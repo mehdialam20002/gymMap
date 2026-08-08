@@ -19,10 +19,12 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { PageHeader } from '@gymmap/ui';
+import { useState } from 'react';
+import { ConfirmDialog, PageHeader, ToastStack, useToasts } from '@gymmap/ui';
 
 import { t } from '../shared/i18n/index.ts';
 import { listSessions, revokeSession, type SessionRow } from '../shared/api/client.ts';
+import { REASON_FLOOR } from '../shared/reason/reason.ts';
 
 const SESSIONS_KEY = ['auth', 'sessions'] as const;
 
@@ -37,8 +39,24 @@ export function SessionsRoute() {
     refetchInterval: 20_000,
   });
 
+  const toasts = useToasts();
+  /** The row awaiting confirmation. `null` when no dialog is open. */
+  const [pending, setPending] = useState<SessionRow | null>(null);
+
   const revoke = useMutation({
     mutationFn: revokeSession,
+    onSuccess: () => {
+      // A toast, not silence. The row disappears on the next poll, and a disappearance is
+      // ambiguous - it looks the same as a list that reloaded. `AC-6` also gives revocation 60
+      // seconds to propagate, so "gone from this list" and "signed out everywhere" are not the
+      // same instant and the wording says the former.
+      toasts.push('success', t('adm.sessions.revoked'));
+    },
+    onError: () => {
+      // `danger` toasts do not expire (see `useToasts`). A failed revocation that faded would
+      // leave an operator believing a device was signed out when it was not.
+      toasts.push('danger', t('adm.sessions.revokeFailed'));
+    },
     onSettled: () => queryClient.invalidateQueries({ queryKey: SESSIONS_KEY }),
   });
 
@@ -67,18 +85,77 @@ export function SessionsRoute() {
               row={row}
               busy={revoke.isPending && revoke.variables === row.id}
               onRevoke={() => {
-                revoke.mutate(row.id);
+                // +- CONFIRMATION FIRST. `NFR-USE-06`, AND THIS IS ONE OF THE ELEVEN ------------+
+                // | `AdminDashboard.md` 5.2 enumerates eleven destructive actions on this        |
+                // | surface. Number 6 is "Force logout / revoke sessions", and its consequence   |
+                // | line must state "the number of sessions, and that the user must sign in      |
+                // | again". It was a one-click button with no confirmation at all.               |
+                // +-----------------------------------------------------------------------------+
+                setPending(row);
               }}
             />
           ))}
         </ul>
       )}
 
-      {revoke.isError && (
-        <p role="alert" className="mt-stack-sm text-base text-content-danger">
-          {t('adm.sessions.revokeFailed')}
-        </p>
-      )}
+      <ConfirmDialog
+        open={pending !== null}
+        onClose={() => {
+          setPending(null);
+        }}
+        onConfirm={(reasonText) => {
+          const row = pending;
+          setPending(null);
+          if (row === null) return;
+          // The reason is collected and, for now, only proves the floor was met: `DELETE
+          // /v1/auth/sessions/:id` takes no reason body, because it is a member acting on their
+          // OWN device rather than an administrator acting on someone else's. When this screen
+          // gains the platform-staff force-logout of `SCR-ADM-005`, the reason goes on the wire and
+          // into `audit_log` - `FR-ADMN-02` requires it on every admin mutation, and RS1 makes it
+          // required on every admin POST/PUT/PATCH with no exception.
+          void reasonText;
+          revoke.mutate(row.id);
+        }}
+        title={
+          pending?.current === true
+            ? t('adm.sessions.confirm.titleHere')
+            : t('adm.sessions.confirm.title')
+        }
+        // `DC2` - what happens to whom, with the real device and the real count. Never "Are you
+        // sure?". `DC1` wants the figures server-computed, and these are: the list is the server's.
+        description={
+          pending?.current === true
+            ? t('adm.sessions.confirm.bodyHere')
+            : t('adm.sessions.confirm.body')
+                .replace('{d}', pending?.device_label ?? t('adm.sessions.unknownDevice'))
+                .replace('{n}', String(sessions.data?.sessions.length ?? 0))
+        }
+        // `DC5` - reversible, and the reverse is named. Signing in again is the reverse, and saying
+        // so is what stops an operator hesitating over a control they should use freely.
+        reversibility={{ kind: 'REVERSIBLE', text: t('adm.sessions.confirm.reversible') }}
+        reason={{
+          label: t('adm.reason.label'),
+          hint: t('adm.reason.hint'),
+          // The shared constant, never a literal. `RD2` puts the general floor at ten characters
+          // after trimming, matching the server's `RS3`, and `RD4`'s higher floors are per-action
+          // entries in `REASON_FLOOR` rather than a number typed into a component.
+          minLength: REASON_FLOOR.general,
+        }}
+        busy={revoke.isPending}
+        // `DC4` - the button carries the VERB, never "OK".
+        labels={{
+          confirm: t('adm.sessions.confirm.verb'),
+          cancel: t('adm.action.cancel'),
+          close: t('adm.action.close'),
+          charactersShort: t('adm.reason.short'),
+        }}
+      />
+
+      <ToastStack
+        messages={toasts.messages}
+        onDismiss={toasts.dismiss}
+        dismissLabel={t('adm.action.dismiss')}
+      />
     </>
   );
 }

@@ -60,7 +60,7 @@ export interface GymRow {
   readonly created_at: string;
   readonly waiting_days: number;
   /** Whole hours since submission. The unit the SLA is stated in (`AdminDashboard.md` 6.2). */
-  readonly age_hours: number;
+  readonly age_hours?: number;
   /**
    * The verification SLA, computed SERVER-side, or `null` for a decided gym.
    *
@@ -75,13 +75,18 @@ export interface GymRow {
    * | hours is not written anywhere in this app.                                                 |
    * +-------------------------------------------------------------------------------------------+
    */
-  readonly sla: {
+  readonly sla?: {
     readonly state: 'WITHIN' | 'APPROACHING' | 'BREACHED' | 'PAUSED';
     readonly target_hours: number;
     readonly hours_remaining: number | null;
     readonly breaches_at: string | null;
     readonly age_hours_wall_clock: number;
   } | null;
+  // The `?` above is not decoration. It was a crash: a console built against a server that had not
+  // yet been redeployed received no `sla` key at all, `sla === null` was false, and reading
+  // `sla.state` took the whole screen down with "Cannot read properties of undefined". A version
+  // skew between a deployed console and a deployed API is a NORMAL condition, not an error, and one
+  // absent field must degrade rather than blank the page. Every reader normalises with `?? null`.
 }
 
 export const platformOverview = (): Promise<PlatformOverview> =>

@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { en } from '../src/shared/i18n/messages/en.ts';
 import { t, DEFAULT_LOCALE } from '../src/shared/i18n/index.ts';
 import {
+  REASON_FLOOR,
   REASON_MIN_LENGTH,
   ReasonTooShortError,
   reason,
@@ -201,12 +202,45 @@ test('the banner announces itself politely, and warns rather than alarms', () =>
 // ═══════════════════════════════════════════════════════════════════════════
 
 test('FR-ADMN-02 — a placeholder is not a reason', () => {
-  assert.equal(REASON_MIN_LENGTH, 20);
-  for (const bad of ['', '   ', 'admin', 'fix', 'checking a thing', 'test']) {
+  // ┌─ TEN, AND IT IS THE SERVER'S NUMBER ────────────────────────────────────────────────────┐
+  // │ `Admin.md` RS3: "Minimum length 10 characters after trimming." `AdminDashboard.md` RD2   │
+  // │ mirrors it client-side so "the counter and the server agree". This asserted 20, which    │
+  // │ was stricter than anything documented — no hole, but it refused a legitimate             │
+  // │ twelve-character reason the API accepts, and a counter that disagrees with the server is │
+  // │ a counter an operator learns to ignore.                                                  │
+  // └─────────────────────────────────────────────────────────────────────────────────────────┘
+  assert.equal(REASON_MIN_LENGTH, 10);
+
+  // `checking a thing` is sixteen characters and now PASSES the floor. That is the documented
+  // behaviour and it is why the floor is not the only control: `RS4` requires a structured code
+  // alongside the free text wherever the domain has a taxonomy, and `RS5` puts the reason on the
+  // audit row where a human judges it.
+  for (const bad of ['', '   ', 'admin', 'fix', 'test', 'ok', '.']) {
     assert.throws(() => reason(bad), ReasonTooShortError, `"${bad}" was accepted as a reason`);
   }
+
+  // RS3 names these three explicitly as refusals.
+  for (const named of ['ok', '.', '   ']) {
+    assert.throws(() => reason(named), ReasonTooShortError);
+  }
+
   const good = 'Suspending tenant 4471 after a confirmed chargeback pattern';
   assert.equal(reason(good), good);
+});
+
+test('RD4 — the higher floors are per-action and none of them is the general one', () => {
+  // `RD4` states them as a closed list: 20 for a pre-check override, 20 for impersonation, 50 for
+  // a reconciliation variance. Held as named entries so a literal `20` never appears in a
+  // component, where the next reader cannot trace it to a rule.
+  assert.equal(REASON_FLOOR.general, REASON_MIN_LENGTH);
+  assert.equal(REASON_FLOOR.precheckOverride, 20);
+  assert.equal(REASON_FLOOR.impersonation, 20);
+  assert.equal(REASON_FLOOR.reconciliationVariance, 50);
+
+  for (const [name, floor] of Object.entries(REASON_FLOOR)) {
+    if (name === 'general') continue;
+    assert.ok(floor > REASON_MIN_LENGTH, `${name} is not actually higher than the general floor`);
+  }
 });
 
 test('FR-ADMN-02 — the reason is trimmed, so whitespace cannot pad it to length', () => {

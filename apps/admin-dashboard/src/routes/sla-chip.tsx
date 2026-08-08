@@ -45,7 +45,10 @@ const CHIP: Record<Tone, string> = {
 };
 
 export function SlaChip({ gym }: { readonly gym: GymRow }) {
-  const sla = gym.sla;
+  // `?? null` folds "decided, so no SLA" and "this server does not send one yet" into the same
+  // rendering. Both mean the same thing to an officer — there is no SLA to read — and treating the
+  // second as a crash is how a version skew becomes an outage.
+  const sla = gym.sla ?? null;
 
   // A decided application has no SLA and says so with an em dash rather than a reassuring chip.
   // `WITHIN` on something nobody is waiting for would read as "still fine".
@@ -98,7 +101,12 @@ export function SlaChip({ gym }: { readonly gym: GymRow }) {
  * nothing is lost by rounding the display.
  */
 export function AgeCell({ gym }: { readonly gym: GymRow }) {
+  // Same reasoning as the chip: an older server sends no `age_hours`, and an em dash is the honest
+  // rendering of "not known" where `NaN` or `0 h` would be a wrong number.
   const hours = gym.age_hours;
+  if (typeof hours !== 'number') {
+    return <span className="text-xs text-content-muted">&#8212;</span>;
+  }
   const label =
     hours < 72
       ? `${String(hours)}\u2009h`

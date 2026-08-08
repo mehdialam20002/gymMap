@@ -18,11 +18,10 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Badge,
-  Button,
   DataTable,
   FilterTabs,
   Pagination,
@@ -80,7 +79,7 @@ export function ApprovalQueueRoute() {
         // Sorted on `age_hours` rather than `waiting_days` so two applications that arrived on the
         // same day still order correctly — whole days tie for everything inside a 24-hour window,
         // which on a 72-hour SLA is a third of it.
-        .sort((a, b) => b.age_hours - a.age_hours)
+        .sort((a, b) => (b.age_hours ?? 0) - (a.age_hours ?? 0))
     );
   }, [query.data, tab]);
 
@@ -95,14 +94,14 @@ export function ApprovalQueueRoute() {
    * spec computes differently from everything else would be the least honest thing on the screen.
    */
   const summary = useMemo(() => {
-    const withSla = rows.filter((gym) => gym.sla !== null);
+    const withSla = rows.filter((gym) => (gym.sla ?? null) !== null);
     return {
       open: rows.length,
       breached: withSla.filter((gym) => gym.sla?.state === 'BREACHED').length,
       approaching: withSla.filter((gym) => gym.sla?.state === 'APPROACHING').length,
       paused: withSla.filter((gym) => gym.sla?.state === 'PAUSED').length,
       // `age_hours`, not `hours_remaining`: 6.2's figure is "oldest open hours", which is an age.
-      oldestHours: rows.reduce((oldest, gym) => Math.max(oldest, gym.age_hours), 0),
+      oldestHours: rows.reduce((oldest, gym) => Math.max(oldest, gym.age_hours ?? 0), 0),
     };
   }, [rows]);
 
@@ -201,12 +200,16 @@ export function ApprovalQueueRoute() {
       key: 'actions',
       header: t('adm.queue.col.actions'),
       align: 'right',
-      cell: () => (
-        // Disabled AND titled. M-036 delivers the decision surface; until then the control is
-        // present so the screen reads correctly, and inert so nobody believes they acted.
-        <Button size="sm" disabled>
+      cell: (gym) => (
+        // Live now: `SCR-ADM-003` exists, and 6.2 is explicit that "opening an application does not
+        // change its status" — so this navigates and nothing else. The DECISION is still M-036, and
+        // the review screen's action bar says so where the decision would be made.
+        <Link
+          to={`/approvals/${gym.id}`}
+          className="gm-hit-target rounded-control border border-subtle px-inset-sm py-inset-2xs text-xs font-medium text-content-brand transition-colors duration-fast ease-standard hover:border-strong"
+        >
           {t('adm.queue.review')}
-        </Button>
+        </Link>
       ),
     },
   ];
@@ -291,7 +294,7 @@ export function ApprovalQueueRoute() {
                     const gym = paged[focused];
                     // 6.2: "Opening an application does not change its status." This navigates and
                     // nothing else — assignment and UNDER_REVIEW are different facts.
-                    if (gym !== undefined) navigate(`/gyms/${gym.id}`);
+                    if (gym !== undefined) navigate(`/approvals/${gym.id}`);
                   }
                 }}
                 className="outline-none"
