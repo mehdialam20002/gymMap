@@ -40,6 +40,13 @@ import { Scales } from '@phosphor-icons/react/dist/ssr/Scales';
 import { Tag } from '@phosphor-icons/react/dist/ssr/Tag';
 import { Users } from '@phosphor-icons/react/dist/ssr/Users';
 import { Warning } from '@phosphor-icons/react/dist/ssr/Warning';
+import { Percent } from '@phosphor-icons/react/dist/ssr/Percent';
+import { CreditCard } from '@phosphor-icons/react/dist/ssr/CreditCard';
+import { Invoice } from '@phosphor-icons/react/dist/ssr/Invoice';
+import { IdentificationCard } from '@phosphor-icons/react/dist/ssr/IdentificationCard';
+import { ToggleLeft } from '@phosphor-icons/react/dist/ssr/ToggleLeft';
+import { BellSimple } from '@phosphor-icons/react/dist/ssr/BellSimple';
+import { GearSix } from '@phosphor-icons/react/dist/ssr/GearSix';
 import type { Icon } from '@phosphor-icons/react';
 
 import type { NavIcon } from '../../routes/nav.ts';
@@ -71,6 +78,13 @@ const NAV_GLYPH: Record<NavIcon, Glyph> = {
   support: Lifebuoy,
   analytics: ChartLine,
   audit: ScrollIcon,
+  commission: Percent,
+  subscriptions: CreditCard,
+  tax: Invoice,
+  kyc: IdentificationCard,
+  flags: ToggleLeft,
+  notifications: BellSimple,
+  settings: GearSix,
 };
 
 export function NavGlyph({
@@ -81,6 +95,23 @@ export function NavGlyph({
   readonly className?: string;
 }) {
   const Component = NAV_GLYPH[icon];
+  return <Component size={18} weight="regular" aria-hidden className={className} />;
+}
+
+/** The topbar's two icon buttons. Separate from `NAV_GLYPH` because neither is a destination. */
+const CHROME_GLYPH = {
+  notifications: BellSimple,
+  help: Lifebuoy,
+} as const;
+
+export function ChromeGlyph({
+  icon,
+  className,
+}: {
+  readonly icon: keyof typeof CHROME_GLYPH;
+  readonly className?: string;
+}) {
+  const Component: Glyph = CHROME_GLYPH[icon];
   return <Component size={18} weight="regular" aria-hidden className={className} />;
 }
 

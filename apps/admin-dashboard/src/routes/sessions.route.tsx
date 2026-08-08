@@ -19,6 +19,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { PageHeader } from '@gymmap/ui';
 
 import { t } from '../shared/i18n/index.ts';
 import { listSessions, revokeSession, type SessionRow } from '../shared/api/client.ts';
@@ -43,10 +44,7 @@ export function SessionsRoute() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold text-content">{t('adm.sessions.title')}</h1>
-      <p className="mt-stack-2xs max-w-ui text-base text-content-secondary">
-        {t('adm.sessions.subtitle')}
-      </p>
+      <PageHeader title={t('adm.sessions.title')} subtitle={t('adm.sessions.subtitle')} />
 
       {sessions.isPending && (
         <p className="mt-stack-lg text-base text-content-muted">{t('adm.state.loading')}</p>

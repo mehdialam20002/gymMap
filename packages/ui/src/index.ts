@@ -38,6 +38,13 @@ export {
   type ApiProblem,
 } from './state/surface-state.ts';
 
+export { PageHeader, MetricCard } from './patterns/page-header.tsx';
+export {
+  CommandPalette,
+  useCommandKey,
+  type CommandItem,
+} from './patterns/command-palette.tsx';
+
 export {
   Panel,
   Badge,

@@ -118,6 +118,17 @@ ${declarations(semantic)}
 /* --- Tier 2 · semantic colour, light. The default when no preference is expressed. --------- */
 :root,
 :root[data-theme='light'] {
+  /* ┌─ color-scheme IS THE ONLY WAY TO REACH THE PARTS CSS DOES NOT OWN ──────────────────┐
+   * │ Scrollbars, form-control chrome, the canvas behind an overscroll, select popups and the      │
+   * │ caret are drawn by the PLATFORM, not by this stylesheet. Without this declaration the        │
+   * │ browser assumes light and draws a light-grey scrollbar down the right edge of a dark          │
+   * │ console — which is what it did, on the page and on every scrollable panel, until this line.  │
+   * │                                                                                              │
+   * │ It sits beside the colour tokens rather than in an app stylesheet because it is a property    │
+   * │ OF the theme: a theme that sets its surfaces and not its scrollbars is half a theme, and the  │
+   * │ half it forgets is the one a screenshot shows.                                                │
+   * └───────────────────────────────────────────────────────────────────────────────────────┘ */
+  color-scheme: light;
 ${declarations(colourLight)}
 }
 
@@ -128,11 +139,13 @@ ${declarations(colourLight)}
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
+    color-scheme: dark;
 ${declarations(colourDark, '    ')}
   }
 }
 
 :root[data-theme='dark'] {
+  color-scheme: dark;
 ${declarations(colourDark)}
 }
 

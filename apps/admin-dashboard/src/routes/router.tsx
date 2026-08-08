@@ -19,16 +19,23 @@
  * sidebar badge and the placeholder panel cannot disagree about what exists.
  */
 
-import { createBrowserRouter, NavLink, Outlet, RouterProvider } from 'react-router-dom';
+import {
+  createBrowserRouter,
+  NavLink,
+  Outlet,
+  RouterProvider,
+  useNavigate,
+} from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { CommandPalette, useCommandKey, type CommandItem } from '@gymmap/ui';
 
 import { t } from '../shared/i18n/index.ts';
 import { useSession, useSessionController } from '../shared/auth/session.tsx';
 import { platformOverview } from '../shared/api/admin.ts';
 import { ImpersonationBanner } from '../shared/impersonation/banner.tsx';
 import { ThemeToggle } from '../shared/theme/theme-toggle.tsx';
-import { NavGlyph } from '../shared/icons/index.tsx';
+import { ChromeGlyph, NavGlyph } from '../shared/icons/index.tsx';
 import { MfaGate } from './mfa-gate.tsx';
 import { NAV, PENDING_ROUTES, type NavItem } from './nav.ts';
 import { PlatformDashboardRoute } from './platform-dashboard.route.tsx';
@@ -93,50 +100,171 @@ function AdminLayout() {
 function AdminHeader() {
   const session = useSession();
   const { signOut } = useSessionController();
+  const navigate = useNavigate();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // `useCallback` because `useCommandKey` re-binds the listener whenever the handler identity
+  // changes, and an inline arrow would rebind on every render of the shell.
+  const open = useCallback(() => {
+    setPaletteOpen(true);
+  }, []);
+  useCommandKey(open);
+
+  const commands: readonly CommandItem[] = NAV.flatMap((group) =>
+    group.items.map((item) => ({
+      id: item.path,
+      label: t(item.label),
+      group: group.label === null ? t('adm.chrome.nav.dashboard') : t(group.label),
+      // A screen that is not built is LISTED and DISABLED, so the palette tells the same story
+      // the sidebar does. Hiding them would make ⌘K disagree with the navigation beside it.
+      ...(item.state === 'IN_DEVELOPMENT'
+        ? { hint: item.milestone ?? t('adm.chrome.inDevelopment'), disabled: true }
+        : {}),
+      onSelect: () => {
+        void navigate(item.path);
+      },
+    })),
+  );
 
   return (
-    <header className="sticky top-0 z-10 border-b border-subtle bg-surface">
-      <div className="flex h-[3.5rem] items-center gap-inline-md px-inset-lg">
-        {/* Search is presented but INERT, and it says so.
-            Cross-entity search needs the B3.2 matrix to decide which results an operator may
-            see, so it arrives with M-023. A live-looking box that returns nothing is the one
-            control a demo is guaranteed to try, and finding it dead is worse than finding it
-            honestly disabled. */}
-        <label className="min-w-0 flex-1" htmlFor="admin-search">
-          <span className="gm-visually-hidden">{t('adm.chrome.search.label')}</span>
-          <input
-            id="admin-search"
-            type="search"
-            disabled
-            placeholder={t('adm.chrome.search.placeholder')}
-            className="h-[2.25rem] w-full max-w-ui rounded-control border border-subtle bg-surface-sunken px-inset-sm text-sm text-content placeholder:text-content-muted disabled:cursor-not-allowed"
-          />
-        </label>
+    <>
+      <header className="sticky top-0 z-sticky border-b border-subtle bg-surface">
+        <div className="flex h-[4rem] items-center gap-inline-md px-inset-lg">
+          {/* The trigger LOOKS like a search field and opens the palette, because that is what a
+              person pressing it wants. It is a button rather than an input: an input that steals
+              your keystrokes into a dialog is worse than one that never accepted them. */}
+          <button
+            type="button"
+            onClick={open}
+            className="gm-hit-target flex h-[2.25rem] min-w-0 flex-1 max-w-ui items-center justify-between gap-inline-sm rounded-control border border-subtle bg-surface-sunken px-inset-sm text-sm text-content-muted transition-colors duration-fast ease-standard hover:border-strong"
+          >
+            <span className="truncate">{t('adm.chrome.search.placeholder')}</span>
+            <kbd className="shrink-0 rounded-control border border-subtle px-inset-2xs font-mono text-xs">
+              {t('adm.chrome.search.shortcut')}
+            </kbd>
+          </button>
 
-        <ThemeToggle />
-
-        {session.status === 'AUTHENTICATED' && (
           <div className="flex shrink-0 items-center gap-inline-sm">
-            {/* The identifier they signed in with. Not a fabricated display name — there is no
-                profile endpoint until M-023, and a plausible invented name sitting next to real
-                data is the kind of detail nobody thinks to doubt. */}
-            <span className="hidden max-w-[14rem] truncate text-xs text-content-muted xl:inline">
-              {session.displayName}
+            {/* The environment, because an operator with two tabs open needs to know which one
+                can suspend a real gym. Absent in production, where the answer is the default. */}
+            <span className="hidden rounded-control bg-surface-warning-subtle px-inset-2xs text-xs font-semibold text-content-warning lg:inline">
+              {t('adm.chrome.env')}
             </span>
+
+            {/* ┌─ BOTH INERT, AND BOTH SAY WHY WHEN YOU HOVER THEM ───────────────────────┐
+                │ There is no notifications table and no help centre — `A-19` leaves the      │
+                │ notification vendors open, so a bell that opened an empty tray would be     │
+                │ inventing the one thing a bell is for. Present because the shell is the     │
+                │ shell; disabled because the alternative is a lie with a badge on it.         │
+                └─────────────────────────────────────────────────────────────────────────────┘ */}
             <button
               type="button"
-              onClick={() => {
-                void signOut();
-              }}
-              className="gm-hit-target rounded-control border border-subtle px-inset-sm py-inset-2xs text-sm text-content-secondary transition-colors duration-fast ease-standard hover:border-strong hover:text-content"
+              disabled
+              aria-label={t('adm.chrome.notifications')}
+              title={t('adm.chrome.notifications')}
+              className="gm-hit-target hidden rounded-control px-inset-2xs text-content-disabled sm:block"
             >
-              {t('adm.chrome.signOut')}
+              <ChromeGlyph icon="notifications" />
             </button>
+            <button
+              type="button"
+              disabled
+              aria-label={t('adm.chrome.help')}
+              title={t('adm.chrome.help')}
+              className="gm-hit-target hidden rounded-control px-inset-2xs text-content-disabled sm:block"
+            >
+              <ChromeGlyph icon="help" />
+            </button>
+
+            <ThemeToggle />
+
+            {session.status === 'AUTHENTICATED' && (
+              <div className="flex items-center gap-inline-sm">
+                {/* ┌─ INITIALS AND A ROLE, NOT A PHOTO AND NOT A UUID ────────────────────────┐
+                    │ There is no avatar upload and no profile endpoint until `M-023`, and a    │
+                    │ stock face beside real platform figures is a small fiction on a screen    │
+                    │ whose whole job is being trustworthy.                                     │
+                    │                                                                          │
+                    │ The line under it is the operator's ROLE, read from the token's `roles`   │
+                    │ claim — real, and the thing they actually need confirmed before they      │
+                    │ suspend a gym. The identifier they typed sits in the `title`; after a     │
+                    │ reload only the uuid survives, and thirty-six characters of it in a       │
+                    │ topbar is noise rather than information.                                  │
+                    └──────────────────────────────────────────────────────────────────────────┘ */}
+                <span
+                  aria-hidden="true"
+                  className="grid h-[2.25rem] w-[2.25rem] shrink-0 place-items-center rounded-full bg-surface-brand-subtle text-xs font-semibold text-content-brand"
+                >
+                  {initialsOf(session.displayName)}
+                </span>
+                <span
+                  title={session.displayName}
+                  className="hidden max-w-[10rem] flex-col leading-tight lg:flex"
+                >
+                  <span className="truncate text-xs font-medium text-content">
+                    {session.roleLabel ?? t('adm.chrome.roleUnknown')}
+                  </span>
+                  <span className="truncate font-mono text-xs text-content-muted">
+                    {shortIdOf(session.displayName)}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void signOut();
+                  }}
+                  className="gm-hit-target rounded-control border border-subtle px-inset-sm py-inset-2xs text-sm text-content-secondary transition-colors duration-fast ease-standard hover:border-strong hover:text-content"
+                >
+                  {t('adm.chrome.signOut')}
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </header>
+        </div>
+      </header>
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => {
+          setPaletteOpen(false);
+        }}
+        items={commands}
+        labels={{
+          placeholder: t('adm.palette.placeholder'),
+          empty: t('adm.palette.empty'),
+          dialogLabel: t('adm.palette.label'),
+          hintKeys: t('adm.palette.hint'),
+        }}
+      />
+    </>
   );
+}
+
+/**
+ * Initials from whatever the session carries — an email on this sign-in, a uuid after a reload.
+ *
+ * `first.last@…` gives `FL`; `admin@…` gives `AD`. Never a fabricated name: this reads what is
+ * there and stops.
+ */
+function initialsOf(displayName: string): string {
+  const local = displayName.split('@')[0] ?? displayName;
+  const parts = local.split(/[._\-\s]+/).filter((part) => part !== '');
+  if (parts.length >= 2) {
+    return `${parts[0]?.[0] ?? ''}${parts[1]?.[0] ?? ''}`.toUpperCase();
+  }
+  return local.slice(0, 2).toUpperCase();
+}
+
+/**
+ * The identifier, shortened for a topbar.
+ *
+ * An email keeps its local part — `anita.rao@gymmap.test` reads as `anita.rao`, which is what a
+ * colleague would call them. A uuid keeps its first segment, because eight hex characters
+ * distinguish two operators and thirty-six only fill the bar. The full value is in the `title`.
+ */
+function shortIdOf(displayName: string): string {
+  if (displayName.includes('@')) return displayName.split('@')[0] ?? displayName;
+  return displayName.split('-')[0] ?? displayName;
 }
 
 function AdminNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
@@ -152,10 +280,10 @@ function AdminNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () =>
     <nav
       aria-label={t('adm.chrome.nav.label')}
       className={`hidden shrink-0 flex-col border-r border-subtle bg-surface lg:flex ${
-        collapsed ? 'w-[4rem]' : 'w-[15rem]'
+        collapsed ? 'w-[4rem]' : 'w-[16rem]'
       }`}
     >
-      <div className="flex h-[3.5rem] items-center gap-inline-sm border-b border-subtle px-inset-md">
+      <div className="flex h-[4rem] items-center gap-inline-sm border-b border-subtle px-inset-md">
         <span aria-hidden="true" className="text-lg font-bold text-content-brand">
           GM
         </span>

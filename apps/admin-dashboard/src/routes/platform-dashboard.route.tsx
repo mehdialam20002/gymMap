@@ -50,6 +50,7 @@ import {
   formatDeltaBps,
   formatMinor,
 } from '../shared/api/demo-figures.ts';
+import { useSession } from '../shared/auth/session.tsx';
 import { AreaChart, Donut, Legend, MultiLine, Sparkline } from '../shared/viz/charts.tsx';
 import { SeverityGlyph, TileGlyph, type TileIcon } from '../shared/icons/index.tsx';
 import { PENDING_ROUTES } from './nav.ts';
@@ -72,6 +73,7 @@ const PIPELINE: readonly GymStatus[] = [
 ];
 
 export function PlatformDashboardRoute() {
+  const session = useSession();
   const overview = useQuery({
     queryKey: ['admin', 'overview'],
     queryFn: platformOverview,
@@ -109,7 +111,13 @@ export function PlatformDashboardRoute() {
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-inline-md">
         <div>
-          <h1 className="text-xl font-semibold text-content">{t('adm.dashboard.greeting')}</h1>
+          {/* The role comes from the token, so this greeting can no longer call a support agent a
+              Super Admin — which is what the hardcoded string did to five of the six roles. */}
+          <h1 className="text-2xl font-semibold tracking-tight text-content">
+            {session.status === 'AUTHENTICATED' && session.roleLabel !== null
+              ? `${t('adm.dashboard.greetingPrefix')}${session.roleLabel}`
+              : t('adm.dashboard.greetingPlain')}
+          </h1>
           <p className="mt-stack-2xs text-xs text-content-muted">{t('adm.dashboard.subtitle')}</p>
         </div>
         <LastUpdated

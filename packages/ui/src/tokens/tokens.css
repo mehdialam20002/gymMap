@@ -22,7 +22,7 @@
   --gm-neutral-700: #3F413A;
   --gm-neutral-800: #282925;
   --gm-neutral-900: #171815;
-  --gm-neutral-950: #061414;
+  --gm-neutral-950: #0D0E0B;
   --gm-pear-50: #F7FFEF;
   --gm-pear-100: #EDFFD9;
   --gm-pear-200: #DFFFB6;
@@ -244,15 +244,26 @@
 /* --- Tier 2 · semantic colour, light. The default when no preference is expressed. --------- */
 :root,
 :root[data-theme='light'] {
+  /* ┌─ color-scheme IS THE ONLY WAY TO REACH THE PARTS CSS DOES NOT OWN ──────────────────┐
+   * │ Scrollbars, form-control chrome, the canvas behind an overscroll, select popups and the      │
+   * │ caret are drawn by the PLATFORM, not by this stylesheet. Without this declaration the        │
+   * │ browser assumes light and draws a light-grey scrollbar down the right edge of a dark          │
+   * │ console — which is what it did, on the page and on every scrollable panel, until this line.  │
+   * │                                                                                              │
+   * │ It sits beside the colour tokens rather than in an app stylesheet because it is a property    │
+   * │ OF the theme: a theme that sets its surfaces and not its scrollbars is half a theme, and the  │
+   * │ half it forgets is the one a screenshot shows.                                                │
+   * └───────────────────────────────────────────────────────────────────────────────────────┘ */
+  color-scheme: light;
   --gm-color-surface-default: #F3F5F0;
   --gm-color-surface-subtle: #E9EBE6;
   --gm-color-surface-sunken: #D2D3CE;
   --gm-color-surface-raised: #FAFBF8;
   --gm-color-surface-overlay: #FAFBF8;
-  --gm-color-surface-inverse: #061414;
+  --gm-color-surface-inverse: #0D0E0B;
   --gm-color-surface-disabled: #D2D3CE;
   --gm-color-surface-scrim: rgb(2 6 23 / 0.60);
-  --gm-color-surface-media: #061414;
+  --gm-color-surface-media: #0D0E0B;
   --gm-color-surface-stale: #FFFBEB;
   --gm-color-surface-brand-subtle: #FDF2F5;
   --gm-color-surface-success-subtle: #ECFDF5;
@@ -329,15 +340,16 @@
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
+    color-scheme: dark;
     --gm-color-surface-default: #171815;
     --gm-color-surface-subtle: #0F100E;
-    --gm-color-surface-sunken: #061414;
+    --gm-color-surface-sunken: #0D0E0B;
     --gm-color-surface-raised: #282925;
     --gm-color-surface-overlay: #282925;
     --gm-color-surface-inverse: #F3F5F0;
     --gm-color-surface-disabled: #282925;
     --gm-color-surface-scrim: rgb(2 6 23 / 0.75);
-    --gm-color-surface-media: #061414;
+    --gm-color-surface-media: #0D0E0B;
     --gm-color-surface-stale: #451A03;
     --gm-color-surface-brand-subtle: #260611;
     --gm-color-surface-success-subtle: #022C22;
@@ -355,10 +367,10 @@
     --gm-color-content-link-visited: #C55578;
     --gm-color-content-stale: #FCD34D;
     --gm-color-content-on-brand: #FFFFFF;
-    --gm-color-content-on-success: #061414;
-    --gm-color-content-on-warning: #061414;
-    --gm-color-content-on-danger: #061414;
-    --gm-color-content-on-info: #061414;
+    --gm-color-content-on-success: #0D0E0B;
+    --gm-color-content-on-warning: #0D0E0B;
+    --gm-color-content-on-danger: #0D0E0B;
+    --gm-color-content-on-info: #0D0E0B;
     --gm-color-content-on-media: #FAFBF8;
     --gm-color-content-on-media-accent: #C55578;
     --gm-color-content-brand: #E28FA9;
@@ -409,15 +421,16 @@
 }
 
 :root[data-theme='dark'] {
+  color-scheme: dark;
   --gm-color-surface-default: #171815;
   --gm-color-surface-subtle: #0F100E;
-  --gm-color-surface-sunken: #061414;
+  --gm-color-surface-sunken: #0D0E0B;
   --gm-color-surface-raised: #282925;
   --gm-color-surface-overlay: #282925;
   --gm-color-surface-inverse: #F3F5F0;
   --gm-color-surface-disabled: #282925;
   --gm-color-surface-scrim: rgb(2 6 23 / 0.75);
-  --gm-color-surface-media: #061414;
+  --gm-color-surface-media: #0D0E0B;
   --gm-color-surface-stale: #451A03;
   --gm-color-surface-brand-subtle: #260611;
   --gm-color-surface-success-subtle: #022C22;
@@ -435,10 +448,10 @@
   --gm-color-content-link-visited: #C55578;
   --gm-color-content-stale: #FCD34D;
   --gm-color-content-on-brand: #FFFFFF;
-  --gm-color-content-on-success: #061414;
-  --gm-color-content-on-warning: #061414;
-  --gm-color-content-on-danger: #061414;
-  --gm-color-content-on-info: #061414;
+  --gm-color-content-on-success: #0D0E0B;
+  --gm-color-content-on-warning: #0D0E0B;
+  --gm-color-content-on-danger: #0D0E0B;
+  --gm-color-content-on-info: #0D0E0B;
   --gm-color-content-on-media: #FAFBF8;
   --gm-color-content-on-media-accent: #C55578;
   --gm-color-content-brand: #E28FA9;

@@ -43,7 +43,14 @@ export type NavIcon =
   | 'moderation'
   | 'support'
   | 'analytics'
-  | 'audit';
+  | 'audit'
+  | 'commission'
+  | 'subscriptions'
+  | 'tax'
+  | 'kyc'
+  | 'flags'
+  | 'notifications'
+  | 'settings';
 
 export interface NavItem {
   readonly path: string;
@@ -204,6 +211,68 @@ export const NAV: readonly NavGroup[] = [
         state: 'IN_DEVELOPMENT',
         screen: 'SCR-ADM-015',
         milestone: 'M-117',
+      },
+    ],
+  },
+  {
+    label: 'adm.chrome.group.configuration',
+    items: [
+      // None of these carries an SCR-ADM id: §B3 numbers fifteen admin screens and configuration
+      // is one of them (`SCR-ADM-011`, held by Categories & amenities). Inventing ids for the
+      // rest would corrupt the numbering the route-table assertion depends on.
+      {
+        path: '/config/commission',
+        icon: 'commission',
+        label: 'adm.chrome.nav.commission',
+        state: 'IN_DEVELOPMENT',
+        milestone: 'M-116',
+      },
+      {
+        path: '/config/subscriptions',
+        icon: 'subscriptions',
+        label: 'adm.chrome.nav.subscriptions',
+        state: 'IN_DEVELOPMENT',
+        milestone: 'M-116',
+      },
+      {
+        path: '/config/tax',
+        icon: 'tax',
+        label: 'adm.chrome.nav.tax',
+        state: 'IN_DEVELOPMENT',
+        milestone: 'M-116',
+      },
+      {
+        path: '/config/kyc',
+        icon: 'kyc',
+        label: 'adm.chrome.nav.kyc',
+        state: 'IN_DEVELOPMENT',
+        milestone: 'M-029',
+      },
+      {
+        path: '/config/flags',
+        icon: 'flags',
+        label: 'adm.chrome.nav.flags',
+        state: 'IN_DEVELOPMENT',
+        milestone: 'M-116',
+      },
+      {
+        path: '/config/notifications',
+        icon: 'notifications',
+        label: 'adm.chrome.nav.notifications',
+        state: 'IN_DEVELOPMENT',
+        milestone: 'M-113',
+      },
+    ],
+  },
+  {
+    label: 'adm.chrome.group.system',
+    items: [
+      {
+        path: '/settings',
+        icon: 'settings',
+        label: 'adm.chrome.nav.settings',
+        state: 'IN_DEVELOPMENT',
+        milestone: 'M-116',
       },
     ],
   },

@@ -84,8 +84,26 @@ export const palette = {
     700: '#3F413A',
     800: '#282925',
     900: '#171815',
-    /** `rich black`. The dark canvas, and `surface-media` in BOTH themes. */
-    950: '#061414',
+    /**
+     * `rich black`. The dark canvas, and `surface-media` in BOTH themes.
+     *
+     * ┌─ RE-STEPPED. THE OLD VALUE `#061414` LEFT THE RAMP'S HUE AXIS ──────────────────────────┐
+     * │ Every step from 200 to 900 is warm — red and green above blue (`#171815` is R23 G24 B21).│
+     * │ `#061414` inverted that: R6 G20 B20 is a TEAL, with blue four times red. On its own that │
+     * │ is a defensible near-black, but it is not on its own: it is `surface-sunken`, the app     │
+     * │ canvas, sitting directly behind `surface-default` = neutral-900 cards. A cyan-cast page   │
+     * │ under warm-cast cards is the muddy, slightly-dirty look that reads as "wrong colour"      │
+     * │ without a viewer being able to name which element is at fault — and the answer is         │
+     * │ neither: it is the pair.                                                                 │
+     * │                                                                                          │
+     * │ The same defect was already found and fixed at the light end of this ramp (50 and 100,    │
+     * │ which were markedly yellow-green). This is the other end of it.                           │
+     * │                                                                                          │
+     * │ `#0D0E0B` continues 800 → 900 on the same axis: R13 G14 B11, green a hair above red,      │
+     * │ blue two below. White on it is 18.9:1, so nothing that passed before stops passing.       │
+     * └──────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    950: '#0D0E0B',
   },
 
   /**

@@ -272,11 +272,21 @@ test('every pending route names the milestone that delivers it', () => {
     const screen = /screen: '(SCR-ADM-\d+)'/.exec(block)?.[1];
     const milestone = /milestone: '(M-\d+)'/.exec(block)?.[1];
 
-    assert.ok(screen, `a pending route declares no screen id: ${block.trim()}`);
+    // ┌─ THE MILESTONE IS MANDATORY. THE SCREEN ID IS NOT, AND DELIBERATELY SO ─────────────────┐
+    // │ `§B3` numbers FIFTEEN admin screens. The configuration and system pages the redesign      │
+    // │ added are real destinations but they are not among those fifteen, and inventing           │
+    // │ `SCR-ADM-016`… for them would corrupt the very numbering the exactly-once assertion above │
+    // │ depends on — that test compares the route table against `§B3`'s list, so a fabricated id  │
+    // │ would either fail it or, worse, be added to the expected list and become fact by          │
+    // │ repetition.                                                                               │
+    // │                                                                                          │
+    // │ What must never be missing is the MILESTONE. "In development" without a milestone is an   │
+    // │ excuse; with one it is a commitment a reader can look up.                                 │
+    // └──────────────────────────────────────────────────────────────────────────────────────────┘
     assert.match(
       milestone ?? '',
       /^M-\d{3}$/,
-      `${screen ?? '(unknown)'} cites "${milestone ?? 'nothing'}", which is not a milestone id`,
+      `${screen ?? '(a screen with no §B3 id)'} cites "${milestone ?? 'nothing'}", which is not a milestone id`,
     );
   }
 });
@@ -422,4 +432,58 @@ test('the MFA copy gives the reason, not just the requirement', () => {
   assert.match(en['adm.gate.mfa.body'], /read across every gym/i);
   assert.match(en['adm.impersonation.restriction'], /disabled/i);
   assert.match(en['adm.reason.help'], /audit log/i);
+});
+
+/**
+ * ┌─ THE ROLE LIST EXISTS TWICE, SO SOMETHING HAS TO HOLD THE TWO TOGETHER ─────────────────────┐
+ * │ The server's `platform-role.guard.ts` decides who may reach `/v1/admin/*`; this console's     │
+ * │ `PLATFORM_ROLE_LABELS` decides what the topbar calls them. A role added to the guard and      │
+ * │ forgotten here would sign in successfully and be labelled "Platform staff" — which looks like │
+ * │ a permissions bug and is really a copy of a list that drifted.                                │
+ * │                                                                                              │
+ * │ The test reads the guard's source across the workspace boundary. That is deliberate and it is │
+ * │ not an `R2` violation: `R2` forbids IMPORTING `apps/server`'s source, and this reads it as    │
+ * │ text in a test. The alternative is a third copy in `packages/types`, which is one more place  │
+ * │ to forget.                                                                                   │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+test('the console labels exactly the platform roles the server admits', () => {
+  // Relative to APP_ROOT, which is what `code()` joins against. `R2` forbids IMPORTING
+  // `apps/server`'s source; reading it as text in a test is not an import and the alternative is a
+  // third copy of the list in `packages/types` — one more place to forget.
+  const guard = code('../server/src/common/guards/platform-role.guard.ts');
+
+  // The `new Set([...])` block only. Scanning the whole file for capitalised strings would also
+  // catch the error codes and the scope names, and a test that over-matches passes for the wrong
+  // reason forever.
+  const setBlock = /PLATFORM_ROLES = new Set\(\[([^\]]*)\]/.exec(guard)?.[1];
+  assert.ok(setBlock, 'PLATFORM_ROLES is no longer a `new Set([...])` — this scan needs updating');
+
+  const admitted = [...setBlock.matchAll(/'([A-Z_]+)'/g)].map((match) => match[1]!);
+  assert.equal(
+    admitted.length,
+    5,
+    `the guard admits ${String(admitted.length)} roles; §B3.2 names five platform roles. If that ` +
+      'changed, this number and the label list both need to move together.',
+  );
+
+  const labelled = [
+    ...code('src/shared/auth/session.tsx').matchAll(/\['([A-Z_]+)', '[^']+'\]/g),
+  ].map((match) => match[1]!);
+
+  for (const role of admitted) {
+    assert.ok(
+      labelled.includes(role),
+      `the server admits ${role} but the console has no label for it — that operator would sign ` +
+        'in successfully and be shown "Platform staff", which reads as a permissions bug',
+    );
+  }
+
+  for (const role of labelled) {
+    assert.ok(
+      admitted.includes(role),
+      `the console labels ${role} but the server's guard does not admit it — either the guard is ` +
+        'missing a role or the label is for one that no longer exists',
+    );
+  }
 });

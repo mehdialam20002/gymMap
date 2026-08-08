@@ -20,6 +20,7 @@ import {
   DataTable,
   FilterTabs,
   Pagination,
+  PageHeader,
   Panel,
   StateBoundary,
   TableSkeleton,
@@ -183,25 +184,25 @@ export function GymRegisterRoute() {
 
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-inline-md">
-        <div>
-          <h1 className="text-xl font-semibold text-content">{t('adm.gyms.title')}</h1>
-          <p className="mt-stack-2xs text-sm text-content-secondary">{t('adm.gyms.subtitle')}</p>
-        </div>
+      <PageHeader
+        title={t('adm.gyms.title')}
+        subtitle={t('adm.gyms.subtitle')}
+        actions={
+          <>
 
         {/* Both inert, and both present. Filters beyond status need the query parameters the
             register endpoint does not take yet; Export needs a generated file, an audit row for
             who exported the platform's commercial terms, and a decision about what a CSV of every
             gym's GSTIN is allowed to contain (BR-DAT-06). Neither is a button away. */}
-        <div className="flex items-center gap-inline-2xs">
-          <Button size="sm" disabled>
-            {t('adm.gyms.filters')}
-          </Button>
-          <Button size="sm" disabled>
-            {t('adm.gyms.export')}
-          </Button>
-        </div>
-      </div>
+            <Button size="sm" disabled>
+              {t('adm.gyms.filters')}
+            </Button>
+            <Button size="sm" disabled>
+              {t('adm.gyms.export')}
+            </Button>
+          </>
+        }
+      />
 
       <div className="mt-stack-md">
         <FilterTabs

@@ -13,6 +13,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { PageHeader } from '@gymmap/ui';
 
 import { t } from '../shared/i18n/index.ts';
 import { platformOverview } from '../shared/api/admin.ts';
@@ -51,10 +52,7 @@ export function PeopleRoute() {
 
   return (
     <>
-      <h1 className="text-xl font-semibold text-content">{t('adm.people.title')}</h1>
-      <p className="mt-stack-2xs max-w-prose text-sm text-content-secondary">
-        {t('adm.people.subtitle')}
-      </p>
+      <PageHeader title={t('adm.people.title')} subtitle={t('adm.people.subtitle')} />
 
       {overview.isPending && (
         <p className="mt-stack-md text-sm text-content-muted">{t('adm.state.loading')}</p>

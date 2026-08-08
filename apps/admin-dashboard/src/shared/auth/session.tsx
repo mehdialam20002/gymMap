@@ -63,6 +63,14 @@ export type AdminSession =
       readonly status: 'AUTHENTICATED';
       readonly userId: string;
       readonly displayName: string;
+      /**
+       * The operator's platform role, from the token's `roles` claim — `SUPER_ADMIN` → "Super admin".
+       *
+       * `null` when the claim carries no platform-scoped role, which the shell renders as nothing
+       * rather than guessing. The dashboard greeting said "Welcome back, Super Admin" as a hardcoded
+       * string, which was a fiction for the five other platform roles that use the same console.
+       */
+      readonly roleLabel: string | null;
       /** `B3.2` permission keys. Empty until M-023 wires the matrix. */
       readonly permissions: readonly string[];
       /**
@@ -98,12 +106,15 @@ export function SessionProvider({
   );
 
   const authenticatedAs = useCallback(
-    (userId: string): AdminSession => ({
+    (userId: string, identifier?: string): AdminSession => ({
       status: 'AUTHENTICATED',
       userId,
-      // The identifier the operator typed is what they recognise. There is no profile endpoint
-      // until M-023, and inventing a display name would put a fiction on screen next to real data.
-      displayName: userId,
+      // The identifier the operator TYPED, when we have it — that is what they recognise. After a
+      // reload we do not: the email was never persisted (it is PII, and this console keeps the
+      // access token out of storage for the same reason), so the uuid from `sub` is all that
+      // survives. The shell shortens it rather than printing 36 characters of it.
+      displayName: identifier ?? userId,
+      roleLabel: roleLabelOf(getAccessToken()),
       permissions: [],
     }),
     [],
@@ -151,7 +162,7 @@ export function SessionProvider({
     async (identifier: string, password: string): Promise<string | null> => {
       try {
         const result = await apiLogin(identifier, password);
-        setSession(authenticatedAs(result.user_id));
+        setSession(authenticatedAs(result.user_id, identifier));
         return null;
       } catch (error) {
         setSession({ status: 'UNAUTHENTICATED' });
@@ -204,18 +215,62 @@ export function mayAttempt(session: AdminSession, permission: string): boolean {
  * what an attacker who forged the token already chose. The server verifies every request, and
  * this value is used for one thing: deciding which name to put in the corner.
  */
-function subjectOf(token: string | null): string {
-  if (token === null) return 'unknown';
+/**
+ * The platform roles this console serves, most privileged first, with the wording an operator reads.
+ *
+ * Ordered because a person can hold several — the label names the widest one, since that is what
+ * determines what the screen will let them do. Kept in sync with `PLATFORM_ROLES` in the server's
+ * `platform-role.guard.ts`; `shell.spec.ts` asserts the two lists match rather than trusting that
+ * a role added there is remembered here.
+ */
+const PLATFORM_ROLE_LABELS: ReadonlyArray<readonly [string, string]> = [
+  ['SUPER_ADMIN', 'Super admin'],
+  ['FINANCE', 'Finance'],
+  ['VERIFICATION_OFFICER', 'Verification officer'],
+  ['MODERATOR', 'Moderator'],
+  ['SUPPORT_AGENT', 'Support agent'],
+];
+
+/**
+ * The widest platform role in the token, as a label — or `null`.
+ *
+ * Same unverified read as `subjectOf`, and the same reason it is safe: a forged claim could only
+ * change the WORD in the corner. Every request is authorised server-side, and the sidebar shows
+ * every screen regardless of role today (`M-023` wires the `B3.2` matrix), so nothing here gates
+ * anything.
+ */
+function roleLabelOf(token: string | null): string | null {
+  const claims = claimsOf(token);
+  const roles = Array.isArray(claims?.roles) ? claims.roles : [];
+  const held = new Set(
+    roles.filter((role): role is string => typeof role === 'string').map((scoped) => {
+      // `SUPER_ADMIN@platform`. The scope matters: a tenant-scoped role of the same name is a gym
+      // owner's staff member, not platform staff.
+      const [key, scope] = scoped.split('@');
+      return scope === 'platform' ? key : undefined;
+    }),
+  );
+
+  return PLATFORM_ROLE_LABELS.find(([key]) => held.has(key))?.[1] ?? null;
+}
+
+/** The payload, decoded and not verified. One parse, two readers. */
+function claimsOf(token: string | null): { sub?: unknown; roles?: unknown } | null {
+  if (token === null) return null;
   const payload = token.split('.')[1];
-  if (payload === undefined) return 'unknown';
+  if (payload === undefined) return null;
 
   try {
     const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/')) as string;
-    const claims = JSON.parse(json) as { sub?: unknown };
-    return typeof claims.sub === 'string' ? claims.sub : 'unknown';
+    return JSON.parse(json) as { sub?: unknown; roles?: unknown };
   } catch {
-    return 'unknown';
+    return null;
   }
+}
+
+function subjectOf(token: string | null): string {
+  const claims = claimsOf(token);
+  return typeof claims?.sub === 'string' ? claims.sub : 'unknown';
 }
 
 /**

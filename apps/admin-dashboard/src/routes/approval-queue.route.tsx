@@ -25,6 +25,7 @@ import {
   DataTable,
   FilterTabs,
   Pagination,
+  PageHeader,
   Panel,
   StateBoundary,
   TableSkeleton,
@@ -151,10 +152,7 @@ export function ApprovalQueueRoute() {
 
   return (
     <>
-      <h1 className="text-xl font-semibold text-content">{t('adm.queue.title')}</h1>
-      <p className="mt-stack-2xs max-w-prose text-sm text-content-secondary">
-        {t('adm.queue.subtitle')}
-      </p>
+      <PageHeader title={t('adm.queue.title')} subtitle={t('adm.queue.subtitle')} />
 
       <div className="mt-stack-md">
         <FilterTabs
