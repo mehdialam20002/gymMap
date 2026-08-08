@@ -24,6 +24,7 @@ import { t } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
 import { FixtureNotice } from '../discovery/search-results.tsx';
 import { GymCard } from '../discovery/gym-card.tsx';
+import { checkoutHref } from '../checkout/quote.ts';
 import { formatMinor, search, EMPTY_QUERY } from '../discovery/search.ts';
 import type { GymDetail as Gym } from '../discovery/fixtures/catalogue.ts';
 import { Gallery } from './gallery.tsx';
@@ -151,6 +152,12 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
           <div className="rounded-card border border-subtle bg-surface-raised p-inset-lg shadow-xs dark:shadow-none">
             <h2 className="text-lg font-semibold text-content">{t('web.gym.plans.title')}</h2>
 
+            {/*
+             * Each plan is a LINK to its own checkout URL rather than a radio in a form. The
+             * choice is then in the address bar, so it survives a refresh, can be sent to the
+             * person actually paying, and arrives at `/checkout` as a gym-and-plan pair the
+             * parser can reject if they do not belong together.
+             */}
             <ul className="mt-stack-md flex flex-col gap-stack-sm">
               {gym.plans.map((plan) => (
                 <li
@@ -158,7 +165,14 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
                   className="flex items-baseline justify-between gap-inline-sm border-b border-subtle pb-inset-sm last:border-0 last:pb-0"
                 >
                   <div className="min-w-0">
-                    <p className="text-base font-medium text-content">{plan.name}</p>
+                    <p className="text-base font-medium text-content">
+                      <Link
+                        href={checkoutHref(gym, plan)}
+                        className="rounded-control hover:underline"
+                      >
+                        {plan.name}
+                      </Link>
+                    </p>
                     <p className="text-sm text-content-muted">
                       {`${String(plan.durationDays)} ${t('web.gym.plans.days')}`}
                     </p>
@@ -177,16 +191,28 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
               ))}
             </ul>
 
-            {/* Disabled, and it says why. A live-looking Join button on a fixture listing would
-                be the one control a client demo is guaranteed to press. */}
-            <button
-              type="button"
-              disabled
-              aria-disabled="true"
-              className="gm-hit-target mt-stack-lg w-full rounded-control bg-surface-disabled px-inset-lg py-inset-sm text-md font-semibold text-content-disabled"
-            >
-              {t('web.gym.plans.join')}
-            </button>
+            {/*
+             * The button opens the REVIEW screen, which is a real page, and it is the review
+             * screen that says payments are not live.
+             *
+             * A disabled button here was the earlier version. It stopped a member from ever
+             * reaching the total, the tax breakdown or the sentence about server-side
+             * revalidation — the three things this flow exists to show. Nothing on the way
+             * charges anybody: `/checkout` is where the flow stops, and it says so there.
+             *
+             * The first plan is the cheapest, because `fromPriceMinor` is defined as the cheapest
+             * and the list is authored in ascending order; a member who wants another one clicks
+             * its name, two lines up.
+             */}
+            {gym.plans[0] !== undefined && (
+              <Link
+                href={checkoutHref(gym, gym.plans[0])}
+                data-on-solid="true"
+                className="gm-hit-target mt-stack-lg block w-full rounded-control bg-brand-solid px-inset-lg py-inset-sm text-center text-md font-semibold text-content-on-brand transition-colors duration-fast ease-standard hover:bg-brand-solid-hover"
+              >
+                {t('web.gym.plans.join')}
+              </Link>
+            )}
             <p className="mt-stack-xs text-sm text-content-muted">
               {t('web.gym.plans.joinNotice')}
             </p>

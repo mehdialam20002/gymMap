@@ -344,6 +344,51 @@ export const en = {
   'web.compare.legend':
     'A tick means the gym lists that facility. A dash means it has not listed it, which is not the same as not having it.',
 
+  // --- SCR-WEB-005/006/007 · checkout, payment, confirmation ----------------
+  'web.checkout.title': 'Review your membership',
+  'web.checkout.metaDescription':
+    'Check the gym, the plan and the total before you pay. The price shown is the price charged.',
+  'web.checkout.notFound.title': 'That plan is not available',
+  'web.checkout.notFound.body':
+    'The link named a gym or a plan that does not exist. Pick a plan from the gym page and it will bring the right one here.',
+  'web.checkout.notFound.action': 'Find a gym',
+  'web.checkout.section.membership': 'What you are buying',
+  'web.checkout.section.total': 'What you pay',
+  'web.checkout.plan': 'Plan',
+  'web.checkout.duration': 'Length',
+  'web.checkout.days': 'days',
+  'web.checkout.line.gross': 'Plan price',
+  'web.checkout.line.discount': 'Discount',
+  'web.checkout.line.net': 'Subtotal',
+  'web.checkout.line.total': 'Total',
+  'web.checkout.line.taxNote': 'Tax is added to the listed price, not included in it.',
+  // Invariant 3, said to the member in their own words on the screen where the price is read.
+  'web.checkout.priceProof':
+    'This total is checked again on our server before any payment is taken. If it does not match, the payment is stopped rather than charged at a different figure.',
+  'web.checkout.pay': 'Continue to payment',
+  // Says exactly why the button does nothing, rather than looking broken.
+  'web.checkout.payNotice':
+    'Payments are not live yet. When they are, this hands you to the payment provider — GymMap never sees your card details.',
+  'web.checkout.changePlan': 'Choose a different plan',
+
+  'web.confirmation.title': 'What happens after you pay',
+  'web.confirmation.metaDescription':
+    'How a GymMap membership is activated, and why the confirmation comes from our server rather than from your browser.',
+  // Invariant 5, and the reason it exists, in one paragraph a member can act on.
+  'web.confirmation.webhook.title': 'Your membership activates on our server, not in this tab',
+  'web.confirmation.webhook.body':
+    'When you pay, the payment provider tells our server directly. That message is what activates the membership. This page reaching you is not the confirmation — which is why a lost connection, a closed tab or a failed redirect cannot leave you paid and without a membership.',
+  'web.confirmation.next.title': 'What you will get',
+  'web.confirmation.next.qr':
+    'A membership QR code in your account, which the gym scans when you arrive.',
+  'web.confirmation.next.receipt':
+    'A receipt with the same figures you approved, to the nearest paise.',
+  'web.confirmation.next.email':
+    'An email, once the payment is confirmed rather than when it is started.',
+  'web.confirmation.pending.title': 'If the confirmation is slow',
+  'web.confirmation.pending.body':
+    'A payment can be confirmed a few seconds after you return. Your account shows the membership as pending until our server hears from the provider, and it never shows it as active before that.',
+
   // The page-level disclosure. Deliberately the LAST thing before the footer: the closing call to
   // action gets its moment, and the caveat lands where fine print belongs rather than interrupting
   // the read. The listing grid carries its own, narrower notice — this one is about the platform,

@@ -13,7 +13,7 @@
  * rather than one convenient pass.
  */
 
-import { compare, indianAmountParts } from '@gymmap/utils';
+import { compare, formatIndianRupees, indianAmountParts } from '@gymmap/utils';
 
 import {
   AMENITIES,
@@ -305,4 +305,24 @@ export function hasActiveFilters(query: SearchQuery): boolean {
 export function formatMinor(paise: bigint): string {
   const { sign, major } = indianAmountParts(paise, 2);
   return `${sign}₹${major}`;
+}
+
+/**
+ * The same amount WITH its paise — `₹1,979.91`.
+ *
+ * ┌─ TWO FORMATTERS, AND THE LINE BETWEEN THEM IS "IS THIS A HEADLINE OR A CHARGE?" ────────────┐
+ * │ `formatMinor` drops the paise on purpose: `₹2,499.00` on a result card reads as though a    │
+ * │ machine wrote it, and no Indian gym quotes a monthly fee to the paise.                       │
+ * │                                                                                              │
+ * │ On a BREAKDOWN it is a bug, and a visible one. 18% of ₹21,999 is ₹3,959.82, which splits    │
+ * │ into two GST components of ₹1,979.91. Rounded down for display, the column reads             │
+ * │ 21,999 + 1,979 + 1,979 = 25,957 beside a total of ₹25,958 — a member checking the           │
+ * │ arithmetic on the screen where they are about to be charged finds it off by a rupee, and     │
+ * │ every reassurance the page makes about the price is worth less for it.                        │
+ * │                                                                                              │
+ * │ So: headline figures round, and anything that has to add up does not.                         │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export function formatMinorExact(paise: bigint): string {
+  return formatIndianRupees(paise);
 }
