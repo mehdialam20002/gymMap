@@ -39,12 +39,18 @@ import {
   REGISTRATION_LABELS,
   REVENUE_BREAKDOWN,
   REVENUE_SERIES,
+  MEMBERSHIP_STATS,
+  RECENT_ACTIVITY,
+  RENEWAL_DELTA_BPS,
+  RENEWAL_RATE_BPS,
+  SPARKLINES,
   SYSTEM_ALERTS,
+  TOP_GYMS,
   formatAgo,
   formatDeltaBps,
   formatMinor,
 } from '../shared/api/demo-figures.ts';
-import { AreaChart, Donut, Legend, MultiLine } from '../shared/viz/charts.tsx';
+import { AreaChart, Donut, Legend, MultiLine, Sparkline } from '../shared/viz/charts.tsx';
 import { SeverityGlyph, TileGlyph, type TileIcon } from '../shared/icons/index.tsx';
 import { PENDING_ROUTES } from './nav.ts';
 import { GYM_STATUS_LABEL, STATUS_BAR_CLASS, StatusPill } from './status-pill.tsx';
@@ -103,7 +109,7 @@ export function PlatformDashboardRoute() {
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-inline-md">
         <div>
-          <h1 className="text-xl font-semibold text-content">{t('adm.dashboard.title')}</h1>
+          <h1 className="text-xl font-semibold text-content">{t('adm.dashboard.greeting')}</h1>
           <p className="mt-stack-2xs text-xs text-content-muted">{t('adm.dashboard.subtitle')}</p>
         </div>
         <LastUpdated
@@ -372,6 +378,83 @@ export function PlatformDashboardRoute() {
         </aside>
       </div>
 
+      {/* ── Feed panels. Sample, and each tagged. ─────────────────────────────────────── */}
+      <div className="mt-stack-lg grid gap-inline-sm xl:grid-cols-3">
+        <Panel title={t('adm.sample.recentActivity')} sample>
+          <ul className="flex flex-col gap-stack-sm">
+            {RECENT_ACTIVITY.map((entry) => (
+              <li key={entry.id} className="flex gap-inline-xs">
+                <span
+                  aria-hidden="true"
+                  className={`grid h-[1.75rem] w-[1.75rem] shrink-0 place-items-center rounded-control text-xs font-semibold ${ACTIVITY_ACCENT[entry.kind]}`}
+                >
+                  {ACTIVITY_INITIAL[entry.kind]}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs text-content">{entry.headline}</p>
+                  <p className="text-xs text-content-muted">
+                    {entry.detail} · {formatAgo(entry.minutesAgo)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+
+        <Panel title={t('adm.sample.topGyms')} sample>
+          <ol className="flex flex-col gap-stack-2xs">
+            {TOP_GYMS.map((gym) => (
+              <li key={gym.rank} className="flex items-center gap-inline-xs text-xs">
+                <span
+                  aria-hidden="true"
+                  className="grid h-[1.5rem] w-[1.5rem] shrink-0 place-items-center rounded-control bg-surface-sunken font-semibold text-content-secondary"
+                >
+                  {gym.rank}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-content">{gym.name}</span>
+                <span className="shrink-0 tabular-nums font-medium text-content">
+                  {formatMinor(gym.revenueMinor)}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </Panel>
+
+        <Panel title={t('adm.sample.membershipStats')} sample>
+          <dl className="flex flex-col gap-stack-2xs">
+            {MEMBERSHIP_STATS.map((stat) => (
+              <div
+                key={stat.label}
+                className="flex items-center justify-between gap-inline-sm text-xs"
+              >
+                <dt className="min-w-0 truncate text-content-secondary">{stat.label}</dt>
+                <dd className="flex shrink-0 items-center gap-inline-xs">
+                  <span className="tabular-nums font-medium text-content">
+                    {stat.value.toLocaleString('en-IN')}
+                  </span>
+                  <span className="tabular-nums text-content-muted">
+                    <span aria-hidden="true">{stat.deltaBps >= 0 ? '▲' : '▼'}</span>{' '}
+                    {formatDeltaBps(stat.deltaBps)}
+                  </span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className="mt-stack-sm flex items-center justify-between gap-inline-sm rounded-control bg-surface-sunken px-inset-sm py-inset-xs">
+            <span className="text-xs font-medium text-content">{t('adm.sample.renewalRate')}</span>
+            <span className="flex items-center gap-inline-xs text-xs">
+              <span className="tabular-nums font-semibold text-content">
+                {(RENEWAL_RATE_BPS / 100).toFixed(1)}%
+              </span>
+              <span className="tabular-nums text-content-success">
+                <span aria-hidden="true">▲</span> {formatDeltaBps(RENEWAL_DELTA_BPS)}
+              </span>
+            </span>
+          </div>
+        </Panel>
+      </div>
+
       {/* ── Not built. Named, with the milestone, carrying no figure. ─────────────────── */}
       <section className="mt-stack-lg">
         <h2 className="text-sm font-semibold text-content">{t('adm.dashboard.awaiting.title')}</h2>
@@ -416,6 +499,23 @@ const SAMPLE_ICON: Record<string, TileIcon> = {
   'adm.sample.supportTickets': 'support',
   'adm.sample.refundRequests': 'refunds',
 };
+
+/** One letter per activity kind. A glyph set for five kinds would be five more decisions. */
+const ACTIVITY_INITIAL = {
+  GYM: 'G',
+  MEMBERSHIP: 'M',
+  PAYMENT: 'P',
+  REFUND: 'R',
+  PAYOUT: 'S',
+} as const;
+
+const ACTIVITY_ACCENT = {
+  GYM: 'bg-surface-success-subtle text-content-success',
+  MEMBERSHIP: 'bg-surface-brand-subtle text-content-brand',
+  PAYMENT: 'bg-surface-info-subtle text-content-info',
+  REFUND: 'bg-surface-warning-subtle text-content-warning',
+  PAYOUT: 'bg-surface-sunken text-content-secondary',
+} as const;
 
 const TONE_ACCENT = {
   brand: 'bg-surface-brand-subtle text-content-brand',
@@ -540,6 +640,10 @@ function SampleTile({ figure }: { figure: (typeof HEADLINES)[number] }) {
       {/* The arrow shows DIRECTION and is not coloured good/bad. Fewer refund requests and less
           revenue carry the same sign and opposite news, and a green arrow on one of them would
           be the screen making a judgement the data does not support. */}
+      <div className="mt-stack-2xs">
+        <Sparkline values={SPARKLINES[figure.key] ?? []} rising={rising} />
+      </div>
+
       <p className="mt-stack-2xs text-xs text-content-muted">
         <span aria-hidden="true">{rising ? '▲' : '▼'}</span> {formatDeltaBps(figure.deltaBps)}{' '}
         {t(

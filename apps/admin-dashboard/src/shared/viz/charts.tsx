@@ -315,3 +315,63 @@ export function Legend({ items }: { readonly items: readonly { label: string; sl
     </ul>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Sparkline — a shape, not a chart.
+// ---------------------------------------------------------------------------
+
+/**
+ * A tile sparkline: no axes, no grid, no labels.
+ *
+ * Deliberately unreadable as VALUES, and that is the form working rather than failing. A
+ * sparkline answers "which way, and how steadily" for a number printed full-size beside it. Add
+ * a y-axis and it becomes a small bad chart competing with the figure it was meant to support.
+ *
+ * Which is also why the series must agree with the delta on the tile. A rising spark beside
+ * `-11.7%` is a contradiction the reader resolves by trusting neither.
+ */
+export function Sparkline({
+  values,
+  slot = 1,
+  rising,
+}: {
+  readonly values: readonly number[];
+  readonly slot?: number;
+  readonly rising: boolean;
+}) {
+  if (values.length < 2) return null;
+
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  // Scaled to its OWN range, not to zero. A tile spark is about shape; a zero baseline would
+  // flatten every one of them into the same near-horizontal line.
+  const span = max - min || 1;
+  const step = 100 / (values.length - 1);
+
+  const line = values
+    .map((value, index) => `${String(index * step)},${String(28 - ((value - min) / span) * 24)}`)
+    .join(' ');
+
+  // The tone follows DIRECTION, not judgement: falling support tickets are good news and falling
+  // revenue is not, so the colour says "down" and the label beside it says what that means.
+  const colour = rising ? seriesColour(slot) : seriesColour(2);
+
+  return (
+    <svg
+      viewBox="0 0 100 30"
+      preserveAspectRatio="none"
+      className="h-[1.75rem] w-full"
+      aria-hidden="true"
+    >
+      <polyline
+        points={line}
+        fill="none"
+        stroke={colour}
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}

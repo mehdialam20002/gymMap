@@ -272,3 +272,101 @@ export function formatAgo(minutes: number): string {
   const hours = Math.round(minutes / 60);
   return `${String(hours)} ${hours === 1 ? 'hour' : 'hours'} ago`;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// Sparkline series, and the three feed panels. Sample, like everything else in this file.
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Twelve points per headline tile.
+ *
+ * Enough to read a shape, few enough to draw at 60x24 without turning into noise. Each series
+ * ends where its tile's delta says it should: a tile reading `-11.7%` has a falling tail, because
+ * a sparkline that contradicts the number beside it is worse than no sparkline.
+ */
+export const SPARKLINES: Readonly<Record<string, readonly number[]>> = {
+  'adm.sample.totalRevenue': [42, 45, 44, 49, 52, 51, 58, 61, 59, 66, 71, 74],
+  'adm.sample.todayRevenue': [28, 31, 29, 35, 33, 38, 41, 39, 44, 47, 45, 51],
+  'adm.sample.commission': [18, 19, 21, 20, 24, 26, 25, 29, 31, 30, 34, 37],
+  'adm.sample.activeMemberships': [61, 63, 66, 65, 69, 72, 74, 73, 78, 81, 84, 88],
+  'adm.sample.supportTickets': [74, 71, 76, 69, 72, 66, 63, 67, 61, 58, 60, 55],
+  'adm.sample.refundRequests': [31, 29, 33, 28, 30, 26, 24, 27, 22, 20, 19, 17],
+};
+
+export interface ActivityEntry {
+  readonly id: string;
+  readonly kind: 'GYM' | 'MEMBERSHIP' | 'PAYMENT' | 'REFUND' | 'PAYOUT';
+  readonly headline: string;
+  readonly detail: string;
+  readonly minutesAgo: number;
+}
+
+/** The feed. Mixed kinds so the filter tabs have something to actually filter. */
+export const RECENT_ACTIVITY: readonly ActivityEntry[] = [
+  {
+    id: 'a1',
+    kind: 'GYM',
+    headline: 'Iron House Strength Club was approved',
+    detail: 'by Rohit Sharma',
+    minutesAgo: 10,
+  },
+  {
+    id: 'a2',
+    kind: 'PAYMENT',
+    headline: 'Payment of Rs 2,499 received from Neha Singh',
+    detail: 'Order ORD-78562',
+    minutesAgo: 15,
+  },
+  {
+    id: 'a3',
+    kind: 'REFUND',
+    headline: 'Refund of Rs 1,999 initiated for Aman Verma',
+    detail: 'Order ORD-78563',
+    minutesAgo: 45,
+  },
+  {
+    id: 'a4',
+    kind: 'PAYOUT',
+    headline: 'Payout of Rs 24,500 completed to 5 gyms',
+    detail: 'Settlement cycle 32',
+    minutesAgo: 120,
+  },
+  {
+    id: 'a5',
+    kind: 'MEMBERSHIP',
+    headline: '28 memberships activated at Pulse Fitness Koramangala',
+    detail: 'Monthly plan',
+    minutesAgo: 180,
+  },
+];
+
+export interface TopGym {
+  readonly rank: number;
+  readonly name: string;
+  readonly revenueMinor: number;
+}
+
+export const TOP_GYMS: readonly TopGym[] = [
+  { rank: 1, name: 'Iron House Strength Club', revenueMinor: 4_32_890_00 },
+  { rank: 2, name: 'Apex CrossFit Powai', revenueMinor: 3_78_450_00 },
+  { rank: 3, name: 'Coastal Swim & Gym', revenueMinor: 2_91_320_00 },
+  { rank: 4, name: 'Pulse Fitness Koramangala', revenueMinor: 2_45_670_00 },
+  { rank: 5, name: 'Capital Strength Saket', revenueMinor: 2_12_890_00 },
+];
+
+export interface MembershipStat {
+  readonly label: string;
+  readonly value: number;
+  readonly deltaBps: number;
+}
+
+export const MEMBERSHIP_STATS: readonly MembershipStat[] = [
+  { label: 'Active memberships', value: 12_864, deltaBps: 1530 },
+  { label: 'New this month', value: 1_245, deltaBps: 1260 },
+  { label: 'Expired', value: 342, deltaBps: -840 },
+  { label: 'Cancelled', value: 213, deltaBps: -510 },
+];
+
+/** Renewal rate, in basis points. 6840 = 68.40%. */
+export const RENEWAL_RATE_BPS = 6840;
+export const RENEWAL_DELTA_BPS = 720;

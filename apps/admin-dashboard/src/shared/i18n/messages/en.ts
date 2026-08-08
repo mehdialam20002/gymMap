@@ -144,6 +144,11 @@ export const en = {
     'These screens have no endpoint behind them yet, so they show no figure. A zero here would be indistinguishable from a real zero.',
   'adm.dashboard.awaiting.milestone': 'Arrives in',
   'adm.dashboard.live': 'live',
+  'adm.dashboard.greeting': 'Welcome back, Super Admin',
+  'adm.sample.recentActivity': 'Recent activity',
+  'adm.sample.topGyms': 'Top gyms by revenue',
+  'adm.sample.membershipStats': 'Membership stats',
+  'adm.sample.renewalRate': 'Renewal rate',
   'adm.viewAll': 'View all',
   'adm.queue.dayShort': 'd waiting',
 
