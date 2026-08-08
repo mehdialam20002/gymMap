@@ -22,6 +22,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import preset from '@gymmap/ui/tailwind-preset';
+
 const APP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Comments blanked, newlines kept — the same discipline as `shell.spec.ts`. A test that reads
@@ -152,10 +154,40 @@ test('the toggle takes the media focus ring, not the solid one', () => {
 
 test('hero copy uses the media pair, and never a theme-flipping one', () => {
   const src = code(HERO);
-  assert.match(src, /text-on-media/, 'the hero copy does not use content-on-media');
-  // The two that look right and are not. Both flip with the theme, and `surface-media` does not.
+  // The EXACT class, not a loose match. The first version of this test asserted `text-on-media`,
+  // which is not a class this preset emits — the utility is `text-content-on-media`, because the
+  // token lives at `colors.content['on-media']`. The test passed, the build passed, and the
+  // stylesheet contained nothing: an unknown Tailwind class is silently dropped, so the copy fell
+  // back to inherited colour and happened to look fine on a dark band. Asserting the exact string
+  // is the only version of this test that would have failed.
+  assert.match(src, /\btext-content-on-media\b/, 'the hero copy does not use content-on-media');
+  assert.match(src, /\bbg-surface-media\b/);
+  // The two that look right and are not. Both flip with the theme; `surface-media` does not.
   assert.ok(!src.includes('text-content-inverse'), 'content-inverse flips; surface-media does not');
   assert.ok(!src.includes('bg-surface-inverse'), 'surface-inverse flips; use surface-media');
+});
+
+test('the classes the hero names actually exist in the preset', () => {
+  // Pins the relationship at BOTH ends. A class name is a string until something proves a token
+  // answers to it, and Tailwind's failure mode for a name nothing answers to is silence.
+  const colours = preset.theme?.colors as
+    Record<string, Record<string, string> | string> | undefined;
+  assert.ok(colours, 'the preset declares no colours');
+
+  const surface = colours['surface'] as Record<string, string>;
+  const content = colours['content'] as Record<string, string>;
+  assert.ok(
+    'media' in surface,
+    'colors.surface.media is gone — bg-surface-media resolves to nothing',
+  );
+  assert.ok(
+    'on-media' in content,
+    'colors.content["on-media"] is gone — text-content-on-media resolves to nothing',
+  );
+  // Theme-invariance is the whole reason the pair exists, and it is asserted in packages/ui's
+  // own suite. Here we only prove the app can reach it.
+  assert.match(surface['media']!, /^var\(--gm-color-surface-media\)$/);
+  assert.match(content['on-media']!, /^var\(--gm-color-content-on-media\)$/);
 });
 
 test('no opacity modifier dims text on the media band', () => {
@@ -163,22 +195,33 @@ test('no opacity modifier dims text on the media band', () => {
   // A dimmed foreground is a pairing the §3.6 register does not contain, so nothing re-measures
   // it when the palette moves. Hierarchy here is size and weight.
   assert.ok(
-    !/text-on-media\/\d/.test(src),
+    !/text-content-on-media\/\d/.test(src),
     'an alpha modifier was applied to content-on-media; it is also unreliable on a var() colour',
   );
   assert.ok(!/\bopacity-\d+\b/.test(code(HERO)), 'hero copy is dimmed with an opacity utility');
 });
 
-test('the veil reaches FULL opacity across the half the copy occupies', () => {
-  const src = code(HERO);
-  // `from` 0%, `via` 50%, `to` 100%. Without the `via` stop the gradient is translucent
-  // everywhere, and every ratio on this surface becomes a property of the video frame.
-  assert.match(src, /from-media/);
-  assert.match(src, /via-media/);
-  assert.match(src, /to-transparent/);
-  // Turns with the breakpoint: bottom half on a phone, left half from md up.
-  assert.match(src, /bg-gradient-to-t/);
-  assert.match(src, /md:bg-gradient-to-r/);
+test('the veil reaches FULL opacity across the region the copy occupies', () => {
+  assert.match(code(HERO), /\bgm-media-veil\b/, 'the hero lost its veil');
+
+  const css = readFileSync(join(APP_ROOT, 'src/styles/globals.css'), 'utf8');
+  const rule = /\.gm-media-veil\s*\{[\s\S]*?\}/.exec(css);
+  assert.ok(rule, 'gm-media-veil is not defined');
+
+  // Both stops resolve to the TOKEN. A hex here would opt the veil out of the palette and out
+  // of the §3.6 register in one edit, and it would look identical.
+  assert.match(rule[0], /var\(--gm-color-surface-media\)/);
+  assert.ok(!/#[0-9a-fA-F]{3,8}/.test(rule[0]), 'the veil hard-codes a colour');
+
+  // The stop position is the entire reason this is CSS rather than `via-surface-media`, which
+  // sits at exactly 50%. On a phone the copy is taller than half the section, so a 50% stop put
+  // the headline over the footage at a ratio that depends on the frame.
+  const opaqueTo = /var\(--gm-color-surface-media\)\s+(\d+)%/g;
+  const stops = [...rule[0].matchAll(opaqueTo)].map((m) => Number(m[1]));
+  assert.ok(
+    stops.some((s) => s >= 70),
+    `the opaque stop is at ${stops.join('/')}% — the copy needs about 72% on a phone`,
+  );
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

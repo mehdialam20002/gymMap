@@ -35,14 +35,11 @@ export function Hero() {
       <HeroVideo />
 
       {/*
-       * `from` at 0%, `via` at 50%, `to` at 100% — so the half nearest the copy is flat
-       * `surface-media` with no video showing through it, and the ratio in that half is a
-       * property of the palette rather than of the frame.
+       * `gm-media-veil` (globals.css) — flat `surface-media` across the region the copy occupies,
+       * with the stop position chosen per breakpoint. Tailwind's `via` is fixed at 50%, and on a
+       * phone the copy is taller than that, which put the headline over the footage.
        */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-surface-media via-surface-media to-transparent md:bg-gradient-to-r"
-      />
+      <div aria-hidden="true" className="gm-media-veil pointer-events-none absolute inset-0" />
 
       <div className="relative mx-auto max-w-container px-inset-md py-region-lg md:py-region-xl">
         <div className="max-w-prose">

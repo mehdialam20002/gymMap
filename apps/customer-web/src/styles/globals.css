@@ -54,6 +54,45 @@
     white-space: nowrap;
   }
 
+  /*
+   * `SCR-WEB-001` — the veil that makes hero copy legible over footage.
+   *
+   * ┌─ WHY THIS IS CSS AND NOT `from-surface-media via-surface-media to-transparent` ────────────┐
+   * │ It was those utilities first, and the mobile layout caught it: Tailwind's `via` sits at    │
+   * │ exactly 50%, the hero copy is roughly three quarters of the section's height on a phone,   │
+   * │ and the headline therefore landed in the TRANSLUCENT half — over a barbell, at a ratio     │
+   * │ that depends on the frame. Legible in the screenshot, unprovable in general, and precisely │
+   * │ the failure `surface-media` exists to prevent.                                              │
+   * │                                                                                            │
+   * │ The stop position is the whole point, and `via-72%` is not a class this preset emits, so   │
+   * │ the gradient is written out. Both stops still resolve to the TOKEN — no hex reaches this   │
+   * │ file, and `TK1` holds.                                                                      │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   *
+   * Phone: opaque from the bottom to 72%, so the copy sits entirely on flat colour and the
+   * footage keeps the top quarter. From `md` up the axis turns and the copy takes the left.
+   */
+  .gm-media-veil {
+    background-image: linear-gradient(
+      to top,
+      var(--gm-color-surface-media) 0%,
+      var(--gm-color-surface-media) 72%,
+      transparent 100%
+    );
+  }
+
+  /* 768px is `screen-md` — `BP4` permits breakpoint widths and no others. */
+  @media (min-width: 768px) {
+    .gm-media-veil {
+      background-image: linear-gradient(
+        to right,
+        var(--gm-color-surface-media) 0%,
+        var(--gm-color-surface-media) 50%,
+        transparent 92%
+      );
+    }
+  }
+
   /* Photography is never dimmed, tinted or filtered in dark mode (§9.4): a gym owner comparing
    * their own cover photo across themes must see the same photo. The one permitted change is a
    * hairline so a white-heavy image does not appear to float on the dark canvas. */
