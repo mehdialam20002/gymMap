@@ -47,6 +47,7 @@ import { IdentificationCard } from '@phosphor-icons/react/dist/ssr/Identificatio
 import { ToggleLeft } from '@phosphor-icons/react/dist/ssr/ToggleLeft';
 import { BellSimple } from '@phosphor-icons/react/dist/ssr/BellSimple';
 import { GearSix } from '@phosphor-icons/react/dist/ssr/GearSix';
+import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import type { Icon } from '@phosphor-icons/react';
 
 import type { NavIcon } from '../../routes/nav.ts';
@@ -102,6 +103,7 @@ export function NavGlyph({
 const CHROME_GLYPH = {
   notifications: BellSimple,
   help: Lifebuoy,
+  search: MagnifyingGlass,
 } as const;
 
 export function ChromeGlyph({

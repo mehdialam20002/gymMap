@@ -104,12 +104,18 @@ export function MetricCard({
 }) {
   return (
     <div
-      className={`rounded-card border p-inset-md shadow-xs dark:shadow-none ${
+      // `shadow-sm` and a full `p-inset-lg`. The reference's cards are `p-5` with `shadow-sm`, and
+      // on a near-white canvas the shadow is doing most of the separating — a card defined only by
+      // a hairline border on an almost-identical background reads as a table cell.
+      //
+      // Still `dark:shadow-none`: in dark mode elevation is LIGHTNESS, and a shadow on a dark
+      // surface is a smudge rather than a lift.
+      className={`rounded-card border p-inset-lg shadow-sm dark:shadow-none ${
         emphasis ? 'border-brand bg-surface-brand-subtle' : 'border-subtle bg-surface'
       }`}
     >
       <div className="flex items-start justify-between gap-inline-sm">
-        <p className="text-xs font-medium uppercase tracking-wide text-content-muted">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-content-muted">{label}</p>
         {icon !== undefined && (
           <span
             className={`grid h-[2.25rem] w-[2.25rem] shrink-0 place-items-center rounded-control ${TONE_ACCENT[tone]}`}
@@ -119,7 +125,13 @@ export function MetricCard({
         )}
       </div>
 
-      <p className="mt-stack-2xs text-2xl font-semibold tabular-nums tracking-tight text-content">
+      {/* ┌─ THE FIGURE IS THE CARD ────────────────────────────────────────────────────────────┐
+          │ `text-3xl font-extrabold`, up from `text-2xl font-semibold`. A KPI card exists so a  │
+          │ number can be read from across a desk without focusing on it, and at `text-2xl`      │
+          │ semibold the label and the figure carried almost the same weight — which made a grid │
+          │ of four cards read as four paragraphs.                                               │
+          └────────────────────────────────────────────────────────────────────────────────────┘ */}
+      <p className="mt-stack-sm text-3xl font-extrabold tabular-nums tracking-tight text-content">
         {value ?? <span className="text-sm font-normal text-content-muted">{loadingLabel}</span>}
       </p>
 

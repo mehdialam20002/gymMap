@@ -498,6 +498,20 @@ export function PlatformDashboardRoute() {
 // Pieces.
 // ---------------------------------------------------------------------------
 
+/**
+ * The row tint per severity — surface AND border, both from the subtle steps.
+ *
+ * Deliberately the SUBTLE surfaces rather than a hand-mixed alpha: they are in the contrast proof,
+ * they invert correctly in dark mode, and `text-content` on each of them clears the text floor.
+ * An `amber-50/50` overlay of the kind the reference uses would do neither.
+ */
+const ROW_TINT = {
+  critical: 'border-danger bg-surface-danger-subtle',
+  serious: 'border-warning bg-surface-warning-subtle',
+  info: 'border-info bg-surface-info-subtle',
+  good: 'border-success bg-surface-success-subtle',
+} as const;
+
 const SEVERITY_INK = {
   critical: 'text-content-danger',
   serious: 'text-content-warning',
@@ -796,7 +810,16 @@ function NeedsAttention({
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex flex-wrap items-center justify-between gap-inline-sm rounded-control border border-subtle bg-surface-sunken px-inset-sm py-inset-xs"
+              // ┌─ TINTED PER SEVERITY, WHICH IS WHAT THE REFERENCE DOES ────────────────────┐
+              // │ Every row used to be the same grey well, with only a small coloured glyph  │
+              // │ distinguishing them — so a panel whose whole job is triage read as a flat  │
+              // │ list and an operator had to inspect each glyph to find the urgent one.      │
+              // │                                                                          │
+              // │ The tint is REDUNDANT, not load-bearing: the glyph and the wording already │
+              // │ carry the severity (`AX8`/`AX9`), and the subtle surfaces all clear the     │
+              // │ text floor against the ink used on them. It buys a glance.                  │
+              // └──────────────────────────────────────────────────────────────────────────┘
+              className={`flex flex-wrap items-center justify-between gap-inline-sm rounded-control border px-inset-md py-inset-sm ${ROW_TINT[item.severity]}`}
             >
               <span className="flex min-w-0 items-start gap-inline-xs">
                 {/* Icon AND colour AND the word -- never colour alone (AX8). */}
@@ -808,9 +831,11 @@ function NeedsAttention({
                   <span className="block text-xs text-content-muted">{item.detail}</span>
                 </span>
               </span>
+              {/* On `surface` rather than transparent, so the button reads as a control sitting ON
+                  the tinted row rather than as a second tint inside it. */}
               <Link
                 to={item.to}
-                className="gm-hit-target shrink-0 rounded-control border border-subtle px-inset-sm py-inset-2xs text-xs font-medium text-content-brand transition-colors duration-fast ease-standard hover:border-strong"
+                className="gm-hit-target shrink-0 rounded-control border border-subtle bg-surface px-inset-md py-inset-xs text-xs font-semibold text-content-secondary shadow-xs transition-colors duration-fast ease-standard hover:border-strong hover:text-content dark:shadow-none"
               >
                 {item.action}
               </Link>

@@ -139,10 +139,15 @@ function AdminHeader() {
           <button
             type="button"
             onClick={open}
-            className="gm-hit-target flex h-[2.25rem] min-w-0 flex-1 max-w-ui items-center justify-between gap-inline-sm rounded-control border border-subtle bg-surface-sunken px-inset-sm text-sm text-content-muted transition-colors duration-fast ease-standard hover:border-strong"
+            className="gm-hit-target flex h-[2.5rem] min-w-0 flex-1 max-w-ui items-center gap-inline-sm rounded-control border border-subtle bg-surface-sunken px-inset-sm text-sm text-content-muted transition-colors duration-fast ease-standard hover:border-strong"
           >
-            <span className="truncate">{t('adm.chrome.search.placeholder')}</span>
-            <kbd className="shrink-0 rounded-control border border-subtle px-inset-2xs font-mono text-xs">
+            {/* A magnifier, so the control reads as a search field before it is read at all. It
+                was a bordered box with placeholder text, which reads as a disabled input. */}
+            <ChromeGlyph icon="search" className="shrink-0" />
+            <span className="min-w-0 flex-1 truncate text-left">
+              {t('adm.chrome.search.placeholder')}
+            </span>
+            <kbd className="shrink-0 rounded-control bg-surface-subtle px-inset-2xs font-mono text-xs">
               {t('adm.chrome.search.shortcut')}
             </kbd>
           </button>
@@ -150,7 +155,11 @@ function AdminHeader() {
           <div className="flex shrink-0 items-center gap-inline-sm">
             {/* The environment, because an operator with two tabs open needs to know which one
                 can suspend a real gym. Absent in production, where the answer is the default. */}
-            <span className="hidden rounded-control bg-surface-warning-subtle px-inset-2xs text-xs font-semibold text-content-warning lg:inline">
+            {/* A dot AND the word. The dot alone would be decoration; the word alone is what an
+                operator with two tabs open actually reads. Neutral-toned rather than warning:
+                being in development is a fact, not a problem. */}
+            <span className="hidden items-center gap-inline-2xs rounded-full bg-surface-subtle px-inset-sm py-inset-2xs text-xs font-medium text-content-secondary lg:inline-flex">
+              <span aria-hidden="true" className="h-[0.5rem] w-[0.5rem] rounded-full bg-success-solid" />
               {t('adm.chrome.env')}
             </span>
 
@@ -355,9 +364,19 @@ function NavItemLink({
       // and it needs no library.
       title={pending ? `${t(item.label)} - ${t('adm.chrome.inDevelopment')}` : t(item.label)}
       className={({ isActive }) =>
-        `gm-hit-target flex items-center justify-between gap-inline-xs rounded-control px-inset-sm py-inset-2xs text-sm transition-colors duration-fast ease-standard ${
+        // ┌─ A FILLED PILL, NOT A LEFT BORDER ────────────────────────────────────────────────┐
+        // │ The 2px left border read as a bookmark stuck to the edge of the sidebar, and it     │
+        // │ shifted the label 2px right of every inactive one — so the active item was both      │
+        // │ marked AND misaligned, which is the sort of thing that looks unfinished without      │
+        // │ anyone being able to say why.                                                        │
+        // │                                                                                    │
+        // │ A tinted rounded pill marks the item without moving it, and it is what the           │
+        // │ reference uses. `font-semibold` and the brand ink carry it as well as the fill, so   │
+        // │ the state does not depend on the tint being perceived (`AX9`).                        │
+        // └────────────────────────────────────────────────────────────────────────────────────┘
+        `gm-hit-target flex items-center justify-between gap-inline-xs rounded-control px-inset-sm py-inset-xs text-sm transition-colors duration-fast ease-standard ${
           isActive
-            ? 'border-l-2 border-brand bg-surface-brand-subtle font-semibold text-content-brand'
+            ? 'bg-surface-brand-subtle font-semibold text-content-brand'
             : pending
               ? 'text-content-muted hover:bg-surface-sunken'
               : 'text-content-secondary hover:bg-surface-sunken hover:text-content'
