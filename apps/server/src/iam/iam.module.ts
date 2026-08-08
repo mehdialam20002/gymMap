@@ -47,6 +47,13 @@ import { PASSWORD_HASHER } from './application/ports/password-hasher.port.js';
 import { Argon2HasherAdapter } from './infrastructure/argon2.hasher.adapter.js';
 import { AuthSessionPrismaRepository } from './infrastructure/auth-session.prisma-repository.js';
 import { RedisCredentialTokenStore } from './infrastructure/redis-credential-token.store.js';
+import { PERMISSION_CACHE } from './application/ports/permission-cache.port.js';
+import { RedisPermissionCache } from './infrastructure/permission-cache.redis.js';
+import {
+  ChangeUserRoleUseCase,
+  USER_ROLE_STORE,
+} from './application/change-user-role.use-case.js';
+import { UserRolePrismaRepository } from './infrastructure/user-role.prisma-repository.js';
 import { RedisLockoutCounter } from './infrastructure/redis-lockout-counter.adapter.js';
 import { UserPrismaRepository } from './infrastructure/user.prisma-repository.js';
 import { OtpRedisStore } from './infrastructure/otp.redis-store.js';
@@ -97,6 +104,26 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
     JwtSignerAdapter,
     RefreshTokenPrismaRepository,
     SessionUseCases,
+
+    /*
+     * ┌─ M-023 · AUTHORISATION. THESE THREE MUST LAND TOGETHER ────────────────────────────────┐
+     * │ `ChangeUserRoleUseCase` injects `USER_ROLE_STORE`, and Nest instantiates module          │
+     * │ providers EAGERLY — so listing the use case without a store bound to that token is a     │
+     * │ hard boot failure ("Nest can't resolve dependencies … argument at index [0]"), and it    │
+     * │ fails even though no controller consumes it yet. That is the correct behaviour and the   │
+     * │ reason the wiring gap was invisible until now: the only caller was a unit test           │
+     * │ constructing the class directly.                                                        │
+     * │                                                                                        │
+     * │ `REDIS_CLIENT` and `AUDIT_WRITE_PORT` need no new entry in `imports` — `CommonModule`    │
+     * │ and `AuditModule` are each `@Global()` and each export their token, and two existing     │
+     * │ adapters here already inject the Redis one.                                              │
+     * └────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    RedisPermissionCache,
+    { provide: PERMISSION_CACHE, useExisting: RedisPermissionCache },
+    UserRolePrismaRepository,
+    { provide: USER_ROLE_STORE, useExisting: UserRolePrismaRepository },
+    ChangeUserRoleUseCase,
   ],
   // Only the session repository leaves the module, and only because M-023's session-management
   // endpoints will need it. Nothing that can hash, mint a token or verify a password is
