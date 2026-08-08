@@ -56,6 +56,74 @@ export const en = {
   'web.home.value.reviews.body':
     'A review can only be written by a member with a recorded check-in at that gym.',
 
+  // --- SCR-WEB-002 · the featured strip -------------------------------------
+  'web.home.featured.title': 'Verified gyms near you',
+  'web.home.featured.seeAll': 'See all gyms',
+
+  // --- the fixture banner ---------------------------------------------------
+  // Rendered on every page that shows the placeholder catalogue. A demo that cannot be told
+  // apart from production is how a screenshot of invented gyms ends up in a pitch deck.
+  'web.fixtureNotice':
+    'Sample listings. These gyms are illustrative — real listings appear once gym onboarding and verification are live.',
+
+  // --- SCR-WEB-002 · results, facets, empty state ---------------------------
+  'web.search.heading.any': 'Gyms near you',
+  'web.search.heading.query': 'Results for',
+  'web.search.count.none': 'No gyms match these filters.',
+  'web.search.count.one': 'verified gym',
+  'web.search.count.many': 'verified gyms',
+  'web.search.field.label': 'Search gyms by name, area or activity',
+  'web.search.field.placeholder': 'Gym, area or activity',
+  'web.search.action': 'Search',
+  'web.search.filters.label': 'Filters',
+  'web.search.filters.city': 'City',
+  'web.search.filters.activity': 'Activity',
+  'web.search.filters.anyCity': 'Any city',
+  'web.search.filters.anyActivity': 'Any activity',
+  'web.search.sort.label': 'Sort',
+  'web.search.sort.relevance': 'Most relevant',
+  'web.search.sort.priceAsc': 'Price: low to high',
+  'web.search.sort.priceDesc': 'Price: high to low',
+  'web.search.sort.rating': 'Highest rated',
+  'web.search.sort.distance': 'Nearest',
+  'web.search.empty.title': 'Nothing matched',
+  // States the reason the catalogue is small, which is BR-GYM-01 working rather than a fault.
+  'web.search.empty.body':
+    'Every gym on GymMap is verified before it is listed, so the catalogue is smaller than a directory that lists anyone. Try widening the search.',
+  'web.search.empty.removeCategory': 'Remove this activity',
+  'web.search.empty.everyCity': 'Search every city',
+  'web.search.empty.clearTerm': 'Clear the search term',
+  'web.search.metaTitle.any': 'Verified gyms',
+  'web.search.metaDescription':
+    'Every gym on GymMap is verified before it is listed, and every review comes from a member who actually checked in.',
+
+  // --- the result card ------------------------------------------------------
+  'web.gym.perMonthFrom': 'per month, from',
+  'web.gym.verified': 'Verified',
+  // BR-REV-01 — a review needs a recorded check-in, so a new listing has none. Never a zero.
+  'web.gym.newListing': 'New listing · no reviews yet',
+  'web.gym.reviews.one': 'review',
+  'web.gym.reviews.many': 'reviews',
+
+  // --- SCR-WEB-003 · the gym page -------------------------------------------
+  'web.gym.breadcrumb.root': 'Gyms',
+  'web.gym.verifiedByPlatform': 'Verified by GymMap',
+  'web.gym.section.about': 'About',
+  'web.gym.section.amenities': 'Amenities',
+  'web.gym.section.location': 'Where and when',
+  'web.gym.section.reviews': 'Reviews',
+  'web.gym.reviews.none':
+    'No reviews yet. On GymMap a review can only be written by a member who has checked in at this gym — so a new listing starts empty rather than starting with reviews nobody earned.',
+  'web.gym.reviews.earned':
+    'members have reviewed this gym, and every one of them checked in first. Individual reviews appear here once the reviews module is live.',
+  'web.gym.plans.title': 'Membership plans',
+  'web.gym.plans.days': 'days',
+  'web.gym.plans.join': 'Join this gym',
+  // Invariant 3 stated to the member in their own words, on the screen where the price is read.
+  'web.gym.plans.joinNotice':
+    'Checkout opens once payments are live. The price you see here is the price you will be charged — it is revalidated on the server before any payment is taken.',
+  'web.gym.notFound.title': 'Gym not found',
+
   'web.home.status.title': 'Coming together',
   'web.home.status.body':
     'Search, gym profiles and online joining are being built. This page is the shell they arrive in.',

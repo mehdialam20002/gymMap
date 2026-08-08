@@ -9,7 +9,12 @@
  * real discovery UI arrives from `src/features/discovery/` with `SCR-WEB-002`.
  */
 
+import Link from 'next/link';
+
 import { t } from '../src/shared/i18n/index.ts';
+import { GymCard } from '../src/features/discovery/gym-card.tsx';
+import { FixtureNotice } from '../src/features/discovery/search-results.tsx';
+import { parseSearchQuery, search } from '../src/features/discovery/search.ts';
 
 export default function HomePage() {
   return (
@@ -75,6 +80,31 @@ export default function HomePage() {
               <p className="mt-stack-xs text-base text-content-secondary">{t(body)}</p>
             </li>
           ))}
+        </ul>
+      </section>
+
+      {/*
+       * Six of the eight fixture listings, sorted nearest-first — the same query `/search` runs,
+       * through the same module, so the home page cannot drift from the results page.
+       */}
+      <section className="mx-auto max-w-container px-inset-md pb-region-md">
+        <div className="flex flex-wrap items-baseline justify-between gap-inline-md">
+          <h2 className="text-2xl font-semibold text-content">{t('web.home.featured.title')}</h2>
+          <Link href="/search" className="text-base font-medium text-content-brand hover:underline">
+            {t('web.home.featured.seeAll')}
+          </Link>
+        </div>
+
+        <div className="mt-stack-md">
+          <FixtureNotice />
+        </div>
+
+        <ul className="mt-stack-md grid gap-stack-md lg:grid-cols-2">
+          {search(parseSearchQuery({ sort: 'distance' }))
+            .slice(0, 6)
+            .map((gym) => (
+              <GymCard key={gym.id} gym={gym} />
+            ))}
         </ul>
       </section>
 
