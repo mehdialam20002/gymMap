@@ -78,6 +78,7 @@ const colors = {
     'on-danger': v('color-content-on-danger'),
     'on-info': v('color-content-on-info'),
     'on-media': v('color-content-on-media'),
+    'on-media-accent': v('color-content-on-media-accent'),
     brand: v('color-content-brand'),
     success: v('color-content-success'),
     warning: v('color-content-warning'),

@@ -31,33 +31,40 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-/** Utilities whose values come from `theme.spacing`. */
+/**
+ * Utilities whose values come from `theme.spacing`.
+ *
+ * ORDER MATTERS, and getting it wrong is a false positive rather than a miss. The list becomes a
+ * regex alternation, which is first-match-wins: with `gap` before `gap-x`, the class
+ * `gap-x-inline-xl` matched `gap` and left `x-inline-xl` as the "value", so a perfectly valid
+ * class was reported dead. Longer prefixes therefore come first.
+ */
 const SPACING_UTILITIES = [
-  'p',
   'px',
   'py',
   'pt',
   'pb',
   'pl',
   'pr',
-  'm',
+  'p',
   'mx',
   'my',
   'mt',
   'mb',
   'ml',
   'mr',
-  'gap',
+  'm',
   'gap-x',
   'gap-y',
+  'gap',
   'space-x',
   'space-y',
-  'w',
-  'h',
   'min-w',
   'min-h',
   'max-w',
   'max-h',
+  'w',
+  'h',
   'top',
   'bottom',
   'left',

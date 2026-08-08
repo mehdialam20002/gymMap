@@ -73,6 +73,15 @@ export const light = {
   'color-content-on-info': p.white,
   /** The foreground `surface-media` guarantees. Theme-invariant for the same reason it is. */
   'color-content-on-media': p.neutral[50],
+  /**
+   * The brand, as it may appear ON the media band — an accented word in a hero headline.
+   *
+   * `indigo-300` rather than the `brand-solid` step, and it is not a preference: `indigo-600` on
+   * `#020617` measures **3.21:1** and fails the text floor outright. The band is near-black in
+   * both themes, so the accent has to be a LIGHT step in both, which no existing brand token is.
+   * 10.12:1 — `MD3`.
+   */
+  'color-content-on-media-accent': p.indigo[300],
   'color-content-brand': p.indigo[800],
   'color-content-success': p.emerald[800],
   'color-content-warning': p.amber[900],

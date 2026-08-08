@@ -651,6 +651,24 @@ export const MEDIA_PAIRINGS: readonly ContrastPairing[] = [
     floor: FLOOR.text,
     shipsIn: 'The same band in dark theme — deliberately unchanged',
   },
+  {
+    id: 'MD3',
+    theme: 'light',
+    foreground: '#A5B4FC',
+    background: '#020617',
+    measured: 10.12,
+    floor: FLOOR.text,
+    shipsIn: 'SCR-WEB-001 accented headline word — content-on-media-accent on surface-media',
+  },
+  {
+    id: 'MD4',
+    theme: 'dark',
+    foreground: '#A5B4FC',
+    background: '#020617',
+    measured: 10.12,
+    floor: FLOOR.text,
+    shipsIn: 'The same accent in dark theme — deliberately unchanged',
+  },
 ];
 
 export const ALL_PAIRINGS: readonly ContrastPairing[] = [

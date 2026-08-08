@@ -21,3 +21,32 @@
  */
 
 export * from './tokens/index.ts';
+
+/**
+ * §3's four-state contract, and the composed patterns of §2.
+ *
+ * `StateBoundary` is exported before the patterns on purpose: it is the piece a screen reaches
+ * for first, and the one whose absence produced five hand-rolled loading states in `admin/`
+ * before it existed.
+ */
+export { StateBoundary, EmptyState, type StateBoundaryProps } from './state/state-boundary.tsx';
+export {
+  toSurfaceState,
+  type SurfaceState,
+  type EmptyReason,
+  type EmptyStateProps,
+  type ApiProblem,
+} from './state/surface-state.ts';
+
+export {
+  Panel,
+  Badge,
+  Button,
+  FilterTabs,
+  DataTable,
+  Pagination,
+  TableSkeleton,
+  type Tone,
+  type FilterTab,
+  type Column,
+} from './patterns/index.tsx';

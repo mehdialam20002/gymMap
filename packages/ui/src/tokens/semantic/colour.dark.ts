@@ -77,6 +77,8 @@ export const dark = {
   'color-content-on-info': p.neutral[950],
   /** The second token that does not flip. See `color-surface-media` above. */
   'color-content-on-media': p.neutral[50],
+  /** The third, and the same reason: the band is near-black in both themes. `MD3`, 10.12:1. */
+  'color-content-on-media-accent': p.indigo[300],
   // Status TEXT lightens to the 300 step.
   'color-content-brand': p.indigo[300],
   'color-content-success': p.emerald[300],

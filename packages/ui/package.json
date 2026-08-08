@@ -4,7 +4,7 @@
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
-  "//": "Consumed as SOURCE, not as build output — Next.js transpilePackages and Vite both compile workspace TS directly. A dist/ step here would add a build edge to every front-end change for no benefit. That is also why the source imports carry `.ts` extensions: allowImportingTsExtensions is on in the react preset, and Node 22's type stripping resolves them for the token scripts.",
+  "//": "Consumed as SOURCE, not as build output \u2014 Next.js transpilePackages and Vite both compile workspace TS directly. A dist/ step here would add a build edge to every front-end change for no benefit. That is also why the source imports carry `.ts` extensions: allowImportingTsExtensions is on in the react preset, and Node 22's type stripping resolves them for the token scripts.",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
@@ -37,7 +37,12 @@
     "eslint-config-prettier": "^10.1.8",
     "tailwindcss": "^3.4.17",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.66.0"
+    "typescript-eslint": "^8.66.0",
+    "@types/react": "^18.3.18",
+    "react": "^18.3.1"
   },
-  "//lint": "R1a keeps the ROOT devDependencies to seven packages, and eslint is not one of them - so each workspace that lints declares its own runner. @gymmap/config is deliberately ABSENT here: DesignSystem.md 2.4 puts the Tailwind preset re-export in packages/config, which makes config depend on ui, and turbo refuses the resulting build cycle. The shared rule set still reaches this package - eslint walks up to the root eslint.config.mjs, which resolves ./packages/config/eslint/index.mjs by relative path and needs no dependency edge."
+  "//lint": "R1a keeps the ROOT devDependencies to seven packages, and eslint is not one of them - so each workspace that lints declares its own runner. @gymmap/config is deliberately ABSENT here: DesignSystem.md 2.4 puts the Tailwind preset re-export in packages/config, which makes config depend on ui, and turbo refuses the resulting build cycle. The shared rule set still reaches this package - eslint walks up to the root eslint.config.mjs, which resolves ./packages/config/eslint/index.mjs by relative path and needs no dependency edge.",
+  "peerDependencies": {
+    "react": "^18.3.1"
+  }
 }
