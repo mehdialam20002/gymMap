@@ -386,6 +386,43 @@ export const en = {
   'web.confirmation.next.email':
     'An email, once the payment is confirmed rather than when it is started.',
   'web.confirmation.pending.title': 'If the confirmation is slow',
+  // --- SCR-WEB-008/009 · city and activity landings ------------------------
+  // `{city}` / `{activity}` / `{count}` are substituted at the call site. A translator must be
+  // able to move them, and several languages put the noun before the place.
+  'web.landing.city.title': 'Gyms in {city}',
+  'web.landing.city.metaDescription':
+    'Every verified gym in {city} on GymMap, with the price you actually pay. Compare by distance, facilities and monthly cost.',
+  'web.landing.city.intro':
+    'Every listing in {city} has been checked by a person before it appeared, and the monthly price on each card is the price charged at checkout.',
+  'web.landing.city.activities': 'Activities in {city}',
+  'web.landing.city.otherCities': 'Other cities',
+  'web.landing.city.seeAll': 'See all {count} in search',
+  'web.landing.city.empty':
+    'No verified listings in this city yet. Gyms appear here as they are approved.',
+
+  'web.landing.activity.title': '{activity} gyms',
+  'web.landing.activity.metaDescription':
+    'Verified gyms offering {activity}, with real monthly prices and reviews from members who checked in.',
+  'web.landing.activity.intro':
+    'Gyms that list {activity} among what they offer. Every one has been checked by a person, and every review comes from a member who was recorded at the door.',
+  'web.landing.activity.cities': 'Where to find {activity}',
+  'web.landing.activity.other': 'Other activities',
+  'web.landing.activity.empty':
+    'No verified gyms list this activity yet. They appear here as they are approved.',
+
+  'web.landing.cities.title': 'Cities',
+  'web.landing.cities.metaDescription':
+    'Every city where GymMap has verified listings, with how many gyms are in each.',
+  'web.landing.cities.intro':
+    'A city appears here once it has a verified listing. The counts are what is actually listed, not what is planned.',
+  'web.landing.explore.title': 'Explore by activity',
+  'web.landing.explore.metaDescription':
+    'Browse verified gyms by what they offer — strength, cardio, yoga, swimming, boxing and more.',
+  'web.landing.explore.intro':
+    'Start from what you want to do. Each activity lists the gyms that offer it, in the cities where they are.',
+  'web.landing.count.one': 'gym',
+  'web.landing.count.many': 'gyms',
+
   // --- SCR-WEB-01x · the member account ------------------------------------
   'web.account.title': 'Your account',
   'web.account.metaDescription': 'Your memberships, check-in code, visit history and receipts.',

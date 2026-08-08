@@ -31,10 +31,10 @@ export interface NavItem {
 /** The primary bar. Deliberately short — six items is already the top of what a person scans. */
 export const PRIMARY_NAV: readonly NavItem[] = [
   { href: '/search', label: 'web.chrome.nav.search', built: true },
-  { href: '/explore', label: 'web.chrome.nav.explore', built: false },
+  { href: '/explore', label: 'web.chrome.nav.explore', built: true },
   { href: '/how-it-works', label: 'web.chrome.nav.howItWorks', built: false },
   { href: '/memberships', label: 'web.chrome.footer.memberships', built: false },
-  { href: '/cities', label: 'web.chrome.nav.cities', built: false },
+  { href: '/cities', label: 'web.chrome.nav.cities', built: true },
   { href: '/for-gyms', label: 'web.chrome.nav.forGyms', built: false },
 ];
 
@@ -48,8 +48,8 @@ export const FOOTER_NAV: readonly FooterColumn[] = [
     heading: 'web.chrome.footer.discover',
     items: [
       { href: '/search', label: 'web.chrome.nav.search', built: true },
-      { href: '/explore', label: 'web.chrome.nav.explore', built: false },
-      { href: '/cities', label: 'web.chrome.nav.cities', built: false },
+      { href: '/explore', label: 'web.chrome.nav.explore', built: true },
+      { href: '/cities', label: 'web.chrome.nav.cities', built: true },
       { href: '/compare', label: 'web.chrome.footer.compare', built: true },
     ],
   },
