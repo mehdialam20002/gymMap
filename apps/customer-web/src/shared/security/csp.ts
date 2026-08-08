@@ -77,7 +77,14 @@ export function buildContentSecurityPolicy(nonce: string, hosts: CspHosts = {}):
     // wildcard here would make the directive decorative.
     `connect-src ${sources("'self'", hosts.api, hosts.tiles, hosts.ingest)}`,
     `frame-src ${hosts.payment ?? "'none'"}`,
-    "media-src 'none'",
+    // `SCR-WEB-001`'s hero loop. Was `'none'` until a video existed, which is the correct default
+    // and the correct thing to widen ONLY when something legitimately needs it — the media CDN
+    // rides the same host as images because it serves the same asset class.
+    //
+    // Still deny-by-default in the way that matters: no scheme wildcard, no `blob:`, no `data:`.
+    // `data:` here would let an injected script mint a media element out of thin air, and the
+    // hero needs a file from our own origin, not a synthesised one.
+    `media-src ${sources("'self'", hosts.media)}`,
     "object-src 'none'",
     "worker-src 'self'",
     "manifest-src 'self'",
@@ -111,7 +118,11 @@ export const STATIC_SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'Permissions-Policy': [
     'accelerometer=()',
     'ambient-light-sensor=()',
-    'autoplay=()',
+    // `(self)`, not `()` and not `*`. The hero loop is muted, so no sound can start on its own —
+    // the policy that actually protects a visitor is the `muted` attribute, and this grant only
+    // stops the browser refusing our own first-party decorative video. A third-party frame still
+    // cannot autoplay anything, because it is not `self`.
+    'autoplay=(self)',
     'battery=()',
     // The customer site never uses a camera — the QR is DISPLAYED here, not scanned. The scanner
     // lives on gym-dashboard, the only surface with a camera grant.

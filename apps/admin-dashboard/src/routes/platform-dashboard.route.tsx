@@ -1,26 +1,23 @@
 /**
  * `SCR-ADM-001` — the platform dashboard.
  *
- * ┌─ EVERY NUMBER IS REAL, OR IT IS NOT A NUMBER ───────────────────────────────────────────────┐
- * │ A dashboard full of `0` is worse than an empty one: an operator reads a zero as data, and a │
- * │ zero meaning "not built" is indistinguishable from a zero meaning "nothing to approve        │
- * │ today". One of those needs somebody and the other does not.                                  │
+ * ┌─ THE BANNER IS THE LOAD-BEARING PART OF THIS SCREEN ────────────────────────────────────────┐
+ * │ Everything ABOVE `SampleNotice` is read from `/v1/admin/platform/overview` and `/readyz`.   │
+ * │ Everything BELOW it comes from `shared/api/demo-figures.ts` and is invented.                 │
  * │                                                                                              │
- * │ So a tile is bound to a live endpoint, or it names the milestone that will deliver it and    │
- * │ shows nothing. Revenue, orders, settlements and refunds have no tables yet, so they are in   │
- * │ the second group — the server does not even return a field for them.                          │
- * └──────────────────────────────────────────────────────────────────────────────────────────────┘
- *
- * ┌─ THE QUEUE SITS ABOVE THE CHARTS, AND THAT IS THE LAYOUT DECISION THAT MATTERS ─────────────┐
- * │ `DesignSystem.md` §1.1: Anita reviews 30-60 applications a day. A layout that fills the      │
- * │ first fold with large KPI tiles and pushes the queue below it gives the person who uses this │
- * │ screen most the least of it. Tiles are one line tall for the same reason.                     │
+ * │ That line is the whole design. Revenue, orders, settlements and moderation have no tables    │
+ * │ until M-096…M-115, and a console shown to people needs to look like the product rather than │
+ * │ like four tiles and three empty rectangles. Sample figures make that possible; the banner is │
+ * │ what makes it honest. Do not remove it for a screenshot.                                     │
+ * │                                                                                              │
+ * │ A panel is fed from ONE side of the line, never both, so "is this real?" always has a        │
+ * │ per-panel answer. Pending approvals sits below the fold beside the sample order list and is  │
+ * │ still real — it says so on the panel.                                                        │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ NOTHING ON A DATA PATH ANIMATES — `MO3` ───────────────────────────────────────────────────┐
  * │ No counting-up numbers, however good they look in a mockup. *A counting animation makes a   │
- * │ stale figure look live*, and `LC5` calls that a defect. A figure that changes because a poll │
- * │ landed cross-fades; it never counts. The only motion here is hover feedback.                  │
+ * │ stale figure look live*, and `LC5` calls that a defect. The only motion is hover feedback.   │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
@@ -28,17 +25,34 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
-import { t } from '../shared/i18n/index.ts';
-import { platformOverview, type GymStatus } from '../shared/api/admin.ts';
+import { t, type MessageKey } from '../shared/i18n/index.ts';
+import {
+  AWAITING_STATUSES,
+  platformGyms,
+  platformOverview,
+  type GymStatus,
+} from '../shared/api/admin.ts';
+import {
+  HEADLINES,
+  RECENT_ORDERS,
+  REGISTRATIONS,
+  REGISTRATION_LABELS,
+  REVENUE_BREAKDOWN,
+  REVENUE_SERIES,
+  SYSTEM_ALERTS,
+  formatAgo,
+  formatDeltaBps,
+  formatMinor,
+} from '../shared/api/demo-figures.ts';
+import { AreaChart, Donut, Legend, MultiLine } from '../shared/viz/charts.tsx';
 import { PENDING_ROUTES } from './nav.ts';
-import { GYM_STATUS_LABEL, StatusPill } from './status-pill.tsx';
+import { GYM_STATUS_LABEL, STATUS_BAR_CLASS, StatusPill } from './status-pill.tsx';
 
 interface ReadinessReport {
   readonly status: 'ready' | 'not_ready';
   readonly dependencies: Record<string, boolean>;
 }
 
-/** The order an operator thinks about the pipeline, not alphabetical. */
 const PIPELINE: readonly GymStatus[] = [
   'DRAFT',
   'SUBMITTED',
@@ -57,6 +71,18 @@ export function PlatformDashboardRoute() {
     refetchInterval: 30_000,
   });
 
+  const queue = useQuery({
+    queryKey: ['admin', 'gyms', 'queue'],
+    queryFn: async () => {
+      const { gyms } = await platformGyms();
+      return gyms
+        .filter((gym) => AWAITING_STATUSES.includes(gym.status))
+        .sort((a, b) => b.waiting_days - a.waiting_days)
+        .slice(0, 5);
+    },
+    refetchInterval: 30_000,
+  });
+
   const readiness = useQuery({
     queryKey: ['health', 'readyz'],
     // `/readyz` answers 503 when a dependency is down, and that IS the answer — so the body is
@@ -71,14 +97,14 @@ export function PlatformDashboardRoute() {
 
   const gyms = overview.data?.gyms;
   const people = overview.data?.people;
-  const dependencies = readiness.data?.dependencies ?? {};
-  const healthy = Object.values(dependencies).filter(Boolean).length;
-  const total = Object.keys(dependencies).length;
 
   return (
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-inline-md">
-        <h1 className="text-xl font-semibold text-content">{t('adm.dashboard.title')}</h1>
+        <div>
+          <h1 className="text-xl font-semibold text-content">{t('adm.dashboard.title')}</h1>
+          <p className="mt-stack-2xs text-xs text-content-muted">{t('adm.dashboard.subtitle')}</p>
+        </div>
         <LastUpdated
           at={overview.data?.generatedAt}
           pending={overview.isFetching}
@@ -88,109 +114,211 @@ export function PlatformDashboardRoute() {
         />
       </div>
 
-      {/* ── Live figures ───────────────────────────────────────────────────────────────── */}
+      {/* ══ LIVE. Read from the database on every poll. ═════════════════════════════════ */}
       <div className="mt-stack-md grid gap-inline-sm sm:grid-cols-2 xl:grid-cols-4">
-        <Tile
+        <LiveTile
           label={t('adm.dashboard.tile.awaiting')}
           value={gyms?.awaitingReview}
-          tone={gyms !== undefined && gyms.awaitingReview > 0 ? 'warning' : 'neutral'}
+          tone={gyms !== undefined && gyms.awaitingReview > 0 ? 'warning' : 'brand'}
           to="/approvals"
         />
-        <Tile label={t('adm.dashboard.tile.listed')} value={gyms?.listed} to="/gyms" />
-        <Tile label={t('adm.dashboard.tile.accounts')} value={people?.count} to="/people" />
-        <Tile
+        <LiveTile
+          label={t('adm.dashboard.tile.listed')}
+          value={gyms?.listed}
+          tone="success"
+          to="/gyms"
+        />
+        <LiveTile
+          label={t('adm.dashboard.tile.accounts')}
+          value={people?.count}
+          tone="info"
+          to="/people"
+        />
+        <LiveTile
           label={t('adm.dashboard.tile.sessions')}
           value={people?.activeSessions}
+          tone="brand"
           to="/sessions"
         />
       </div>
 
+      {/* ══ Everything past this line is invented, and the banner says so. ══════════════ */}
+      <SampleNotice />
+
+      <div className="mt-stack-sm grid gap-inline-sm sm:grid-cols-2 xl:grid-cols-3">
+        {HEADLINES.map((figure) => (
+          <SampleTile key={figure.key} figure={figure} />
+        ))}
+      </div>
+
       <div className="mt-stack-lg grid gap-inline-lg xl:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="min-w-0">
-          {/* ── The pipeline. The whole C4.4 state machine, with real counts. ──────────────── */}
-          <section className="rounded-card border border-subtle bg-surface p-inset-md">
-            <h2 className="text-sm font-semibold text-content">
-              {t('adm.dashboard.pipeline.title')}
-            </h2>
-            <p className="mt-stack-2xs text-xs text-content-muted">
-              {t('adm.dashboard.pipeline.body')}
-            </p>
+          {/* ── Charts. Sample series, one x-axis each, never two y-scales. ───────────── */}
+          <div className="grid gap-inline-sm xl:grid-cols-2">
+            <Panel title={t('adm.sample.revenueOverview')} sample>
+              <p className="text-xl font-semibold tabular-nums text-content">
+                {formatMinor(REVENUE_SERIES[REVENUE_SERIES.length - 1]?.valueMinor ?? 0)}
+              </p>
+              <div className="mt-stack-sm">
+                <AreaChart
+                  values={REVENUE_SERIES.map((point) => point.valueMinor)}
+                  labels={REVENUE_SERIES.map((point) => point.label)}
+                  slot={1}
+                />
+              </div>
+            </Panel>
 
-            <ul className="mt-stack-sm flex flex-wrap gap-inline-md">
-              {PIPELINE.map((status) => (
-                <li key={status} className="min-w-[6rem]">
-                  <p className="text-xl font-semibold tabular-nums text-content">
-                    {gyms === undefined ? (
-                      <span className="text-sm font-normal text-content-muted">
-                        {t('adm.state.loading')}
-                      </span>
-                    ) : (
-                      gyms.byStatus[status]
-                    )}
-                  </p>
-                  <p className="mt-stack-2xs text-xs text-content-secondary">
-                    {GYM_STATUS_LABEL[status]}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </section>
+            <Panel title={t('adm.sample.revenueBreakdown')} sample>
+              <Donut
+                slices={REVENUE_BREAKDOWN.map((slice) => ({
+                  label: t(slice.key as MessageKey),
+                  value: slice.amountMinor,
+                  slot: slice.slot,
+                  formatted: formatMinor(slice.amountMinor),
+                }))}
+              />
+            </Panel>
+          </div>
 
-          {/* ── Infrastructure. Two probes, and only two are claimed. ──────────────────────── */}
-          <section className="mt-stack-md rounded-card border border-subtle bg-surface p-inset-md">
-            <div className="flex flex-wrap items-center justify-between gap-inline-md">
-              <h2 className="text-sm font-semibold text-content">
-                {t('adm.dashboard.health.title')}
-              </h2>
-              {readiness.data !== undefined && (
-                <span
-                  className={`rounded-control px-inset-xs py-inset-2xs text-xs font-medium ${
-                    readiness.data.status === 'ready'
-                      ? 'bg-surface-success-subtle text-content-success'
-                      : 'bg-surface-danger-subtle text-content-danger'
-                  }`}
-                >
-                  {readiness.data.status === 'ready'
-                    ? t('adm.dashboard.api.ready')
-                    : t('adm.dashboard.api.notReady')}
-                  {total > 0 && ` · ${String(healthy)}/${String(total)}`}
-                </span>
-              )}
+          <Panel title={t('adm.sample.newRegistrations')} sample className="mt-stack-sm">
+            {/* Three series, so a legend is mandatory — identity is never colour alone. */}
+            <Legend
+              items={REGISTRATIONS.map((one) => ({
+                label: t(one.key as MessageKey),
+                slot: one.slot,
+              }))}
+            />
+            <div className="mt-stack-sm">
+              <MultiLine
+                series={REGISTRATIONS.map((one) => ({
+                  label: t(one.key as MessageKey),
+                  slot: one.slot,
+                  points: one.points,
+                }))}
+                labels={[...REGISTRATION_LABELS]}
+              />
             </div>
+          </Panel>
 
-            <ul className="mt-stack-sm flex flex-wrap gap-inline-md">
-              {Object.entries(dependencies).map(([name, up]) => (
-                <li key={name} className="flex items-center gap-inline-2xs text-sm">
-                  {/* Icon AND word AND colour, never colour alone (AX8). A green dot on its own is
-                  invisible to roughly one man in twelve. */}
-                  <span
-                    aria-hidden="true"
-                    className={up ? 'text-content-success' : 'text-content-danger'}
+          {/* ── The pipeline. REAL, and back above the line. ──────────────────────────── */}
+          <Panel title={t('adm.dashboard.pipeline.title')} className="mt-stack-sm">
+            <p className="text-xs text-content-muted">{t('adm.dashboard.pipeline.body')}</p>
+
+            {/* Bars because eight named states with counts is a magnitude comparison. Not a
+                stacked bar: APPROVED is thirteen of twenty-three and the states an operator acts
+                on are ones and twos, which would be slivers. Colour is STATUS, and every bar
+                carries its name and its number so colour is never the only channel (AX8). */}
+            <dl className="mt-stack-sm flex flex-col gap-stack-2xs">
+              {PIPELINE.map((status) => {
+                const value = gyms?.byStatus[status];
+                // Scaled against the LARGEST bucket, not the total — against the total, six of
+                // eight bars would be two pixels wide and say less than the bare numbers.
+                const largest =
+                  gyms === undefined ? 0 : Math.max(...Object.values(gyms.byStatus), 1);
+                const percent = value === undefined || largest === 0 ? 0 : (value / largest) * 100;
+
+                return (
+                  <div
+                    key={status}
+                    className="grid grid-cols-[8rem_minmax(0,1fr)_2.5rem] items-center gap-inline-sm"
                   >
-                    {up ? '●' : '○'}
-                  </span>
-                  <span className="text-content-secondary">{name}</span>
-                  <span className={up ? 'text-content-success' : 'text-content-danger'}>
-                    {up ? t('adm.dashboard.health.up') : t('adm.dashboard.health.down')}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-stack-sm text-xs text-content-muted">
-              {t('adm.dashboard.health.note')}
-            </p>
-          </section>
+                    <dt className="truncate text-xs text-content-secondary">
+                      {GYM_STATUS_LABEL[status]}
+                    </dt>
+                    <div
+                      aria-hidden="true"
+                      className="h-[0.5rem] overflow-hidden rounded-control bg-surface-sunken"
+                    >
+                      <div
+                        className={`h-full rounded-control ${STATUS_BAR_CLASS[status]}`}
+                        style={{ width: `${String(percent)}%` }}
+                      />
+                    </div>
+                    <dd className="text-right text-sm font-semibold tabular-nums text-content">
+                      {value ?? <span className="text-xs font-normal text-content-muted">-</span>}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </Panel>
+
+          {/* ── Orders (sample) beside approvals (real). Each panel says which it is. ─── */}
+          <div className="mt-stack-sm grid gap-inline-sm xl:grid-cols-2">
+            <Panel title={t('adm.sample.recentOrders')} sample>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[26rem] border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-subtle text-left">
+                      <Th>{t('adm.sample.col.order')}</Th>
+                      <Th>{t('adm.sample.col.member')}</Th>
+                      <Th align="right">{t('adm.sample.col.amount')}</Th>
+                      <Th>{t('adm.sample.col.status')}</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {RECENT_ORDERS.map((order) => (
+                      <tr key={order.ref} className="border-b border-subtle last:border-0">
+                        <td className="py-inset-2xs pr-inset-sm">
+                          <span className="font-mono tabular-nums text-content-secondary">
+                            {order.ref}
+                          </span>
+                          <span className="block text-content-muted">
+                            {formatAgo(order.minutesAgo)}
+                          </span>
+                        </td>
+                        <td className="py-inset-2xs pr-inset-sm">
+                          <span className="text-content">{order.member}</span>
+                          <span className="block truncate text-content-muted">{order.gym}</span>
+                        </td>
+                        <td className="py-inset-2xs pr-inset-sm text-right tabular-nums text-content">
+                          {formatMinor(order.amountMinor)}
+                        </td>
+                        <td className="py-inset-2xs">
+                          <OrderStatus status={order.status} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+
+            <Panel
+              title={t('adm.queue.title')}
+              action={{ to: '/approvals', label: t('adm.viewAll') }}
+            >
+              {queue.data === undefined ? (
+                <p className="text-xs text-content-muted">{t('adm.state.loading')}</p>
+              ) : (
+                <ul className="flex flex-col gap-stack-2xs">
+                  {queue.data.map((gym) => (
+                    <li
+                      key={gym.id}
+                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-inline-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-medium text-content">
+                          {gym.trading_name ?? gym.legal_name}
+                        </p>
+                        <p className="truncate text-xs text-content-muted">
+                          {[gym.city, gym.state].filter(Boolean).join(', ')} · {gym.waiting_days}
+                          {t('adm.queue.dayShort')}
+                        </p>
+                      </div>
+                      <StatusPill status={gym.status} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+          </div>
         </div>
 
-        {/* ── The rail. Navigation to what IS built, and nothing invented. ──────────────
-            The mockup this follows carries "System alerts" here. There is no alert source
-            yet — no orders, no payments, no moderation queue — so inventing four plausible
-            alert rows would be the one thing on this screen a viewer could not tell from
-            real, and the first question about it would have no honest answer. */}
-        <aside aria-label={t('adm.rail.quickActions')} className="min-w-0">
-          <div className="rounded-card border border-subtle bg-surface p-inset-md">
-            <h2 className="text-sm font-semibold text-content">{t('adm.rail.quickActions')}</h2>
-            <ul className="mt-stack-sm flex flex-col gap-stack-2xs">
+        {/* ══ The rail ═══════════════════════════════════════════════════════════════════ */}
+        <aside className="flex min-w-0 flex-col gap-inline-sm">
+          <Panel title={t('adm.rail.quickActions')}>
+            <ul className="flex flex-col gap-stack-2xs">
               {(
                 [
                   ['/approvals', 'adm.rail.reviewQueue'],
@@ -202,7 +330,7 @@ export function PlatformDashboardRoute() {
                 <li key={to}>
                   <Link
                     to={to}
-                    className="gm-hit-target flex items-center justify-between gap-inline-sm rounded-control border border-subtle px-inset-sm py-inset-2xs text-sm text-content-secondary transition-colors duration-fast ease-standard hover:border-strong hover:text-content"
+                    className="gm-hit-target flex items-center justify-between gap-inline-sm rounded-control border border-subtle px-inset-sm py-inset-2xs text-xs text-content-secondary transition-colors duration-fast ease-standard hover:border-strong hover:text-content"
                   >
                     <span className="truncate">{t(label)}</span>
                     <span aria-hidden="true" className="shrink-0 text-content-muted">
@@ -212,24 +340,48 @@ export function PlatformDashboardRoute() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Panel>
+
+          <Panel title={t('adm.sample.systemAlerts')} sample>
+            <ul className="flex flex-col gap-stack-sm">
+              {SYSTEM_ALERTS.map((alert) => (
+                <li key={alert.key} className="flex gap-inline-xs">
+                  {/* Icon AND colour AND the severity word in the label — never colour alone. */}
+                  <span
+                    aria-hidden="true"
+                    className={`shrink-0 text-sm ${SEVERITY_INK[alert.severity]}`}
+                  >
+                    {SEVERITY_GLYPH[alert.severity]}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-content">{t(alert.key as MessageKey)}</p>
+                    <p className="text-xs text-content-muted">{t(alert.detailKey as MessageKey)}</p>
+                    <p className="text-xs text-content-muted">{formatAgo(alert.minutesAgo)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+
+          <Panel title={t('adm.dashboard.health.title')}>
+            <PlatformHealth report={readiness.data} />
+          </Panel>
         </aside>
       </div>
 
-      {/* ── Not built. Named, with the milestone, carrying no figure. ──────────────────── */}
+      {/* ── Not built. Named, with the milestone, carrying no figure. ─────────────────── */}
       <section className="mt-stack-lg">
         <h2 className="text-sm font-semibold text-content">{t('adm.dashboard.awaiting.title')}</h2>
         <p className="mt-stack-2xs max-w-prose text-xs text-content-muted">
           {t('adm.dashboard.awaiting.body')}
         </p>
-
         <div className="mt-stack-sm grid gap-inline-sm sm:grid-cols-2 xl:grid-cols-4">
           {PENDING_ROUTES.map((route) => (
             <div
               key={route.path}
               className="rounded-card border border-dashed border-subtle bg-surface-sunken px-inset-md py-inset-sm"
             >
-              <p className="text-sm font-medium text-content-secondary">{t(route.label)}</p>
+              <p className="text-xs font-medium text-content-secondary">{t(route.label)}</p>
               <p className="mt-stack-2xs text-xs text-content-muted">
                 {t('adm.dashboard.awaiting.milestone')} {route.milestone}
               </p>
@@ -241,31 +393,106 @@ export function PlatformDashboardRoute() {
   );
 }
 
-function Tile({
+// ---------------------------------------------------------------------------
+// Pieces.
+// ---------------------------------------------------------------------------
+
+const SEVERITY_INK = {
+  critical: 'text-content-danger',
+  serious: 'text-content-warning',
+  info: 'text-content-info',
+  good: 'text-content-success',
+} as const;
+
+const SEVERITY_GLYPH = {
+  critical: '▲',
+  serious: '▲',
+  info: 'ⓘ',
+  good: '✓',
+} as const;
+
+const TONE_ACCENT = {
+  brand: 'bg-surface-brand-subtle text-content-brand',
+  success: 'bg-surface-success-subtle text-content-success',
+  warning: 'bg-surface-warning-subtle text-content-warning',
+  danger: 'bg-surface-danger-subtle text-content-danger',
+  info: 'bg-surface-info-subtle text-content-info',
+} as const;
+
+/** The line the whole screen is organised around. See the file header. */
+function SampleNotice() {
+  return (
+    <p className="mt-stack-lg rounded-card border border-warning bg-surface-warning-subtle px-inset-md py-inset-sm text-xs text-content-warning">
+      {t('adm.sample.notice')}
+    </p>
+  );
+}
+
+function Panel({
+  title,
+  children,
+  sample = false,
+  action,
+  className = '',
+}: {
+  title: string;
+  children: ReactNode;
+  sample?: boolean;
+  action?: { to: string; label: string };
+  className?: string;
+}) {
+  return (
+    <section className={`rounded-card border border-subtle bg-surface p-inset-md ${className}`}>
+      <div className="flex items-center justify-between gap-inline-sm">
+        <h2 className="text-sm font-semibold text-content">{title}</h2>
+        {/* Repeated per panel, not only in the banner. A reader who scrolled past the banner,
+            or who is looking at one screenshot of one card, still gets the answer. */}
+        {sample && (
+          <span className="shrink-0 rounded-control border border-warning px-inset-2xs text-xs font-medium text-content-warning">
+            {t('adm.sample.tag')}
+          </span>
+        )}
+        {action && (
+          <Link
+            to={action.to}
+            className="shrink-0 text-xs font-medium text-content-brand hover:underline"
+          >
+            {action.label}
+          </Link>
+        )}
+      </div>
+      <div className="mt-stack-sm">{children}</div>
+    </section>
+  );
+}
+
+function LiveTile({
   label,
   value,
-  tone = 'neutral',
+  tone,
   to,
 }: {
   label: string;
   value: number | undefined;
-  tone?: 'neutral' | 'warning';
+  tone: keyof typeof TONE_ACCENT;
   to: string;
 }) {
   return (
     <Link
       to={to}
-      className="gm-hit-target block rounded-card border border-subtle bg-surface px-inset-md py-inset-sm transition-colors duration-fast ease-standard hover:border-strong"
+      className="gm-hit-target block rounded-card border border-subtle bg-surface p-inset-md transition-colors duration-fast ease-standard hover:border-strong"
     >
-      <p className="text-xs font-medium uppercase tracking-wide text-content-muted">{label}</p>
-      {/* `undefined` renders the loading word, never a `0`. See the file header. */}
-      <p
-        className={`mt-stack-2xs text-2xl font-semibold tabular-nums ${
-          tone === 'warning' && value !== undefined && value > 0
-            ? 'text-content-warning'
-            : 'text-content'
-        }`}
-      >
+      <div className="flex items-start justify-between gap-inline-sm">
+        <p className="text-xs font-medium uppercase tracking-wide text-content-muted">{label}</p>
+        <span
+          aria-hidden="true"
+          className={`shrink-0 rounded-control px-inset-2xs text-xs font-semibold ${TONE_ACCENT[tone]}`}
+        >
+          {t('adm.dashboard.live')}
+        </span>
+      </div>
+      {/* `undefined` renders the loading word, never a `0`. */}
+      <p className="mt-stack-2xs text-2xl font-semibold tabular-nums text-content">
         {value ?? (
           <span className="text-sm font-normal text-content-muted">{t('adm.state.loading')}</span>
         )}
@@ -274,12 +501,119 @@ function Tile({
   );
 }
 
-/**
- * `A-08`, `LC5` — *"a stale figure presented as live is a defect."*
- *
- * `refetchOnWindowFocus` is off by design, so a figure CAN be a minute old. That is fine, and it
- * is only fine because this line says so and the refresh is one click away.
- */
+function SampleTile({ figure }: { figure: (typeof HEADLINES)[number] }) {
+  const rising = figure.deltaBps >= 0;
+
+  return (
+    <div className="rounded-card border border-subtle bg-surface p-inset-md">
+      <div className="flex items-start justify-between gap-inline-sm">
+        <p className="text-xs font-medium uppercase tracking-wide text-content-muted">
+          {t(figure.key as MessageKey)}
+        </p>
+        <span
+          aria-hidden="true"
+          className={`h-[1.75rem] w-[1.75rem] shrink-0 rounded-control ${TONE_ACCENT[figure.tone]}`}
+        />
+      </div>
+
+      <p className="mt-stack-2xs text-2xl font-semibold tabular-nums text-content">
+        {figure.amountMinor === null
+          ? (figure.count ?? 0).toLocaleString('en-IN')
+          : formatMinor(figure.amountMinor)}
+      </p>
+
+      {/* The arrow shows DIRECTION and is not coloured good/bad. Fewer refund requests and less
+          revenue carry the same sign and opposite news, and a green arrow on one of them would
+          be the screen making a judgement the data does not support. */}
+      <p className="mt-stack-2xs text-xs text-content-muted">
+        <span aria-hidden="true">{rising ? '▲' : '▼'}</span> {formatDeltaBps(figure.deltaBps)}{' '}
+        {t(
+          figure.comparison === 'YESTERDAY' ? 'adm.sample.vsYesterday' : 'adm.sample.vsThirtyDays',
+        )}
+      </p>
+    </div>
+  );
+}
+
+function OrderStatus({ status }: { status: 'COMPLETED' | 'PAID' | 'PENDING' | 'REFUNDED' }) {
+  const CLASS = {
+    COMPLETED: 'bg-surface-success-subtle text-content-success',
+    PAID: 'bg-surface-info-subtle text-content-info',
+    PENDING: 'bg-surface-warning-subtle text-content-warning',
+    REFUNDED: 'bg-surface-danger-subtle text-content-danger',
+  } as const;
+
+  const LABEL = {
+    COMPLETED: 'Completed',
+    PAID: 'Paid',
+    PENDING: 'Pending',
+    REFUNDED: 'Refunded',
+  } as const;
+
+  return (
+    <span
+      className={`whitespace-nowrap rounded-control px-inset-2xs py-inset-2xs text-xs font-medium ${CLASS[status]}`}
+    >
+      {LABEL[status]}
+    </span>
+  );
+}
+
+function PlatformHealth({ report }: { report: ReadinessReport | undefined }) {
+  const dependencies = report?.dependencies ?? {};
+
+  return (
+    <>
+      {report !== undefined && (
+        <span
+          className={`inline-block rounded-control px-inset-2xs text-xs font-medium ${
+            report.status === 'ready'
+              ? 'bg-surface-success-subtle text-content-success'
+              : 'bg-surface-danger-subtle text-content-danger'
+          }`}
+        >
+          {report.status === 'ready'
+            ? t('adm.dashboard.api.ready')
+            : t('adm.dashboard.api.notReady')}
+        </span>
+      )}
+
+      <ul className="mt-stack-sm flex flex-col gap-stack-2xs">
+        {Object.entries(dependencies).map(([name, up]) => (
+          <li key={name} className="flex items-center gap-inline-2xs text-xs">
+            <span
+              aria-hidden="true"
+              className={up ? 'text-content-success' : 'text-content-danger'}
+            >
+              {up ? '●' : '○'}
+            </span>
+            <span className="flex-1 text-content-secondary">{name}</span>
+            <span className={up ? 'text-content-success' : 'text-content-danger'}>
+              {up ? t('adm.dashboard.health.up') : t('adm.dashboard.health.down')}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-stack-sm text-xs text-content-muted">{t('adm.dashboard.health.note')}</p>
+    </>
+  );
+}
+
+function Th({ children, align }: { children: ReactNode; align?: 'right' }) {
+  return (
+    <th
+      scope="col"
+      className={`pb-inset-2xs pr-inset-sm text-xs font-semibold uppercase tracking-wide text-content-muted ${
+        align === 'right' ? 'text-right' : ''
+      }`}
+    >
+      {children}
+    </th>
+  );
+}
+
+/** `A-08`, `LC5` — a stale figure presented as live is a defect. */
 function LastUpdated({
   at,
   pending,
@@ -308,5 +642,3 @@ function LastUpdated({
     </div>
   );
 }
-
-export { StatusPill };

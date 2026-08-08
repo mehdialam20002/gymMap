@@ -27,6 +27,20 @@
 }
 
 /*
+ * The same idea for `surface-media`, and it needs its own rule rather than reusing the one above.
+ *
+ * `data-on-solid` inverts to `content-inverse`, which FLIPS with the theme: `neutral-50` in light,
+ * `neutral-900` in dark. On a band that is `#020617` in BOTH themes, the dark-theme value is a
+ * near-black ring on a near-black fill — 1.2:1, which is no ring at all. The bug would ship
+ * looking fine to anyone developing in light mode.
+ *
+ * `content-on-media` does not flip, and is proved against this exact fill at 19.28:1 (`MD1`).
+ */
+[data-on-media='true']:focus-visible {
+  outline-color: var(--gm-color-content-on-media);
+}
+
+/*
  * §7.4 `HT1` — the painted control may shrink with density; the POINTER target may not.
  *
  * Compact paints a 36px control and `NFR-USE-03` still requires 44 x 44. Both are true: the

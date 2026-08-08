@@ -26,7 +26,16 @@ import { fontSize, screens } from './src/tokens/primitive/scale.ts';
 const v = (token: string) => `var(--gm-${token})`;
 
 /** §3.3's eight role groups, as Tailwind colour keys. */
+/** The chart series palette. See `tokens.css` for the validation record and the relief rule. */
+const viz = {
+  1: v('color-viz-series-1'),
+  2: v('color-viz-series-2'),
+  3: v('color-viz-series-3'),
+  4: v('color-viz-series-4'),
+} as const;
+
 const colors = {
+  viz,
   transparent: 'transparent',
   current: 'currentColor',
   inherit: 'inherit',
@@ -40,6 +49,8 @@ const colors = {
     inverse: v('color-surface-inverse'),
     disabled: v('color-surface-disabled'),
     scrim: v('color-surface-scrim'),
+    // Opaque and theme-invariant — the only surface media-overlaid text may sit on (MD1).
+    media: v('color-surface-media'),
     stale: v('color-surface-stale'),
     'brand-subtle': v('color-surface-brand-subtle'),
     'success-subtle': v('color-surface-success-subtle'),
@@ -66,6 +77,7 @@ const colors = {
     'on-warning': v('color-content-on-warning'),
     'on-danger': v('color-content-on-danger'),
     'on-info': v('color-content-on-info'),
+    'on-media': v('color-content-on-media'),
     brand: v('color-content-brand'),
     success: v('color-content-success'),
     warning: v('color-content-warning'),

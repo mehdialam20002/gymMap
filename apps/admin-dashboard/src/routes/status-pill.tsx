@@ -60,4 +60,21 @@ export function StatusPill({ status }: { readonly status: GymStatus }) {
   );
 }
 
+/**
+ * The FILL for a bar, as opposed to the subtle wash a pill sits on.
+ *
+ * Exported alongside the pill so a status is one colour decision, not two. Two maps would drift,
+ * and the drift would read as two different things being shown.
+ */
+export const STATUS_BAR_CLASS: Record<GymStatus, string> = {
+  APPROVED: 'bg-success-solid',
+  SUBMITTED: 'bg-warning-solid',
+  UNDER_REVIEW: 'bg-warning-solid',
+  INFO_REQUESTED: 'bg-warning-solid',
+  REJECTED: 'bg-danger-solid',
+  SUSPENDED: 'bg-danger-solid',
+  DRAFT: 'bg-border-strong',
+  CLOSED: 'bg-border-strong',
+};
+
 export { LABEL as GYM_STATUS_LABEL };

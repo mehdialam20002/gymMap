@@ -115,10 +115,32 @@ test('§7.4 — the 44px touch floor is never remapped', () => {
 // §2.5 — the naming grammar.
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * The chart series slots, exempt from NG4's trailing-digit rule.
+ *
+ * ┌─ THE ORDINAL IS THE INTENT HERE, WHICH IS THE ONE CASE NG4 DOES NOT ANTICIPATE ─────────────┐
+ * │ NG4 catches `--gm-space-16` and `--gm-color-blue-button`: names that encode a VALUE, and so │
+ * │ become wrong the moment the value changes. That is not what `viz-series-1` does.             │
+ * │                                                                                              │
+ * │ A categorical palette's colourblind safety comes from assigning slots in a FIXED ORDER —     │
+ * │ candidate orderings are enumerated and only those clearing every adjacent-pair CVD gate are  │
+ * │ kept. "Slot 1" is therefore a position in a validated sequence, not a hue and not a value:   │
+ * │ re-stepping blue from #2A78D6 to something else leaves the name correct, which is precisely  │
+ * │ the property NG4 exists to protect.                                                          │
+ * │                                                                                              │
+ * │ Naming them `primary`/`secondary`/`tertiary` would satisfy the regex and make the code       │
+ * │ WORSE: it hides the ordering that the safety argument rests on, and nobody can tell from     │
+ * │ `quaternary` that a fifth series must fold into "Other" rather than take a fifth name.       │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+const NG4_ORDINAL_EXEMPT = /^color-viz-series-[1-9]$/;
+
 test('NG4 — no token name contains a value', () => {
   // `--gm-space-16` and `--gm-color-blue-button` are the two shapes this catches. Semantic tokens
   // name INTENT; a value in the name is how a token survives the change it was meant to absorb.
-  const semanticNames = [...Object.keys(light), ...Object.keys(semanticSpace)];
+  const semanticNames = [...Object.keys(light), ...Object.keys(semanticSpace)].filter(
+    (name) => !NG4_ORDINAL_EXEMPT.test(name),
+  );
   for (const name of semanticNames) {
     assert.ok(
       !/-\d+$/.test(name),
@@ -128,6 +150,38 @@ test('NG4 — no token name contains a value', () => {
       !/(blue|green|red|indigo|amber|slate|emerald|sky|neutral)/.test(name),
       `"${name}" names a HUE. A semantic token names what it is for; the hue is a Tier 1 ` +
         'detail that the semantic layer exists to hide (NG4).',
+    );
+  }
+});
+
+test('NG4 · the ordinal exemption is NARROW and the rule still bites', () => {
+  // An exemption nobody tests is an exemption that quietly widens. These assert that the escape
+  // hatch admits exactly the four validated series slots and nothing that merely resembles them.
+  for (const admitted of ['color-viz-series-1', 'color-viz-series-4']) {
+    assert.ok(NG4_ORDINAL_EXEMPT.test(admitted), `${admitted} should be exempt`);
+  }
+  for (const refused of [
+    'space-16',
+    'color-surface-2',
+    'color-viz-series-10', // two digits: past the single-slot palette, so not a validated slot
+    'color-viz-fill-1',
+    'viz-series-1', // missing the `color-` prefix the generator emits
+  ]) {
+    assert.ok(!NG4_ORDINAL_EXEMPT.test(refused), `${refused} must NOT be exempt`);
+  }
+});
+
+test('the four series slots exist in BOTH modes and differ between them', () => {
+  // Selected per mode, not flipped. If a mode were missing a slot the chart would fall back to
+  // black on that surface — invisible on dark, and with no console warning to find it by.
+  for (const slot of [1, 2, 3, 4]) {
+    const key = `color-viz-series-${String(slot)}`;
+    assert.ok(key in light, `${key} is missing from the light palette`);
+    assert.ok(key in dark, `${key} is missing from the dark palette`);
+    assert.notEqual(
+      light[key as keyof typeof light],
+      dark[key as keyof typeof dark],
+      `${key} is identical in both modes — a dark step was not selected, it was copied`,
     );
   }
 });

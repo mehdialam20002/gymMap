@@ -112,9 +112,26 @@ test('the CSP denies by default and grants each capability explicitly', () => {
   assert.equal(directive(csp, 'form-action'), "'self'");
   assert.equal(directive(csp, 'frame-ancestors'), "'none'");
   assert.equal(directive(csp, 'object-src'), "'none'");
-  assert.equal(directive(csp, 'media-src'), "'none'");
   assert.equal(directive(csp, 'manifest-src'), "'self'");
   assert.equal(directive(csp, 'upgrade-insecure-requests'), '');
+});
+
+test('media-src admits our own origin and NOTHING synthesised', () => {
+  // This directive was `'none'` until SCR-WEB-001 gained a hero loop, and widening it is the
+  // change worth pinning: the next person who needs a video will reach for `media-src *` or
+  // `blob:` because it makes the error go away.
+  //
+  // `data:` and `blob:` are the ones that matter. Either would let an injected script mint a
+  // media element from bytes it controls, which is a working exfiltration and rendering channel
+  // that no host allowlist constrains. The hero needs a FILE from our origin.
+  assert.equal(directive(policy(), 'media-src'), "'self'");
+  assert.equal(
+    directive(policy({ media: 'https://cdn.example.test' }), 'media-src'),
+    "'self' https://cdn.example.test",
+  );
+  const csp = policy({ media: 'https://cdn.example.test' });
+  assert.ok(!directive(csp, 'media-src')!.includes('data:'), 'media-src admits data:');
+  assert.ok(!directive(csp, 'media-src')!.includes('blob:'), 'media-src admits blob:');
 });
 
 test('script-src takes the nonce and NEVER unsafe-inline', () => {
@@ -196,6 +213,17 @@ test('the customer surface grants geolocation and REFUSES camera', () => {
   assert.ok(pp.includes('camera=()'));
   assert.ok(pp.includes('microphone=()'));
   assert.ok(pp.includes('payment=()'));
+});
+
+test('autoplay is granted to self ONLY, and never to a third party', () => {
+  const pp = STATIC_SECURITY_HEADERS['Permissions-Policy']!;
+  // The hero loop needs it. A wildcard would hand the same capability to any frame we ever
+  // embed — including the payment provider's — and the whole point of the directive is that
+  // "our own decorative video may play" and "anything on this page may play" are different
+  // grants. What actually protects the visitor from sound is the `muted` attribute, asserted
+  // in hero.spec.ts.
+  assert.ok(pp.includes('autoplay=(self)'), `autoplay is not self-scoped: ${pp}`);
+  assert.ok(!pp.includes('autoplay=*'), 'autoplay is granted to every origin');
 });
 
 test('Referrer-Policy is origin-level here, unlike the dashboards', () => {

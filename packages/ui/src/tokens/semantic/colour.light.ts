@@ -28,6 +28,24 @@ export const light = {
   'color-surface-inverse': p.neutral[900],
   'color-surface-disabled': p.neutral[100],
   'color-surface-scrim': 'rgb(2 6 23 / 0.60)',
+  /**
+   * The ground a photograph or video is composited against, and the ONLY surface on which
+   * media-overlaid text is permitted — `SCR-WEB-001`'s hero, and gym cover art later.
+   *
+   * OPAQUE, and identical in both themes. Both properties are the point:
+   *
+   *   Opaque, because `contrast.proof.ts` refuses translucent colours by design — a ratio
+   *   against a scrim depends on the frame behind it, so text over `surface-scrim` on video
+   *   cannot be proved, only hoped for. A hero that is legible on the establishing shot and
+   *   unreadable four seconds later is exactly the defect `AX4` exists to prevent.
+   *
+   *   Theme-invariant, because `surface-inverse` FLIPS: it is `neutral-900` in light and
+   *   `neutral-100` in dark. Video needs a dark ground in both, so the inverse pair cannot
+   *   serve here without going light-on-light in dark mode.
+   *
+   * Pairs with `content-on-media` at 19.28:1 — `MD1` in `contrast.proof.ts`.
+   */
+  'color-surface-media': p.neutral[950],
   /** `LC5` — a poll that FAILED must not look like one that is merely a few seconds old. */
   'color-surface-stale': p.amber[50],
   'color-surface-brand-subtle': p.indigo[50],
@@ -53,6 +71,8 @@ export const light = {
   'color-content-on-warning': p.white,
   'color-content-on-danger': p.white,
   'color-content-on-info': p.white,
+  /** The foreground `surface-media` guarantees. Theme-invariant for the same reason it is. */
+  'color-content-on-media': p.neutral[50],
   'color-content-brand': p.indigo[800],
   'color-content-success': p.emerald[800],
   'color-content-warning': p.amber[900],
@@ -107,6 +127,24 @@ export const light = {
   // --- info: neutral disclosure, never a CTA --------------------------------
   'color-info-solid': p.sky[700],
   'color-info-subtle': p.sky[50],
+
+  // --- chart series. `UI2`: the ONE place a series colour is defined ---------
+  //
+  // Not the status colours. Success / warning / danger are RESERVED: a chart that paints "SaaS
+  // subscriptions" in the same green that means "healthy" teaches an operator that a slice is
+  // good news, and the next chart that must actually say "good" has nothing left to say it with.
+  //
+  // Validated against this mode's `surface-default` (#FFFFFF): worst adjacent CVD dE 9.1
+  // (protan), normal-vision 22.9. Aqua (2.82:1) and yellow (2.17:1) fall below 3:1, which the
+  // palette permits ONLY with relief — so every chart using these must carry visible direct
+  // labels. The donut prints its category and value beside each slice for exactly that reason.
+  //
+  // The ORDER is the colourblind-safety mechanism, not a preference. Assign slots in sequence,
+  // never cycle: a fifth series folds into "Other" rather than reusing slot 1.
+  'color-viz-series-1': '#2A78D6', // blue
+  'color-viz-series-2': '#EB6834', // orange
+  'color-viz-series-3': '#1BAF7A', // aqua
+  'color-viz-series-4': '#EDA100', // yellow
 } as const;
 
 /** The key set both themes must satisfy. `colour.dark.ts` is checked against it in `index.ts`. */

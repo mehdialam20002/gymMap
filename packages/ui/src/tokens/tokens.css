@@ -241,6 +241,7 @@
   --gm-color-surface-inverse: #0F172A;
   --gm-color-surface-disabled: #F1F5F9;
   --gm-color-surface-scrim: rgb(2 6 23 / 0.60);
+  --gm-color-surface-media: #020617;
   --gm-color-surface-stale: #FFFBEB;
   --gm-color-surface-brand-subtle: #EEF2FF;
   --gm-color-surface-success-subtle: #ECFDF5;
@@ -262,6 +263,7 @@
   --gm-color-content-on-warning: #FFFFFF;
   --gm-color-content-on-danger: #FFFFFF;
   --gm-color-content-on-info: #FFFFFF;
+  --gm-color-content-on-media: #F8FAFC;
   --gm-color-content-brand: #3730A3;
   --gm-color-content-success: #065F46;
   --gm-color-content-warning: #78350F;
@@ -302,6 +304,10 @@
   --gm-color-danger-subtle-hover: #FEE2E2;
   --gm-color-info-solid: #0369A1;
   --gm-color-info-subtle: #F0F9FF;
+  --gm-color-viz-series-1: #2A78D6;
+  --gm-color-viz-series-2: #EB6834;
+  --gm-color-viz-series-3: #1BAF7A;
+  --gm-color-viz-series-4: #EDA100;
 }
 
 /* --- Tier 2 · semantic colour, dark. --------------------------------------------------------
@@ -319,6 +325,7 @@
     --gm-color-surface-inverse: #F1F5F9;
     --gm-color-surface-disabled: #1E293B;
     --gm-color-surface-scrim: rgb(2 6 23 / 0.75);
+    --gm-color-surface-media: #020617;
     --gm-color-surface-stale: #451A03;
     --gm-color-surface-brand-subtle: #1E1B4B;
     --gm-color-surface-success-subtle: #022C22;
@@ -340,6 +347,7 @@
     --gm-color-content-on-warning: #020617;
     --gm-color-content-on-danger: #020617;
     --gm-color-content-on-info: #020617;
+    --gm-color-content-on-media: #F8FAFC;
     --gm-color-content-brand: #A5B4FC;
     --gm-color-content-success: #6EE7B7;
     --gm-color-content-warning: #FCD34D;
@@ -380,6 +388,10 @@
     --gm-color-danger-subtle-hover: #7F1D1D;
     --gm-color-info-solid: #38BDF8;
     --gm-color-info-subtle: #082F49;
+    --gm-color-viz-series-1: #3987E5;
+    --gm-color-viz-series-2: #D95926;
+    --gm-color-viz-series-3: #199E70;
+    --gm-color-viz-series-4: #C98500;
   }
 }
 
@@ -392,6 +404,7 @@
   --gm-color-surface-inverse: #F1F5F9;
   --gm-color-surface-disabled: #1E293B;
   --gm-color-surface-scrim: rgb(2 6 23 / 0.75);
+  --gm-color-surface-media: #020617;
   --gm-color-surface-stale: #451A03;
   --gm-color-surface-brand-subtle: #1E1B4B;
   --gm-color-surface-success-subtle: #022C22;
@@ -413,6 +426,7 @@
   --gm-color-content-on-warning: #020617;
   --gm-color-content-on-danger: #020617;
   --gm-color-content-on-info: #020617;
+  --gm-color-content-on-media: #F8FAFC;
   --gm-color-content-brand: #A5B4FC;
   --gm-color-content-success: #6EE7B7;
   --gm-color-content-warning: #FCD34D;
@@ -453,6 +467,10 @@
   --gm-color-danger-subtle-hover: #7F1D1D;
   --gm-color-info-solid: #38BDF8;
   --gm-color-info-subtle: #082F49;
+  --gm-color-viz-series-1: #3987E5;
+  --gm-color-viz-series-2: #D95926;
+  --gm-color-viz-series-3: #199E70;
+  --gm-color-viz-series-4: #C98500;
 }
 
 /* --- Tier 3 · component. Comfortable is the base; density remaps below. -------------------- */

@@ -43,6 +43,14 @@ export const en = {
   'web.home.hero.searchPlaceholder': 'Try “Indiranagar” or “Iron Temple”',
   'web.home.hero.searchAction': 'Search',
   'web.home.hero.nearMe': 'Use my location',
+  // BR-GYM-01, at the point of action. The subtitle carries the pricing promise, so this one
+  // carries the other differentiator rather than repeating it.
+  'web.home.hero.trust': 'Every gym here was approved by a person before it appeared.',
+  // WCAG 2.2.2. The hero loop runs longer than five seconds, so a mechanism to stop it is an
+  // obligation, not a courtesy — and the label has to say what it stops, because a lone pause
+  // glyph on a page with no audio reads as a media player.
+  'web.home.hero.motionPause': 'Pause background video',
+  'web.home.hero.motionPlay': 'Play background video',
 
   'web.home.value.verified.title': 'Every gym is checked',
   // BR-GYM-01. Stated plainly because it is the differentiator, not a footnote.

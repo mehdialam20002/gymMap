@@ -38,20 +38,23 @@ function read(): ThemeChoice {
 
 function apply(choice: ThemeChoice): void {
   const root = document.documentElement;
+
+  // The ATTRIBUTE is removed for `system` and set otherwise. Any `data-theme` at all overrides
+  // the media query, so writing `data-theme="system"` would pin the page instead of freeing it.
+  if (choice === 'system') root.removeAttribute('data-theme');
+  else root.setAttribute('data-theme', choice);
+
   try {
-    if (choice === 'system') {
-      localStorage.removeItem(STORAGE_KEY);
-      // REMOVED, not set to a value. Any `data-theme` at all overrides the media query, so
-      // writing `data-theme="system"` would leave the page stuck on the light defaults.
-      root.removeAttribute('data-theme');
-      return;
-    }
+    // The KEY is WRITTEN for `system`, not removed — and that asymmetry is load-bearing.
+    //
+    // This surface defaults to dark (see `public/theme.js`). If choosing Auto deleted the key,
+    // the next page load would be indistinguishable from a first visit and the bootstrap would
+    // put dark back. Storing the word is what lets "I never chose" and "I chose to follow my OS"
+    // be different states.
     localStorage.setItem(STORAGE_KEY, choice);
-    root.setAttribute('data-theme', choice);
   } catch {
-    // The attribute still applies for this page even when the preference cannot be persisted.
-    if (choice === 'system') root.removeAttribute('data-theme');
-    else root.setAttribute('data-theme', choice);
+    // Safari private mode, or a sandboxed iframe. The attribute above still governs this page;
+    // only persistence across reloads is lost.
   }
 }
 

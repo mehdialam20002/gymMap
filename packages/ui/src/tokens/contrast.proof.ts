@@ -616,11 +616,49 @@ export const DESK_PAIRINGS: readonly ContrastPairing[] = [
   },
 ];
 
+/**
+ * The media ground — `SCR-WEB-001`'s hero, and gym cover art after it.
+ *
+ * Identical in both themes, for the same class of reason as `DESK_PAIRINGS`: what the token sits
+ * behind does not change with the theme. A photograph and a video want a dark ground in light
+ * mode and in dark mode alike.
+ *
+ * ┌─ WHY THIS PAIR EXISTS AT ALL, RATHER THAN TEXT ON `surface-scrim` ──────────────────────────┐
+ * │ `relativeLuminance` above refuses translucent colours on purpose, and the reason applies     │
+ * │ exactly here: the ratio of white text over a 60% scrim depends on the video FRAME behind it. │
+ * │ It is provable against the establishing shot and unprovable four seconds later, when the     │
+ * │ camera pans to a bright window. That is not a contrast measurement, it is a hope.            │
+ * │                                                                                              │
+ * │ So media-overlaid text sits on an OPAQUE band, and this is the pair that band ships.         │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export const MEDIA_PAIRINGS: readonly ContrastPairing[] = [
+  {
+    id: 'MD1',
+    theme: 'light',
+    foreground: '#F8FAFC',
+    background: '#020617',
+    measured: 19.28,
+    floor: FLOOR.text,
+    shipsIn: 'SCR-WEB-001 hero copy over video — content-on-media on surface-media',
+  },
+  {
+    id: 'MD2',
+    theme: 'dark',
+    foreground: '#F8FAFC',
+    background: '#020617',
+    measured: 19.28,
+    floor: FLOOR.text,
+    shipsIn: 'The same band in dark theme — deliberately unchanged',
+  },
+];
+
 export const ALL_PAIRINGS: readonly ContrastPairing[] = [
   ...LIGHT_TEXT_PAIRINGS,
   ...LIGHT_NONTEXT_PAIRINGS,
   ...DARK_PAIRINGS,
   ...DESK_PAIRINGS,
+  ...MEDIA_PAIRINGS,
 ];
 
 export interface ForbiddenPairing {

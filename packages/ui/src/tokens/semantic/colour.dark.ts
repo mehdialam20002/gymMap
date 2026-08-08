@@ -39,6 +39,15 @@ export const dark = {
   'color-surface-disabled': p.neutral[800],
   // Darker than light mode's scrim: the gap between scrim and canvas is smaller here.
   'color-surface-scrim': 'rgb(2 6 23 / 0.75)',
+  /**
+   * IDENTICAL to the light value, and one of only two tokens in this file that does not move.
+   *
+   * Every other surface flips because the canvas flips. This one does not, because what it sits
+   * behind does not: a photograph and a video need a dark ground in both themes. Inverting it
+   * would put light text on a light band in dark mode, and `surface-inverse` — the token that
+   * looks like the right answer — is exactly the one that does this.
+   */
+  'color-surface-media': p.neutral[950],
   'color-surface-stale': p.amber[950],
   // Status fills go OPAQUE at the 900/950 step. A translucent status fill over a dark canvas
   // produces a muddy, unpredictable ratio; an opaque one is measurable.
@@ -66,6 +75,8 @@ export const dark = {
   'color-content-on-warning': p.neutral[950],
   'color-content-on-danger': p.neutral[950],
   'color-content-on-info': p.neutral[950],
+  /** The second token that does not flip. See `color-surface-media` above. */
+  'color-content-on-media': p.neutral[50],
   // Status TEXT lightens to the 300 step.
   'color-content-brand': p.indigo[300],
   'color-content-success': p.emerald[300],
@@ -121,4 +132,15 @@ export const dark = {
   // --- info -----------------------------------------------------------------
   'color-info-solid': p.sky[400],
   'color-info-subtle': p.sky[950],
+
+  // --- chart series ----------------------------------------------------------
+  //
+  // SELECTED for the dark surface, not the light values with a filter over them: the same four
+  // hues, re-stepped. Validated against this mode's `surface-default` (#0F172A): worst adjacent
+  // CVD dE 8.4 (protan), normal-vision 19.8, and all four clear 3:1 — so dark carries no relief
+  // obligation where light does. See `colour.light.ts` for the ordering rule.
+  'color-viz-series-1': '#3987E5',
+  'color-viz-series-2': '#D95926',
+  'color-viz-series-3': '#199E70',
+  'color-viz-series-4': '#C98500',
 } as const satisfies Record<ColourTokenKey, string>;
