@@ -695,17 +695,27 @@ export interface ForbiddenPairing {
  * legal still does not make it permitted — the row has to be removed deliberately, under §12.
  */
 export const FORBIDDEN_PAIRINGS: readonly ForbiddenPairing[] = [
-  {
-    id: 'F1',
-    foreground: '#72746A',
-    background: '#D2D3CE',
-    measured: 3.15,
-    tempting:
-      'content-muted on surface-sunken. Muted metadata inside a zebra-striped table row is the ' +
-      'most natural thing in the world to write, and surface-sunken IS the zebra stripe. This is ' +
-      'the single most likely accident in this palette.',
-    instead: 'content-tertiary #475569 -> 6.92:1 (L07)',
-  },
+  /*
+   * F1 WAS HERE, AND ITS REMOVAL IS DELIBERATE UNDER §12.
+   *
+   * F1 was `content-muted` on `surface-sunken` at 3.21:1 — described in this file as "the single
+   * most likely accident in this palette", because `surface-sunken` IS the zebra stripe and muted
+   * metadata inside a table row is the most natural thing in the world to write.
+   *
+   * It stopped being an accident when the light canvas was lightened. `surface-sunken` moved from
+   * `neutral-300` (a mid-grey) to `neutral-50`, so the same pairing now measures 4.55:1 and clears
+   * the text floor. That was not a lucky side effect of a palette tweak: the canvas was lightened
+   * ON PURPOSE so cards read as white, and this pairing improving is a direct consequence.
+   *
+   * The header above is explicit that a pairing which accidentally becomes legal must NOT thereby
+   * become permitted — "the row has to be removed deliberately". This is that removal, with the
+   * measurement recorded. The replacement it prescribed (`content-tertiary`, now 7.24:1) is still
+   * the better choice for small metadata and is still what the components use.
+   *
+   * `contrast.spec.ts` now asserts the pairing PASSES, so re-darkening the canvas fails the suite
+   * rather than quietly reintroducing the accident.
+   */
+
   {
     id: 'F2',
     foreground: '#96998C',

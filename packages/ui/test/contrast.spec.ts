@@ -96,17 +96,30 @@ test('§3.8 — the four forbidden pairings are still forbidden', () => {
   }
 });
 
-test('F1 is the specific accident this palette is most exposed to', () => {
-  // content-muted on surface-sunken. surface-sunken IS the dashboard table's zebra stripe, which
-  // is precisely where a designer reaches for muted secondary text. Named because it is
-  // plausible, not because anyone proposed it.
-  const f1 = FORBIDDEN_PAIRINGS.find((p) => p.id === 'F1');
-  assert.ok(f1);
-  assert.equal(f1.foreground, light['color-content-muted']);
-  assert.equal(f1.background, light['color-surface-sunken']);
+test('the pairing F1 used to forbid now PASSES, and re-darkening the canvas must fail here', () => {
+  // ┌─ THIS TEST REPLACED A FORBIDDEN-PAIRING ASSERTION, AND THAT IS THE POINT ──────────────────┐
+  // │ F1 was `content-muted` on `surface-sunken` at 3.21:1 — this file's own "single most likely  │
+  // │ accident in this palette", because `surface-sunken` is the zebra stripe and muted metadata   │
+  // │ in a table row is the most natural thing to write.                                          │
+  // │                                                                                            │
+  // │ Lightening the canvas from a mid-grey `neutral-300` to `neutral-50` resolved it. So the row  │
+  // │ was removed deliberately (§12) and the assertion INVERTED: the pairing must now clear the   │
+  // │ floor. A future change that re-darkens the canvas fails here, which is the only way the      │
+  // │ accident could come back — and it would come back invisibly, because nothing about a         │
+  // │ slightly darker canvas looks like a contrast regression.                                     │
+  // └────────────────────────────────────────────────────────────────────────────────────────────┘
+  const muted = contrastRatio(light['color-content-muted'], light['color-surface-sunken']);
+  assert.ok(
+    muted >= FLOOR.text,
+    `content-muted on surface-sunken is ${muted.toFixed(2)}:1. It was 3.21:1 and forbidden as F1; ` +
+      'if the canvas has been darkened again, either restore it or re-record F1 as forbidden.',
+  );
 
-  const replacement = contrastRatio(light['color-content-tertiary'], light['color-surface-sunken']);
-  assert.ok(replacement >= FLOOR.text, 'the prescribed replacement (L07) does not itself pass');
+  // The replacement F1 prescribed is still the better choice for small metadata, and still passes
+  // by a wide margin. Components use it; this keeps that recommendation honest.
+  const tertiary = contrastRatio(light['color-content-tertiary'], light['color-surface-sunken']);
+  assert.ok(tertiary >= FLOOR.text, 'the prescribed replacement (L07) does not itself pass');
+  assert.ok(tertiary > muted, 'tertiary is meant to be the SAFER of the two');
 });
 
 test('F4 — success-600 is absent from the interactive set, in both themes', () => {

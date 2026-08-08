@@ -53,8 +53,8 @@ export const dark = {
   'color-surface-stale': p.amber[950],
   // Status fills go OPAQUE at the 900/950 step. A translucent status fill over a dark canvas
   // produces a muddy, unpredictable ratio; an opaque one is measurable.
-  'color-surface-brand-subtle': p.wine[950],
-  'color-surface-success-subtle': p.emerald[950],
+  'color-surface-brand-subtle': p.brandGreen[950],
+  'color-surface-success-subtle': p.green[950],
   'color-surface-warning-subtle': p.amber[950],
   'color-surface-danger-subtle': p.red[950],
   'color-surface-info-subtle': p.sky[950],
@@ -67,9 +67,9 @@ export const dark = {
   'color-content-disabled': p.neutral[600],
   'color-content-inverse': p.neutral[900],
   // Links lighten by four ramp steps, not two — indigo darkens fast.
-  'color-content-link': p.wine[300],
-  'color-content-link-hover': p.wine[200],
-  'color-content-link-visited': p.wine[400],
+  'color-content-link': p.brandGreen[300],
+  'color-content-link-hover': p.brandGreen[200],
+  'color-content-link-visited': p.brandGreen[400],
   'color-content-stale': p.amber[300],
   // The inversion: dark foregrounds on lightened solids.
   'color-content-on-brand': p.white,
@@ -80,10 +80,10 @@ export const dark = {
   /** The second token that does not flip. See `color-surface-media` above. */
   'color-content-on-media': p.neutral[50],
   /** The third, and the same reason: the band is `rich black` in both themes. `MD3`, 15.60:1. */
-  'color-content-on-media-accent': p.wine[400],
+  'color-content-on-media-accent': p.brandGreen[400],
   // Status TEXT lightens to the 300 step.
-  'color-content-brand': p.wine[300],
-  'color-content-success': p.emerald[300],
+  'color-content-brand': p.brandGreen[300],
+  'color-content-success': p.green[300],
   'color-content-warning': p.amber[300],
   'color-content-danger': p.red[300],
   'color-content-info': p.sky[300],
@@ -96,25 +96,34 @@ export const dark = {
   // #64748B does: 4.76:1 light, 3.75:1 dark.
   'color-border-input': p.neutral[500],
   'color-border-input-hover': p.neutral[400],
-  'color-border-focus': p.wine[400],
-  'color-border-brand': p.wine[400],
-  'color-border-success': p.emerald[400],
+  'color-border-focus': p.brandGreen[400],
+  'color-border-brand': p.brandGreen[400],
+  'color-border-success': p.green[400],
   'color-border-warning': p.amber[400],
   'color-border-danger': p.red[400],
   'color-border-info': p.sky[400],
 
   // --- brand ----------------------------------------------------------------
-  'color-brand-solid': p.wine[600],
-  'color-brand-solid-hover': p.wine[500],
-  'color-brand-solid-active': p.wine[400],
+  // ┌─ THE SAME 700 AS LIGHT, AND HOVER DEEPENS IN BOTH THEMES ─────────────────────────────────┐
+  // │ The foreground sits on the FILL, so the canvas behind it does not enter that pairing — which │
+  // │ means the 4.5:1 floor lands on the fill identically in both themes.                          │
+  // │                                                                                            │
+  // │ The instinct on a dark canvas is to LIGHTEN on hover so the control stands out. Here that   │
+  // │ would move the fill to 600, where white is 3.77:1 — reducing contrast on hover AND crossing │
+  // │ below the floor, which §3.5 forbids outright. Deepening keeps white legible, and 800 against │
+  // │ a `#020617` canvas is still obviously a green rather than sinking into it.                    │
+  // └────────────────────────────────────────────────────────────────────────────────────────────┘
+  'color-brand-solid': p.brandGreen[700],
+  'color-brand-solid-hover': p.brandGreen[800],
+  'color-brand-solid-active': p.brandGreen[900],
   'color-brand-solid-disabled': p.neutral[800],
-  'color-brand-subtle': p.wine[950],
-  'color-brand-subtle-hover': p.wine[900],
+  'color-brand-subtle': p.brandGreen[950],
+  'color-brand-subtle-hover': p.brandGreen[900],
 
   // --- success --------------------------------------------------------------
-  'color-success-solid': p.emerald[400],
-  'color-success-solid-hover': p.emerald[300],
-  'color-success-solid-active': p.emerald[200],
+  'color-success-solid': p.green[400],
+  'color-success-solid-hover': p.green[300],
+  'color-success-solid-active': p.green[200],
   'color-success-subtle': p.emerald[950],
   'color-success-subtle-hover': p.emerald[900],
 

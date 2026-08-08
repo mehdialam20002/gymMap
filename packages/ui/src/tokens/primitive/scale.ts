@@ -87,6 +87,23 @@ export const fontSize = {
   '3xl': ['1.875rem', { lineHeight: '2.375rem', letterSpacing: '-0.015em' }],
   '4xl': ['2.25rem', { lineHeight: '2.75rem', letterSpacing: '-0.02em' }],
   '5xl': ['3rem', { lineHeight: '3.5rem', letterSpacing: '-0.02em' }],
+  /**
+   * `SCR-WEB-001`'s hero headline, and nothing else on any surface.
+   *
+   * ┌─ NAMED FOR ITS PURPOSE, NOT `6xl`, AND THAT IS THE POINT ─────────────────────────────────┐
+   * │ A step called `6xl` is one a dashboard reaches for the moment a metric needs to feel       │
+   * │ important. `desk-lg` and `desk-verdict` already set the precedent: a size that exists for  │
+   * │ ONE surface carries that surface in its name, so using it anywhere else reads wrong in the │
+   * │ diff rather than only in the browser.                                                       │
+   * │                                                                                            │
+   * │ The leading is BELOW 1 (68/72 = 0.944), which every other step in this scale forbids. A    │
+   * │ marketing headline is two or three words on a line and set once; `DV3`'s 1.45 floor is a   │
+   * │ rule about READING — running text, in Devanagari, where the shirorekha and matras need the │
+   * │ room. It does not apply to a 72px display line and applying it anyway would leave a gap    │
+   * │ between the two headline lines wide enough to read as two headings.                        │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  display: ['4.5rem', { lineHeight: '4.25rem', letterSpacing: '-0.035em' }],
   /** Desk member name. */
   'desk-lg': ['2.5rem', { lineHeight: '3rem', letterSpacing: '-0.01em' }],
   /** `ALLOWED` / `DENIED` only. */
@@ -129,9 +146,16 @@ export const radius = {
   none: '0px',
   xs: '0.125rem',
   sm: '0.25rem',
-  control: '0.375rem',
+  /**
+   * 12px. The reference's `rounded-xl`, and it is on nearly every control on the screen.
+   *
+   * Was 6px. A 6px radius on a 36px-tall input reads as "a rectangle with the corners taken off";
+   * 12px reads as a considered shape. `ADR-0037` makes the radius step the designer's call.
+   */
+  control: '0.75rem',
   md: '0.5rem',
-  card: '0.75rem',
+  /** 16px. The reference's `rounded-2xl`. Was 12px, which is now what a CONTROL uses. */
+  card: '1rem',
   lg: '1rem',
   desk: '1.25rem',
   full: '9999px',

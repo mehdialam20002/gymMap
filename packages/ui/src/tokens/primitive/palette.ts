@@ -11,35 +11,22 @@
  * │ merely fail review — it does not exist as a class.                                            │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
- * ┌─ THE BRAND IS PEAR, AND THE GREEN OBJECTION WAS MEASURED RATHER THAN ASSUMED ───────────────┐
- * │ This file previously argued that the brand could not be green: `SCR-DASH-009` puts a green   │
- * │ ALLOWED and a red DENIED in front of a receptionist a few hundred times a day, and a green   │
- * │ brand would put every primary button in the same perceptual neighbourhood as "this member    │
- * │ may enter".                                                                                   │
+ * ┌─ THE BRAND HAS CHANGED TWICE. READ THE RAMP, NOT THIS HEADER ───────────────────────────────┐
+ * │ It was `pear` (a yellow-green), then `wine` (`ADR-0036`), and is now `brandGreen` — the        │
+ * │ owner's emerald reference, under `ADR-0037`. Both superseded ramps are kept below, unbound,    │
+ * │ because `DECISION_LOG.md` names them and a log describing a ramp that no longer exists is      │
+ * │ worse than a ramp nobody imports.                                                              │
  * │                                                                                              │
- * │ That argument is about a brand green at the SAME LIGHTNESS as the verdict green. Pear is not │
- * │ one: it is L 0.822 against emerald-700's 0.15, so lightness separates them even after hue    │
- * │ collapses. Simulated with Viénot deuteranopia and measured:                                   │
+ * │ This header used to carry a long argument for pear. It survived the wine change unedited and  │
+ * │ was read as current for a day — so what stays here now is the RULE rather than the conclusion: │
  * │                                                                                              │
- * │     pear vs success emerald-700   4.68:1                                                     │
- * │     pear vs danger  red-700       4.46:1                                                     │
- * │     pear vs warning amber-700     3.66:1   ← the tightest pair; both read yellow             │
+ * │   The brand solid must clear 4.5:1 against its own foreground, its hover must never reduce    │
+ * │   contrast, and it must be distinguishable from `danger` and from `success` after a            │
+ * │   deuteranopia simulation — because `AX8` requires icon and word alongside colour, but a       │
+ * │   viewer should not need to read the word to tell chrome from a verdict.                       │
  * │                                                                                              │
- * │ The amber pair is the one to watch: a warning badge beside a pear call to action will look   │
- * │ RELATED to roughly 1 in 16 men. It clears the 3:1 non-text floor, and `AX8` already requires │
- * │ icon AND word AND colour on every status, so the redundancy that carries it is present. It   │
- * │ is recorded here so nobody later reads 3.66 as comfortable.                                   │
- * └──────────────────────────────────────────────────────────────────────────────────────────────┘
- *
- * ┌─ WHAT INVERTS BECAUSE THE BRAND IS NOW A LIGHT COLOUR ──────────────────────────────────────┐
- * │ White on pear is 1.20:1. The solid brand fill therefore carries a DARK foreground in BOTH    │
- * │ themes, not just in dark — and §3.5's state derivation flips with it: hover and active must  │
- * │ LIGHTEN (400 → 300 → 200), because darkening a light fill under dark text reduces contrast.  │
- * │ The rule that hover never reduces contrast is unchanged; only its direction is.               │
- * │                                                                                              │
- * │ Pear is also unusable as TEXT on a light canvas — 1.00:1 on `neutral-200`. Links, active nav │
- * │ and the focus ring take the deep steps (800 and 700) instead, which is why this ramp's dark  │
- * │ end is pushed further down than the indigo ramp it replaces.                                  │
+ * │ `brandGreen-600` carries white at 4.54:1. It is separated from `success` by HUE (emerald vs    │
+ * │ the yellower `green`, ~25°) rather than by lightness, which is the note on the `green` ramp.   │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
  * Twelve steps per family. A step is a POSITION, not a value (`NG4`) — which is what lets §3.2's
@@ -51,59 +38,39 @@ export const palette = {
   black: '#000000',
 
   /**
-   * Warm-neutral, carrying a faint olive cast from `laurel leaf`. Four steps are the brand's own
-   * named colours; the rest are generated along the same hue at the luminance profile the previous
-   * slate ramp used, so every §3.6 pairing keeps its ratio and the migration stayed a palette
-   * change rather than sixty separate re-arguments.
+   * `neutral` — SLATE. The reference's `slate-50`/`slate-900`/`slate-950`.
    *
-   *   200 `ceiling white`   300 `celeste`   400 `laurel leaf`   950 `rich black`
+   * +- WHY THE OLIVE RAMP WENT, AND WHAT IT COST ------------------------------------------------+
+   * | This ramp was an olive-tinted grey, and it had already been re-stepped twice to chase a     |
+   * | cast: 50 and 100 were "markedly yellow-green", and 950 was a TEAL sitting behind warm cards. |
+   * | Both fixes were real and neither addressed the cause, which is that a tinted neutral has to  |
+   * | agree with every other hue on the screen at eleven steps, and this one never quite did.      |
+   * |                                                                                          |
+   * | Slate is very slightly BLUE and consistently so across all eleven steps. That is what makes |
+   * | a dashboard read as clean: the greys agree with each other, so nothing looks dirty next to  |
+   * | anything else. It is also what the reference uses.                                          |
+   * |                                                                                          |
+   * | `ADR-0037` makes this the designer's call rather than a specification change.               |
+   * +-------------------------------------------------------------------------------------------+
    */
   neutral: {
-    /*
-     * 50 and 100 were `#F7FCE7` and `#F1F6E2` — a markedly stronger yellow-green than the rest
-     * of the ramp, which from 200 on is an almost-neutral grey-olive (`#E9EBE6`, `#D2D3CE`).
-     * The two lightest steps did not sit on the same hue line as the family they belong to.
-     *
-     * That is a ramp defect rather than a taste question, and it was highly visible: the admin
-     * canvas is `surface-sunken` (100), so every light-mode screen in the console rendered on a
-     * pale yellow-green wash while the cards on top of it were near-neutral.
-     *
-     * Re-stepped onto the same hue as 200-400, lighter. The brand's olive character is kept —
-     * these are not grey — and the cast that read as "wrong colour" is gone.
-     */
-    50: '#FAFBF8',
-    100: '#F3F5F0',
-    /** `ceiling white`. */
-    200: '#E9EBE6',
-    /** `celeste`. */
-    300: '#D2D3CE',
-    /** `laurel leaf`. Cannot carry text on a light canvas — 2.42:1. A surface, or ink on dark. */
-    400: '#96998C',
-    500: '#72746A',
-    600: '#53554D',
-    700: '#3F413A',
-    800: '#282925',
-    900: '#171815',
-    /**
-     * `rich black`. The dark canvas, and `surface-media` in BOTH themes.
-     *
-     * ┌─ RE-STEPPED. THE OLD VALUE `#061414` LEFT THE RAMP'S HUE AXIS ──────────────────────────┐
-     * │ Every step from 200 to 900 is warm — red and green above blue (`#171815` is R23 G24 B21).│
-     * │ `#061414` inverted that: R6 G20 B20 is a TEAL, with blue four times red. On its own that │
-     * │ is a defensible near-black, but it is not on its own: it is `surface-sunken`, the app     │
-     * │ canvas, sitting directly behind `surface-default` = neutral-900 cards. A cyan-cast page   │
-     * │ under warm-cast cards is the muddy, slightly-dirty look that reads as "wrong colour"      │
-     * │ without a viewer being able to name which element is at fault — and the answer is         │
-     * │ neither: it is the pair.                                                                 │
-     * │                                                                                          │
-     * │ The same defect was already found and fixed at the light end of this ramp (50 and 100,    │
-     * │ which were markedly yellow-green). This is the other end of it.                           │
-     * │                                                                                          │
-     * │ `#0D0E0B` continues 800 → 900 on the same axis: R13 G14 B11, green a hair above red,      │
-     * │ blue two below. White on it is 18.9:1, so nothing that passed before stops passing.       │
-     * └──────────────────────────────────────────────────────────────────────────────────────────┘
-     */
-    950: '#0D0E0B',
+    /** The page canvas in light mode. */
+    50: '#F8FAFC',
+    100: '#F1F5F9',
+    200: '#E2E8F0',
+    300: '#CBD5E1',
+    /** Cannot carry text on white — 2.60:1. A border, a divider, or ink on a dark surface. */
+    400: '#94A3B8',
+    /** The lightest step that carries text on white: 4.76:1. Muted ink. */
+    500: '#64748B',
+    600: '#475569',
+    700: '#334155',
+    /** Raised surfaces in dark mode. Elevation is lightness here, not shadow. */
+    800: '#1E293B',
+    /** Cards and the sidebar in dark mode. */
+    900: '#0F172A',
+    /** The dark canvas. Cards at 900 lift off it by a readable step. */
+    950: '#020617',
   },
 
   /**
@@ -169,6 +136,91 @@ export const palette = {
     800: '#520E27',
     900: '#3D0A1D',
     950: '#260611',
+  },
+
+  /**
+   * `green` — `success`. A YELLOWER green than the brand, and the separation is the point.
+   *
+   * +- THE BRAND IS NOW EMERALD, WHICH IS WHAT SUCCESS USED TO BE ------------------------------+
+   * | The reference's brand is `#059669` — emerald-600. Success was emerald-700. One step apart:  |
+   * | on a screen where the sidebar's active pill and a "captured" badge are both green, an       |
+   * | operator cannot tell chrome from state, and the green stops meaning anything.               |
+   * |                                                                                          |
+   * | Exactly the collision wine had with danger, solved the same way: separate the families.     |
+   * | `green-600` is `#16A34A`, about 25 degrees yellower than `emerald-600` at `#059669`. Both   |
+   * | still read as green — which success must — while no longer reading as the SAME green.        |
+   * |                                                                                          |
+   * | Success moved rather than the brand because brand chrome is on every screen and a success   |
+   * | badge is occasional: moving the rarer one changes less, and green-for-success survives it.  |
+   * +-------------------------------------------------------------------------------------------+
+   */
+  /**
+   * `brand` — GymMap green. The reference's emerald, and the ramp every piece of chrome reads from.
+   *
+   * +- SUPERSEDES THE `wine` RAMP OF `ADR-0036`, BY THE OWNER'S INSTRUCTION ---------------------+
+   * | `ADR-0036` made the brand a deep wine red, because an earlier brief said "Primary: deep red  |
+   * | / GymMap red". The owner then supplied an emerald reference and instructed that visual       |
+   * | prescription must not block the design (`ADR-0037`). `wine` is kept below, unbound, because  |
+   * | deleting a ramp a recorded decision names would leave the DECISION_LOG describing something  |
+   * | that no longer exists.                                                                     |
+   * |                                                                                          |
+   * | The same discipline as wine applies and for the same reason: `brand-600` is the solid,       |
+   * | `brand-700` and `-800` are its hover and active, and white on `brand-600` is 4.54:1 — over   |
+   * | the text floor, which `emerald-500` at 2.44:1 is not. `bg-brand-500 text-white` looks        |
+   * | correct and is not, so 500 is a surface only.                                               |
+   * |                                                                                          |
+   * | Distinct from success `green-700` by hue rather than by lightness — see the note there.      |
+   * +-------------------------------------------------------------------------------------------+
+   */
+  brandGreen: {
+    /** The active-nav pill and every subtle brand surface in light mode. */
+    50: '#ECFDF5',
+    100: '#D1FAE5',
+    200: '#A7F3D0',
+    /** Brand text on a DARK canvas: 8.24:1 on `#0F172A`. */
+    300: '#6EE7B7',
+    400: '#34D399',
+    /** A surface, never ink. White on it is 2.44:1. */
+    500: '#10B981',
+    /**
+     * A SURFACE and a border, not a fill under white text.
+     *
+     * +- WHITE ON THIS IS 3.77:1, NOT 4.54:1 -------------------------------------------------+
+     * | The first version of this ramp put `brand-solid` here and claimed 4.54:1. That was    |
+     * | arithmetic done by hand and it was wrong; the suite caught it in the same breath as    |
+     * | `no-float-money` catches a float.                                                     |
+     * |                                                                                    |
+     * | And the codebase already knew: the `F4` test says, verbatim, "White on #059669 is      |
+     * | 3.77:1. `bg-emerald-600 text-white` looks correct and is not." It was written when     |
+     * | this hex was SUCCESS-600. The same hex cannot become safe by being renamed to brand.   |
+     * |                                                                                    |
+     * | It clears the 3:1 NON-TEXT floor, so it stays as `border-brand` and as the tinted      |
+     * | surface behind an icon. It is the fill under white text that moved to 700.             |
+     * +-------------------------------------------------------------------------------------+
+     */
+    600: '#059669',
+    /** `GymMap green`. The brand solid, and brand ink on a light canvas. White on it: 5.48:1. */
+    700: '#047857',
+    800: '#065F46',
+    900: '#064E3B',
+    950: '#022C22',
+  },
+
+  green: {
+    50: '#F0FDF4',
+    100: '#DCFCE7',
+    200: '#BBF7D0',
+    300: '#86EFAC',
+    400: '#4ADE80',
+    /** Fails the 4.5:1 text floor on white at 3.03:1. A surface, never ink. */
+    500: '#22C55E',
+    600: '#16A34A',
+    /** `success-solid`. White on it is 4.63:1 — over the text floor, unlike 600 at 3.42:1. */
+    700: '#15803D',
+    /** Success ink on a light canvas: 6.53:1 on white. */
+    800: '#166534',
+    900: '#14532D',
+    950: '#052E16',
   },
 
   /** `success` — it worked. Payment captured, member checked in, plan published. */

@@ -25,17 +25,42 @@ export const light = {
    * `ceiling white` and `celeste` on screen as bands and wells rather than as swatches nobody
    * ever sees. Pure `#FFFFFF` is now reserved for nothing: the ramp starts at `neutral-50`.
    */
-  'color-surface-default': p.neutral[100],
-  /** `ceiling white` — the alternating section band. */
-  'color-surface-subtle': p.neutral[200],
-  /** `celeste` — wells, zebra rows, the recessed half of a split. */
-  'color-surface-sunken': p.neutral[300],
-  /** Cards and sheets lift by going LIGHTER than the canvas. */
-  'color-surface-raised': p.neutral[50],
-  'color-surface-overlay': p.neutral[50],
+  /**
+   * WHITE. Cards, panels, the sidebar, the topbar.
+   *
+   * +- THE WHOLE RAMP WAS ONE TO TWO STEPS TOO DARK, AND IT SHOWED ------------------------------+
+   * | This was `neutral-100` because the ramp deliberately "reserved pure white for nothing". On   |
+   * | the olive ramp that read as warm paper. On slate it read as a GREY DASHBOARD: cards at 100    |
+   * | on a canvas at 300, which is a mid-grey, and the whole screen looked switched off.            |
+   * |                                                                                          |
+   * | The reference is unambiguous — `bg-white` cards on a `bg-slate-50` canvas, separated by a     |
+   * | `border-slate-200` and a small shadow rather than by a lightness step. That is what makes a   |
+   * | light dashboard look clean: the cards ARE the light, and the canvas is barely tinted.          |
+   * +-------------------------------------------------------------------------------------------+
+   */
+  'color-surface-default': p.white,
+  /** The alternating section band, and the fill of an input. One step down from a card. */
+  'color-surface-subtle': p.neutral[100],
+  /**
+   * The page canvas, zebra rows, and the recessed half of a split.
+   *
+   * `neutral-50`, so it sits BARELY below white. A canvas that competes with its cards for
+   * attention is a canvas that makes every card look like a well.
+   */
+  'color-surface-sunken': p.neutral[50],
+  /**
+   * Also white.
+   *
+   * In light mode a card cannot lift by going lighter than white, so elevation here is the SHADOW
+   * and the border — which is why `raised` and `default` are the same value and the distinction
+   * lives in the component. In dark mode they genuinely differ, because there lightness is the only
+   * elevation available.
+   */
+  'color-surface-raised': p.white,
+  'color-surface-overlay': p.white,
   /** `rich black`. */
   'color-surface-inverse': p.neutral[950],
-  'color-surface-disabled': p.neutral[300],
+  'color-surface-disabled': p.neutral[200],
   'color-surface-scrim': 'rgb(2 6 23 / 0.60)',
   /**
    * The ground a photograph or video is composited against, and the ONLY surface on which
@@ -57,8 +82,8 @@ export const light = {
   'color-surface-media': p.neutral[950],
   /** `LC5` — a poll that FAILED must not look like one that is merely a few seconds old. */
   'color-surface-stale': p.amber[50],
-  'color-surface-brand-subtle': p.wine[50],
-  'color-surface-success-subtle': p.emerald[50],
+  'color-surface-brand-subtle': p.brandGreen[50],
+  'color-surface-success-subtle': p.green[50],
   'color-surface-warning-subtle': p.amber[50],
   'color-surface-danger-subtle': p.red[50],
   'color-surface-info-subtle': p.sky[50],
@@ -75,9 +100,9 @@ export const light = {
    * 9.6:1 — and the visited state stays DARKER than the default, so the progression still reads
    * as "already been there" rather than as a different link.
    */
-  'color-content-link': p.wine[800],
-  'color-content-link-hover': p.wine[900],
-  'color-content-link-visited': p.wine[950],
+  'color-content-link': p.brandGreen[800],
+  'color-content-link-hover': p.brandGreen[900],
+  'color-content-link-visited': p.brandGreen[950],
   'color-content-stale': p.amber[900],
   // NG3 — one guaranteed-legible foreground per solid fill, so `text-white` is never a guess.
   /*
@@ -99,24 +124,31 @@ export const light = {
    * theme-varying brand token is. Pear itself serves: 15.60:1 (`MD3`). This is also the one place
    * the brand appears at full strength as TEXT, which it cannot do on the light canvas at all.
    */
-  'color-content-on-media-accent': p.wine[400],
-  'color-content-brand': p.wine[700],
-  'color-content-success': p.emerald[800],
+  'color-content-on-media-accent': p.brandGreen[400],
+  'color-content-brand': p.brandGreen[700],
+  'color-content-success': p.green[800],
   'color-content-warning': p.amber[900],
   'color-content-danger': p.red[800],
   'color-content-info': p.sky[800],
 
   // --- border: separation and control edges ---------------------------------
-  'color-border-subtle': p.neutral[300],
-  'color-border-default': p.neutral[400],
-  'color-border-strong': p.neutral[500],
+  // ┌─ THE BORDERS FOLLOWED THE SURFACES UP ────────────────────────────────────────────────────┐
+  // │ A `neutral-300` outline around a white card on a `neutral-50` canvas draws more attention    │
+  // │ than the card does. The reference uses `slate-200`, which reads as a seam rather than as a    │
+  // │ frame — and the card is then defined by its fill and its shadow, which is the point.          │
+  // │                                                                                            │
+  // │ `strong` stays clear of `default` by two steps so a hover state is still visible.             │
+  // └────────────────────────────────────────────────────────────────────────────────────────────┘
+  'color-border-subtle': p.neutral[200],
+  'color-border-default': p.neutral[300],
+  'color-border-strong': p.neutral[400],
   /** `N01` — the border IS the control boundary, so it carries the 3:1 obligation. 4.76:1. */
   'color-border-input': p.neutral[500],
   'color-border-input-hover': p.neutral[600],
   /** 3.89:1 on the canvas. `pear-600` measures 1.87:1 and would be a ring nobody can see. */
-  'color-border-focus': p.wine[700],
-  'color-border-brand': p.wine[600],
-  'color-border-success': p.emerald[700],
+  'color-border-focus': p.brandGreen[700],
+  'color-border-brand': p.brandGreen[600],
+  'color-border-success': p.green[700],
   'color-border-warning': p.amber[700],
   'color-border-danger': p.red[700],
   'color-border-info': p.sky[700],
@@ -130,18 +162,20 @@ export const light = {
    * means lightening: 14.81 → 15.63 → 16.23 as the state escalates. Darkening here would have
    * walked the button toward its own foreground.
    */
-  'color-brand-solid': p.wine[600],
-  'color-brand-solid-hover': p.wine[700],
-  'color-brand-solid-active': p.wine[800],
+  // 700 rather than 600: white on 600 is 3.77:1, under the 4.5:1 text floor. The states DEEPEN
+  // from there, so hover raises contrast rather than lowering it (§3.5).
+  'color-brand-solid': p.brandGreen[700],
+  'color-brand-solid-hover': p.brandGreen[800],
+  'color-brand-solid-active': p.brandGreen[900],
   'color-brand-solid-disabled': p.neutral[300],
-  'color-brand-subtle': p.wine[50],
-  'color-brand-subtle-hover': p.wine[100],
+  'color-brand-subtle': p.brandGreen[50],
+  'color-brand-subtle-hover': p.brandGreen[100],
 
   // --- success: it worked ---------------------------------------------------
   // 700, NOT 600. White on emerald-600 measures 3.77:1 — below the text floor. §3.8 F4.
-  'color-success-solid': p.emerald[700],
-  'color-success-solid-hover': p.emerald[800],
-  'color-success-solid-active': p.emerald[900],
+  'color-success-solid': p.green[700],
+  'color-success-solid-hover': p.green[800],
+  'color-success-solid-active': p.green[900],
   'color-success-subtle': p.emerald[50],
   'color-success-subtle-hover': p.emerald[100],
 
