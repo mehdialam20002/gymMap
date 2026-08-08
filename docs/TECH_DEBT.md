@@ -205,6 +205,7 @@ Full detail for each entry is in §4. `PRD id` shows the primary identifier; eac
 | **TD-032** | Job run history is a log line, not a `job_runs` table | Data | Medium | S | `BLK-08` answered, or the first overrun nobody could reconstruct from logs | Technical Lead | **BLOCKED** | `AC-FND-12.2`, M-018 |
 | **TD-033** | Seed versioned by a string, not by `seed.manifest.json` checksums | Test | Medium | S | The first "works on my machine" traced to seed drift; sprint 6 at the latest | QA Lead | ACCEPTED | `§6.7`, `SD-2`, M-019 |
 | **TD-034** | `/v1/admin/*` gated on PLATFORM role membership, not the `§B3.2` matrix | Security | **High** | S | **M-023** — the matrix, `PermissionsGuard` and the generated per-cell test | Backend Lead | SCHEDULED | `FR-RBAC-01`, `PG-1`, M-022 |
+| **TD-035** | Verification SLA counted in WALL-CLOCK hours, not `Asia/Kolkata` business hours | Correctness | Low | S | A business-hours calendar exists anywhere in `docs/`, or the first officer complaint that an application was called late over a weekend | Technical Lead | **BLOCKED** | `Admin.md` §5.1.1, `FR-ADMN-11`, M-036 |
 
 ---
 
@@ -451,6 +452,54 @@ outright, and `@RequiredPermission()` stops being metadata and starts being the 
 **Verified.** `platform-role.guard.spec.ts` asserts that a tenant-scoped `GYM_OWNER@t:<uuid>` is
 refused, that an unknown key with a `@platform` suffix is refused, and that an authenticated
 member with no roles receives 403 rather than 404.
+
+
+### TD-035 — the verification SLA counts wall-clock hours, not business hours
+
+**What was taken.** `PlatformOverviewUseCase.slaFor()` computes `hours_remaining` as a plain
+subtraction from `submitted_at`, on a 72-hour target. `Admin.md` §5.1.1 says the figures are derived
+*"from `submitted_at` and the configured SLA target in `Asia/Kolkata` business hours"*.
+
+**Why this rather than the spec.** **No document in this repository defines what business hours
+are.** There is no working-day list and no holiday calendar anywhere under `docs/` — searched for
+"business hours", "working day", "public holiday" across all eight `docs/ui/` files, `docs/apis/`,
+`MASTER_PRD.md` and `docs/engineering/`. §5.1.1 is the only mention, and it names the concept
+without defining it.
+
+Inventing one here would put a commercial commitment — the moment a gym owner is told their
+application is late — inside an implementation detail, decided by whoever wrote the function. That
+is a worse outcome than a documented approximation.
+
+**The direction of the error, and why it is the safe one.** Wall-clock is **stricter**. It counts
+the weekend, so it can only ever report an application as breached *earlier* than a business-hours
+calculation would; it can never report one as WITHIN when business hours would have called it
+breached. The failure mode is an officer looking at something sooner than they strictly had to,
+which on a verification queue is the direction to err in — `RSK-01` is fake gyms getting listed, not
+officers being too prompt.
+
+**Precedent in the same repository, in the same direction.** `Monitoring.md` SLO-04 made this exact
+call for the SUPPORT SLA and gave the reason: *"Business hours are **not** subtracted. `KPI-25` says
+'median time to first human response' with no working-hours carve-out, and a member who tickets at
+21:00 IST experiences the wait regardless. Support staffing is the lever, not the definition."*
+Whether the verification SLA should follow that reading or genuinely needs a calendar is the
+question this entry is waiting on.
+
+**What is NOT approximated.** The target itself is configuration and reaches the client
+(`VERIFICATION_SLA_TARGET_HOURS`, `UI-ADM-4`); the three state thresholds are §5.1.1's table
+verbatim; a breach goes negative and stays visible; and `INFO_REQUESTED` pauses the clock with the
+wall-clock age still exposed so a paused queue cannot hide a stalled application. Fifteen tests
+cover those. The approximation is confined to one subtraction.
+
+**Interest rate.** **Low, and flat.** The gap only bites across a weekend or a public holiday, and
+only by making the console slightly pessimistic. It does not compound, and no other code depends on
+the reading — `hours_remaining` has exactly one producer.
+
+**Payoff trigger.** Either a business-hours calendar appears in `docs/` — at which point this becomes
+a small change in one method, since the pause logic already proves the shape supports a
+non-linear clock — or an officer reports that an application was called late over a weekend, which
+is the cheapest possible way to learn the answer matters.
+
+---
 
 ---
 
