@@ -19,6 +19,7 @@ import { Global, Module } from '@nestjs/common';
 
 import { APP_CONFIG, type AppConfig } from '../common/config/app-config.schema.js';
 import { ReadinessService } from '../common/health/readiness.service.js';
+import { ElevatedTenantReader } from './application/elevated-tenant-reader.js';
 import { PrismaService } from './prisma/prisma.service.js';
 import { TenantPingController } from './controllers/tenant-ping.controller.js';
 import { TenantPrismaRepository } from './infrastructure/tenant.prisma-repository.js';
@@ -46,6 +47,7 @@ import { AuditPrismaService } from './prisma/audit-prisma.service.js';
       useFactory: (config: AppConfig) => new AuditPrismaService(config),
       inject: [APP_CONFIG],
     },
+    ElevatedTenantReader,
     {
       provide: PrismaService,
       // An explicit factory rather than `@Inject(APP_CONFIG)` on the constructor: the service
@@ -57,6 +59,14 @@ import { AuditPrismaService } from './prisma/audit-prisma.service.js';
       inject: [APP_CONFIG, ReadinessService],
     },
   ],
-  exports: [PrismaService, TenantPrismaRepository, PlatformPrismaService, AuditPrismaService],
+  exports: [
+    PrismaService,
+    TenantPrismaRepository,
+    PlatformPrismaService,
+    AuditPrismaService,
+    // The audited cross-tenant read. Exported so `admin/` can consume it WITHOUT holding
+    // AUDIT_WRITE_PORT, which FolderStructure.md §8.2 forbids the administration modules.
+    ElevatedTenantReader,
+  ],
 })
 export class TenancyModule {}

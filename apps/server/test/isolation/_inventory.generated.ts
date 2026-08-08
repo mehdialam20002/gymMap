@@ -47,6 +47,16 @@ export const GENERATED_INVENTORY: Inventory = {
       "audience": "PROBE"
     },
     {
+      "method": "GET",
+      "path": "/v1/admin/platform/gyms",
+      "audience": "ADMIN"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/platform/overview",
+      "audience": "ADMIN"
+    },
+    {
       "method": "POST",
       "path": "/v1/auth/login",
       "audience": "PUBLIC"

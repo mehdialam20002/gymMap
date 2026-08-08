@@ -245,7 +245,19 @@ it('app_append holds NOTHING on any of the five', () => {
 });
 
 it('the seed is intact after every probe', () => {
+  // `roles` is a CLOSED catalogue — §B3.1 defines exactly twelve, and a thirteenth is a defect
+  // rather than data. So that one is counted table-wide, deliberately.
   assert.equal(psql('SELECT count(*) FROM roles;').out, '12');
-  assert.equal(psql('SELECT count(*) FROM users;').out, '11');
-  assert.equal(psql('SELECT count(*) FROM user_roles WHERE revoked_at IS NULL;').out, '11');
+
+  // Users and grants are NOT closed. Scoped to the seed namespace so that a leftover row, a
+  // developer's own account or the demo dataset cannot fail an assertion about the seed. The
+  // property is "the eleven principals and their grants survived these probes", not "nothing
+  // else exists in the database".
+  assert.equal(psql(`SELECT count(*) FROM users WHERE email LIKE '%@seed.gymmap.test';`).out, '11');
+  assert.equal(
+    psql(`SELECT count(*) FROM user_roles ur
+            JOIN users u ON u.id = ur.user_id
+           WHERE ur.revoked_at IS NULL AND u.email LIKE '%@seed.gymmap.test';`).out,
+    '11',
+  );
 });

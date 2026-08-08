@@ -123,10 +123,18 @@ it('A7 · WITHOUT RLS — the SAME query returns tenant B, or the suite proves n
     /crossTenantVisible=1/,
     `with RLS disabled tenant A must see tenant B's row:\n${observed}`,
   );
-  assert.match(
-    observed,
-    /totalVisible=[3-9]/,
-    `with RLS disabled the whole table should be visible:\n${observed}`,
+  // Parsed as a NUMBER, not matched as a digit.
+  //
+  // This was `/totalVisible=[3-9]/`, which quietly encoded two assumptions: that the fixture holds
+  // three tenants, and that the table never grows past nine. The second broke the moment a demo
+  // dataset was seeded — 23 tenants, and the regex failed while the property it protects (with
+  // RLS off, tenant A sees more than only itself) held perfectly.
+  //
+  // The property is a comparison, so it is written as one.
+  const totalVisible = Number(/totalVisible=(\d+)/.exec(observed)?.[1] ?? '0');
+  assert.ok(
+    totalVisible >= 3,
+    `with RLS disabled the whole table should be visible, saw ${String(totalVisible)}:\n${observed}`,
   );
 });
 

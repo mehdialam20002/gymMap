@@ -50,6 +50,77 @@
         "x-gymmap-rate-limit": "RL-READ"
       }
     },
+    "/v1/admin/platform/gyms": {
+      "get": {
+        "description": "One list serves both the register (SCR-ADM-004) and the approval queue (SCR-ADM-002) — the queue is this list filtered to the three statuses a human owns. Two endpoints would be two definitions of \"waiting\", and they would drift the moment a status is added. A projection: PAN, refund policy and settlement configuration are not returned to a screen that lists gyms (BR-DAT-06).",
+        "operationId": "gyms",
+        "parameters": [
+          {
+            "description": "A tenant_status_enum value.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "gyms": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "The gym register, newest first.",
+        "tags": [
+          "admin"
+        ],
+        "x-gymmap-error-codes": [
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED",
+          "ELEVATION_REFUSED"
+        ],
+        "x-gymmap-permission": "admin.gym_register.read",
+        "x-gymmap-rate-limit": "RL-READ"
+      }
+    },
+    "/v1/admin/platform/overview": {
+      "get": {
+        "description": "Aggregates only, and only over tables that exist. Revenue, orders, settlements, refunds and memberships are ABSENT from this response rather than present and zero, because a zero meaning \"not built\" and a zero meaning \"nothing happened today\" are identical on a screen and only one of them needs an operator. `generatedAt` is what the console renders as its last-updated indicator (A-08).",
+        "operationId": "overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Counts across every gym and every account on the platform.",
+        "tags": [
+          "admin"
+        ],
+        "x-gymmap-error-codes": [
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED",
+          "ELEVATION_REFUSED"
+        ],
+        "x-gymmap-permission": "admin.platform_overview.read",
+        "x-gymmap-rate-limit": "RL-READ"
+      }
+    },
     "/v1/auth/login": {
       "post": {
         "description": "Returns 401 UNAUTHENTICATED for an unknown identifier AND for a wrong password — the same status, the same code, the same message and the same latency (Security.md §1.6). A locked account is 403 ACCOUNT_LOCKED, never 429: a lockout is about this account and clears with an unlock, while a 429 tells the victim of credential stuffing to try again in a minute. On success a session is opened (M-022): the ACCESS token is returned here because the SPA must place it in an Authorization header, while the 30-day REFRESH token is set as an httpOnly cookie and never appears in this body (SE1, TK7, ADR-0011).",

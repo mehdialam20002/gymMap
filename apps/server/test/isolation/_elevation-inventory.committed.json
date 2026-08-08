@@ -1,10 +1,25 @@
 {
-  "total": 0,
+  "total": 2,
   "byScope": {
-    "READ_ALL_TENANTS": 0,
+    "READ_ALL_TENANTS": 2,
     "READ_ONE_TENANT": 0,
     "READ_FINANCIAL_AGGREGATE": 0,
     "READ_AUDIT": 0
   },
-  "sites": []
+  "sites": [
+    {
+      "module": "tenancy",
+      "file": "apps/server/src/tenancy/application/elevated-tenant-reader.ts",
+      "line": 75,
+      "scope": "READ_ALL_TENANTS",
+      "permission": "UNKNOWN"
+    },
+    {
+      "module": "tenancy",
+      "file": "apps/server/src/tenancy/application/elevated-tenant-reader.ts",
+      "line": 123,
+      "scope": "READ_ALL_TENANTS",
+      "permission": "UNKNOWN"
+    }
+  ]
 }

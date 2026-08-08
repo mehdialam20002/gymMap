@@ -23,6 +23,7 @@
     "start:worker": "node dist/worker.js",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsc -p tsconfig.build.json && node dist/../prisma/seed/index.js",
+    "db:seed:demo": "node --experimental-strip-types prisma/seed/demo/index.ts",
     "openapi:emit": "tsc -p tsconfig.build.json && node dist/common/openapi/emit.js",
     "db:setup": "prisma migrate deploy && docker exec -i gymmap-postgres psql -U postgres -d gymmap -v ON_ERROR_STOP=1 -f - < ../../infra/compose/set-local-role-password.sql"
   },

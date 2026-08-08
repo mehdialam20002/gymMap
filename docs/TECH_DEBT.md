@@ -204,6 +204,7 @@ Full detail for each entry is in §4. `PRD id` shows the primary identifier; eac
 | **TD-031** | `outbox.aggregate_type` is `text` + `CHECK`, not an enum | Data | Low | S | `BLK-07` answered — the register of aggregate roots is written down | Technical Lead | **BLOCKED** | `MG9`, M-018 |
 | **TD-032** | Job run history is a log line, not a `job_runs` table | Data | Medium | S | `BLK-08` answered, or the first overrun nobody could reconstruct from logs | Technical Lead | **BLOCKED** | `AC-FND-12.2`, M-018 |
 | **TD-033** | Seed versioned by a string, not by `seed.manifest.json` checksums | Test | Medium | S | The first "works on my machine" traced to seed drift; sprint 6 at the latest | QA Lead | ACCEPTED | `§6.7`, `SD-2`, M-019 |
+| **TD-034** | `/v1/admin/*` gated on PLATFORM role membership, not the `§B3.2` matrix | Security | **High** | S | **M-023** — the matrix, `PermissionsGuard` and the generated per-cell test | Backend Lead | SCHEDULED | `FR-RBAC-01`, `PG-1`, M-022 |
 
 ---
 
@@ -412,6 +413,44 @@ carrying money figures and a silently-different seed stops being a debugging ann
 
 **Related.** `SD-2`, `SD-3`, `SD-4`, `SE5` (environment parity), `Scalability.md` §10.2 (the volume
 overlay preserves these exact identifiers, so it depends on the seed being reproducible).
+
+
+---
+
+### TD-034 — `/v1/admin/*` gated on PLATFORM role membership, not the `§B3.2` matrix
+
+**What was taken.** `PlatformRoleGuard` admits any principal holding one of the five `§B3.1`
+platform roles and refuses everyone else. It does not distinguish `FINANCE` from `MODERATOR`, and
+it does not consult the 516-cell `§B3.2` matrix, because that matrix is `M-023` and does not exist
+yet.
+
+**Why this rather than nothing.** The admin console needed a read path before `M-023`, and
+`@RequiredPermission()` does not provide one: it is metadata read by the `PG-1` CI gate and it
+enforces nothing at runtime. Without a guard, `/v1/admin/*` would have been gated on
+authentication alone — and any member who registered on the customer website could have read the
+tenant register of every gym on the platform. That is not a defensible interim, so the choice was
+between a coarse gate and delaying the console.
+
+**Why this rather than a partial matrix.** Building a quarter of `PermissionsGuard` here under
+another name is the worse option and the tempting one. Two authorisation implementations diverge,
+and the divergence is discovered by whoever the looser one lets through. A deliberately coarse
+gate that names itself as coarse cannot be mistaken for the real thing.
+
+**The direction of the error.** Stricter than the eventual matrix in one direction: nobody outside
+the platform roles gets in at all. Looser within it: a `SUPPORT_AGENT` can currently read the gym
+register, which `§B3.2` may not permit. So the residual risk is between platform staff, not
+between the platform and the public — a materially smaller exposure than the alternative.
+
+**Interest.** Low while the console has two read endpoints. It rises with every route added under
+`/v1/admin`, because each one inherits the coarse gate and the eventual migration to per-cell
+evaluation has to revisit all of them.
+
+**Payoff trigger.** `M-023`. The guard is deleted, not adapted: `PermissionsGuard` replaces it
+outright, and `@RequiredPermission()` stops being metadata and starts being the control.
+
+**Verified.** `platform-role.guard.spec.ts` asserts that a tenant-scoped `GYM_OWNER@t:<uuid>` is
+refused, that an unknown key with a `@platform` suffix is refused, and that an authenticated
+member with no roles receives 403 rather than 404.
 
 ---
 

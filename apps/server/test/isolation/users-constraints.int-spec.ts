@@ -262,6 +262,12 @@ it("status defaults to 'PENDING_VERIFICATION', not ACTIVE", () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 it('every probe rolled back — the seed is intact', () => {
-  const result = psql(`SELECT count(*) FROM users WHERE deleted_at IS NULL AND erased_at IS NULL;`);
+  // Scoped to the seed namespace. Counting the whole table made this fail whenever anything else
+  // had written a user — an interrupted suite, the demo dataset — and the failure pointed here,
+  // at a file whose probes had all rolled back correctly.
+  const result = psql(
+    `SELECT count(*) FROM users
+      WHERE deleted_at IS NULL AND erased_at IS NULL AND email LIKE '%@seed.gymmap.test';`,
+  );
   assert.equal(result.out, '11', 'a probe leaked out of its transaction');
 });

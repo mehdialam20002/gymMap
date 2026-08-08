@@ -237,9 +237,14 @@ test('the error explains WHY, not just that it failed', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 test('all fifteen SCR-ADM screens appear exactly once in the route table', () => {
-  const router = code('src/routes/router.tsx');
-  const declared = [...router.matchAll(/screen: '(SCR-ADM-\d+)'/g)].map((m) => m[1]!);
-  // SCR-ADM-001 is the index route and is built; 002-015 are declared as pending.
+  // The table moved from `router.tsx` to `nav.ts` when the console grew grouped navigation, and
+  // the screens stopped being uniformly unbuilt: four are live now. What must NOT change is the
+  // property this asserts — the table IS the plan, and a screen dropped from it is one nobody
+  // notices is missing until launch. So it counts screen ids wherever they are declared, built
+  // or pending, rather than counting pending ones.
+  const nav = code('src/routes/nav.ts');
+  const declared = [...nav.matchAll(/screen: '(SCR-ADM-\d+)'/g)].map((m) => m[1]!);
+  // SCR-ADM-001 is the index route and carries no id; 002-015 are declared in the nav.
   const expected = Array.from(
     { length: 14 },
     (_, i) => `SCR-ADM-${String(i + 2).padStart(3, '0')}`,
@@ -251,19 +256,53 @@ test('all fifteen SCR-ADM screens appear exactly once in the route table', () =>
     'a screen is missing from or duplicated in the route table. The table IS the plan — a screen ' +
       'dropped here is a screen nobody notices is missing until launch.',
   );
-  assert.match(router, /PlatformDashboardRoute/, 'SCR-ADM-001 has no route');
+  assert.match(code('src/routes/router.tsx'), /PlatformDashboardRoute/, 'SCR-ADM-001 has no route');
 });
 
 test('every pending route names the milestone that delivers it', () => {
-  const router = code('src/routes/router.tsx');
-  const entries = [...router.matchAll(/screen: '(SCR-ADM-\d+)', milestone: '(M-\d+)'/g)];
-  assert.equal(entries.length, 14, 'a pending route has no milestone');
-  for (const [, screen, milestone] of entries) {
+  const nav = code('src/routes/nav.ts');
+
+  // Every IN_DEVELOPMENT entry, with whatever follows it up to the closing brace. Matching the
+  // block rather than a fixed key order means reordering the fields inside an entry does not
+  // silently empty this assertion.
+  const pending = [...nav.matchAll(/state: 'IN_DEVELOPMENT',([^}]*)}/g)].map((m) => m[1]!);
+  assert.ok(pending.length > 0, 'no pending routes found — the scan is wrong, not the nav');
+
+  for (const block of pending) {
+    const screen = /screen: '(SCR-ADM-\d+)'/.exec(block)?.[1];
+    const milestone = /milestone: '(M-\d+)'/.exec(block)?.[1];
+
+    assert.ok(screen, `a pending route declares no screen id: ${block.trim()}`);
     assert.match(
-      milestone!,
+      milestone ?? '',
       /^M-\d{3}$/,
-      `${screen} cites "${milestone}", which is not a milestone id`,
+      `${screen ?? '(unknown)'} cites "${milestone ?? 'nothing'}", which is not a milestone id`,
     );
+  }
+});
+
+test('a BUILT route has a component, and never a milestone', () => {
+  // The other direction, and the one that rots. Marking a screen BUILT is how it leaves the
+  // "in development" list in the sidebar AND on the dashboard — so a route marked built before
+  // its component exists would quietly claim work that has not happened.
+  const nav = code('src/routes/nav.ts');
+  const built = [...nav.matchAll(/state: 'BUILT',([^}]*)}/g)].map((m) => m[1]!);
+
+  for (const block of built) {
+    assert.ok(
+      !block.includes('milestone:'),
+      `a BUILT route still names a milestone: ${block.trim()}`,
+    );
+  }
+
+  const router = code('src/routes/router.tsx');
+  for (const component of [
+    'ApprovalQueueRoute',
+    'GymRegisterRoute',
+    'PeopleRoute',
+    'SessionsRoute',
+  ]) {
+    assert.match(router, new RegExp(component), `${component} is marked BUILT but is not routed`);
   }
 });
 

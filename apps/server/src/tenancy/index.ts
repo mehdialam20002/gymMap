@@ -48,3 +48,11 @@ export {
 } from './domain/tenancy.errors.js';
 
 export { tenantIdFromClaim, type TenantId } from './domain/tenant-id.vo.js';
+
+export {
+  ElevatedTenantReader,
+  type TenantSummary,
+  type TenantStatusCounts,
+  type ElevatedRead,
+} from './application/elevated-tenant-reader.js';
+export { PlatformPrismaService } from './prisma/platform-prisma.service.js';

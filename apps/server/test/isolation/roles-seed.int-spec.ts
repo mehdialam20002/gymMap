@@ -212,7 +212,16 @@ it('AC-8 · all eleven §6.6 principals exist, with their fixed uuids', () => {
     const found = psql(`SELECT status FROM users WHERE id = '${userId(principal.handle)}';`).out;
     assert.equal(found, 'ACTIVE', `${principal.handle} is missing or not ACTIVE`);
   }
-  const total = psql('SELECT count(*) FROM users;').out;
+  // Scoped to the seed's own namespace rather than counting the whole table.
+  //
+  // "Exactly eleven users exist ANYWHERE" is not the property AC-8 is about, and asserting it
+  // makes this suite fail for reasons that have nothing to do with the seed: a leftover row from
+  // an interrupted run, a developer's own account, the demo dataset. Each of those sends whoever
+  // is on call reading a seed assertion to diagnose something else entirely.
+  //
+  // What AC-8 actually claims is that the eleven §6.6 principals are present, correct and not
+  // duplicated. That is what this counts.
+  const total = psql(`SELECT count(*) FROM users WHERE email LIKE '%@seed.gymmap.test';`).out;
   assert.equal(total, String(SEED_USER_COUNTS.users));
 });
 
@@ -258,7 +267,9 @@ it('AC-8 · not one principal has a password hash', () => {
   // M-020 owns Argon2id and its recorded parameters (A-12). A seeded hash would either pre-empt
   // that decision or store something weaker, and both are worse than an account nobody can log
   // into — which is the honest state until M-020 lands.
-  const withHash = psql('SELECT count(*) FROM users WHERE password_hash IS NOT NULL;').out;
+  const withHash = psql(
+    `SELECT count(*) FROM users WHERE password_hash IS NOT NULL AND email LIKE '%@seed.gymmap.test';`,
+  ).out;
   assert.equal(withHash, '0', 'a seeded principal has a password hash');
 });
 

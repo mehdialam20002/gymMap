@@ -21,6 +21,66 @@ export const en = {
   'adm.chrome.nav.moderation': 'Moderation',
   'adm.chrome.nav.audit': 'Audit',
   'adm.chrome.signOut': 'Sign out',
+  'adm.chrome.group.gyms': 'Gym management',
+  'adm.chrome.group.people': 'People',
+  'adm.chrome.group.commerce': 'Commerce',
+  'adm.chrome.group.operations': 'Operations',
+  'adm.chrome.nav.allGyms': 'All gyms',
+  'adm.chrome.nav.approvalDetail': 'Application detail',
+  'adm.chrome.nav.disputes': 'Disputes',
+  'adm.chrome.nav.branches': 'Branches',
+  'adm.chrome.nav.categories': 'Categories & amenities',
+  'adm.chrome.nav.people': 'Accounts',
+  'adm.chrome.nav.roles': 'Roles & permissions',
+  'adm.chrome.nav.orders': 'Orders',
+  'adm.chrome.nav.settlements': 'Settlements',
+  'adm.chrome.nav.refunds': 'Refunds',
+  'adm.chrome.nav.reconciliation': 'Reconciliation',
+  'adm.chrome.nav.support': 'Support',
+  'adm.chrome.nav.analytics': 'Analytics',
+  // Shown ON the link, not only after clicking it. A nav item that looks identical to a working
+  // one and lands on an empty panel teaches an operator that the console is unreliable.
+  'adm.chrome.inDevelopment': 'In development',
+  'adm.chrome.collapse': 'Collapse',
+  'adm.chrome.expand': 'Expand',
+
+  // --- SCR-ADM-002, the approval queue --------------------------------------
+  'adm.queue.title': 'Approval queue',
+  'adm.queue.subtitle':
+    'Nothing is listed to the public before a person approves it. These applications are waiting on one.',
+  'adm.queue.empty': 'Nothing is waiting for review.',
+  'adm.queue.waiting': 'waiting',
+  'adm.queue.days': 'days',
+  'adm.queue.day': 'day',
+  'adm.queue.reviewNote':
+    'Opening an application, and approving or rejecting it, arrives with M-036. This list is live: it reads the real tenant status column, which carries the whole approval state machine.',
+
+  // --- SCR-ADM-004, the gym register ----------------------------------------
+  'adm.gyms.title': 'All gyms',
+  'adm.gyms.subtitle': 'Every gym business on the platform, newest first.',
+  'adm.gyms.filterAll': 'All',
+  'adm.gyms.col.gym': 'Gym',
+  'adm.gyms.col.location': 'Location',
+  'adm.gyms.col.status': 'Status',
+  'adm.gyms.col.subscription': 'Subscription',
+  'adm.gyms.col.commission': 'Commission',
+  'adm.gyms.col.gstin': 'GSTIN',
+  'adm.gyms.notRegistered': 'Not registered',
+  'adm.gyms.empty': 'No gyms match this filter.',
+  'adm.gyms.loadFailed': 'Could not load the gym register.',
+
+  // --- accounts -------------------------------------------------------------
+  'adm.people.title': 'Accounts',
+  'adm.people.subtitle': 'Role grants across the platform. A person can hold more than one.',
+  'adm.people.role': 'Role',
+  'adm.people.grants': 'Grants',
+
+  // --- the in-development panel ---------------------------------------------
+  'adm.pending.title': 'This screen is in development',
+  'adm.pending.body':
+    'The navigation shows it so the remaining work is visible in one place rather than hidden. It is not an error and nothing is broken.',
+  'adm.pending.screen': 'Screen',
+  'adm.pending.milestone': 'Arrives in',
 
   // --- FR-AUTH-04, the sign-in form -----------------------------------------
   'adm.signIn.identifier': 'Email or phone',
@@ -45,24 +105,29 @@ export const en = {
   'adm.sessions.loadFailed': 'Could not load your devices. Try again in a moment.',
   'adm.sessions.revokeFailed': 'That device could not be revoked. It may already be signed out.',
 
-  // --- SCR-ADM-001, the dashboard tiles -------------------------------------
-  'adm.dashboard.tile.api': 'API',
-  'adm.dashboard.tile.dependencies': 'Dependencies',
-  'adm.dashboard.tile.yourDevices': 'Your devices',
-  'adm.dashboard.tile.yourDevicesDetail': 'Signed-in sessions on your own account',
-  'adm.dashboard.tile.approvals': 'Gyms awaiting approval',
-  'adm.dashboard.tile.gyms': 'Listed gyms',
-  'adm.dashboard.tile.settlements': 'Settlements due',
-  'adm.dashboard.tile.moderation': 'Reports to review',
+  // --- SCR-ADM-001, the dashboard -------------------------------------------
+  'adm.dashboard.tile.awaiting': 'Awaiting review',
+  'adm.dashboard.tile.listed': 'Listed gyms',
+  'adm.dashboard.tile.accounts': 'Accounts',
+  'adm.dashboard.tile.sessions': 'Active sessions',
+  'adm.dashboard.pipeline.title': 'Application pipeline',
+  'adm.dashboard.pipeline.body':
+    'Every gym on the platform by approval state. Nothing is listed to the public before a person approves it.',
+  'adm.dashboard.health.title': 'Platform health',
+  'adm.dashboard.health.up': 'up',
+  'adm.dashboard.health.down': 'down',
+  // Says what is NOT checked. A green dot for a dependency with no probe behind it is worse
+  // than no dot: it is a reassurance nobody is verifying.
+  'adm.dashboard.health.note':
+    'Only dependencies with a registered probe appear here. Object storage and the job queue have none yet, so they are absent rather than shown as healthy.',
   'adm.dashboard.api.ready': 'Ready',
   'adm.dashboard.api.notReady': 'Not ready',
   'adm.dashboard.lastUpdated': 'Updated',
   'adm.dashboard.refreshing': 'Refreshing…',
-  'adm.dashboard.awaiting.title': 'Not built yet',
-  // Says why there is no number rather than showing a zero. A zero meaning "not built" and a zero
-  // meaning "nothing to do today" look identical, and only one of them needs an operator.
+  'adm.dashboard.refresh': 'Refresh',
+  'adm.dashboard.awaiting.title': 'In development',
   'adm.dashboard.awaiting.body':
-    'These tiles have no endpoint behind them yet, so they show no figure. A zero here would be indistinguishable from a real zero.',
+    'These screens have no endpoint behind them yet, so they show no figure. A zero here would be indistinguishable from a real zero.',
   'adm.dashboard.awaiting.milestone': 'Arrives in',
 
   // --- NFR-SEC-11, the gate -------------------------------------------------
