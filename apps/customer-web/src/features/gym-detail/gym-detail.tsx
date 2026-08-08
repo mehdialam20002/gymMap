@@ -282,7 +282,7 @@ function AtAGlance({ gym }: { readonly gym: Gym }) {
           <dd className="mt-stack-2xs text-base font-semibold text-content">
             {fact.value}
             {fact.hint === undefined ? null : (
-              <span className="ml-inline-xs text-sm font-normal text-content-secondary">
+              <span className="ml-inline-xs text-sm font-regular text-content-secondary">
                 {fact.hint}
               </span>
             )}

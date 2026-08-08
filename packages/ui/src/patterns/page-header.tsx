@@ -110,8 +110,21 @@ export function MetricCard({
       //
       // Still `dark:shadow-none`: in dark mode elevation is LIGHTNESS, and a shadow on a dark
       // surface is a smudge rather than a lift.
+      // ┌─ `dark:bg-surface-raised`, OR THE CARD DISAPPEARS IN THE DEFAULT THEME ──────────────┐
+      // │ The console DEFAULTS to dark, so this is the every-operator case. `dark:shadow-none` is │
+      // │ right — a shadow on a dark surface is a smudge, and §9.4 suppresses it — but it removes │
+      // │ the only elevation cue and nothing was replacing it. A `bg-surface` card on a           │
+      // │ `bg-surface-sunken` canvas is a 1.14:1 fill step behind a hairline the design system    │
+      // │ itself measures at 1.72:1 and labels decorative, so every panel read as flat ink and a  │
+      // │ two-column grid merged into one field of text.                                          │
+      // │                                                                                      │
+      // │ §9.3: "in dark, elevation is LIGHTNESS, not shadow." So the card takes the lighter      │
+      // │ surface in dark and the shadow in light, which is the same instruction read twice.       │
+      // └──────────────────────────────────────────────────────────────────────────────────────┘
       className={`rounded-card border p-inset-lg shadow-sm dark:shadow-none ${
-        emphasis ? 'border-brand bg-surface-brand-subtle' : 'border-subtle bg-surface'
+        emphasis
+          ? 'border-brand bg-surface-brand-subtle'
+          : 'border-subtle bg-surface dark:bg-surface-raised'
       }`}
     >
       <div className="flex items-start justify-between gap-inline-sm">
@@ -126,13 +139,23 @@ export function MetricCard({
       </div>
 
       {/* ┌─ THE FIGURE IS THE CARD ────────────────────────────────────────────────────────────┐
-          │ `text-3xl font-extrabold`, up from `text-2xl font-semibold`. A KPI card exists so a  │
+          │ `text-3xl font-bold`, up from `text-2xl font-semibold`. A KPI card exists so a       │
           │ number can be read from across a desk without focusing on it, and at `text-2xl`      │
           │ semibold the label and the figure carried almost the same weight — which made a grid │
           │ of four cards read as four paragraphs.                                               │
           └────────────────────────────────────────────────────────────────────────────────────┘ */}
-      <p className="mt-stack-sm text-3xl font-extrabold tabular-nums tracking-tight text-content">
-        {value ?? <span className="text-sm font-normal text-content-muted">{loadingLabel}</span>}
+      <p className="mt-stack-sm text-3xl font-bold tabular-nums tracking-tight text-content">
+        {/* ┌─ `font-regular`, NOT `font-normal` ────────────────────────────────────────────────┐
+            │ The preset REPLACES `theme.fontWeight` with regular|medium|semibold|bold|heavy, so │
+            │ `font-normal` emitted NOTHING and this span inherited `font-semibold` from the      │
+            │ paragraph around it. Every metric tile's loading word rendered at the same weight  │
+            │ as the figure it stands in for — which is precisely the "placeholder               │
+            │ indistinguishable from data" failure the note above says this exists to prevent.   │
+            │                                                                                  │
+            │ `font-extrabold` on the figure had the same problem and is now `font-bold`. The    │
+            │ Tailwind token gate was extended to fail on either.                                │
+            └──────────────────────────────────────────────────────────────────────────────────┘ */}
+        {value ?? <span className="text-sm font-regular text-content-muted">{loadingLabel}</span>}
       </p>
 
       {chart !== undefined && <div className="mt-stack-2xs">{chart}</div>}

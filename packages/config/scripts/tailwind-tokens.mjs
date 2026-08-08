@@ -1,5 +1,5 @@
 /**
- * CI gate `tailwind-tokens` — every spacing utility resolves to a token that exists.
+ * CI gate `tailwind-tokens` — every spacing and font-weight utility resolves to a real token.
  *
  * ┌─ THE FAILURE THIS CATCHES IS SILENT IN EVERY OTHER TOOL ────────────────────────────────────┐
  * │ Tailwind does not error on an unknown class. `px-inset-3xs` compiles to nothing at all, and │
@@ -127,6 +127,40 @@ export function spacingScale(repoRoot = process.cwd()) {
   return keys;
 }
 
+/**
+ * Reads the `fontWeight` keys straight out of the preset.
+ *
+ * +- WHY WEIGHTS NEEDED THE SAME GATE AS SPACING ----------------------------------------------+
+ * | The preset REPLACES `theme.fontWeight` the way it replaces `theme.spacing`, so Tailwind's    |
+ * | familiar names are gone: there is no `font-normal`, no `font-extrabold`, no `font-light`.     |
+ * | The scale is regular | medium | semibold | bold | heavy.                                     |
+ * |                                                                                          |
+ * | Six of them were live in three apps before this check existed, and the failure is nastier    |
+ * | than a missing margin: a dead weight class emits nothing, so the element INHERITS whatever    |
+ * | weight its parent has. `font-normal` on a span inside a `font-semibold` paragraph renders     |
+ * | BOLD. On `MetricCard` that meant every loading placeholder rendered at the same weight as     |
+ * | the figure it stood in for — which is the exact "placeholder indistinguishable from data"     |
+ * | failure that component's own docblock says it exists to prevent.                              |
+ * |                                                                                          |
+ * | Missing spacing collapses and is eventually noticed. An inherited weight looks deliberate.    |
+ * +-------------------------------------------------------------------------------------------+
+ */
+export function fontWeightScale(repoRoot = process.cwd()) {
+  const preset = resolve(repoRoot, 'packages/ui/tailwind-preset.ts');
+  const source = readFileSync(preset, 'utf8');
+  const block = /fontWeight: \{([\s\S]*?)\n    \},/.exec(source);
+  if (block === null) {
+    throw new Error(
+      'could not find `fontWeight: { … }` in the preset. This gate reads the scale from its ' +
+        'definition on purpose — update the pattern here in the same change that reshapes it.',
+    );
+  }
+
+  const keys = new Set();
+  for (const match of block[1].matchAll(/^\s*([a-zA-Z]+):/gm)) keys.add(match[1]);
+  return keys;
+}
+
 /** Strips block and line comments so the gate never fires on prose that discusses a class. */
 function withoutComments(text) {
   return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -194,7 +228,25 @@ function sourceFiles(dir, out = []) {
 
 export function checkTailwindTokens(repoRoot = process.cwd()) {
   const scale = spacingScale(repoRoot);
+  const weights = fontWeightScale(repoRoot);
   const problems = [];
+
+    /**
+   * `font-semibold`, with any responsive or state prefix. Built FRESH per region.
+   *
+   * +- NOT SUPERSTITION - THE HOISTED VERSION SILENTLY MATCHED NOTHING -------------------------+
+   * | The first version hoisted one /g literal out of the loop, the way the spacing pattern is   |
+   * | hoisted, and the gate reported OK on a file that visibly contained `font-extrabold`.        |
+   * | Instrumenting it showed the region arriving correctly and matchAll yielding zero results,  |
+   * | which is shared lastIndex state on a reused global regex.                                   |
+   * |                                                                                          |
+   * | A gate that silently finds nothing is worse than no gate, because it is trusted. This one  |
+   * | pays one regex construction per region to have no shared state, and the check below was     |
+   * | then proved to bite by temporarily introducing `font-extrabold` and watching it fail.       |
+   * +-------------------------------------------------------------------------------------------+
+   */
+  const weightPatternFor = () =>
+    /\b(?:(?:sm|md|lg|xl|2xl|hover|focus|active|disabled|dark|group-hover):)*font-([a-z]+)\b/g;
 
   const pattern = new RegExp(
     String.raw`\b(?:(?:sm|md|lg|xl|2xl|hover|focus|active|disabled|dark|group-hover):)*(` +
@@ -248,6 +300,20 @@ export function checkTailwindTokens(repoRoot = process.cwd()) {
             message: explain(utility, value),
           });
         }
+
+        for (const [, weight] of region.matchAll(weightPatternFor())) {
+          // `font-mono`, `font-sans` and `font-serif` are FAMILIES and share the prefix.
+          if (weight === 'mono' || weight === 'sans' || weight === 'serif') continue;
+          if (weights.has(weight)) continue;
+          problems.push({
+            file: relative(repoRoot, file).split('\\').join('/'),
+            class: `font-${weight}`,
+            message:
+              `\`font-${weight}\` is not in the font-weight scale, so Tailwind emits NOTHING and ` +
+              "the element INHERITS its parent's weight — which usually looks deliberate rather " +
+              `than broken. Available: ${[...weights].join(', ')}.`,
+          });
+        }
       }
     }
   }
@@ -263,7 +329,7 @@ if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.a
   const problems = checkTailwindTokens();
 
   if (problems.length === 0) {
-    process.stdout.write('tailwind-tokens: OK — every spacing utility resolves.\n');
+    process.stdout.write('tailwind-tokens: OK — every spacing and font-weight utility resolves.\n');
   } else {
     process.stdout.write(`tailwind-tokens: ${problems.length} dead utility class(es)\n`);
     for (const problem of problems) {

@@ -65,20 +65,20 @@ export function SessionsRoute() {
       <PageHeader title={t('adm.sessions.title')} subtitle={t('adm.sessions.subtitle')} />
 
       {sessions.isPending && (
-        <p className="mt-stack-lg text-base text-content-muted">{t('adm.state.loading')}</p>
+        <p className="mt-stack-md text-base text-content-muted">{t('adm.state.loading')}</p>
       )}
 
       {sessions.isError && (
         <p
           role="alert"
-          className="mt-stack-lg rounded-control border border-danger bg-surface-danger-subtle px-inset-sm py-inset-xs text-base text-content-danger"
+          className="mt-stack-md rounded-control border border-danger bg-surface-danger-subtle px-inset-sm py-inset-xs text-base text-content-danger"
         >
           {t('adm.sessions.loadFailed')}
         </p>
       )}
 
       {sessions.data !== undefined && (
-        <ul className="mt-stack-lg flex flex-col gap-stack-sm">
+        <ul className="mt-stack-md flex flex-col gap-stack-sm">
           {sessions.data.sessions.map((row) => (
             <SessionCard
               key={row.id}

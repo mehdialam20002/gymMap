@@ -85,7 +85,7 @@ export function CompareTable({ gyms }: { readonly gyms: readonly GymDetail[] }) 
                       {gym.name}
                     </span>
                   </Link>
-                  <span className="mt-stack-2xs block text-sm font-normal text-content-secondary">
+                  <span className="mt-stack-2xs block text-sm font-regular text-content-secondary">
                     {gym.locality}, {gym.city}
                   </span>
                   <Link

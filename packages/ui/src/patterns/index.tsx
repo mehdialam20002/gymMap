@@ -52,7 +52,7 @@ export function Panel({
 }) {
   return (
     <section
-      className={`rounded-card border border-subtle bg-surface shadow-sm dark:shadow-none p-inset-md shadow-xs dark:shadow-none ${className}`}
+      className={`rounded-card border border-subtle bg-surface shadow-sm dark:bg-surface-raised dark:shadow-none p-inset-md shadow-xs dark:shadow-none ${className}`}
     >
       {(title !== undefined || action !== undefined) && (
         <div className="flex flex-wrap items-center justify-between gap-inline-sm">

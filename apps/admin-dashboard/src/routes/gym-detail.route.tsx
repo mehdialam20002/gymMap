@@ -94,7 +94,11 @@ export function GymDetailRoute() {
               <header className="mt-stack-sm flex flex-wrap items-start justify-between gap-inline-md">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-inline-sm">
-                    <h1 className="text-xl font-semibold text-content">
+                    {/* `text-2xl`, matching `PageHeader` and every other page title. At
+                        `text-xl` clicking a gym name in the register dropped the title a step and
+                        lost its tracking in the same instant, so a list and its own record read as
+                        two different levels of the application. */}
+                    <h1 className="text-2xl font-semibold tracking-tight text-content">
                       {gym.trading_name ?? gym.legal_name}
                     </h1>
                     <Badge tone={statusTone(gym.status)}>{GYM_STATUS_LABEL[gym.status]}</Badge>

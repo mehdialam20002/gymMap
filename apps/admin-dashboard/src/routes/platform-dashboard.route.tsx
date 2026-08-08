@@ -261,7 +261,7 @@ export function PlatformDashboardRoute() {
                       />
                     </div>
                     <dd className="text-right text-sm font-semibold tabular-nums text-content">
-                      {value ?? <span className="text-xs font-normal text-content-muted">-</span>}
+                      {value ?? <span className="text-xs font-regular text-content-muted">-</span>}
                     </dd>
                   </div>
                 );
@@ -342,7 +342,10 @@ export function PlatformDashboardRoute() {
         </div>
 
         {/* ══ The rail ═══════════════════════════════════════════════════════════════════ */}
-        <aside className="flex min-w-0 flex-col gap-inline-sm">
+        {/* `gap-stack-md`, not `gap-inline-sm`: the axis is `flex-col`, so an INLINE token was
+          governing a vertical gap — and at 8px three bordered cards scanned as one segmented
+          block while the column beside them separated its panels by 12px. */}
+        <aside className="flex min-w-0 flex-col gap-stack-md">
           <Panel title={t('adm.rail.quickActions')}>
             <ul className="flex flex-col gap-stack-2xs">
               {(

@@ -139,6 +139,7 @@ function Review({ gym }: { readonly gym: GymRow }) {
       </header>
 
       {/* ══ Pre-checks — §6.3.4. PC1 puts this above the split, full width. ════════════ */}
+      <div className="mt-stack-md" />
       <AbsentRegion
         titleKey="adm.review.prechecks"
         bodyKey="adm.review.prechecksBody"
@@ -147,8 +148,8 @@ function Review({ gym }: { readonly gym: GymRow }) {
       />
 
       {/* ══ The split. §6.3.2: documents left, checklist right. ════════════════════════ */}
-      <div className="mt-stack-sm grid gap-inline-sm xl:grid-cols-2">
-        <div className="flex min-w-0 flex-col gap-inline-sm">
+      <div className="mt-stack-md grid gap-inline-md xl:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-stack-md">
           <AbsentRegion
             titleKey="adm.review.documents"
             bodyKey="adm.review.documentsBody"
@@ -194,7 +195,7 @@ function Review({ gym }: { readonly gym: GymRow }) {
           </Panel>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-inline-sm">
+        <div className="flex min-w-0 flex-col gap-stack-md">
           <AbsentRegion
             titleKey="adm.review.checklist"
             bodyKey="adm.review.checklistBody"
@@ -283,7 +284,10 @@ function AbsentRegion({
   return (
     <section
       aria-label={t(titleKey)}
-      className={`mt-stack-sm rounded-card border border-dashed p-inset-md ${
+      // No `mt-*`. `SP2`: gaps use `gap`, not margins — and flex gaps do NOT collapse with
+      // margins, so this margin was ADDING to the column's gap and producing 20px between the
+      // first two boxes and 8px between the next two, in one 400px column.
+      className={`rounded-card border border-dashed p-inset-md ${
         emphasis ? 'border-warning bg-surface-warning-subtle' : 'border-subtle bg-surface-sunken'
       }`}
     >

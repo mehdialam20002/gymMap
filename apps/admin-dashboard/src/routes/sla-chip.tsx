@@ -7,6 +7,14 @@
  * | which for a red-green colour-blind operator triaging sixty applications a day is one signal. |
  * +---------------------------------------------------------------------------------------------+
  *
+ * +- `font-medium`, THE SAME WEIGHT AS EVERY OTHER CHIP ---------------------------------------+
+ * | It was `font-semibold`. On the queue this chip is column 1 and the status `Badge` is column 6 |
+ * | of the same row at `font-medium` - so two chips of identical size sat in one row at different |
+ * | weights, and the hours figure read as more important than the status word. Weight then        |
+ * | becomes an accidental second severity channel on the one screen an officer scans across sixty |
+ * | rows a day. `DesignSystem.md` 5.2 gives chips one weight for exactly this reason.             |
+ * +-------------------------------------------------------------------------------------------+
+ *
  * +- NOTHING HERE IS COMPUTED. THAT IS THE WHOLE DESIGN ----------------------------------------+
  * | No threshold, no target, no subtraction. `UI-ADM-4` forbids the console hard-coding the SLA  |
  * | target, and 5.1.1 forbids it deriving the state - a browser in IST computing hours from a    |
@@ -81,7 +89,7 @@ export function SlaChip({ gym }: { readonly gym: GymRow }) {
       }
     >
       <span
-        className={`inline-flex items-center gap-inline-2xs whitespace-nowrap rounded-control px-inset-2xs py-[0.0625rem] text-xs font-semibold tabular-nums ${CHIP[look.tone]}`}
+        className={`inline-flex items-center gap-inline-2xs whitespace-nowrap rounded-control px-inset-2xs py-[0.0625rem] text-xs font-medium tabular-nums ${CHIP[look.tone]}`}
       >
         {look.glyph !== '' && <span aria-hidden="true">{look.glyph}</span>}
         {/* The WORD is in the accessible name, so the state never depends on the glyph or the
