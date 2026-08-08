@@ -29,9 +29,8 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { PERMISSION_KEYS, permissionsFor } from '../permissions.js';
+import { CAPABILITY_MATRIX, PERMISSION_KEYS, ROLE_DEFINITIONS, permissionsFor } from '../permissions.js';
 import type { PlatformRole } from '../types/iam.types.js';
-import { ROLE_DEFINITIONS } from '../permissions.js';
 
 /**
  * The scope a role was granted in, parsed from the token's `roles` claim.
@@ -209,6 +208,135 @@ export function effectivePermissions(
       scopes.push(grant.scope);
       out.set(permission, scopes);
     }
+  }
+
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The inspector — `FR-RBAC-05`, `AC-STAF-08.1`, `AC-STAF-08.3`, `Security.md` RB5
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * One reason a principal holds one permission.
+ *
+ * ┌─ WHY `effectivePermissions()` ABOVE IS NOT ENOUGH ──────────────────────────────────────────┐
+ * │ That function answers "which permissions, and from which scopes". `AC-STAF-08.1` asks for    │
+ * │ *"the resolved permission set with the role and scope that grants each one"*, and it drops    │
+ * │ the ROLE on the floor — three roles granting the same key are indistinguishable in its output.│
+ * │ For deciding which menu item to render that is fine. For a support agent asking WHY somebody  │
+ * │ can do something, the role is the whole answer.                                               │
+ * │                                                                                              │
+ * │ It also drops the `§B3.2` qualifier, and that one is a correctness gap rather than a missing  │
+ * │ label: `permissionsFor()` cannot recover it, because ● FULL and ▪ OWN yield IDENTICAL keys by │
+ * │ design — the difference between them is the row filter the use case applies, not the          │
+ * │ capability declared. An inspector that showed a `▪` grant as full access would be reporting   │
+ * │ authority the holder does not have, on the one screen built to answer that question.          │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export interface PermissionGrantReason {
+  /** The role that carries it. The answer to "why can they do this?". */
+  readonly role: PlatformRole;
+  /** The scope that role was granted in. */
+  readonly scope: GrantScope;
+  /**
+   * The `§B3.2` cell, verbatim from the matrix — `FULL` (●), `OWN` (▪) or `READ` (○).
+   *
+   * `NONE` cannot appear: a role with `NONE` contributes no key, so it is never a reason.
+   */
+  readonly qualifier: 'FULL' | 'OWN' | 'READ';
+  /** The row label from `§B3.2`, so the screen can name the capability a human recognises. */
+  readonly capability: string;
+}
+
+/**
+ * The answer for ONE permission — held, or explicitly not.
+ *
+ * `AC-STAF-08.3`: a permission the user does not hold *"says so explicitly rather than returning an
+ * empty list"*. So the not-held case is a VALUE, and it distinguishes the two ways it happens:
+ *
+ *   `NOT_GRANTED`       — a real capability nobody has granted them. The expected answer.
+ *   `UNKNOWN_PERMISSION` — no such key in the matrix. A configuration gap, and NOT about this user
+ *                          at all: answering "they do not hold it" would send a support agent to
+ *                          fix a grant when the thing to fix is a missing `§B3.2` row.
+ */
+export type PermissionInspection =
+  | { readonly held: true; readonly permission: string; readonly reasons: readonly PermissionGrantReason[] }
+  | { readonly held: false; readonly permission: string; readonly reason: 'NOT_GRANTED' | 'UNKNOWN_PERMISSION' };
+
+/**
+ * Why a principal holds a permission — every reason, not the first one found.
+ *
+ * Plural because the honest answer often is. A gym owner who is also a receptionist at one branch
+ * holds `attendance.checkin.write` twice for different reasons, and revoking one leaves the other:
+ * an inspector that reported a single reason would make a support agent remove the wrong grant and
+ * conclude the screen was lying when access survived.
+ *
+ * Reasons are sorted by role so two calls with the same grants in a different order agree — the
+ * output is a diffable answer to a support question, not a stream.
+ */
+export function inspectPermission(
+  grants: readonly RoleGrant[],
+  permission: string,
+): PermissionInspection {
+  if (!KNOWN_PERMISSIONS.has(permission)) {
+    return { held: false, permission, reason: 'UNKNOWN_PERMISSION' };
+  }
+
+  const reasons: PermissionGrantReason[] = [];
+
+  for (const grant of grants) {
+    if (!permissionsFor(grant.role).includes(permission)) continue;
+
+    // RB5: the SAME compiled matrix the guard reads, so the inspector cannot disagree with it.
+    for (const entry of CAPABILITY_MATRIX) {
+      if (entry.readKey !== permission && entry.writeKey !== permission) continue;
+
+      const qualifier = entry.grants[grant.role];
+      // `NONE` here would mean the matrix and `permissionsFor()` disagree about the same cell.
+      // Skipped rather than reported, because emitting a `NONE` reason would state that the
+      // principal holds the permission *because* they are denied it.
+      if (qualifier === 'NONE') continue;
+
+      reasons.push({
+        role: grant.role,
+        scope: grant.scope,
+        qualifier,
+        capability: entry.capability,
+      });
+    }
+  }
+
+  if (reasons.length === 0) return { held: false, permission, reason: 'NOT_GRANTED' };
+
+  return {
+    held: true,
+    permission,
+    reasons: [...reasons].sort(
+      (a, b) => a.role.localeCompare(b.role) || a.capability.localeCompare(b.capability),
+    ),
+  };
+}
+
+/**
+ * The whole annotated set — every permission held, each with every reason it is held.
+ *
+ * Built on `inspectPermission` rather than beside it, so the two cannot drift into disagreeing
+ * about the same grant. The inspector screen needs both: this to list, that to answer a search.
+ *
+ * Deliberately NOT cached. `FR-RBAC-04`'s cache is a 60-second-stale, session-claim-shaped guard
+ * optimisation, and `AC-STAF-08.2` requires this path to be read-only — a cache read is harmless
+ * but a cache WRITE from an inspection would let looking at somebody's permissions change what the
+ * guard subsequently believes about them. Support tooling must not have that power.
+ */
+export function annotatedEffectivePermissions(
+  grants: readonly RoleGrant[],
+): ReadonlyMap<string, readonly PermissionGrantReason[]> {
+  const out = new Map<string, readonly PermissionGrantReason[]>();
+
+  for (const permission of PERMISSION_KEYS) {
+    const inspection = inspectPermission(grants, permission);
+    if (inspection.held) out.set(permission, inspection.reasons);
   }
 
   return out;
