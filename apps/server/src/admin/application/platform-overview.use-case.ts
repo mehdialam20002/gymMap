@@ -52,9 +52,18 @@ export class PlatformOverviewUseCase {
     // renders as its last-updated indicator, and a test that asserts the indicator needs to be
     // able to fix the time it reports.
     @Inject(CLOCK) private readonly clock: Clock,
-    // §8.9 — never `process.env` at a call site. The SLA target is configuration because
-    // `AdminDashboard.md` UI-ADM-4 forbids the console hard-coding it.
-    @Inject(APP_CONFIG) private readonly config: AppConfig,
+    // ┌─ THE NARROWEST SLICE OF THE CONFIG THIS USE CASE ACTUALLY READS ──────────────────────┐
+    // │ §8.9 forbids `process.env` at a call site, so the config arrives by injection. The TYPE  │
+    // │ is a one-key `Pick` rather than the whole `AppConfig` for two reasons: it says on the    │
+    // │ constructor exactly which parameter this behaviour depends on, and it lets a test        │
+    // │ construct the dependency honestly instead of casting a stub of one field to a type of    │
+    // │ fifty-nine. Nest injects the whole object either way.                                    │
+    // │                                                                                        │
+    // │ Interface segregation, and it was found the useful way: the SLA test could not compile   │
+    // │ against the wide type without a lie.                                                     │
+    // └────────────────────────────────────────────────────────────────────────────────────────┘
+    @Inject(APP_CONFIG)
+    private readonly config: Pick<AppConfig, 'VERIFICATION_SLA_TARGET_HOURS'>,
   ) {}
 
   async overview(context: ReadContext): Promise<PlatformOverview> {

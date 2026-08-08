@@ -161,8 +161,20 @@ export class SessionController {
       sessions: sessions.map((session) => ({
         id: session.id,
         device_label: session.deviceLabel,
-        // The member's OWN address, on their own screen. Masking it would remove the signal
-        // this page exists to give — "signed in from a city I have never visited".
+        // ┌─ THE MEMBER'S OWN ADDRESS, ON THEIR OWN SCREEN. `FR-AUTH-09`, NOT `SCR-ADM-005` ──┐
+        // │ Masking it here would remove the one signal this page exists to give — "signed in   │
+        // │ from a city I have never visited".                                                   │
+        // │                                                                                    │
+        // │ `AdminDashboard.md` UA1 says the opposite for the ADMIN view of somebody else's      │
+        // │ sessions: there it must render `user_agent_family` and `ip_country` and NEVER a raw  │
+        // │ IP or user-agent, because those live on the audit row which is separately            │
+        // │ access-controlled (`NFR-PRV-03`). The two rules do not conflict — they are two        │
+        // │ different readers, and the difference is who is entitled to the precision.            │
+        // │                                                                                    │
+        // │ So `SCR-ADM-005` must NOT reuse this projection. It needs its own, coarser one, and  │
+        // │ this comment is here because reusing an existing mapping is exactly how a raw IP      │
+        // │ reaches a support agent's screen.                                                     │
+        // └────────────────────────────────────────────────────────────────────────────────────┘
         ip: session.ip,
         started_at: session.createdAt.toISOString(),
         current: session.familyId === principal.fam,
