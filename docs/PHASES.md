@@ -517,7 +517,23 @@ Ticked the moment a milestone lands green and committed (Cross-Phase Rule 4).
 | M-020 | Argon2id credentials, password policy, lockout, the four `/v1/auth/*` routes | ✅ `DONE` | — | **21 endpoint tests over real HTTP** incl. the enumeration assertion measured against real Argon2id · 18 hasher · 19 policy · 18 Redis · found **6 real defects, 5 pre-existing** · raised `BLK-09` |
 | M-021 | Phone OTP — the `FR-AUTH-05` limits, two independent ceilings | ✅ `DONE` | — | **18 endpoint over real HTTP** + 18 Redis + 19 policy · every limit asserted from both sides · "no SMS is sent" asserted by COUNTING deliveries · found 1 real off-by-one |
 | M-022 | `auth_sessions`, `refresh_tokens`, JWT issue and rotation with reuse detection | ✅ `DONE` | — | **11 revocation over real HTTP** (AC-6, AC-10) · **6 reuse/family** (E1.2) · **5 parallel-tab under genuine concurrency** (TR-28, up to 5-way) · **15 grant** incl. a write-once trigger the column GRANT could not express · 12 rotation-policy unit · 9 contract · found **3 real defects** |
+| — | **Client demo surfaces** (off roadmap order, at the owner's request) | ✅ `DONE` | — | Admin console signed in against the live API · website search + gym page over a **fixture** catalogue · 27 web + 24 admin unit · found the `/readyz` probe gap and a soft-404 · runbook at `docs/setup/DEMO.md` |
 | M-023…M-120 | Per `/docs/roadmap/` | ⬜ `TODO` | — | — |
+
+**The demo surfaces were built off roadmap order, and two defects fell out of doing it.**
+
+The owner needed something to show clients. Both surfaces are honest about what is behind them —
+the admin console's unbuilt tiles carry a milestone name and **no figure**, and every page of the
+website's fixture catalogue carries a banner saying the gyms are invented. A zero meaning "not
+built" and a zero meaning "nothing to approve today" look identical, and only one needs an operator.
+
+| Defect | Why it mattered | Fix |
+| :--- | :--- | :--- |
+| `ReadinessService.register()` was called by nobody, so `/readyz` always answered `not_ready` with an empty dependency map | Reporting not-ready until an infrastructure module wires in is CORRECT — which made this worse, not better: the pod would never become ready, never receive traffic, and stall a deployment around a process that was working perfectly. It had been latent since M-010 | Postgres and Redis register their own probes, next to the connections they probe |
+| `app/loading.tsx` turned every website route into a streamed response | A stream commits its HTTP status with the first flushed byte, so `notFound()` on the gym route rendered the not-found page under a **200**. Invisible in a browser, and a soft-404 is exactly what `FR-SRCH-13` cannot afford — a crawler reading 200 keeps the dead URL indexed | The skeleton moved to `app/search/`, which never 404s. `soft-404.spec.ts` asserts no route calling `notFound()` has a `loading.tsx` above it |
+
+The second one is worth remembering as a shape: it is committed by **adding a file**, in a
+directory away from the route it breaks, and no reviewer looking at the diff would flag it.
 
 **M-022's trap is the FALSE POSITIVE, and the roadmap says so before the code exists.**
 
