@@ -17,7 +17,8 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Badge,
@@ -42,6 +43,7 @@ import {
 } from '../shared/api/admin.ts';
 import { toProblem } from '../shared/api/client.ts';
 import { GYM_STATUS_LABEL, statusTone } from './status-pill.tsx';
+import { AgeCell, SlaChip } from './sla-chip.tsx';
 
 const PAGE_SIZE = 10;
 
@@ -56,6 +58,7 @@ const TABS: ReadonlyArray<{ id: string; statuses: readonly GymStatus[] }> = [
 ];
 
 export function ApprovalQueueRoute() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState('all');
   const [page, setPage] = useState(1);
 
@@ -67,10 +70,41 @@ export function ApprovalQueueRoute() {
 
   const rows = useMemo(() => {
     const admitted = TABS.find((entry) => entry.id === tab)?.statuses ?? AWAITING_STATUSES;
-    return (query.data?.gyms ?? [])
-      .filter((gym) => admitted.includes(gym.status))
-      .sort((a, b) => b.waiting_days - a.waiting_days);
+    return (
+      (query.data?.gyms ?? [])
+        .filter((gym) => admitted.includes(gym.status))
+        // `submitted_at:asc` is 6.2's default and "oldest first is the queue's whole point": a
+        // queue sorted newest-first starves its own tail, because the application waiting nineteen
+        // days sinks further every time somebody else applies and nobody ever decides to ignore it.
+        //
+        // Sorted on `age_hours` rather than `waiting_days` so two applications that arrived on the
+        // same day still order correctly — whole days tie for everything inside a 24-hour window,
+        // which on a 72-hour SLA is a third of it.
+        .sort((a, b) => b.age_hours - a.age_hours)
+    );
   }, [query.data, tab]);
+
+  /**
+   * The queue summary — 6.2 region 1, computed over the FILTERED set as the spec requires.
+   *
+   * Over the filtered set because that is what the officer is looking at: a breach count for the
+   * whole platform sitting above a list narrowed to one city answers a question nobody asked.
+   *
+   * `unassigned` and the workload strip (region 2) are absent rather than faked: an assignee exists
+   * only once the applications table does, and inventing a distribution over the one field the
+   * spec computes differently from everything else would be the least honest thing on the screen.
+   */
+  const summary = useMemo(() => {
+    const withSla = rows.filter((gym) => gym.sla !== null);
+    return {
+      open: rows.length,
+      breached: withSla.filter((gym) => gym.sla?.state === 'BREACHED').length,
+      approaching: withSla.filter((gym) => gym.sla?.state === 'APPROACHING').length,
+      paused: withSla.filter((gym) => gym.sla?.state === 'PAUSED').length,
+      // `age_hours`, not `hours_remaining`: 6.2's figure is "oldest open hours", which is an age.
+      oldestHours: rows.reduce((oldest, gym) => Math.max(oldest, gym.age_hours), 0),
+    };
+  }, [rows]);
 
   const counts = useMemo(() => {
     const gyms = query.data?.gyms ?? [];
@@ -82,6 +116,27 @@ export function ApprovalQueueRoute() {
     );
   }, [query.data]);
 
+  /**
+   * The keyboard model — 6.2: "`/` focuses search · `j`/`k` move the focused row · `Enter` opens".
+   *
+   * +- WHY THIS IS NOT A NICETY ----------------------------------------------------------------+
+   * | `AdminDashboard.md` 1.1: Anita "opens this first and returns to it 30-60 times a day". At   |
+   * | that frequency the mouse trip to each row is the job. `AX2` makes the console keyboard-      |
+   * | first for exactly this screen.                                                             |
+   * +-------------------------------------------------------------------------------------------+
+   *
+   * The listener is on the TABLE region rather than the window, so `j` typed into a search box is
+   * the letter j. A global handler that has to guess whether the user is typing is the bug every
+   * hand-rolled keyboard model ships with.
+   */
+  const [focused, setFocused] = useState(0);
+  const tableRegion = useRef<HTMLDivElement>(null);
+
+  // Clamped when the row count shrinks, so changing a filter cannot leave the cursor past the end.
+  useEffect(() => {
+    setFocused((current) => Math.min(current, Math.max(0, rows.length - 1)));
+  }, [rows.length]);
+
   const state = toSurfaceState(query, {
     // Emptiness is judged on the FILTERED rows, not on the response. A tab with no matches is
     // empty even though the request succeeded and returned twenty-three gyms.
@@ -91,6 +146,19 @@ export function ApprovalQueueRoute() {
   });
 
   const columns: readonly Column<GymRow>[] = [
+    // 6.2's column order, and it is deliberate: the SLA is the first thing read because it decides
+    // which row is opened. Putting the name first would make this a directory rather than a queue.
+    {
+      key: 'sla',
+      header: t('adm.sla.header'),
+      cell: (gym) => <SlaChip gym={gym} />,
+    },
+    {
+      key: 'age',
+      header: t('adm.queue.col.age'),
+      align: 'right',
+      cell: (gym) => <AgeCell gym={gym} />,
+    },
     {
       key: 'gym',
       flexible: true,
@@ -119,14 +187,9 @@ export function ApprovalQueueRoute() {
       header: t('adm.queue.col.applied'),
       secondary: true,
       cell: (gym) => (
-        <div>
-          <p className="text-xs">{new Date(gym.created_at).toLocaleDateString('en-IN')}</p>
-          {/* The age, not just the date. "19 days ago" is the number an operator triages on;
-              the date is what they quote when they follow it up. */}
-          <p className="text-xs text-content-muted">
-            {gym.waiting_days} {t('adm.queue.daysAgo')}
-          </p>
-        </div>
+        // The date is what an officer QUOTES when they follow an application up; the age is what
+        // they triage on and it has its own column now.
+        <span className="text-xs">{new Date(gym.created_at).toLocaleDateString('en-IN')}</span>
       ),
     },
     {
@@ -152,7 +215,13 @@ export function ApprovalQueueRoute() {
 
   return (
     <>
-      <PageHeader title={t('adm.queue.title')} subtitle={t('adm.queue.subtitle')} />
+      <PageHeader
+        title={t('adm.queue.title')}
+        subtitle={t('adm.queue.subtitle')}
+        meta={<p className="text-xs text-content-muted">{t('adm.queue.kbd')}</p>}
+      />
+
+      <QueueSummary summary={summary} pending={query.isPending} />
 
       <div className="mt-stack-md">
         <FilterTabs
@@ -206,13 +275,35 @@ export function ApprovalQueueRoute() {
         >
           {() => (
             <>
-              <DataTable
-                columns={columns}
-                rows={paged}
-                rowKey={(gym) => gym.id}
-                caption={t('adm.queue.subtitle')}
-                minWidth="44rem"
-              />
+              {/* `tabIndex` so the region can hold focus and receive the keys; the hint in the
+                  header tells an operator the region is there before they hunt for it. */}
+              <div
+                ref={tableRegion}
+                tabIndex={-1}
+                onKeyDown={(event) => {
+                  if (event.key === 'j' || event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    setFocused((current) => Math.min(current + 1, paged.length - 1));
+                  } else if (event.key === 'k' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    setFocused((current) => Math.max(current - 1, 0));
+                  } else if (event.key === 'Enter') {
+                    const gym = paged[focused];
+                    // 6.2: "Opening an application does not change its status." This navigates and
+                    // nothing else — assignment and UNDER_REVIEW are different facts.
+                    if (gym !== undefined) navigate(`/gyms/${gym.id}`);
+                  }
+                }}
+                className="outline-none"
+              >
+                <DataTable
+                  columns={columns}
+                  rows={paged}
+                  rowKey={(gym) => gym.id}
+                  caption={t('adm.queue.subtitle')}
+                  minWidth="52rem"
+                />
+              </div>
               <Pagination
                 page={page}
                 pageSize={PAGE_SIZE}
@@ -229,6 +320,81 @@ export function ApprovalQueueRoute() {
         {t('adm.queue.reviewNote')}
       </p>
     </>
+  );
+}
+
+/**
+ * 6.2 region 1 — the summary strip.
+ *
+ * Five figures, and the two loudest are the ones that mean somebody is late. `Breached` is danger-
+ * toned and carries a glyph in the chip beside it in the table; here the WORD carries it, because
+ * a bare red number in a strip of five is the colour-alone failure `AX8` names.
+ */
+function QueueSummary({
+  summary,
+  pending,
+}: {
+  readonly summary: {
+    readonly open: number;
+    readonly breached: number;
+    readonly approaching: number;
+    readonly paused: number;
+    readonly oldestHours: number;
+  };
+  readonly pending: boolean;
+}) {
+  const figures: ReadonlyArray<{ key: string; label: string; value: string; tone: string }> = [
+    {
+      key: 'open',
+      label: t('adm.queue.summary.open'),
+      value: String(summary.open),
+      tone: 'text-content',
+    },
+    {
+      key: 'breached',
+      label: t('adm.queue.summary.breached'),
+      value: String(summary.breached),
+      // Only tinted when it is non-zero. A permanent red "0" is how a strip stops being read.
+      tone: summary.breached > 0 ? 'text-content-danger' : 'text-content-muted',
+    },
+    {
+      key: 'approaching',
+      label: t('adm.queue.summary.approaching'),
+      value: String(summary.approaching),
+      tone: summary.approaching > 0 ? 'text-content-warning' : 'text-content-muted',
+    },
+    {
+      key: 'paused',
+      label: t('adm.queue.summary.paused'),
+      value: String(summary.paused),
+      tone: summary.paused > 0 ? 'text-content-info' : 'text-content-muted',
+    },
+    {
+      key: 'oldest',
+      label: t('adm.queue.summary.oldest'),
+      value: `${String(summary.oldestHours)}${t('adm.queue.summary.hours')}`,
+      tone: 'text-content-secondary',
+    },
+  ];
+
+  return (
+    <div
+      role="region"
+      aria-label={t('adm.queue.summary.region')}
+      className="mt-stack-md flex flex-wrap items-center gap-inline-lg rounded-card border border-subtle bg-surface px-inset-md py-inset-sm"
+    >
+      {figures.map((figure) => (
+        <p key={figure.key} className="flex items-baseline gap-inline-2xs">
+          <span className="text-xs uppercase tracking-wide text-content-muted">{figure.label}</span>
+          <span className={`text-base font-semibold tabular-nums ${figure.tone}`}>
+            {pending ? '\u2014' : figure.value}
+          </span>
+        </p>
+      ))}
+
+      {/* Region 2 of 6.2, named rather than faked. See the note on `summary`. */}
+      <p className="text-xs text-content-muted">{t('adm.queue.workloadPending')}</p>
+    </div>
   );
 }
 

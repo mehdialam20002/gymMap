@@ -59,6 +59,29 @@ export interface GymRow {
   readonly commission_rate_bps: number | null;
   readonly created_at: string;
   readonly waiting_days: number;
+  /** Whole hours since submission. The unit the SLA is stated in (`AdminDashboard.md` 6.2). */
+  readonly age_hours: number;
+  /**
+   * The verification SLA, computed SERVER-side, or `null` for a decided gym.
+   *
+   * +- THE CONSOLE MUST NOT DERIVE ANY OF THIS -------------------------------------------------+
+   * | `AdminDashboard.md` UI-ADM-4: the SLA target "is configuration, not a constant. The        |
+   * | console reads it from the API and must never hard-code it." `Admin.md` 5.1.1 gives the     |
+   * | reason for the state too: "A client computing 51 hours from a UTC timestamp in a browser   |
+   * | set to IST gets a different answer 23% of the day, and an officer told an application      |
+   * | breaches tomorrow when it breaches tonight will let it breach."                            |
+   * |                                                                                          |
+   * | So every field here is rendered and none is computed. That includes the thresholds: 24     |
+   * | hours is not written anywhere in this app.                                                 |
+   * +-------------------------------------------------------------------------------------------+
+   */
+  readonly sla: {
+    readonly state: 'WITHIN' | 'APPROACHING' | 'BREACHED' | 'PAUSED';
+    readonly target_hours: number;
+    readonly hours_remaining: number | null;
+    readonly breaches_at: string | null;
+    readonly age_hours_wall_clock: number;
+  } | null;
 }
 
 export const platformOverview = (): Promise<PlatformOverview> =>

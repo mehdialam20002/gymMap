@@ -115,6 +115,16 @@ export const appConfigSchema = z
     JWT_REFRESH_SECRET: requiredSecret(32),
     JWT_REFRESH_TTL: durationString.default('30d'),
 
+    // --- Verification SLA (FR-ADMN-11, Admin.md 5.1.1) --------------------
+    //
+    // 72 hours at launch. It lives HERE and not in code because `AdminDashboard.md` UI-ADM-4 is
+    // explicit that it is "configuration, not a constant" and that "the console reads it from the
+    // API and must never hard-code it" - so there has to be something for the API to read.
+    //
+    // The bound is 8760 hours (a year): a target measured in years is a typo, and a target of 0
+    // would put every application in BREACHED the instant it arrived.
+    VERIFICATION_SLA_TARGET_HOURS: z.coerce.number().int().min(1).max(8760).default(72),
+
     // --- QR check-in (A-11, EdDSA Ed25519) --------------------------------
     QR_SIGNING_PRIVATE_KEY: requiredSecret(32),
     QR_SIGNING_KEY_ID: z.string().min(1),

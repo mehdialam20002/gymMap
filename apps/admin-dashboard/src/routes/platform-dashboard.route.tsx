@@ -95,7 +95,7 @@ export function PlatformDashboardRoute() {
       const { gyms } = await platformGyms();
       return gyms
         .filter((gym) => AWAITING_STATUSES.includes(gym.status))
-        .sort((a, b) => b.waiting_days - a.waiting_days)
+        .sort((a, b) => b.age_hours - a.age_hours)
         .slice(0, 5);
     },
     refetchInterval: 30_000,
@@ -173,7 +173,8 @@ export function PlatformDashboardRoute() {
       {/* ══ STILL LIVE. Every row below is derived from the two queries above. ════════= */}
       <NeedsAttention
         gyms={gyms}
-        oldestWaitingDays={queue.data?.[0]?.waiting_days}
+        oldestHours={queue.data?.[0]?.age_hours}
+        breachedCount={(queue.data ?? []).filter((gym) => gym.sla?.state === 'BREACHED').length}
         readiness={readiness.data}
       />
 
@@ -327,7 +328,7 @@ export function PlatformDashboardRoute() {
                           {gym.trading_name ?? gym.legal_name}
                         </p>
                         <p className="truncate text-xs text-content-muted">
-                          {[gym.city, gym.state].filter(Boolean).join(', ')} · {gym.waiting_days}
+                          {[gym.city, gym.state].filter(Boolean).join(', ')} · {gym.age_hours}
                           {t('adm.queue.dayShort')}
                         </p>
                       </div>
@@ -680,11 +681,15 @@ function SampleTile({ figure }: { figure: (typeof HEADLINES)[number] }) {
  */
 function NeedsAttention({
   gyms,
-  oldestWaitingDays,
+  oldestHours,
+  breachedCount,
   readiness,
 }: {
   gyms: PlatformOverview['gyms'] | undefined;
-  oldestWaitingDays: number | undefined;
+  /** Hours, from the server's `age_hours`. Not days, and not computed here. */
+  oldestHours: number | undefined;
+  /** How many the SERVER placed in `BREACHED`. See the note at the severity below. */
+  breachedCount: number;
   readiness: ReadinessReport | undefined;
 }) {
   if (gyms === undefined) {
@@ -727,17 +732,25 @@ function NeedsAttention({
       ? [
           {
             id: 'queue',
-            // Seven days is the review target. Past it the queue is not "busy", it is LATE, and
-            // this says so with a different mark rather than the same mark louder.
-            severity:
-              oldestWaitingDays !== undefined && oldestWaitingDays > 7
-                ? ('serious' as const)
-                : ('info' as const),
+            // +- THE SLA STATE COMES FROM THE SERVER. NO THRESHOLD LIVES HERE -------------+
+            // | This read `oldestWaitingDays > 7` and BOTH halves were wrong. The             |
+            // | verification SLA is 72 HOURS, not seven days (`Admin.md` 5.1.1), and           |
+            // | `AdminDashboard.md` UI-ADM-4 forbids the console hard-coding it at all: "the   |
+            // | console reads it from the API and must never hard-code it". The citation on     |
+            // | the comment that was here was wrong too - `FR-ADMN-03` is commission           |
+            // | configuration, not a review target.                                            |
+            // |                                                                              |
+            // | So this asks the server what it decided. A breach outranks an approach and     |
+            // | neither number is derived on this side of the wire.                             |
+            // +-----------------------------------------------------------------------------+
+            severity: breachedCount > 0 ? ('serious' as const) : ('info' as const),
             headline: t('adm.attention.queue').replace('{n}', String(gyms.awaitingReview)),
             detail:
-              oldestWaitingDays === undefined
-                ? t('adm.attention.queueDetailUnknown')
-                : t('adm.attention.queueDetail').replace('{d}', String(oldestWaitingDays)),
+              breachedCount > 0
+                ? t('adm.attention.queueBreached').replace('{n}', String(breachedCount))
+                : oldestHours === undefined
+                  ? t('adm.attention.queueDetailUnknown')
+                  : t('adm.attention.queueDetail').replace('{h}', String(oldestHours)),
             to: '/approvals',
             action: t('adm.attention.review'),
           },

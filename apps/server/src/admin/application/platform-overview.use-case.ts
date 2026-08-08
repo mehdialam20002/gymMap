@@ -7,9 +7,15 @@
 
 import { Inject, Injectable } from '@nestjs/common';
 
+import { APP_CONFIG, type AppConfig } from '../../common/config/app-config.schema.js';
 import { CLOCK, type Clock } from '../../common/clock/clock.port.js';
 
-import type { GymRow, GymStatusCounts, PlatformOverview } from '../types/platform-overview.js';
+import type {
+  ApplicationSla,
+  GymRow,
+  GymStatusCounts,
+  PlatformOverview,
+} from '../types/platform-overview.js';
 import {
   PLATFORM_READ_PORT,
   type PlatformReadPort,
@@ -46,6 +52,9 @@ export class PlatformOverviewUseCase {
     // renders as its last-updated indicator, and a test that asserts the indicator needs to be
     // able to fix the time it reports.
     @Inject(CLOCK) private readonly clock: Clock,
+    // §8.9 — never `process.env` at a call site. The SLA target is configuration because
+    // `AdminDashboard.md` UI-ADM-4 forbids the console hard-coding it.
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
   async overview(context: ReadContext): Promise<PlatformOverview> {
@@ -93,6 +102,62 @@ export class PlatformOverviewUseCase {
         // Floor, not round. An application that arrived 30 hours ago has been waiting one day,
         // not two — rounding up would let the queue report an SLA breach a day early.
         waiting_days: Math.floor((now - row.createdAt.getTime()) / 86_400_000),
+        age_hours: Math.floor((now - row.createdAt.getTime()) / 3_600_000),
+        sla: this.slaFor(row.status, row.createdAt, now),
       }));
   }
+
+  /**
+   * The SLA state of one application - `Admin.md` 5.1.1's table, verbatim.
+   *
+   * +- WALL-CLOCK HOURS, NOT BUSINESS HOURS. THIS IS A KNOWN SHORTCUT ----------------------------+
+   * | 5.1.1 says the figures are derived "in `Asia/Kolkata` business hours". NO DOCUMENT IN THIS   |
+   * | REPOSITORY DEFINES WHAT BUSINESS HOURS ARE - there is no working-day list and no holiday     |
+   * | calendar anywhere under docs/. Inventing one here would put a commercial commitment (when a  |
+   * | gym owner is told their application is late) into an implementation detail.                   |
+   * |                                                                                             |
+   * | So this counts wall-clock hours, which is STRICTER: it never reports an application as       |
+   * | within the SLA when a business-hours calculation would have called it breached. Erring       |
+   * | towards "late" on a queue is the safe direction - the failure mode is an officer looking at  |
+   * | something sooner than they had to.                                                          |
+   * |                                                                                             |
+   * | Recorded as `TD-036`. `Monitoring.md` SLO-04 made the same call for the SUPPORT SLA and gave |
+   * | the reason: "a member who tickets at 21:00 IST experiences the wait regardless".             |
+   * +---------------------------------------------------------------------------------------------+
+   */
+  private slaFor(status: string, submittedAt: Date, now: number): ApplicationSla | null {
+    // Only an application somebody still owes a decision on has an SLA. See the note on the field.
+    if (!AWAITING.includes(status as (typeof AWAITING)[number])) return null;
+
+    const targetHours = this.config.VERIFICATION_SLA_TARGET_HOURS;
+    const ageWallClock = Math.floor((now - submittedAt.getTime()) / 3_600_000);
+
+    // `INFO_REQUESTED` stops the platform's clock: the applicant owes the next move, so the wait is
+    // not the platform being slow. `AdminDashboard.md` 6.2 requires the chip to read `paused` and
+    // the wall-clock age to remain visible.
+    if (status === 'INFO_REQUESTED') {
+      return {
+        state: 'PAUSED',
+        target_hours: targetHours,
+        hours_remaining: null,
+        breaches_at: null,
+        age_hours_wall_clock: ageWallClock,
+      };
+    }
+
+    const breachesAt = submittedAt.getTime() + targetHours * 3_600_000;
+    // Truncated toward zero so a breach reads -1 rather than 0 the moment it passes the target.
+    const hoursRemaining = Math.trunc((breachesAt - now) / 3_600_000);
+
+    return {
+      // 6.2's thresholds, not a choice made here: breached at or below zero, approaching at or
+      // below 24 hours remaining, within above that.
+      state: hoursRemaining <= 0 ? 'BREACHED' : hoursRemaining <= 24 ? 'APPROACHING' : 'WITHIN',
+      target_hours: targetHours,
+      hours_remaining: hoursRemaining,
+      breaches_at: new Date(breachesAt).toISOString(),
+      age_hours_wall_clock: ageWallClock,
+    };
+  }
+
 }
