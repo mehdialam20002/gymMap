@@ -23,6 +23,7 @@
 
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { t, type MessageKey } from '../shared/i18n/index.ts';
@@ -31,6 +32,7 @@ import {
   platformGyms,
   platformOverview,
   type GymStatus,
+  type PlatformOverview,
 } from '../shared/api/admin.ts';
 import {
   HEADLINES,
@@ -38,7 +40,6 @@ import {
   REGISTRATIONS,
   REGISTRATION_LABELS,
   REVENUE_BREAKDOWN,
-  REVENUE_SERIES,
   MEMBERSHIP_STATS,
   RECENT_ACTIVITY,
   RENEWAL_DELTA_BPS,
@@ -49,8 +50,16 @@ import {
   formatAgo,
   formatDeltaBps,
   formatMinor,
+  isMoneyMetric,
+  revenueSeries,
+  REVENUE_METRICS,
+  REVENUE_RANGES,
+  type RevenueMetric,
+  type RevenueRange,
 } from '../shared/api/demo-figures.ts';
 import { useSession } from '../shared/auth/session.tsx';
+import { MetricCard, type Tone } from '@gymmap/ui';
+
 import { AreaChart, Donut, Legend, MultiLine, Sparkline } from '../shared/viz/charts.tsx';
 import { SeverityGlyph, TileGlyph, type TileIcon } from '../shared/icons/index.tsx';
 import { PENDING_ROUTES } from './nav.ts';
@@ -161,6 +170,13 @@ export function PlatformDashboardRoute() {
         />
       </div>
 
+      {/* ══ STILL LIVE. Every row below is derived from the two queries above. ════════= */}
+      <NeedsAttention
+        gyms={gyms}
+        oldestWaitingDays={queue.data?.[0]?.waiting_days}
+        readiness={readiness.data}
+      />
+
       {/* ══ Everything past this line is invented, and the banner says so. ══════════════ */}
       <SampleNotice />
 
@@ -174,25 +190,7 @@ export function PlatformDashboardRoute() {
         <div className="min-w-0">
           {/* ── Charts. Sample series, one x-axis each, never two y-scales. ───────────── */}
           <div className="grid gap-inline-sm xl:grid-cols-2">
-            <Panel title={t('adm.sample.revenueOverview')} sample>
-              <p className="text-xl font-semibold tabular-nums text-content">
-                {formatMinor(REVENUE_SERIES[REVENUE_SERIES.length - 1]?.valueMinor ?? 0n)}
-              </p>
-              <div className="mt-stack-sm">
-                <AreaChart
-                  // ┌─ `Number()` HERE, AND ONLY HERE ────────────────────────────────────────┐
-                  // │ A chart plots pixels, and a pixel is a float — so the geometry takes     │
-                  // │ `number`. The FIGURE beside it stays `bigint` all the way to             │
-                  // │ `formatMinor`, which is the half that a reader reconciles against an     │
-                  // │ invoice. Converting at the plotting boundary loses nothing; converting    │
-                  // │ upstream would put every displayed amount through IEEE754.                │
-                  // └─────────────────────────────────────────────────────────────────────────┘
-                  values={REVENUE_SERIES.map((point) => Number(point.valueMinor))}
-                  labels={REVENUE_SERIES.map((point) => point.label)}
-                  slot={1}
-                />
-              </div>
-            </Panel>
+            <RevenueOverview />
 
             <Panel title={t('adm.sample.revenueBreakdown')} sample>
               <Donut
@@ -533,13 +531,12 @@ const ACTIVITY_ACCENT = {
   PAYOUT: 'bg-surface-sunken text-content-secondary',
 } as const;
 
-const TONE_ACCENT = {
-  brand: 'bg-surface-brand-subtle text-content-brand',
-  success: 'bg-surface-success-subtle text-content-success',
-  warning: 'bg-surface-warning-subtle text-content-warning',
-  danger: 'bg-surface-danger-subtle text-content-danger',
-  info: 'bg-surface-info-subtle text-content-info',
-} as const;
+const METRIC_LABEL: Readonly<Record<RevenueMetric, MessageKey>> = {
+  REVENUE: 'adm.sample.metric.revenue',
+  GMV: 'adm.sample.metric.gmv',
+  COMMISSION: 'adm.sample.metric.commission',
+  MEMBERSHIPS: 'adm.sample.metric.memberships',
+};
 
 /** The line the whole screen is organised around. See the file header. */
 function SampleNotice() {
@@ -590,6 +587,17 @@ function Panel({
   );
 }
 
+/**
+ * A real figure, as a link to the screen it came from.
+ *
+ * `MetricCard` from `packages/ui` does the drawing — this file had its own copy of the same card
+ * twice, one for live figures and one for sample ones, and the two had already diverged: the live
+ * one had a hover border and the sample one did not, so half the grid felt clickable and half did
+ * not on a screen where BOTH halves are.
+ *
+ * The `live` caption is load-bearing rather than decoration: it is half of the answer to "is this
+ * number real", and the banner below the grid is the other half.
+ */
 function LiveTile({
   label,
   value,
@@ -599,74 +607,309 @@ function LiveTile({
 }: {
   label: string;
   value: number | undefined;
-  tone: keyof typeof TONE_ACCENT;
+  tone: Tone;
   icon: TileIcon;
   to: string;
 }) {
   return (
     <Link
       to={to}
-      className="gm-hit-target block rounded-card border border-subtle bg-surface p-inset-md shadow-xs transition-colors duration-fast ease-standard hover:border-strong dark:shadow-none"
+      className="gm-hit-target block rounded-card transition-opacity duration-fast ease-standard hover:opacity-90"
     >
-      <div className="flex items-start justify-between gap-inline-sm">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-content-muted">{label}</p>
-          <p className="mt-stack-2xs text-xs font-semibold text-content-success">
-            {t('adm.dashboard.live')}
-          </p>
-        </div>
-        <span
-          className={`grid h-[2.25rem] w-[2.25rem] shrink-0 place-items-center rounded-control ${TONE_ACCENT[tone]}`}
-        >
-          <TileGlyph icon={icon} />
-        </span>
-      </div>
-      {/* `undefined` renders the loading word, never a `0`. */}
-      <p className="mt-stack-2xs text-2xl font-semibold tabular-nums text-content">
-        {value ?? (
-          <span className="text-sm font-normal text-content-muted">{t('adm.state.loading')}</span>
-        )}
-      </p>
+      <MetricCard
+        label={label}
+        // Indian grouping on a COUNT is `toLocaleString` without a currency option, which is a
+        // different thing from formatting money and is not what §12 rule 14 forbids. 1,20,000
+        // accounts still reads wrong to an Indian operator as 120,000.
+        value={value === undefined ? undefined : value.toLocaleString('en-IN')}
+        tone={tone}
+        icon={<TileGlyph icon={icon} />}
+        caption={t('adm.dashboard.live')}
+        loadingLabel={t('adm.state.loading')}
+      />
     </Link>
   );
 }
 
+/** A sample figure. Same card, so the grid is one grid — the caption is what differs. */
 function SampleTile({ figure }: { figure: (typeof HEADLINES)[number] }) {
   const rising = figure.deltaBps >= 0;
 
   return (
-    <div className="rounded-card border border-subtle bg-surface p-inset-md">
-      <div className="flex items-start justify-between gap-inline-sm">
-        <p className="text-xs font-medium uppercase tracking-wide text-content-muted">
-          {t(figure.key as MessageKey)}
-        </p>
-        <span
-          className={`grid h-[2.25rem] w-[2.25rem] shrink-0 place-items-center rounded-control ${TONE_ACCENT[figure.tone]}`}
-        >
-          <TileGlyph icon={SAMPLE_ICON[figure.key] ?? 'revenue'} />
-        </span>
-      </div>
-
-      <p className="mt-stack-2xs text-2xl font-semibold tabular-nums text-content">
-        {figure.amountMinor === null
+    <MetricCard
+      label={t(figure.key as MessageKey)}
+      value={
+        figure.amountMinor === null
           ? (figure.count ?? 0).toLocaleString('en-IN')
-          : formatMinor(figure.amountMinor)}
-      </p>
+          : formatMinor(figure.amountMinor)
+      }
+      tone={figure.tone}
+      icon={<TileGlyph icon={SAMPLE_ICON[figure.key] ?? 'revenue'} />}
+      chart={<Sparkline values={SPARKLINES[figure.key] ?? []} rising={rising} />}
+      // The arrow shows DIRECTION and is never coloured good/bad. Fewer refund requests and less
+      // revenue carry the same sign and opposite news, and a green arrow on one of them would be
+      // the screen making a judgement the data does not support.
+      trend={{ text: formatDeltaBps(figure.deltaBps), rising }}
+      caption={t(
+        figure.comparison === 'YESTERDAY' ? 'adm.sample.vsYesterday' : 'adm.sample.vsThirtyDays',
+      )}
+      loadingLabel={t('adm.state.loading')}
+    />
+  );
+}
 
-      {/* The arrow shows DIRECTION and is not coloured good/bad. Fewer refund requests and less
-          revenue carry the same sign and opposite news, and a green arrow on one of them would
-          be the screen making a judgement the data does not support. */}
-      <div className="mt-stack-2xs">
-        <Sparkline values={SPARKLINES[figure.key] ?? []} rising={rising} />
+/**
+ * "Needs your attention" -- the command centre, and every row of it is REAL.
+ *
+ * +- THIS PANEL IS ENTIRELY ABOVE THE SAMPLE LINE, AND THAT IS THE POINT -----------------------+
+ * | The reference mockup's equivalent mixes real queue counts with invented payment alerts. Here |
+ * | they are two panels: this one, from `/v1/admin/platform/overview`, the approval queue and    |
+ * | `/readyz`; and `System alerts` further down, which is sample and says so. A panel fed from   |
+ * | BOTH sides of that line has no per-panel answer to "is this real", which is the only         |
+ * | question an operator asks before acting on it.                                               |
+ * +---------------------------------------------------------------------------------------------+
+ *
+ * +- NOTHING IS SHOWN THAT DOES NOT NEED DOING -------------------------------------------------+
+ * | A row appears only when its condition holds. An attention panel that always lists six items, |
+ * | four of them reading "0", trains an operator to skip it -- and then it is worse than absent,  |
+ * | because the day it has something to say it looks like every other day.                        |
+ * |                                                                                             |
+ * | When there is genuinely nothing it says so in one line rather than disappearing: a panel that |
+ * | vanishes reads as "failed to load".                                                          |
+ * +---------------------------------------------------------------------------------------------+
+ */
+function NeedsAttention({
+  gyms,
+  oldestWaitingDays,
+  readiness,
+}: {
+  gyms: PlatformOverview['gyms'] | undefined;
+  oldestWaitingDays: number | undefined;
+  readiness: ReadinessReport | undefined;
+}) {
+  if (gyms === undefined) {
+    return (
+      <Panel title={t('adm.attention.title')} className="mt-stack-md">
+        <p className="text-sm text-content-muted">{t('adm.state.loading')}</p>
+      </Panel>
+    );
+  }
+
+  const down = Object.entries(readiness?.dependencies ?? {})
+    .filter(([, healthy]) => !healthy)
+    .map(([name]) => name);
+
+  interface AttentionItem {
+    readonly id: string;
+    readonly severity: keyof typeof SEVERITY_INK;
+    readonly headline: string;
+    readonly detail: string;
+    readonly to: string;
+    readonly action: string;
+  }
+
+  const items: readonly AttentionItem[] = [
+    // A dependency being down outranks everything else: the figures on this page are read THROUGH
+    // it, so an operator who acts on them without knowing is acting on a stale number.
+    ...(down.length > 0
+      ? [
+          {
+            id: 'readiness',
+            severity: 'critical' as const,
+            headline: t('adm.attention.dependency'),
+            detail: down.join(', '),
+            to: '/',
+            action: t('adm.attention.viewHealth'),
+          },
+        ]
+      : []),
+    ...(gyms.awaitingReview > 0
+      ? [
+          {
+            id: 'queue',
+            // Seven days is the review target. Past it the queue is not "busy", it is LATE, and
+            // this says so with a different mark rather than the same mark louder.
+            severity:
+              oldestWaitingDays !== undefined && oldestWaitingDays > 7
+                ? ('serious' as const)
+                : ('info' as const),
+            headline: t('adm.attention.queue').replace('{n}', String(gyms.awaitingReview)),
+            detail:
+              oldestWaitingDays === undefined
+                ? t('adm.attention.queueDetailUnknown')
+                : t('adm.attention.queueDetail').replace('{d}', String(oldestWaitingDays)),
+            to: '/approvals',
+            action: t('adm.attention.review'),
+          },
+        ]
+      : []),
+    ...(gyms.byStatus.SUSPENDED > 0
+      ? [
+          {
+            id: 'suspended',
+            severity: 'serious' as const,
+            headline: t('adm.attention.suspended').replace('{n}', String(gyms.byStatus.SUSPENDED)),
+            // Named rather than implied: a suspended gym is hidden from members AND still billed,
+            // so the count is a commercial fact and not only a moderation one.
+            detail: t('adm.attention.suspendedDetail'),
+            to: '/gyms',
+            action: t('adm.attention.openRegister'),
+          },
+        ]
+      : []),
+    ...(gyms.byStatus.INFO_REQUESTED > 0
+      ? [
+          {
+            id: 'info',
+            severity: 'info' as const,
+            headline: t('adm.attention.infoRequested').replace(
+              '{n}',
+              String(gyms.byStatus.INFO_REQUESTED),
+            ),
+            detail: t('adm.attention.infoRequestedDetail'),
+            to: '/approvals',
+            action: t('adm.attention.review'),
+          },
+        ]
+      : []),
+  ];
+
+  return (
+    <Panel title={t('adm.attention.title')} className="mt-stack-md">
+      {items.length === 0 ? (
+        <p className="text-sm text-content-secondary">{t('adm.attention.clear')}</p>
+      ) : (
+        <ul className="flex flex-col gap-stack-2xs">
+          {items.map((item) => (
+            <li
+              key={item.id}
+              className="flex flex-wrap items-center justify-between gap-inline-sm rounded-control border border-subtle bg-surface-sunken px-inset-sm py-inset-xs"
+            >
+              <span className="flex min-w-0 items-start gap-inline-xs">
+                {/* Icon AND colour AND the word -- never colour alone (AX8). */}
+                <span className={`mt-[0.125rem] shrink-0 ${SEVERITY_INK[item.severity]}`}>
+                  <SeverityGlyph severity={item.severity} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-content">{item.headline}</span>
+                  <span className="block text-xs text-content-muted">{item.detail}</span>
+                </span>
+              </span>
+              <Link
+                to={item.to}
+                className="gm-hit-target shrink-0 rounded-control border border-subtle px-inset-sm py-inset-2xs text-xs font-medium text-content-brand transition-colors duration-fast ease-standard hover:border-strong"
+              >
+                {item.action}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+/**
+ * The revenue overview, with its metric and range controls.
+ *
+ * +- BOTH CONTROLS WORK. THEY DO NOT CALL THE SERVER, AND THE PANEL SAYS SO --------------------+
+ * | `sample` puts the tag on this panel, so nothing here claims to be a query result. The tabs   |
+ * | are still real controls rather than decoration: an inert tab bar is worse than none, because  |
+ * | a person clicks it, nothing happens, and they conclude the console is broken rather than      |
+ * | unfinished.                                                                                 |
+ * |                                                                                             |
+ * | Every series is derived from the headline figure it ends at (`revenueSeries`), so the number  |
+ * | above the chart and the chart's last point are the same value by construction and not by      |
+ * | anyone remembering to update both.                                                            |
+ * +---------------------------------------------------------------------------------------------+
+ *
+ * +- ONE Y-AXIS, AND THE METRICS ARE TABS FOR THAT REASON --------------------------------------+
+ * | Revenue and membership count share no unit, and putting both on one chart needs a second     |
+ * | y-scale -- which is the most common way a chart lies, because the crossing point of the two   |
+ * | lines is an artefact of the scales chosen rather than a fact about the business. Tabs show    |
+ * | one measure at a time on one axis instead.                                                    |
+ * +---------------------------------------------------------------------------------------------+
+ */
+function RevenueOverview() {
+  const [metric, setMetric] = useState<RevenueMetric>('REVENUE');
+  const [range, setRange] = useState<RevenueRange>('30D');
+
+  const series = revenueSeries(metric, range);
+  const latest = series[series.length - 1]?.valueMinor ?? 0n;
+
+  return (
+    <Panel title={t('adm.sample.revenueOverview')} sample>
+      {/* The metric picker reads as tabs; the range picker as a segmented control. Two different
+          shapes because they answer two different questions, and a person scanning the panel
+          should not have to work out which of eight identical chips changes what. */}
+      <div
+        role="tablist"
+        aria-label={t('adm.sample.metricLabel')}
+        className="-mx-inset-2xs flex flex-wrap items-center gap-inline-2xs border-b border-subtle"
+      >
+        {REVENUE_METRICS.map((candidate) => (
+          <button
+            key={candidate}
+            type="button"
+            role="tab"
+            aria-selected={candidate === metric}
+            onClick={() => {
+              setMetric(candidate);
+            }}
+            className={`gm-hit-target -mb-[1px] rounded-t-control px-inset-sm py-inset-2xs text-sm transition-colors duration-fast ease-standard ${
+              candidate === metric
+                ? 'border-b-2 border-brand font-semibold text-content'
+                : 'text-content-muted hover:text-content'
+            }`}
+          >
+            {t(METRIC_LABEL[candidate])}
+          </button>
+        ))}
       </div>
 
-      <p className="mt-stack-2xs text-xs text-content-muted">
-        <span aria-hidden="true">{rising ? '▲' : '▼'}</span> {formatDeltaBps(figure.deltaBps)}{' '}
-        {t(
-          figure.comparison === 'YESTERDAY' ? 'adm.sample.vsYesterday' : 'adm.sample.vsThirtyDays',
-        )}
-      </p>
-    </div>
+      <div className="mt-stack-sm flex flex-wrap items-end justify-between gap-inline-sm">
+        <p className="text-2xl font-semibold tabular-nums tracking-tight text-content">
+          {isMoneyMetric(metric)
+            ? formatMinor(latest)
+            : // A count, not money: Indian grouping without a currency, which is a different
+              // operation from formatting rupees and not what §12 rule 14 governs.
+              Number(latest).toLocaleString('en-IN')}
+        </p>
+
+        <div
+          role="group"
+          aria-label={t('adm.sample.rangeLabel')}
+          className="flex items-center gap-[1px] overflow-hidden rounded-control border border-subtle"
+        >
+          {REVENUE_RANGES.map((candidate) => (
+            <button
+              key={candidate}
+              type="button"
+              aria-pressed={candidate === range}
+              onClick={() => {
+                setRange(candidate);
+              }}
+              className={`gm-hit-target px-inset-sm py-inset-2xs text-xs font-medium tabular-nums transition-colors duration-fast ease-standard ${
+                candidate === range
+                  ? 'bg-surface-brand-subtle text-content-brand'
+                  : 'text-content-muted hover:bg-surface-sunken hover:text-content'
+              }`}
+            >
+              {candidate}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-stack-sm">
+        <AreaChart
+          // `Number()` at the plotting boundary only -- a pixel is a float, the figure above is not.
+          values={series.map((point) => Number(point.valueMinor))}
+          labels={series.map((point) => point.label)}
+          slot={1}
+        />
+      </div>
+    </Panel>
   );
 }
 

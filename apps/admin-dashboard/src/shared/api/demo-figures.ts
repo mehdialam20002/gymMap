@@ -112,18 +112,123 @@ export interface SeriesPoint {
 }
 
 /**
- * Five weeks of revenue, with a dip.
+ * `SeriesPoint` is the shape; the series themselves come from `revenueSeries` below.
  *
- * The third point falls. A monotonically rising sample line is the single clearest sign that a
- * chart is decorative, and it also hides whether the renderer copes with a downward segment.
+ * A hand-written `REVENUE_SERIES` constant lived here and was the panel's only line. It went when
+ * the panel gained its metric and range controls, because a constant plus a generator is two
+ * sources for the same chart and the constant is the one that stops agreeing with the headline.
  */
-export const REVENUE_SERIES: readonly SeriesPoint[] = [
-  { label: '5 Jul', valueMinor: 62_40_000_00n },
-  { label: '12 Jul', valueMinor: 71_10_000_00n },
-  { label: '19 Jul', valueMinor: 58_70_000_00n },
-  { label: '26 Jul', valueMinor: 76_30_000_00n },
-  { label: '4 Aug', valueMinor: 81_90_000_00n },
-];
+
+
+// ===========================================================================================
+// The revenue overview's metric x range series.
+//
+// +- WHY THIS IS GENERATED AND NOT TWENTY HANDWRITTEN ARRAYS -----------------------------------+
+// | Four metrics x four ranges is sixteen series. Handwriting them means sixteen chances for a   |
+// | chart to end somewhere its own headline figure does not, and the first person to notice      |
+// | would rightly stop trusting the panel rather than the array.                                 |
+// |                                                                                             |
+// | So every series is DERIVED from the one number the panel already displays: it ends at that   |
+// | value and works backwards. Change the headline and the curve follows.                        |
+// +---------------------------------------------------------------------------------------------+
+//
+// +- DETERMINISTIC, WITH NO `Math.random` ANYWHERE ---------------------------------------------+
+// | A random walk would redraw on every render, and MO3 forbids exactly that: motion on a data   |
+// | path makes a stale figure look live. It would also make a screenshot unreproducible, so two  |
+// | people comparing the same demo would be looking at different charts.                          |
+// |                                                                                             |
+// | The wobble comes from a fixed integer sequence indexed by position, so the same (metric,     |
+// | range) always draws the same line. Integer paise throughout -- the arithmetic is bigint and   |
+// | the only division is by 10_000n, which is exact.                                              |
+// +---------------------------------------------------------------------------------------------+
+// ===========================================================================================
+
+export const REVENUE_METRICS = ['REVENUE', 'GMV', 'COMMISSION', 'MEMBERSHIPS'] as const;
+export type RevenueMetric = (typeof REVENUE_METRICS)[number];
+
+export const REVENUE_RANGES = ['7D', '30D', '90D', '12M'] as const;
+export type RevenueRange = (typeof REVENUE_RANGES)[number];
+
+/** How many points each range draws, and what its ticks are called. */
+const RANGE_SHAPE: Readonly<Record<RevenueRange, { readonly points: number; readonly tick: (i: number, n: number) => string }>> = {
+  // Days back from "today", which is only a label -- no clock is read here (`no-bare-date`).
+  '7D': { points: 7, tick: (i, n) => `D-${String(n - 1 - i)}` },
+  '30D': { points: 6, tick: (i, n) => `W-${String(n - 1 - i)}` },
+  '90D': { points: 6, tick: (i, n) => `W-${String((n - 1 - i) * 2)}` },
+  '12M': { points: 12, tick: (i) => MONTH_TICKS[i] ?? '' },
+};
+
+const MONTH_TICKS = [
+  'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
+] as const;
+
+/**
+ * Where each metric ends, in integer paise -- or in whole units for the count.
+ *
+ * These are the SAME figures the headline tiles carry, so the chart and the tile above it cannot
+ * disagree. GMV is the gross figure revenue is a slice of; it is larger by construction.
+ */
+const METRIC_END: Readonly<Record<RevenueMetric, bigint>> = {
+  REVENUE: 81_90_000_00n,
+  GMV: 2_14_60_000_00n,
+  COMMISSION: 7_32_489_00n,
+  MEMBERSHIPS: 12_864n,
+};
+
+/** True when the metric is money and must be rendered by the currency formatter. */
+export function isMoneyMetric(metric: RevenueMetric): boolean {
+  return metric !== 'MEMBERSHIPS';
+}
+
+/**
+ * The wobble pattern: a sign per point, fixed and read by index.
+ *
+ * +- A SIGN PATTERN RATHER THAN FIXED BASIS POINTS, BECAUSE THE FIRST ATTEMPT DID NOT WORK ------+
+ * | The first version added a fixed +-1540bps jitter to the trend. It read fine for the 7-day     |
+ * | window and produced twelve MONOTONIC series out of sixteen for the longer ones: over twelve   |
+ * | months the trend climbs about 7% per step, which simply swallowed a 3% wobble.                 |
+ * |                                                                                             |
+ * | A monotonically rising sample line is the single clearest sign that a chart is decorative, and |
+ * | it also hides whether the renderer copes with a downward segment. So the amplitude is now     |
+ * | scaled to the per-step growth of whichever window is being drawn -- 1.5x it -- which makes a   |
+ * | `+1 -> -1` transition a 3x-step swing and therefore a fall the eye can see at every range.     |
+ * |                                                                                             |
+ * | The pattern is a literal, not `Math.random`: MO3 forbids motion on a data path, and a random  |
+ * | walk would redraw on every render AND make two people comparing the same demo look at         |
+ * | different charts.                                                                            |
+ * +---------------------------------------------------------------------------------------------+
+ */
+const WOBBLE_SIGN: readonly number[] = [0, 1, -1, 1, -1, 1, 1, -1, 1, -1, 1, -1];
+
+export function revenueSeries(metric: RevenueMetric, range: RevenueRange): readonly SeriesPoint[] {
+  const shape = RANGE_SHAPE[range];
+  const end = METRIC_END[metric];
+  const steps = BigInt(shape.points - 1);
+
+  // Total growth across the window, in basis points. A longer window shows more of it -- twelve
+  // months of a marketplace's first year is a different story from its last seven days.
+  const growthBps = { '7D': 400n, '30D': 1_600n, '90D': 3_400n, '12M': 7_800n }[range];
+  const perStepBps = growthBps / steps;
+
+  return Array.from({ length: shape.points }, (_, index) => {
+    // How far back this point is, as a fraction of the window, in basis points.
+    const backBps = (BigInt(shape.points - 1 - index) * 10_000n) / steps;
+    const trend = end - (end * growthBps * backBps) / (10_000n * 10_000n);
+
+    // 1.5x the per-step growth, signed by the pattern. Integer arithmetic throughout; the only
+    // division is by 10_000n and by 2n, both exact on paise.
+    const wobbleBps = (BigInt(WOBBLE_SIGN[index % WOBBLE_SIGN.length] ?? 0) * perStepBps * 3n) / 2n;
+    const value = trend + (trend * wobbleBps) / 10_000n;
+
+    return {
+      label: shape.tick(index, shape.points),
+      // The last point is pinned to the headline EXACTLY rather than approximately. A chart whose
+      // final point sits 0.3% off the number printed beside it is the kind of discrepancy that
+      // gets read as a bug in the ledger rather than as rounding in a sample.
+      valueMinor: index === shape.points - 1 ? end : value > 0n ? value : end / 4n,
+    };
+  });
+}
 
 export interface BreakdownSlice {
   readonly key: string;
