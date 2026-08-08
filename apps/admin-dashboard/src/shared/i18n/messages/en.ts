@@ -30,6 +30,30 @@ export const en = {
   'adm.sample.metric.gmv': 'GMV',
   'adm.sample.metric.commission': 'Commission',
   'adm.sample.metric.memberships': 'Memberships',
+  // -- SCR-ADM-004's eight administrative actions (FR-ADMN-01, AdminDashboard.md 6.4).
+  'adm.gyms.action.suspend': 'Suspend',
+  'adm.gyms.action.reinstate': 'Reinstate',
+  'adm.gyms.action.tier': 'Change tier',
+  'adm.gyms.action.commission': 'Override commission',
+  'adm.gyms.action.reverify': 'Force re-verification',
+  'adm.gyms.action.close': 'Close tenant',
+  'adm.gyms.action.notListed': 'Only a listed gym',
+  'adm.gyms.selectAll': 'Select every gym on this page',
+  'adm.gyms.selectRow': 'Select {n}',
+  'adm.gyms.bulkSelected': '{n} selected',
+  'adm.gyms.bulkClear': 'Clear',
+  'adm.gyms.bulkRegion': 'Bulk actions',
+  'adm.gyms.bulkExport': 'Export selected',
+  'adm.gyms.bulkAssign': 'Assign',
+  // 5.2 destructive action 3. DC2: what happens to whom, never "Are you sure?".
+  'adm.gyms.suspendTitle': 'Suspend {g}?',
+  'adm.gyms.suspendBody':
+    'The listing is hidden from the marketplace immediately and payouts stop. Members keep their gym access - a suspension is a listing and settlement action, not a lockout. The active member count and unsettled balance this line should also state need the membership and ledger tables (M-114); they are absent rather than estimated.',
+  'adm.gyms.suspendReversible':
+    'Reversible - Reinstate republishes the listing and resumes payouts.',
+  'adm.gyms.suspendTypeName': 'Type the legal name to confirm',
+  'adm.gyms.suspendUnavailable':
+    'Nothing was suspended. POST /v1/admin/tenants/:id/suspend arrives with M-114 - the dialog is here so the confirmation is right before the action is live.',
   // -- SCR-ADM-003, Application Review. AdminDashboard.md 6.3.
   //
   // Every "not yet" string below names its milestone. On THIS screen that is not politeness: a

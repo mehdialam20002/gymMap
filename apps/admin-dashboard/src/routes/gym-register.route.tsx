@@ -16,12 +16,17 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Badge,
+  BulkBar,
   Button,
+  ConfirmDialog,
   DataTable,
+  Dropdown,
   FilterTabs,
   Pagination,
   PageHeader,
   Panel,
+  ToastStack,
+  useToasts,
   StateBoundary,
   TableSkeleton,
   toSurfaceState,
@@ -32,6 +37,7 @@ import { t } from '../shared/i18n/index.ts';
 import { formatBps, platformGyms, type GymRow, type GymStatus } from '../shared/api/admin.ts';
 import { toProblem } from '../shared/api/client.ts';
 import { GYM_STATUS_LABEL, statusTone } from './status-pill.tsx';
+import { REASON_FLOOR } from '../shared/reason/reason.ts';
 import { PAGE_LABELS } from './approval-queue.route.tsx';
 
 const PAGE_SIZE = 10;
@@ -54,6 +60,19 @@ const TABS: ReadonlyArray<{ id: string; label: string; statuses: readonly GymSta
 export function GymRegisterRoute() {
   const [tab, setTab] = useState('all');
   const [page, setPage] = useState(1);
+  const toasts = useToasts();
+
+  /**
+   * The selection, held HERE and not in the table.
+   *
+   * It survives paging and filtering by design: an operator narrows to Bengaluru, ticks four gyms,
+   * clears the filter, ticks two more. A selection reset by the parent's re-render - which a
+   * 60-second refetch causes - is a selection nobody rebuilds.
+   */
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+
+  /** The gym awaiting a suspend confirmation, or `null`. */
+  const [suspending, setSuspending] = useState<GymRow | null>(null);
 
   const query = useQuery({
     queryKey: ['admin', 'gyms', 'all'],
@@ -163,18 +182,81 @@ export function GymRegisterRoute() {
           >
             {t('adm.gyms.view')}
           </Link>
-          {/* The overflow menu is where suspend, reinstate and edit will live. Every one of them
-              is an audited mutation on a tenant (M-114), so the trigger is inert rather than
-              opening a menu of things that cannot be done. */}
-          <button
-            type="button"
-            disabled
-            aria-label={t('adm.gyms.moreActions')}
-            title={t('adm.gyms.moreActions')}
-            className="gm-hit-target rounded-control px-inset-xs text-sm text-content-disabled"
-          >
-            &#8943;
-          </button>
+
+          {/* +- THE MENU LISTS ALL EIGHT ACTIONS AND DISABLES SEVEN -----------------------------+
+              | 6.4 enumerates the eight administrative actions of `FR-ADMN-01`. None of their     |
+              | endpoints exists yet (`M-114`), so every item names its milestone in the hint      |
+              | rather than being hidden.                                                        |
+              |                                                                                |
+              | Hiding them would make the menu look complete and lead an operator to conclude    |
+              | the platform cannot suspend a gym at all. Showing them disabled with the reason    |
+              | answers the question in place - and the enumeration itself is useful: it is the    |
+              | list of what an administrator will be able to do.                                 |
+              |                                                                                |
+              | Suspend is the exception. It OPENS its dialog, because the dialog is where `DC3`'s |
+              | name-typing and the `DC2` consequence line live, and those are the parts worth     |
+              | getting right before the endpoint arrives. The dialog says what it cannot do yet.  |
+              +---------------------------------------------------------------------------------+ */}
+          <Dropdown
+            label={t('adm.gyms.moreActions')}
+            items={[
+              {
+                id: 'reinstate',
+                label: t('adm.gyms.action.reinstate'),
+                disabled: true,
+                hint: 'M-114',
+                onSelect: () => undefined,
+              },
+              {
+                id: 'tier',
+                label: t('adm.gyms.action.tier'),
+                disabled: true,
+                hint: 'M-114',
+                onSelect: () => undefined,
+              },
+              {
+                id: 'commission',
+                label: t('adm.gyms.action.commission'),
+                disabled: true,
+                // Blocked on a decision, not only on code: KL-006 leaves whether tier deltas apply
+                // to the renewal rate unanswered, and a commission screen has to take a side.
+                hint: 'KL-006',
+                onSelect: () => undefined,
+              },
+              {
+                id: 'reverify',
+                label: t('adm.gyms.action.reverify'),
+                disabled: true,
+                hint: 'M-114',
+                onSelect: () => undefined,
+              },
+              // The two destructive actions come LAST, below the divider the menu draws above the
+              // first of them. A Suspend sitting at the top of a menu an operator opens sixty times
+              // a day is a mis-click waiting for a busy afternoon; convention puts it out of the
+              // path of the reach for "Change tier".
+              {
+                id: 'suspend',
+                label: t('adm.gyms.action.suspend'),
+                destructive: true,
+                // Only for a gym that is actually listed. Suspending a rejected application is not
+                // a thing, and offering it invites the question of what it would mean.
+                ...(gym.status === 'APPROVED'
+                  ? {}
+                  : { disabled: true, hint: t('adm.gyms.action.notListed') }),
+                onSelect: () => {
+                  setSuspending(gym);
+                },
+              },
+              {
+                id: 'close',
+                label: t('adm.gyms.action.close'),
+                destructive: true,
+                disabled: true,
+                hint: 'M-114',
+                onSelect: () => undefined,
+              },
+            ]}
+          />
         </div>
       ),
     },
@@ -250,7 +332,18 @@ export function GymRegisterRoute() {
                 columns={columns}
                 rows={paged}
                 rowKey={(gym) => gym.id}
+                // Required once selection is on: a checkbox announced as "Select row" thirty times
+                // tells a screen-reader user which of the thirty they ticked, which is none of them.
+                rowLabel={(gym) => gym.trading_name ?? gym.legal_name}
                 caption={t('adm.gyms.subtitle')}
+                selection={{
+                  selected,
+                  onChange: setSelected,
+                  labels: {
+                    selectAll: t('adm.gyms.selectAll'),
+                    selectRow: t('adm.gyms.selectRow'),
+                  },
+                }}
               />
               <Pagination
                 page={page}
@@ -259,10 +352,89 @@ export function GymRegisterRoute() {
                 onPage={setPage}
                 labels={PAGE_LABELS}
               />
+
+              {/* +- WHY THERE IS NO BULK APPROVE HERE, AND NEVER WILL BE ----------------------+
+                  | `BR-GYM-01` requires a HUMAN to approve each gym before it is listed, and    |
+                  | `OBJ-03` is the promise that rests on it. A bulk approve is the one bulk     |
+                  | action that would let thirty gyms be listed by one click on a checkbox        |
+                  | column - which is precisely the verification this platform sells, skipped.   |
+                  |                                                                            |
+                  | So the bulk actions here are the ones that do not decide anything: export,   |
+                  | and assignment once there is somebody to assign to.                          |
+                  +---------------------------------------------------------------------------+ */}
+              <BulkBar
+                count={selected.size}
+                onClear={() => {
+                  setSelected(new Set());
+                }}
+                labels={{
+                  selected: t('adm.gyms.bulkSelected'),
+                  clear: t('adm.gyms.bulkClear'),
+                  region: t('adm.gyms.bulkRegion'),
+                }}
+              >
+                <Button size="sm" disabled>
+                  {t('adm.gyms.bulkExport')}
+                </Button>
+                <Button size="sm" disabled>
+                  {t('adm.gyms.bulkAssign')}
+                </Button>
+              </BulkBar>
             </>
           )}
         </StateBoundary>
       </Panel>
+
+      {/* +- DESTRUCTIVE ACTION 3 OF THE ELEVEN, WITH DC3's NAME-TYPING ---------------------+
+          | 5.2 requires the consequence line to state the active member count, the unsettled  |
+          | balance, that members KEEP gym access and that the listing hides. Two of those      |
+          | four figures do not exist yet (`M-114`), and `DC1` forbids counting them in the     |
+          | client - so the dialog states the two facts that are certain and says plainly that  |
+          | the figures are missing. A consequence line with an invented member count would be  |
+          | worse than one that admits the gap: an operator would act on the number.            |
+          +---------------------------------------------------------------------------------+ */}
+      <ConfirmDialog
+        open={suspending !== null}
+        onClose={() => {
+          setSuspending(null);
+        }}
+        onConfirm={() => {
+          const gym = suspending;
+          setSuspending(null);
+          if (gym === null) return;
+          // No mutation to call. `danger` rather than `info` because nothing happened and the
+          // operator believed something would - and a danger toast does not expire.
+          toasts.push('danger', t('adm.gyms.suspendUnavailable'));
+        }}
+        title={t('adm.gyms.suspendTitle').replace('{g}', suspending?.legal_name ?? '')}
+        description={t('adm.gyms.suspendBody')}
+        // DC5: reversible, and the reverse is named. 6.4's Reinstate row says the listing
+        // republishes and payouts resume, so this states that rather than "you can undo it".
+        reversibility={{ kind: 'REVERSIBLE', text: t('adm.gyms.suspendReversible') }}
+        reason={{
+          label: t('adm.reason.label'),
+          hint: t('adm.reason.hint'),
+          minLength: REASON_FLOOR.general,
+        }}
+        // DC3. The LEGAL name, not the trading name: it is the one on the contract, and it is the
+        // string that differs between two gyms with similar shopfronts.
+        typeToConfirm={{
+          expected: suspending?.legal_name ?? '',
+          label: t('adm.gyms.suspendTypeName'),
+        }}
+        labels={{
+          confirm: t('adm.gyms.action.suspend'),
+          cancel: t('adm.action.cancel'),
+          close: t('adm.action.close'),
+          charactersShort: t('adm.reason.short'),
+        }}
+      />
+
+      <ToastStack
+        messages={toasts.messages}
+        onDismiss={toasts.dismiss}
+        dismissLabel={t('adm.action.dismiss')}
+      />
     </>
   );
 }

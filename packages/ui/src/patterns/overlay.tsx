@@ -220,6 +220,7 @@ export function ConfirmDialog({
   reversibility,
   tone = 'danger',
   reason,
+  typeToConfirm,
   labels,
   busy = false,
 }: {
@@ -256,6 +257,24 @@ export function ConfirmDialog({
   readonly tone?: 'danger' | 'primary';
   /** Omit to confirm without a reason. Present means the reason is MANDATORY. */
   readonly reason?: { readonly label: string; readonly hint: string; readonly minLength: number };
+  /**
+   * `DC3` - the blast-radius guard. Omit for everything below the line.
+   *
+   * +- TYPING THE NAME IS NOT CEREMONY. IT IS THE ONE CONTROL A HABIT CANNOT DEFEAT ------------+
+   * | `AdminDashboard.md` DC3 names five actions that require it: tenant suspension, tenant      |
+   * | closure, commission-configuration replacement, a feature flag at 100% rollout, and review   |
+   * | removal. What they share is that a mis-click is not recoverable by clicking again.          |
+   * |                                                                                          |
+   * | An operator who suspends thirty gyms a month stops reading confirmation dialogs - that is   |
+   * | not carelessness, it is what repetition does. Typing "Iron Temple Fitness LLP" cannot be    |
+   * | done by muscle memory on the wrong row, because the wrong row has a different name.         |
+   * |                                                                                          |
+   * | Matched EXACTLY after trimming, and case-sensitively. A case-insensitive match would        |
+   * | accept "iron temple fitness llp", which is a different string from the one on the screen    |
+   * | and therefore evidence of nothing.                                                        |
+   * +-------------------------------------------------------------------------------------------+
+   */
+  readonly typeToConfirm?: { readonly expected: string; readonly label: string };
   readonly labels: {
     readonly confirm: string;
     readonly cancel: string;
@@ -266,15 +285,22 @@ export function ConfirmDialog({
   readonly busy?: boolean;
 }) {
   const [text, setText] = useState('');
+  const [typed, setTyped] = useState('');
 
   // Cleared on open rather than on close, so a reason typed for one gym cannot be submitted
-  // against the next one after a mis-click.
+  // against the next one after a mis-click. The same applies to the typed name, and more sharply:
+  // a name left in the box from the previous dialog would defeat the guard entirely.
   useEffect(() => {
-    if (open) setText('');
+    if (open) {
+      setText('');
+      setTyped('');
+    }
   }, [open]);
 
   const short = reason === undefined ? 0 : Math.max(0, reason.minLength - text.trim().length);
-  const ready = short === 0 && !busy;
+  // Exact after trimming, case-sensitive. See the note on `typeToConfirm`.
+  const nameMatches = typeToConfirm === undefined || typed.trim() === typeToConfirm.expected;
+  const ready = short === 0 && nameMatches && !busy;
 
   return (
     <Modal
@@ -331,6 +357,35 @@ export function ConfirmDialog({
           <span className="text-xs text-content-muted">
             {short > 0 ? labels.charactersShort.replace('{n}', String(short)) : reason.hint}
           </span>
+        </label>
+      )}
+
+      {typeToConfirm !== undefined && (
+        <label className="mt-stack-sm flex flex-col gap-stack-2xs">
+          <span className="text-sm font-medium text-content">{typeToConfirm.label}</span>
+          {/* The expected string is SHOWN, in the same monospace it must be typed in. Hiding it
+              would make this a memory test rather than a deliberateness test, and an operator who
+              cannot find the name will paste something close enough from elsewhere. */}
+          <code className="select-all rounded-control bg-surface-sunken px-inset-sm py-inset-2xs font-mono text-xs text-content-secondary">
+            {typeToConfirm.expected}
+          </code>
+          <input
+            type="text"
+            value={typed}
+            onChange={(event) => {
+              setTyped(event.target.value);
+            }}
+            autoComplete="off"
+            // No `autoCapitalize`/`autoCorrect` help either: a phone that capitalises the first
+            // letter would make an exact match impossible to type.
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            aria-invalid={typed !== '' && !nameMatches}
+            className={`w-full rounded-control border bg-surface-sunken px-inset-sm py-inset-xs font-mono text-sm text-content ${
+              typed !== '' && !nameMatches ? 'border-danger' : 'border-subtle'
+            }`}
+          />
         </label>
       )}
     </Modal>

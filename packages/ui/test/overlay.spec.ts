@@ -219,7 +219,12 @@ test('the reason box is cleared on OPEN, not on close', () => {
 
   // Cleared on open, so a reason typed against one gym cannot be submitted against the next one
   // after a mis-click. Clearing on close leaves the text alive for the window between two opens.
-  assert.match(confirm, /if \(open\) setText\(''\);/);
+  //
+  // The effect now clears TWO fields (the reason and DC3's typed name), so this reads the effect
+  // body rather than matching a single-statement form the DC3 change made obsolete.
+  const effect = confirm.slice(confirm.indexOf('useEffect('), confirm.indexOf('const short'));
+  assert.match(effect, /if \(open\)/);
+  assert.match(effect, /setText\(''\)/);
 });
 
 test('a present reason prop means the reason is mandatory, not merely offered', () => {
@@ -403,4 +408,49 @@ test('permanence is signalled by a glyph and a word, not only by a tint', () => 
   const confirm = body('ConfirmDialog');
   // AX8. "Permanent" is the most consequential word in this dialog; a red background is not a word.
   assert.match(confirm, /aria-hidden="true">\{reversibility\.kind === 'PERMANENT'/);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DC3 — the blast-radius guard.
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('DC3 — the typed name is matched exactly and case-sensitively', () => {
+  const confirm = body('ConfirmDialog');
+
+  // Trimmed, because a trailing space from a paste is not a different intention. NOT lowercased:
+  // "iron temple fitness llp" is a different string from the one on the screen and is therefore
+  // evidence of nothing.
+  assert.match(confirm, /typed\.trim\(\) === typeToConfirm\.expected/);
+  assert.ok(
+    !/toLowerCase\(\)/.test(confirm),
+    'the name comparison became case-insensitive, which makes the guard cosmetic',
+  );
+});
+
+test('DC3 — the guard gates the confirm button, not just the field styling', () => {
+  const confirm = body('ConfirmDialog');
+  // A red border on a mismatched field with an enabled button is a decoration, not a control.
+  assert.match(confirm, /const ready = short === 0 && nameMatches && !busy/);
+});
+
+test('DC3 — the typed name is cleared on open', () => {
+  const confirm = body('ConfirmDialog');
+  // More sharply than the reason: a name left in the box from the previous dialog would defeat the
+  // guard completely on the next row.
+  const effect = confirm.slice(confirm.indexOf('useEffect('), confirm.indexOf('const short'));
+  assert.match(effect, /setTyped\(''\)/);
+});
+
+test('DC3 — autocomplete and autocapitalise are off, or the name cannot be typed', () => {
+  const confirm = body('ConfirmDialog');
+  // A phone that capitalises the first letter makes an exact match impossible to enter, which turns
+  // a safety control into a dead end.
+  assert.match(confirm, /autoComplete="off"/);
+  assert.match(confirm, /autoCapitalize="none"/);
+  assert.match(confirm, /autoCorrect="off"/);
+});
+
+test('DC3 — the expected name is shown, so this is deliberateness and not memory', () => {
+  const confirm = body('ConfirmDialog');
+  assert.match(confirm, /\{typeToConfirm\.expected\}/);
 });
