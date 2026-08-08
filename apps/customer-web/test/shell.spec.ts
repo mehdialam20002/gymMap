@@ -209,6 +209,89 @@ test('frame-src is none under the redirect model and the host under the iframe m
   );
 });
 
+/**
+ * `Security.md` §11.3's Permissions-Policy, transcribed verbatim from the specification.
+ *
+ * ┌─ THE SPEC ASKS FOR A VERBATIM ASSERTION AND THE SUITE ONLY HAD SUBSTRING CHECKS ────────────┐
+ * │ §11.7 step 7: the policy strings "are asserted verbatim by `SEC-A05-002`". What existed were  │
+ * │ four `includes()` calls on four of nineteen features, and `includes()` cannot see an ABSENCE  │
+ * │ nobody thought to look for — which is how `document-domain=()` came to be missing from the     │
+ * │ shipped header with every test green.                                                         │
+ * │                                                                                              │
+ * │ Compared by FEATURE NAME below, not by whole string, so the one recorded value deviation       │
+ * │ (`autoplay`) does not have to be smuggled into the transcription. That keeps the transcription │
+ * │ honest: it is what §11.3 says, and the test states separately where we knowingly differ.       │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+const SECURITY_MD_11_3_PERMISSIONS_POLICY = [
+  'accelerometer=()',
+  'ambient-light-sensor=()',
+  'autoplay=()',
+  'battery=()',
+  'camera=()',
+  'display-capture=()',
+  'document-domain=()',
+  'encrypted-media=()',
+  'fullscreen=(self)',
+  'geolocation=(self)',
+  'gyroscope=()',
+  'magnetometer=()',
+  'microphone=()',
+  'midi=()',
+  'payment=()',
+  'publickey-credentials-get=()',
+  'screen-wake-lock=()',
+  'usb=()',
+  'xr-spatial-tracking=()',
+] as const;
+
+/** Every feature the header names, in order. `autoplay=(self)` → `autoplay`. */
+const featureNames = (header: string): string[] =>
+  header.split(',').map((token) => token.trim().split('=')[0] ?? '');
+
+test('SEC-A05-002 — the header names every feature Security.md §11.3 mandates, and no others', () => {
+  const shipped = featureNames(STATIC_SECURITY_HEADERS['Permissions-Policy'] ?? '');
+  const mandated = featureNames(SECURITY_MD_11_3_PERMISSIONS_POLICY.join(', '));
+
+  // Set equality by name. A missing feature is a restriction we silently stopped applying; an EXTRA
+  // one is a capability decision that never went through §11.7 review. Both matter, so both fail.
+  assert.deepEqual(
+    [...shipped].sort(),
+    [...mandated].sort(),
+    'the shipped Permissions-Policy features differ from Security.md §11.3',
+  );
+
+  // Nineteen, asserted so a transcription that lost a line cannot make the comparison above pass
+  // by agreeing with a shortened list.
+  assert.equal(shipped.length, 19, `expected 19 features, header names ${String(shipped.length)}`);
+  assert.equal(new Set(shipped).size, shipped.length, 'a feature is named twice');
+});
+
+test('the ONLY value that differs from §11.3 is autoplay, and it is the recorded deviation', () => {
+  // ┌─ THIS TEST EXISTS TO KEEP ONE DEVIATION FROM BECOMING A HABIT ──────────────────────────────┐
+  // │ §11.7 step 2 forbids resolving a violation by relaxing a directive "without a               │
+  // │ `DECISION_LOG.md` entry". `autoplay=(self)` IS such a relaxation — §11.3 says `()` — and it  │
+  // │ has a real justification in `csp.ts` plus its own pinning test, so it reads as deliberate.   │
+  // │ What it does not have is the recorded decision, which is the owner's to make; `TECH_DEBT.md` │
+  // │ carries the entry that says so.                                                             │
+  // │                                                                                            │
+  // │ Pinned as the SOLE exception so the next relaxation cannot arrive quietly beside it. If the  │
+  // │ owner rules the other way, this test is what points at the line to change.                  │
+  // └────────────────────────────────────────────────────────────────────────────────────────────┘
+  const shipped = (STATIC_SECURITY_HEADERS['Permissions-Policy'] ?? '')
+    .split(',')
+    .map((token) => token.trim());
+  const mandated = new Set<string>(SECURITY_MD_11_3_PERMISSIONS_POLICY);
+
+  const deviations = shipped.filter((token) => !mandated.has(token));
+
+  assert.deepEqual(
+    deviations,
+    ['autoplay=(self)'],
+    'a Permissions-Policy value diverges from Security.md §11.3 without a recorded decision',
+  );
+});
+
 test('the customer surface grants geolocation and REFUSES camera', () => {
   const pp = STATIC_SECURITY_HEADERS['Permissions-Policy']!;
   // "Near me" needs geolocation. The camera grant belongs to gym-dashboard alone — the QR is

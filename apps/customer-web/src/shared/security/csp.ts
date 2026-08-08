@@ -181,6 +181,15 @@ export const STATIC_SECURITY_HEADERS: Readonly<Record<string, string>> = {
     // lives on gym-dashboard, the only surface with a camera grant.
     'camera=()',
     'display-capture=()',
+    // Restored. `Security.md` §11.3 mandates it and this header shipped without it — not as a
+    // decision, as an omission, which is the failure mode a substring-matching test cannot see.
+    // It disables the `document.domain` setter, a same-origin-relaxation mechanism nothing here
+    // uses and the one whose removal browsers are already staging.
+    'document-domain=()',
+    // Restored. `Security.md` §11.3 mandates it and this header shipped without it — not as a
+    // decision, as an omission, which is the failure mode a substring-matching test cannot see.
+    // It disables the `document.domain` setter, a same-origin-relaxation mechanism nothing here
+    // uses and the one whose removal browsers are already staging.
     'encrypted-media=()',
     'fullscreen=(self)',
     // The "near me" search of SCR-WEB-001/002 needs it. Everything else is off.

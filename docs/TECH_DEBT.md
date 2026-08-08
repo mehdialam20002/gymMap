@@ -206,6 +206,7 @@ Full detail for each entry is in §4. `PRD id` shows the primary identifier; eac
 | **TD-033** | Seed versioned by a string, not by `seed.manifest.json` checksums | Test | Medium | S | The first "works on my machine" traced to seed drift; sprint 6 at the latest | QA Lead | ACCEPTED | `§6.7`, `SD-2`, M-019 |
 | **TD-034** | `/v1/admin/*` gated on PLATFORM role membership, not the `§B3.2` matrix | Security | **High** | S | **M-023** — the matrix, `PermissionsGuard` and the generated per-cell test | Backend Lead | SCHEDULED | `FR-RBAC-01`, `PG-1`, M-022 |
 | **TD-035** | Verification SLA counted in WALL-CLOCK hours, not `Asia/Kolkata` business hours | Correctness | Low | S | A business-hours calendar exists anywhere in `docs/`, or the first officer complaint that an application was called late over a weekend | Technical Lead | **BLOCKED** | `Admin.md` §5.1.1, `FR-ADMN-11`, M-036 |
+| **TD-036** | Two `customer-web` security headers relax `Security.md` §11 without the `DECISION_LOG.md` entry §11.7 requires | Security | Medium | S | Before `SEC-A05-002` is written, or the owner rules on either deviation | Project owner + Security | **OPEN** | `Security.md` §11.3, §11.7, `NFR-SEC-12`, `SCR-WEB-001` |
 
 ---
 
@@ -498,6 +499,52 @@ the reading — `hours_remaining` has exactly one producer.
 a small change in one method, since the pause logic already proves the shape supports a
 non-linear clock — or an officer reports that an application was called late over a weekend, which
 is the cheapest possible way to learn the answer matters.
+
+---
+
+### TD-036 — two `customer-web` headers relax `Security.md` §11 without a recorded decision
+
+**What was taken.** `apps/customer-web/src/shared/security/csp.ts` emits two values that §11.3 does
+not authorise:
+
+| Directive   | `Security.md` §11.3 | What ships                       |
+| :---------- | :------------------ | :------------------------------- |
+| `autoplay`  | `autoplay=()`       | `autoplay=(self)`                |
+| `media-src` | `media-src 'none'`  | `media-src 'self' <media host>`  |
+
+Both are **deliberate and argued in the code**, and both have a pinning test. Neither has the entry
+§11.7 step 2 requires: *"every violation is either a policy fix or a code fix, never a directive
+relaxation without a `DECISION_LOG.md` entry"*. That entry is the project owner's to write, which is
+why this is recorded here rather than resolved.
+
+**Why they exist.** `SCR-WEB-001`'s hero plays a muted decorative loop from our own origin. Under
+`media-src 'none'` the element cannot load at all, and under `autoplay=()` the browser refuses to
+start it. Both grants are `self`-scoped, so an embedded third-party frame — including the payment
+provider's — still gets nothing, and what actually protects a visitor from sound is the `muted`
+attribute, which `hero.spec.ts` asserts separately.
+
+**The narrower reading, and why it was not taken.** §11.3 was written before the surface had a video.
+Read strictly, the spec forbids the feature rather than the grant, so the compliant options were to
+drop the hero loop or to amend §11.3 — and only the owner can do the second. The relaxation is the
+minimum that makes the built page work, and it is scoped as tightly as the mechanism allows.
+
+**A third deviation was found at the same time and is already fixed, not deferred.**
+`document-domain=()` was simply **missing** from the shipped header — nineteen mandated features,
+eighteen emitted. It was an omission with no justification anywhere, so it was restored rather than
+recorded. It survived because the suite used four `includes()` calls on four features, and a
+substring check cannot see an absence nobody thought to look for; `shell.spec.ts` now compares the
+full feature set against a verbatim transcription of §11.3, which is what §11.7 step 7 asks for.
+
+**Interest rate.** **Medium, and it compounds in one specific way.** While one unrecorded relaxation
+stands, the next one arrives beside it looking like precedent. That is exactly how a deny-by-default
+header becomes a list of things somebody once needed. The new test names `autoplay=(self)` as the
+**sole** permitted deviation, so a second one fails the build — which caps the compounding but does
+not repay the debt.
+
+**Payoff trigger.** Before `SEC-A05-002` is written — it asserts the full header set on every
+surface, and it cannot be written against a spec two surfaces do not match — or the owner ruling on
+either deviation, whichever comes first. Repayment is one `DECISION_LOG.md` entry plus an amendment
+to §11.3–§11.5, or reverting both grants and deleting the hero loop.
 
 ---
 
