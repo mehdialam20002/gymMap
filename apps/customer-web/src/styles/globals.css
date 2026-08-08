@@ -190,6 +190,73 @@
     word-wrap: normal;
   }
 
+  /*
+   * `BP2` — a row that scrolls INSIDE its own container, never the page. The facet chip rows and
+   * the sort bar on `SCR-WEB-002` are the two that need it.
+   *
+   * `overscroll-behavior-x: contain` is the part that is easy to leave out and is felt every time:
+   * without it, a thumb that reaches the end of the chip row keeps going and triggers the
+   * browser's back-navigation gesture. A member loses their filters by swiping a filter row.
+   *
+   * The scrollbar is hidden because the row is a control surface, not a document — the chips
+   * themselves show there is more, and a permanent gutter under a 32px row is most of its height.
+   * `scroll-padding` keeps a chip focused by keyboard clear of the container edge.
+   */
+  .gm-scroll-row {
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    scroll-padding-inline: var(--gm-space-inset-md);
+  }
+
+  .gm-scroll-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  /*
+   * ┌─ THE CHROME ADVERTISES ITS OWN HEIGHT, AND THEN HONOURS IT ────────────────────────────────┐
+   * │ Anything sticky below a sticky header has to know how tall that header is, and CSS cannot   │
+   * │ measure it. The usual result is a number typed into one component that drifts the day the   │
+   * │ header gains a row — sticky content then tucks underneath it and looks clipped.             │
+   * │                                                                                            │
+   * │ So the number is declared once here and the header is given it as a `min-height`: the value │
+   * │ stops being an observation about the header and becomes a floor the header keeps.           │
+   * │                                                                                            │
+   * │ `min-height` and never `height` — `DV2`. Devanagari's shirorekha plus matras above and      │
+   * │ below occupy more vertical space than Latin at the same size, so the bar must be free to    │
+   * │ grow. If it does, sticky offsets are a few pixels short rather than broken, which is the    │
+   * │ correct direction for that failure to go.                                                   │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  :root {
+    --gm-chrome-height: 3.3125rem;
+  }
+
+  .gm-app-chrome {
+    min-height: var(--gm-chrome-height);
+  }
+
+  /*
+   * The filter rail follows the results down — but it is nearly 2,000px tall with five facet
+   * groups open, so a plain `position: sticky` would pin its TOP and leave the last two groups
+   * permanently below the fold with no way to reach them. It scrolls inside itself instead, and
+   * `overscroll-behavior` stops that scroll chaining into the page when it bottoms out.
+   *
+   * Desktop only. Below `lg` the rail is not a rail at all — each group is a scrolling chip row.
+   */
+  @media (min-width: 1024px) {
+    .gm-filter-rail {
+      position: sticky;
+      top: calc(var(--gm-chrome-height) + var(--gm-space-inset-md));
+      max-height: calc(100vh - var(--gm-chrome-height) - var(--gm-space-inset-md) * 2);
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+      /* Room for the focus ring on the first and last facet, which an `overflow` container
+       * would otherwise clip to nothing. */
+      padding-inline: var(--gm-space-inset-2xs);
+      margin-inline: calc(var(--gm-space-inset-2xs) * -1);
+    }
+  }
+
   /* Photography is never dimmed, tinted or filtered in dark mode (§9.4): a gym owner comparing
    * their own cover photo across themes must see the same photo. The one permitted change is a
    * hairline so a white-heavy image does not appear to float on the dark canvas. */

@@ -39,7 +39,9 @@ export function SiteHeader() {
      * └────────────────────────────────────────────────────────────────────────────────────────────┘
      */
     <header className="sticky top-0 z-app-chrome border-b border-subtle bg-surface">
-      <div className="mx-auto flex max-w-container items-center gap-inline-lg px-inset-md py-inset-sm">
+      {/* `gm-app-chrome` sets the min-height that `--gm-chrome-height` promises — see globals.css.
+          Sticky content further down the page offsets by that variable. */}
+      <div className="gm-app-chrome mx-auto flex max-w-container items-center gap-inline-lg px-inset-md py-inset-sm">
         <Link
           href="/"
           className="gm-hit-target shrink-0 text-lg font-semibold tracking-tight text-content"

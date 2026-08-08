@@ -219,8 +219,24 @@ export const en = {
   'web.search.filters.label': 'Filters',
   'web.search.filters.city': 'City',
   'web.search.filters.activity': 'Activity',
+  'web.search.filters.facilities': 'Facilities',
+  // "Up to" and not "Under": ₹2,500 is included, and a member who picks the ₹2,500 band and finds
+  // a ₹2,500 plan missing from the results has been misled by one word.
+  'web.search.filters.price': 'Monthly price, up to',
+  'web.search.filters.rating': 'Rating, at least',
   'web.search.filters.anyCity': 'Any city',
   'web.search.filters.anyActivity': 'Any activity',
+  'web.search.filters.anyFacility': 'Any facility',
+  'web.search.filters.anyPrice': 'Any price',
+  'web.search.filters.anyRating': 'Any rating',
+  // The rating floors read as "4.0 and above". `{rating}` is substituted at the call site.
+  'web.search.filters.ratingAndUp': '{rating} and above',
+  'web.search.filters.clearAll': 'Clear all filters',
+  'web.search.filters.activeLabel': 'Active filters',
+  // Prefixes each removable chip's accessible name, so a screen reader hears what the × does
+  // rather than a bare filter value.
+  'web.search.filters.remove': 'Remove filter',
+  'web.search.filters.term': 'Search',
   'web.search.sort.label': 'Sort',
   'web.search.sort.relevance': 'Most relevant',
   'web.search.sort.priceAsc': 'Price: low to high',
@@ -232,6 +248,9 @@ export const en = {
   'web.search.empty.body':
     'Every gym on GymMap is verified before it is listed, so the catalogue is smaller than a directory that lists anyone. Try widening the search.',
   'web.search.empty.removeCategory': 'Remove this activity',
+  'web.search.empty.removeFacility': 'Remove this facility',
+  'web.search.empty.raisePrice': 'Show any price',
+  'web.search.empty.dropRating': 'Show any rating',
   'web.search.empty.everyCity': 'Search every city',
   'web.search.empty.clearTerm': 'Clear the search term',
   'web.search.metaTitle.any': 'Verified gyms',

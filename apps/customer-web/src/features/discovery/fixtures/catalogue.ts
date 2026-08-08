@@ -314,3 +314,15 @@ export const CITIES: ReadonlyArray<{ slug: string; name: string; count: number }
 export const CATEGORIES: readonly string[] = [
   ...new Set(CATALOGUE.flatMap((gym) => gym.categories)),
 ].sort((a, b) => a.localeCompare(b));
+
+/**
+ * Every amenity present, deduplicated.
+ *
+ * Derived, not curated — an amenity a gym offers is offered whether or not anyone remembered to
+ * add it to a list here, and a filter that silently cannot express "Sauna" is worse than no
+ * amenity filter at all. When these become a controlled vocabulary on the gym profile
+ * (`FR-GYM-*`), this export reads that vocabulary instead and every caller is unchanged.
+ */
+export const AMENITIES: readonly string[] = [
+  ...new Set(CATALOGUE.flatMap((gym) => gym.amenities)),
+].sort((a, b) => a.localeCompare(b));
