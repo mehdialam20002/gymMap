@@ -69,6 +69,14 @@ export const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
   TENANT_CONTEXT_ALREADY_SET: 'An internal error occurred.',
   ELEVATION_REFUSED: 'You do not have permission to perform this action.',
 
+  // --- M-023, RBAC ---------------------------------------------------------
+  //
+  // The only message in this map that tells the caller what to DO. It can afford to: the fact that
+  // a gym has one owner is not a secret from that gym's own administrator, and "not permitted"
+  // would send them to support for something they can fix in one step themselves.
+  LAST_OWNER_PROTECTED:
+    'This is the only owner of this gym. Add a second owner before removing or demoting this one.',
+
   // --- M-020, the password path -------------------------------------------
   //
   // `ACCOUNT_LOCKED`'s real message is assembled per request and arrives on the exception's

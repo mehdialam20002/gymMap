@@ -221,6 +221,22 @@ export const ERROR_REGISTRY = {
     retryable: false,
   },
 
+  // --- iam · M-023, RBAC ---------------------------------------------------
+  LAST_OWNER_PROTECTED: {
+    module: 'iam',
+    class: 'Business',
+    // 422, not 403. The caller may well be permitted to change roles — what they asked for is a
+    // STATE the domain refuses. A 403 would send them to look for a missing permission that does
+    // not exist, and no permission could ever grant this.
+    httpStatus: 422,
+    messageKey: 'error.iam.last_owner_protected',
+    enforces: ['FR-RBAC-07', 'FR-STAF-09'],
+    // Not retryable in itself; retryable after a second owner is added, which is what the message
+    // tells the caller to do.
+    retryable: false,
+    detailsShape: '{ tenant_id: string; owner_count: number; }',
+  },
+
   // --- iam · M-020, the password path -------------------------------------
   //
   // Note what is ABSENT: there is no INVALID_CREDENTIALS, no USER_NOT_FOUND and no
