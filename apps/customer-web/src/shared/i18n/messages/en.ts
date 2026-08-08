@@ -386,6 +386,83 @@ export const en = {
   'web.confirmation.next.email':
     'An email, once the payment is confirmed rather than when it is started.',
   'web.confirmation.pending.title': 'If the confirmation is slow',
+  // --- SCR-WEB-01x · the member account ------------------------------------
+  'web.account.title': 'Your account',
+  'web.account.metaDescription': 'Your memberships, check-in code, visit history and receipts.',
+  // The account area is rendered over a sample member because sign-in is not wired to this app
+  // yet. Said once, at the top of every account screen, in the same voice as the listing notice.
+  'web.account.demoNotice':
+    'Sample account. Sign-in is not connected to this site yet, so these are illustrative records — they are here so the screens can be reviewed.',
+  'web.account.nav.label': 'Account',
+  'web.account.nav.overview': 'Overview',
+  'web.account.nav.memberships': 'Memberships',
+  'web.account.nav.attendance': 'Visit history',
+  'web.account.nav.orders': 'Receipts',
+  'web.account.nav.reviews': 'Reviews',
+  'web.account.memberSince': 'Member since',
+
+  'web.account.overview.active': 'Your current membership',
+  'web.account.overview.none':
+    'No active membership. Find a gym and the membership appears here once the payment is confirmed.',
+  'web.account.overview.recentVisits': 'Recent visits',
+  'web.account.overview.checkIn': 'Show check-in code',
+  'web.account.overview.findGym': 'Find a gym',
+
+  'web.account.memberships.title': 'Memberships',
+  'web.account.memberships.validity': 'Valid',
+  'web.account.memberships.to': 'to',
+  'web.account.memberships.visits': 'visits recorded',
+  'web.account.memberships.plan': 'Plan',
+  // The four states, and the sentence each one needs. PENDING is the one that exists only
+  // because activation is webhook-driven (BR-PAY-02).
+  'web.account.status.ACTIVE': 'Active',
+  'web.account.status.PENDING': 'Waiting for payment confirmation',
+  'web.account.status.EXPIRED': 'Expired',
+  'web.account.status.CANCELLED': 'Cancelled',
+  'web.account.status.pendingNote':
+    'The payment has been started and our server has not yet heard from the provider. It activates on that message, not on this page.',
+  'web.account.status.expiredNote': 'Renew from the gym page to start a new membership.',
+
+  'web.account.qr.title': 'Check-in code',
+  // FR-CHK-02 / BR-CHK-02, stated where the code would be. The reason the panel is empty is the
+  // reason the feature is safe.
+  'web.account.qr.serverIssued':
+    'The code is signed by our server and lasts 60 seconds. It cannot be produced by this page, which is what makes a screenshot of it worthless to anyone else.',
+  'web.account.qr.pending':
+    'A check-in code is issued once the membership is active. This one is still waiting on the payment confirmation.',
+  'web.account.qr.expired': 'This membership has ended, so it no longer has a check-in code.',
+  'web.account.qr.placeholder': 'The code appears here when check-in goes live.',
+  'web.account.qr.howTo':
+    'Show it at the desk. The gym scans it, and the visit appears below within seconds.',
+
+  'web.account.attendance.title': 'Visit history',
+  'web.account.attendance.none':
+    'No visits yet. A visit is recorded when a gym scans your check-in code.',
+  'web.account.attendance.count': 'visits',
+
+  'web.account.orders.title': 'Receipts',
+  'web.account.orders.reference': 'Reference',
+  'web.account.orders.placed': 'Placed',
+  'web.account.orders.subtotal': 'Subtotal',
+  'web.account.orders.total': 'Total paid',
+  'web.account.orders.none': 'No receipts yet.',
+  // §A6.3 stated to the member: what they are reading is what they were charged, not a fresh sum.
+  'web.account.orders.persisted':
+    'These are the figures charged at the time of purchase. They are stored with the order and are never recalculated, so a later change to a price or a tax rate cannot alter a receipt you already have.',
+  'web.account.orders.status.PAID': 'Paid',
+  'web.account.orders.status.PENDING': 'Awaiting confirmation',
+  'web.account.orders.status.REFUNDED': 'Refunded',
+
+  'web.account.reviews.title': 'Reviews',
+  // BR-REV-01 / BR-REV-03, as the reason the list is short rather than as an apology.
+  'web.account.reviews.rule':
+    'You can review a gym you have checked in at. That is the whole rule, and it is why a review on GymMap means something: nobody can write one about a gym they have never been to.',
+  'web.account.reviews.eligible': 'Gyms you can review',
+  'web.account.reviews.none':
+    'Once you have checked in somewhere, that gym appears here and you can write about it.',
+  'web.account.reviews.write': 'Write a review',
+  'web.account.reviews.soon': 'Writing reviews opens with the reviews module.',
+
   'web.confirmation.pending.body':
     'A payment can be confirmed a few seconds after you return. Your account shows the membership as pending until our server hears from the provider, and it never shows it as active before that.',
 

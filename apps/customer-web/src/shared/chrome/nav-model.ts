@@ -56,8 +56,8 @@ export const FOOTER_NAV: readonly FooterColumn[] = [
   {
     heading: 'web.chrome.footer.members',
     items: [
-      { href: '/account/memberships', label: 'web.chrome.footer.memberships', built: false },
-      { href: '/account/attendance', label: 'web.chrome.footer.visits', built: false },
+      { href: '/account/memberships', label: 'web.chrome.footer.memberships', built: true },
+      { href: '/account/attendance', label: 'web.chrome.footer.visits', built: true },
       { href: '/account/favourites', label: 'web.chrome.footer.favourites', built: false },
       { href: '/account/referrals', label: 'web.chrome.footer.referrals', built: false },
     ],
