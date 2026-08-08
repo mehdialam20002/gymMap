@@ -148,7 +148,9 @@ export function spacingScale(repoRoot = process.cwd()) {
 export function fontWeightScale(repoRoot = process.cwd()) {
   const preset = resolve(repoRoot, 'packages/ui/tailwind-preset.ts');
   const source = readFileSync(preset, 'utf8');
-  const block = /fontWeight: \{([\s\S]*?)\n    \},/.exec(source);
+  // `{4}` rather than four literal spaces: `no-regex-spaces` is right that counting them by eye is
+  // how a pattern silently stops matching after somebody reindents the file it reads.
+  const block = /fontWeight: \{([\s\S]*?)\n {4}\},/.exec(source);
   if (block === null) {
     throw new Error(
       'could not find `fontWeight: { … }` in the preset. This gate reads the scale from its ' +

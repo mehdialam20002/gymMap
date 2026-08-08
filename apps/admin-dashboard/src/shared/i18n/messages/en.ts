@@ -331,6 +331,8 @@ export const en = {
   'adm.queue.summary.paused': 'Paused',
   'adm.queue.summary.oldest': 'Oldest',
   'adm.queue.summary.hours': 'h',
+  'adm.queue.summary.workload': 'Workload by officer',
+  'adm.queue.sortBy': 'Sort by {c}',
   'adm.queue.summary.region': 'Queue summary',
   // 6.2 region 2 needs `queue_summary.by_officer`, and an assignee exists only once the
   // applications table does (M-036). Named rather than silently missing.
@@ -367,6 +369,7 @@ export const en = {
     'Arrows to move, Enter to open, Esc to close. This jumps between screens; searching gyms and accounts arrives with M-023.',
   'adm.chrome.search.placeholder': 'Search gyms, accounts, transactions… (arrives with M-023)',
   'adm.theme.label': 'Colour theme',
+  'adm.theme.switchTo': 'Switch to', 
   'adm.theme.system': 'Auto',
   'adm.theme.light': 'Light',
   'adm.theme.dark': 'Dark',

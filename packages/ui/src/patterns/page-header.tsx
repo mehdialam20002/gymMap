@@ -83,6 +83,7 @@ export function MetricCard({
   chart,
   emphasis = false,
   loadingLabel,
+  captionTone = 'muted',
 }: {
   readonly label: string;
   readonly value: string | undefined;
@@ -91,6 +92,13 @@ export function MetricCard({
   /** Pre-formatted, e.g. `+18.6%`. `rising` drives the glyph only. */
   readonly trend?: { readonly text: string; readonly rising: boolean };
   readonly caption?: string;
+  /**
+   * The caption's ink. Defaults to muted, which is right for "vs last 30 days".
+   *
+   * `success` is for a freshness word like "live" — the one caption that says the figure can be
+   * trusted, and the one that should not be set in the faintest ink on the card.
+   */
+  readonly captionTone?: 'muted' | 'success';
   /** A sparkline, or anything else that belongs under the figure. */
   readonly chart?: ReactNode;
   /**
@@ -161,7 +169,11 @@ export function MetricCard({
       {chart !== undefined && <div className="mt-stack-2xs">{chart}</div>}
 
       {(trend !== undefined || caption !== undefined) && (
-        <p className="mt-stack-2xs flex items-center gap-inline-2xs text-xs text-content-muted">
+        <p
+          className={`mt-stack-2xs flex items-center gap-inline-2xs text-xs ${
+            captionTone === 'success' ? 'font-medium text-content-success' : 'text-content-muted'
+          }`}
+        >
           {trend !== undefined && (
             <>
               <span aria-hidden="true">{trend.rising ? '▲' : '▼'}</span>

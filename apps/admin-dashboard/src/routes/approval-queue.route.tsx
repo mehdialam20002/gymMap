@@ -67,6 +67,10 @@ export function ApprovalQueueRoute() {
     refetchInterval: 30_000,
   });
 
+  /** Which column orders the queue. `age` by default — §6.2's `submitted_at:asc`. */
+  const [sortKey, setSortKey] = useState('age');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
   const rows = useMemo(() => {
     const admitted = TABS.find((entry) => entry.id === tab)?.statuses ?? AWAITING_STATUSES;
     return (
@@ -79,9 +83,21 @@ export function ApprovalQueueRoute() {
         // Sorted on `age_hours` rather than `waiting_days` so two applications that arrived on the
         // same day still order correctly — whole days tie for everything inside a 24-hour window,
         // which on a 72-hour SLA is a third of it.
-        .sort((a, b) => (b.age_hours ?? 0) - (a.age_hours ?? 0))
+        .sort((a, b) => {
+          const flip = sortDirection === 'desc' ? 1 : -1;
+          if (sortKey === 'gym') {
+            return (
+              flip *
+              (b.trading_name ?? b.legal_name).localeCompare(a.trading_name ?? a.legal_name)
+            );
+          }
+          if (sortKey === 'status') return flip * b.status.localeCompare(a.status);
+          // `age` — and the default. Whole hours, not whole days: days tie for everything inside a
+          // 24-hour window, which on a 72-hour SLA is a third of it.
+          return flip * ((b.age_hours ?? 0) - (a.age_hours ?? 0));
+        })
     );
-  }, [query.data, tab]);
+  }, [query.data, tab, sortKey, sortDirection]);
 
   /**
    * The queue summary — 6.2 region 1, computed over the FILTERED set as the spec requires.
@@ -156,18 +172,35 @@ export function ApprovalQueueRoute() {
       key: 'age',
       header: t('adm.queue.col.age'),
       align: 'right',
+      sortKey: 'age',
       cell: (gym) => <AgeCell gym={gym} />,
     },
     {
       key: 'gym',
       flexible: true,
       header: t('adm.queue.col.applicant'),
+      sortKey: 'gym',
       cell: (gym) => (
-        <div className="min-w-0">
-          <p className="truncate font-medium text-content">{gym.trading_name ?? gym.legal_name}</p>
-          <p className="truncate text-xs text-content-muted">
-            {[gym.city, gym.state].filter(Boolean).join(', ') || gym.legal_name}
-          </p>
+        <div className="flex min-w-0 items-center gap-inline-sm">
+          {/* Initials, coloured from the name. Not decoration: down thirty rows a mark that keeps
+              its colour per gym is what lets the eye recognise a row it has already looked at,
+              which is the whole difficulty of a queue you return to sixty times a day. */}
+          <span
+            aria-hidden="true"
+            className={`grid h-[2rem] w-[2rem] shrink-0 place-items-center rounded-full text-xs font-semibold ${initialsTone(
+              gym.id,
+            )}`}
+          >
+            {gymInitials(gym.trading_name ?? gym.legal_name)}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate font-medium text-content">
+              {gym.trading_name ?? gym.legal_name}
+            </span>
+            <span className="block truncate text-xs text-content-muted">
+              {[gym.city, gym.state].filter(Boolean).join(', ') || gym.legal_name}
+            </span>
+          </span>
         </div>
       ),
     },
@@ -194,6 +227,7 @@ export function ApprovalQueueRoute() {
     {
       key: 'status',
       header: t('adm.gyms.col.status'),
+      sortKey: 'status',
       cell: (gym) => <Badge tone={statusTone(gym.status)}>{GYM_STATUS_LABEL[gym.status]}</Badge>,
     },
     {
@@ -206,7 +240,10 @@ export function ApprovalQueueRoute() {
         // the review screen's action bar says so where the decision would be made.
         <Link
           to={`/approvals/${gym.id}`}
-          className="gm-hit-target rounded-control border border-subtle px-inset-sm py-inset-2xs text-xs font-medium text-content-brand transition-colors duration-fast ease-standard hover:border-strong"
+          // The same shape as `Button variant="outline-brand"`, as a link — because it NAVIGATES.
+          // A `<button>` that changes the URL breaks middle-click, ctrl-click and "open in new tab",
+          // which on a queue an officer works through is the interaction they use most.
+          className="gm-hit-target inline-flex items-center rounded-full border border-brand-subtle bg-surface px-inset-md py-inset-2xs text-xs font-medium text-content-brand transition-colors duration-fast ease-standard hover:border-brand hover:bg-surface-brand-subtle"
         >
           {t('adm.queue.review')}
         </Link>
@@ -304,7 +341,24 @@ export function ApprovalQueueRoute() {
                   rows={paged}
                   rowKey={(gym) => gym.id}
                   caption={t('adm.queue.subtitle')}
-                  minWidth="52rem"
+                  minWidth="56rem"
+                  // The sort is REPORTED, not performed by the table — see `Column.sortKey`. The
+                  // route holds the order because it holds the whole result set; a table that
+                  // sorted its ten visible rows would put the largest of ten arbitrary rows on top.
+                  sort={{
+                    key: sortKey,
+                    direction: sortDirection,
+                    label: t('adm.queue.sortBy'),
+                    onSort: (key) => {
+                      if (key === sortKey) {
+                        setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
+                      } else {
+                        setSortKey(key);
+                        setSortDirection('desc');
+                      }
+                      setPage(1);
+                    },
+                  }}
                 />
               </div>
               <Pagination
@@ -327,11 +381,16 @@ export function ApprovalQueueRoute() {
 }
 
 /**
- * 6.2 region 1 — the summary strip.
+ * `§6.2` region 1 — the summary, as labelled cells rather than a sentence.
  *
- * Five figures, and the two loudest are the ones that mean somebody is late. `Breached` is danger-
- * toned and carries a glyph in the chip beside it in the table; here the WORD carries it, because
- * a bare red number in a strip of five is the colour-alone failure `AX8` names.
+ * ┌─ IT WAS A RUN-ON LINE, AND A QUEUE SUMMARY IS SCANNED, NOT READ ────────────────────────────┐
+ * │ "OPEN 30 BREACHED 26 APPROACHING 1 PAUSED 2 OLDEST 5668h" put five label-number pairs on one │
+ * │ baseline in the same size, so finding the breach count meant reading the whole line. Anita     │
+ * │ opens this screen 30–60 times a day and looks at one figure first.                            │
+ * │                                                                                              │
+ * │ Now each is a cell: a small label above a large figure, the figure carrying the severity ink. │
+ * │ The tint is redundant to the label, so nothing depends on it being perceived (`AX9`).          │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 function QueueSummary({
   summary,
@@ -346,59 +405,125 @@ function QueueSummary({
   };
   readonly pending: boolean;
 }) {
-  const figures: ReadonlyArray<{ key: string; label: string; value: string; tone: string }> = [
+  const cells: ReadonlyArray<{
+    key: string;
+    label: string;
+    value: string;
+    ink: string;
+    tone: string;
+  }> = [
     {
       key: 'open',
       label: t('adm.queue.summary.open'),
       value: String(summary.open),
-      tone: 'text-content',
+      ink: 'text-content',
+      tone: 'bg-surface-subtle text-content-secondary',
     },
     {
       key: 'breached',
       label: t('adm.queue.summary.breached'),
       value: String(summary.breached),
-      // Only tinted when it is non-zero. A permanent red "0" is how a strip stops being read.
-      tone: summary.breached > 0 ? 'text-content-danger' : 'text-content-muted',
+      // Only INK the figure when it is non-zero. A permanent red 0 is how a strip stops being read.
+      ink: summary.breached > 0 ? 'text-content-danger' : 'text-content-muted',
+      tone: 'bg-surface-danger-subtle text-content-danger',
     },
     {
       key: 'approaching',
       label: t('adm.queue.summary.approaching'),
       value: String(summary.approaching),
-      tone: summary.approaching > 0 ? 'text-content-warning' : 'text-content-muted',
+      ink: summary.approaching > 0 ? 'text-content-warning' : 'text-content-muted',
+      tone: 'bg-surface-warning-subtle text-content-warning',
     },
     {
       key: 'paused',
       label: t('adm.queue.summary.paused'),
       value: String(summary.paused),
-      tone: summary.paused > 0 ? 'text-content-info' : 'text-content-muted',
+      ink: summary.paused > 0 ? 'text-content-info' : 'text-content-muted',
+      tone: 'bg-surface-info-subtle text-content-info',
     },
     {
       key: 'oldest',
       label: t('adm.queue.summary.oldest'),
       value: `${String(summary.oldestHours)}${t('adm.queue.summary.hours')}`,
-      tone: 'text-content-secondary',
+      ink: 'text-content-secondary',
+      tone: 'bg-surface-subtle text-content-secondary',
     },
   ];
 
   return (
-    <div
-      role="region"
+    <section
       aria-label={t('adm.queue.summary.region')}
-      className="mt-stack-md flex flex-wrap items-center gap-inline-lg rounded-card border border-subtle bg-surface px-inset-md py-inset-sm"
+      className="mt-stack-md rounded-card border border-subtle bg-surface p-inset-md shadow-sm dark:bg-surface-raised dark:shadow-none"
     >
-      {figures.map((figure) => (
-        <p key={figure.key} className="flex items-baseline gap-inline-2xs">
-          <span className="text-xs uppercase tracking-wide text-content-muted">{figure.label}</span>
-          <span className={`text-base font-semibold tabular-nums ${figure.tone}`}>
-            {pending ? '\u2014' : figure.value}
-          </span>
-        </p>
-      ))}
+      <div className="grid gap-inline-md sm:grid-cols-3 xl:grid-cols-6">
+        {cells.map((cell) => (
+          <div key={cell.key} className="flex items-center justify-between gap-inline-sm">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-medium uppercase tracking-wider text-content-muted">
+                {cell.label}
+              </p>
+              <p className={`mt-stack-2xs text-2xl font-bold tabular-nums ${cell.ink}`}>
+                {pending ? '\u2014' : cell.value}
+              </p>
+            </div>
+            <span
+              aria-hidden="true"
+              className={`grid h-[2rem] w-[2rem] shrink-0 place-items-center rounded-control ${cell.tone}`}
+            >
+              <span className="h-[0.5rem] w-[0.5rem] rounded-full bg-current" />
+            </span>
+          </div>
+        ))}
 
-      {/* Region 2 of 6.2, named rather than faked. See the note on `summary`. */}
-      <p className="text-xs text-content-muted">{t('adm.queue.workloadPending')}</p>
-    </div>
+        {/* Region 2 of §6.2, named rather than faked — an assignee exists only once the
+            applications table does. It shares the grid so the strip has one rhythm. */}
+        <div className="min-w-0">
+          <p className="truncate text-xs font-medium uppercase tracking-wider text-content-muted">
+            {t('adm.queue.summary.workload')}
+          </p>
+          <p className="mt-stack-2xs text-xs text-content-muted">
+            {t('adm.queue.workloadPending')}
+          </p>
+        </div>
+      </div>
+    </section>
   );
+}
+
+/** Up to two initials from a gym's name. `Iron Fitness Bengaluru` -> `IF`. */
+function gymInitials(name: string): string {
+  const words = name
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter((word) => word !== '');
+
+  if (words.length >= 2) return `${words[0]?.[0] ?? ''}${words[1]?.[0] ?? ''}`.toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+/**
+ * A stable tint per gym, derived from its id.
+ *
+ * ┌─ THE COLOUR MEANS NOTHING, AND THAT IS DELIBERATE ─────────────────────────────────────────┐
+ * │ It is an identity aid, not a status: the same gym is the same colour every time, and no      │
+ * │ colour here implies anything about the application. Which is why the palette avoids the      │
+ * │ status families — a red avatar beside an amber SLA chip would read as a second severity.     │
+ * │                                                                                            │
+ * │ Derived from the id rather than the name so a rename does not recolour a row an officer has  │
+ * │ learned to recognise.                                                                       │
+ * └────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+const AVATAR_TONES = [
+  'bg-surface-brand-subtle text-content-brand',
+  'bg-surface-info-subtle text-content-info',
+  'bg-surface-subtle text-content-secondary',
+] as const;
+
+function initialsTone(id: string): string {
+  let hash = 0;
+  for (const character of id) hash = (hash + character.charCodeAt(0)) % 997;
+  return AVATAR_TONES[hash % AVATAR_TONES.length] ?? AVATAR_TONES[0];
 }
 
 export const PAGE_LABELS = {

@@ -103,6 +103,20 @@ export const dark = {
   'color-border-danger': p.red[400],
   'color-border-info': p.sky[400],
 
+  /**
+   * The subtle status borders. On a dark canvas the subtle FILL is the 950 step, so the border
+   * goes LIGHTER rather than darker — 700 measures 2.34–2.98:1 against it, which is the same
+   * "visible seam, not an outline" role the 300 steps play in light mode.
+   *
+   * 800 was the first choice and is too close to the fill at 1.84:1 for sky, which is the family
+   * where the subtle surface is darkest.
+   */
+  'color-border-success-subtle': p.green[700],
+  'color-border-warning-subtle': p.amber[700],
+  'color-border-danger-subtle': p.red[700],
+  'color-border-info-subtle': p.sky[700],
+  'color-border-brand-subtle': p.brandGreen[700],
+
   // --- brand ----------------------------------------------------------------
   // ┌─ THE SAME 700 AS LIGHT, AND HOVER DEEPENS IN BOTH THEMES ─────────────────────────────────┐
   // │ The foreground sits on the FILL, so the canvas behind it does not enter that pairing — which │

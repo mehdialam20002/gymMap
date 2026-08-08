@@ -23,8 +23,9 @@ import type { ReactNode } from 'react';
 
 export type Tone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger' | 'info';
 
+/** The subtle fill and its matching ink, per tone. One map — `Badge` had grown a second copy. */
 const TONE_SUBTLE: Record<Tone, string> = {
-  neutral: 'bg-surface-sunken text-content-secondary',
+  neutral: 'bg-surface-subtle text-content-secondary',
   brand: 'bg-surface-brand-subtle text-content-brand',
   success: 'bg-surface-success-subtle text-content-success',
   warning: 'bg-surface-warning-subtle text-content-warning',
@@ -88,14 +89,29 @@ export function Panel({
 export function Badge({
   children,
   tone = 'neutral',
+  dot = true,
 }: {
   readonly children: ReactNode;
   readonly tone?: Tone;
+  /**
+   * The leading dot. On by default.
+   *
+   * ┌─ A DOT IS NOT DECORATION HERE ────────────────────────────────────────────────────────────┐
+   * │ `AX8` forbids colour as the sole carrier of meaning, and the WORD already satisfies that.  │
+   * │ What the dot buys is scanning: down a column of thirty rows the eye finds a coloured mark  │
+   * │ at a fixed x-position far faster than it reads thirty words, and the word is still there   │
+   * │ for the row it stops on. Turn it off where the badge is already alone on its line.          │
+   * └───────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  readonly dot?: boolean;
 }) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-control px-inset-xs py-inset-2xs text-xs font-medium ${TONE_SUBTLE[tone]}`}
+      className={`inline-flex items-center gap-inline-2xs whitespace-nowrap rounded-full px-inset-sm py-inset-2xs text-xs font-medium ${TONE_SUBTLE[tone]}`}
     >
+      {dot && (
+        <span aria-hidden="true" className="h-[0.375rem] w-[0.375rem] shrink-0 rounded-full bg-current" />
+      )}
       {children}
     </span>
   );
@@ -112,19 +128,43 @@ export function Button({
   type = 'button',
   disabled = false,
   size = 'md',
+  icon,
 }: {
   readonly children: ReactNode;
   readonly onClick?: () => void;
-  readonly variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  /**
+   * `outline-brand` and `outline-danger` are the row-action variants.
+   *
+   * ┌─ WHY A ROW ACTION IS OUTLINED AND NOT FILLED ─────────────────────────────────────────────┐
+   * │ A table with ten filled buttons down its right edge has ten primary actions, which is the  │
+   * │ same as none: the eye cannot find the one that matters and the colour stops meaning        │
+   * │ "do this". An outlined pill reads as available without competing with the row's content,   │
+   * │ and it still carries the tone — so a destructive row action looks destructive.              │
+   * └───────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  readonly variant?:
+    | 'primary'
+    | 'secondary'
+    | 'ghost'
+    | 'danger'
+    | 'outline-brand'
+    | 'outline-danger';
   readonly type?: 'button' | 'submit';
   readonly disabled?: boolean;
   readonly size?: 'sm' | 'md';
+  /** A leading glyph. Decorative — the label always carries the meaning. */
+  readonly icon?: ReactNode;
 }) {
   const VARIANT = {
     primary: 'bg-brand-solid text-content-on-brand hover:bg-brand-solid-hover',
-    secondary: 'border border-subtle text-content-secondary hover:border-strong hover:text-content',
+    secondary:
+      'border border-subtle bg-surface text-content-secondary hover:border-strong hover:text-content',
     ghost: 'text-content-secondary hover:text-content',
     danger: 'border border-danger text-content-danger hover:bg-surface-danger-subtle',
+    'outline-brand':
+      'border border-brand-subtle bg-surface text-content-brand hover:border-brand hover:bg-surface-brand-subtle',
+    'outline-danger':
+      'border border-danger-subtle bg-surface text-content-danger hover:border-danger hover:bg-surface-danger-subtle',
   } as const;
 
   const SIZE = {
@@ -138,8 +178,11 @@ export function Button({
       onClick={onClick}
       disabled={disabled}
       {...(variant === 'primary' ? { 'data-on-solid': 'true' } : {})}
-      className={`gm-hit-target rounded-control font-medium transition-colors duration-fast ease-standard disabled:cursor-not-allowed disabled:border-subtle disabled:bg-surface-disabled disabled:text-content-disabled ${VARIANT[variant]} ${SIZE[size]}`}
+      // `rounded-full`. Every control in the reference is a pill, and a pill is also the shape
+      // that reads as "button" at 24px tall where a 12px radius reads as a tag.
+      className={`gm-hit-target inline-flex items-center justify-center gap-inline-2xs whitespace-nowrap rounded-full font-medium transition-colors duration-fast ease-standard disabled:cursor-not-allowed disabled:border-subtle disabled:bg-surface-disabled disabled:text-content-disabled ${VARIANT[variant]} ${SIZE[size]}`}
     >
+      {icon !== undefined && <span className="shrink-0">{icon}</span>}
       {children}
     </button>
   );
@@ -188,16 +231,22 @@ export function FilterTabs({
             // `aria-pressed`, not colour alone. A tab whose only "on" signal is a tint is
             // invisible to a screen reader and to anyone who cannot separate the two shades.
             aria-pressed={active}
-            className={`gm-hit-target flex items-center gap-inline-2xs rounded-control border px-inset-sm py-inset-2xs text-xs transition-colors duration-fast ease-standard ${
+            // A soft FILL for the active tab, not a coloured outline. Six outlined pills in a row
+            // all compete; one filled pill among five quiet ones is unambiguous at a glance.
+            className={`gm-hit-target flex items-center gap-inline-2xs rounded-full border px-inset-md py-inset-2xs text-xs transition-colors duration-fast ease-standard ${
               active
-                ? 'border-brand bg-surface-brand-subtle font-semibold text-content-brand'
-                : 'border-subtle text-content-secondary hover:text-content'
+                ? 'border-brand-subtle bg-surface-brand-subtle font-semibold text-content-brand'
+                : 'border-subtle bg-surface text-content-secondary hover:border-strong hover:text-content'
             }`}
           >
             <span>{tab.label}</span>
             {tab.count !== undefined && (
+              // The count in its own chip, so "Approved 193" reads as a label and a number rather
+              // than as the phrase "Approved 193".
               <span
-                className={`tabular-nums ${active ? 'text-content-brand' : 'text-content-muted'}`}
+                className={`rounded-full px-inset-2xs tabular-nums ${
+                  active ? 'bg-surface text-content-brand' : 'bg-surface-subtle text-content-muted'
+                }`}
               >
                 {tab.count}
               </span>
@@ -236,6 +285,27 @@ export interface Column<T> {
    * horizontal scrollbar appears under a table that visibly has room.
    */
   readonly flexible?: boolean;
+  /**
+   * The key to report when this header is clicked. Omit for a column that cannot be sorted.
+   *
+   * ┌─ THE TABLE DOES NOT SORT. IT REPORTS THAT A HEADER WAS CLICKED ────────────────────────────┐
+   * │ Sorting a page of ten rows in the browser sorts THE PAGE, not the result set — so the top   │
+   * │ row after a click is the largest of ten arbitrary rows, which is a wrong answer that looks  │
+   * │ like a right one. Every list in this console is server-ordered, and the server is the only  │
+   * │ thing that can honour a sort across 263 rows.                                               │
+   * │                                                                                           │
+   * │ So the caller owns the sort and this component owns the affordance.                          │
+   * └───────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  readonly sortKey?: string;
+}
+
+export interface TableSort {
+  readonly key: string;
+  readonly direction: 'asc' | 'desc';
+  readonly onSort: (key: string) => void;
+  /** `{c}` is replaced with the column header, for the button's accessible name. */
+  readonly label: string;
 }
 
 /**
@@ -264,6 +334,7 @@ export function DataTable<T>({
   caption,
   minWidth = '52rem',
   selection,
+  sort,
 }: {
   readonly columns: readonly Column<T>[];
   readonly rows: readonly T[];
@@ -286,6 +357,8 @@ export function DataTable<T>({
    * └────────────────────────────────────────────────────────────────────────────────────────┘
    */
   readonly selection?: TableSelection;
+  /** Omit for an unsorted table. See `Column.sortKey`. */
+  readonly sort?: TableSort;
 }) {
   const keys = rows.map(rowKey);
   // "All" means all rows ON THIS PAGE. A header checkbox that silently selected 263 gyms across 27
@@ -332,13 +405,41 @@ export function DataTable<T>({
               <th
                 key={column.key}
                 scope="col"
-                className={`px-inset-sm py-inset-xs text-xs font-semibold uppercase tracking-wide text-content-muted ${
+                {...(sort !== undefined && sort.key === column.sortKey
+                  ? { 'aria-sort': sort.direction === 'asc' ? ('ascending' as const) : ('descending' as const) }
+                  : {})}
+                className={`px-inset-sm py-inset-sm text-xs font-medium uppercase tracking-wider text-content-muted ${
                   column.align === 'right' ? 'text-right' : ''
                 } ${column.secondary === true ? 'hidden lg:table-cell' : ''} ${
                   column.flexible === true ? 'w-full' : ''
                 }`}
               >
-                {column.header}
+                {sort === undefined || column.sortKey === undefined ? (
+                  column.header
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sort.onSort(column.sortKey ?? '');
+                    }}
+                    aria-label={sort.label.replace('{c}', column.header)}
+                    className={`gm-hit-target inline-flex items-center gap-inline-2xs uppercase tracking-wider transition-colors duration-fast ease-standard hover:text-content ${
+                      sort.key === column.sortKey ? 'text-content' : ''
+                    }`}
+                  >
+                    {column.header}
+                    {/* The caret shows direction only on the ACTIVE column. A permanent
+                        double-arrow on every header is noise that says "sortable" thirty times
+                        and "sorted by this" never. */}
+                    <span aria-hidden="true" className="text-[0.625rem]">
+                      {sort.key === column.sortKey
+                        ? sort.direction === 'asc'
+                          ? '\u25B2'
+                          : '\u25BC'
+                        : '\u21C5'}
+                    </span>
+                  </button>
+                )}
               </th>
             ))}
           </tr>
@@ -353,8 +454,8 @@ export function DataTable<T>({
               key={key}
               // The selected row is TINTED, not merely ticked. A checkbox two hundred pixels away
               // from the name it belongs to is not a usable answer to "which rows did I pick".
-              className={`border-b border-subtle last:border-0 ${
-                checked ? 'bg-surface-brand-subtle' : 'hover:bg-surface-sunken'
+              className={`border-b border-subtle last:border-0 transition-colors duration-fast ease-standard ${
+                checked ? 'bg-surface-brand-subtle' : 'hover:bg-surface-subtle'
               }`}
             >
               {selection !== undefined && (
@@ -376,7 +477,7 @@ export function DataTable<T>({
               {columns.map((column) => (
                 <td
                   key={column.key}
-                  className={`px-inset-sm py-inset-xs align-middle text-content-secondary ${
+                  className={`px-inset-sm py-inset-sm align-middle text-content-secondary ${
                     column.align === 'right' ? 'text-right' : ''
                   } ${column.secondary === true ? 'hidden lg:table-cell' : ''} ${
                     column.flexible === true ? 'w-full max-w-[0]' : ''
@@ -405,6 +506,35 @@ export function DataTable<T>({
  * needs to know how much they are looking at, and a bare "1 2 3 … 246" answers a different
  * question than the one they have.
  */
+/**
+ * A window of page numbers around the current page, with the ends always present.
+ *
+ * ┌─ WHY NOT JUST PREV / NEXT ──────────────────────────────────────────────────────────────────┐
+ * │ The register runs to 27 pages. Prev/Next makes page 19 a nineteen-click destination and gives │
+ * │ no sense of where you are — and the two questions a person has at a paginated table are "how  │
+ * │ much is there" and "can I jump". The range sentence answers the first; these answer the       │
+ * │ second.                                                                                       │
+ * │                                                                                              │
+ * │ `1 … 4 5 6 … 27` rather than all 27: a row of 27 targets is a scan, not a control. The first  │
+ * │ and last are always shown because "go back to the start" and "how deep does this go" are the  │
+ * │ two jumps people actually make.                                                               │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+function pageWindow(page: number, pages: number): readonly (number | 'gap')[] {
+  if (pages <= 7) return Array.from({ length: pages }, (_, index) => index + 1);
+
+  const around = [page - 1, page, page + 1].filter((n) => n > 1 && n < pages);
+  const out: (number | 'gap')[] = [1];
+
+  if (around[0] !== undefined && around[0] > 2) out.push('gap');
+  out.push(...around);
+  const last = around[around.length - 1];
+  if (last !== undefined && last < pages - 1) out.push('gap');
+  out.push(pages);
+
+  return out;
+}
+
 export function Pagination({
   page,
   pageSize,
@@ -434,38 +564,82 @@ export function Pagination({
   const first = rowCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const last = Math.min(page * pageSize, rowCount);
 
+  const arrow =
+    'gm-hit-target grid h-[2rem] w-[2rem] place-items-center rounded-full border border-subtle bg-surface text-content-secondary transition-colors duration-fast ease-standard hover:border-strong hover:text-content disabled:cursor-not-allowed disabled:border-subtle disabled:text-content-disabled';
+
   return (
-    <div className="flex flex-wrap items-center justify-between gap-inline-sm pt-inset-sm">
-      <p className="text-xs text-content-muted">
+    <nav
+      aria-label={labels.results}
+      className="flex flex-wrap items-center justify-between gap-inline-sm border-t border-subtle pt-inset-md"
+    >
+      <p className="text-xs text-content-tertiary">
         {labels.showing} <span className="tabular-nums">{first}</span> {labels.to}{' '}
         <span className="tabular-nums">{last}</span> {labels.of}{' '}
-        <span className="tabular-nums">{rowCount.toLocaleString('en-IN')}</span> {labels.results}
+        <span className="font-medium tabular-nums">{rowCount.toLocaleString('en-IN')}</span>{' '}
+        {labels.results}
       </p>
 
       <div className="flex items-center gap-inline-2xs">
-        <Button
-          size="sm"
+        <button
+          type="button"
           onClick={() => {
             onPage(page - 1);
           }}
           disabled={page <= 1}
+          aria-label={labels.previous}
+          title={labels.previous}
+          className={arrow}
         >
-          {labels.previous}
-        </Button>
-        <span className="px-inset-xs text-xs tabular-nums text-content-secondary">
-          {page} / {pages}
-        </span>
-        <Button
-          size="sm"
+          <span aria-hidden="true">&#8249;</span>
+        </button>
+
+        {pageWindow(page, pages).map((entry, index) =>
+          entry === 'gap' ? (
+            // A gap is not a button. Rendering it as one invites a click that cannot do anything,
+            // and `…` as a disabled control is the most common pagination bug there is.
+            <span
+              key={`gap-${String(index)}`}
+              aria-hidden="true"
+              className="px-inset-2xs text-xs text-content-muted"
+            >
+              &#8230;
+            </span>
+          ) : (
+            <button
+              key={entry}
+              type="button"
+              onClick={() => {
+                onPage(entry);
+              }}
+              // `aria-current="page"`, which is what a screen reader reads as "current page" —
+              // `aria-pressed` would describe it as a toggle that happens to be on.
+              {...(entry === page ? { 'aria-current': 'page' as const } : {})}
+              className={`gm-hit-target grid h-[2rem] min-w-[2rem] place-items-center rounded-full px-inset-2xs text-xs tabular-nums transition-colors duration-fast ease-standard ${
+                entry === page
+                  ? 'bg-brand-solid font-semibold text-content-on-brand'
+                  : 'border border-subtle bg-surface text-content-secondary hover:border-strong hover:text-content'
+              }`}
+              {...(entry === page ? { 'data-on-solid': 'true' } : {})}
+            >
+              {entry}
+            </button>
+          ),
+        )}
+
+        <button
+          type="button"
           onClick={() => {
             onPage(page + 1);
           }}
           disabled={page >= pages}
+          aria-label={labels.next}
+          title={labels.next}
+          className={arrow}
         >
-          {labels.next}
-        </Button>
+          <span aria-hidden="true">&#8250;</span>
+        </button>
       </div>
-    </div>
+    </nav>
   );
 }
 

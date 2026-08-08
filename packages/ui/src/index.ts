@@ -57,6 +57,7 @@ export {
   type FilterTab,
   type Column,
   type TableSelection,
+  type TableSort,
 } from './patterns/index.tsx';
 
 export {

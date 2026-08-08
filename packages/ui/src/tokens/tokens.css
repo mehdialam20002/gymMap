@@ -328,6 +328,11 @@
   --gm-color-border-warning: #B45309;
   --gm-color-border-danger: #B91C1C;
   --gm-color-border-info: #0369A1;
+  --gm-color-border-success-subtle: #86EFAC;
+  --gm-color-border-warning-subtle: #FCD34D;
+  --gm-color-border-danger-subtle: #FCA5A5;
+  --gm-color-border-info-subtle: #7DD3FC;
+  --gm-color-border-brand-subtle: #6EE7B7;
   --gm-color-brand-solid: #047857;
   --gm-color-brand-solid-hover: #065F46;
   --gm-color-brand-solid-active: #064E3B;
@@ -414,6 +419,11 @@
     --gm-color-border-warning: #FBBF24;
     --gm-color-border-danger: #F87171;
     --gm-color-border-info: #38BDF8;
+    --gm-color-border-success-subtle: #15803D;
+    --gm-color-border-warning-subtle: #B45309;
+    --gm-color-border-danger-subtle: #B91C1C;
+    --gm-color-border-info-subtle: #0369A1;
+    --gm-color-border-brand-subtle: #047857;
     --gm-color-brand-solid: #047857;
     --gm-color-brand-solid-hover: #065F46;
     --gm-color-brand-solid-active: #064E3B;
@@ -495,6 +505,11 @@
   --gm-color-border-warning: #FBBF24;
   --gm-color-border-danger: #F87171;
   --gm-color-border-info: #38BDF8;
+  --gm-color-border-success-subtle: #15803D;
+  --gm-color-border-warning-subtle: #B45309;
+  --gm-color-border-danger-subtle: #B91C1C;
+  --gm-color-border-info-subtle: #0369A1;
+  --gm-color-border-brand-subtle: #047857;
   --gm-color-brand-solid: #047857;
   --gm-color-brand-solid-hover: #065F46;
   --gm-color-brand-solid-active: #064E3B;

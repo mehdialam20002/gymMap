@@ -98,6 +98,13 @@ const colors = {
     warning: v('color-border-warning'),
     danger: v('color-border-danger'),
     info: v('color-border-info'),
+    // The faint variants, for a line around a `*-subtle` fill. See the note in colour.light.ts:
+    // the 700 steps measure 4.84-5.57:1 on their own fill, which is an outline rather than a seam.
+    'brand-subtle': v('color-border-brand-subtle'),
+    'success-subtle': v('color-border-success-subtle'),
+    'warning-subtle': v('color-border-warning-subtle'),
+    'danger-subtle': v('color-border-danger-subtle'),
+    'info-subtle': v('color-border-info-subtle'),
   },
 
   brand: {

@@ -509,10 +509,10 @@ export function PlatformDashboardRoute() {
  * An `amber-50/50` overlay of the kind the reference uses would do neither.
  */
 const ROW_TINT = {
-  critical: 'border-danger bg-surface-danger-subtle',
-  serious: 'border-warning bg-surface-warning-subtle',
-  info: 'border-info bg-surface-info-subtle',
-  good: 'border-success bg-surface-success-subtle',
+  critical: 'border-danger-subtle bg-surface-danger-subtle',
+  serious: 'border-warning-subtle bg-surface-warning-subtle',
+  info: 'border-info-subtle bg-surface-info-subtle',
+  good: 'border-success-subtle bg-surface-success-subtle',
 } as const;
 
 const SEVERITY_INK = {
@@ -559,7 +559,7 @@ const METRIC_LABEL: Readonly<Record<RevenueMetric, MessageKey>> = {
 /** The line the whole screen is organised around. See the file header. */
 function SampleNotice() {
   return (
-    <p className="mt-stack-lg rounded-card border border-warning bg-surface-warning-subtle px-inset-md py-inset-sm text-xs text-content-warning">
+    <p className="mt-stack-lg rounded-card border border-warning-subtle bg-surface-warning-subtle px-inset-md py-inset-sm text-xs text-content-warning">
       {t('adm.sample.notice')}
     </p>
   );
@@ -642,6 +642,13 @@ function LiveTile({
         value={value === undefined ? undefined : value.toLocaleString('en-IN')}
         tone={tone}
         icon={<TileGlyph icon={icon} />}
+        // ┌─ THE FRESHNESS CAPTION IS SUCCESS INK, NOT MUTED GREY ─────────────────────────────┐
+        // │ It was `content-muted` — 4.76:1 on white, which passes and still reads as a          │
+        // │ disclaimer. "live" is the one word on the card that says the figure can be TRUSTED,  │
+        // │ and it was set in the faintest ink in the system directly under the boldest figure.  │
+        // │ `content-success` is 6.53:1 and matches the reference's green freshness dot.          │
+        // └────────────────────────────────────────────────────────────────────────────────────┘
+        captionTone="success"
         caption={t('adm.dashboard.live')}
         loadingLabel={t('adm.state.loading')}
       />
@@ -831,7 +838,16 @@ function NeedsAttention({
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm font-medium text-content">{item.headline}</span>
-                  <span className="block text-xs text-content-muted">{item.detail}</span>
+                  {/* ┌─ `content-tertiary`, NOT `content-muted` ────────────────────────────┐
+                      │ Measured: muted on `info-subtle` is **4.46:1** — UNDER the 4.5 text    │
+                      │ floor. It shipped, and it took measuring the pairing rather than       │
+                      │ looking at it to find, because 4.46 and 4.55 are indistinguishable by  │
+                      │ eye and the other three rows passed.                                    │
+                      │                                                                       │
+                      │ Tertiary is 6.93-7.31:1 on all four tinted surfaces. It is also the    │
+                      │ exact replacement the old F1 pairing prescribed for muted-on-a-tint.   │
+                      └───────────────────────────────────────────────────────────────────────┘ */}
+                  <span className="block text-xs text-content-tertiary">{item.detail}</span>
                 </span>
               </span>
               {/* On `surface` rather than transparent, so the button reads as a control sitting ON

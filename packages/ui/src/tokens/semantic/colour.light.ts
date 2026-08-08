@@ -153,6 +153,30 @@ export const light = {
   'color-border-danger': p.red[700],
   'color-border-info': p.sky[700],
 
+  /**
+   * The SUBTLE status borders — for a 1px line around a `*-subtle` FILL.
+   *
+   * ┌─ THE 700 STEPS WERE BEING USED FOR THIS, AND THEY ARE FOUR TIMES TOO LOUD ─────────────────┐
+   * │ Measured: `amber-700` on `amber-50` is **4.84:1** and `sky-700` on `sky-50` is **5.57:1**.   │
+   * │ That is a text-grade contrast used as a decorative outline, so the attention rows read as    │
+   * │ hard-outlined boxes rather than as tinted regions — the border shouted louder than the       │
+   * │ content inside it.                                                                          │
+   * │                                                                                            │
+   * │ The 700 steps are still right where a border IS the signal: a danger button's outline, a     │
+   * │ focused input. They are wrong where a FILL is already the signal.                            │
+   * │                                                                                            │
+   * │ 300 measures 1.39–1.56:1 against its own fill. Deliberately faint: on a tinted row the       │
+   * │ region is defined by the fill, and the severity by the glyph and the wording (`AX8`), so     │
+   * │ the border only has to stop the fill bleeding into the canvas. Nothing here is the sole      │
+   * │ carrier of anything, which is why a sub-3:1 line is legitimate rather than a shortcut.        │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  'color-border-success-subtle': p.green[300],
+  'color-border-warning-subtle': p.amber[300],
+  'color-border-danger-subtle': p.red[300],
+  'color-border-info-subtle': p.sky[300],
+  'color-border-brand-subtle': p.brandGreen[300],
+
   // --- brand: the one persuasive colour -------------------------------------
   /*
    * §3.5's direction INVERTS for this family, and the rule it serves does not.

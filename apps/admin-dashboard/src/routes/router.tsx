@@ -65,7 +65,18 @@ function AdminLayout() {
       <ImpersonationBanner session={session} />
 
       <MfaGate>
-        <div className="flex min-h-screen bg-surface-sunken">
+        {/* ┌─ `h-screen` WITH ONE SCROLLING REGION, NOT A PAGE THAT GROWS ────────────────────┐
+            │ It was `min-h-screen`, so the shell grew with the content and the sidebar grew with │
+            │ it: the identity footer sat at the bottom of the DOCUMENT, hundreds of pixels below │
+            │ the fold, and the topbar scrolled away with the table.                              │
+            │                                                                                  │
+            │ Fixing the shell to the viewport and scrolling only `<main>` keeps the navigation,  │
+            │ the search and the identity permanently reachable — which for an officer who opens  │
+            │ the queue 30-60 times a day is the difference between two clicks and a scroll then  │
+            │ two clicks. It is also what makes the sticky decision bar on `SCR-ADM-003` sit at    │
+            │ the bottom of the SCREEN rather than at the bottom of a very long page.              │
+            └──────────────────────────────────────────────────────────────────────────────────┘ */}
+        <div className="flex h-screen overflow-hidden bg-surface-sunken">
           <AdminNav
             collapsed={collapsed}
             onToggle={() => {
@@ -85,13 +96,24 @@ function AdminLayout() {
                 │ Compact density (`DesignSystem.md` §1.1) is about information per glance, not │
                 │ about filling the glass.                                                       │
                 └────────────────────────────────────────────────────────────────────────────────┘ */}
+            {/* The ONE scrolling region. `min-h-0` because a flex child will not shrink below its
+                content without it, which is the bug that makes `overflow-y-auto` silently do
+                nothing inside a flex column. */}
             <main
               id="main"
               tabIndex={-1}
               aria-label={t('adm.chrome.mainLandmark')}
-              className="mx-auto w-full min-w-0 max-w-container flex-1 px-inset-lg py-inset-lg"
+              className="min-h-0 flex-1 overflow-y-auto"
             >
-              <Outlet />
+              {/* The measure lives on an INNER wrapper, not on the scroll container.
+                  `max-w-container` on the scrolling element would centre the scrollbar in the
+                  middle of the screen — the container has to be full width and its contents
+                  constrained. 1440px, because on an 1800px monitor a queue row otherwise puts a
+                  gym's name at one edge and its status at the other with 1400px of nothing
+                  between them, and the eye cannot associate the two. */}
+              <div className="mx-auto w-full min-w-0 max-w-container px-inset-lg py-inset-lg">
+                <Outlet />
+              </div>
             </main>
           </div>
         </div>
@@ -101,8 +123,7 @@ function AdminLayout() {
 }
 
 function AdminHeader() {
-  const session = useSession();
-  const { signOut } = useSessionController();
+  // No session state here any more — identity moved to the sidebar footer.
   const navigate = useNavigate();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -153,84 +174,29 @@ function AdminHeader() {
           </button>
 
           <div className="flex shrink-0 items-center gap-inline-sm">
-            {/* The environment, because an operator with two tabs open needs to know which one
-                can suspend a real gym. Absent in production, where the answer is the default. */}
-            {/* A dot AND the word. The dot alone would be decoration; the word alone is what an
-                operator with two tabs open actually reads. Neutral-toned rather than warning:
-                being in development is a fact, not a problem. */}
+            {/* +- THE TOPBAR CARRIES THREE THINGS NOW, NOT SEVEN -----------------------------+
+                | It had a search field, an environment pill, a notifications bell, a help      |
+                | button, a three-segment theme control, an avatar, a role, a truncated uuid    |
+                | and a Sign out button. Nine controls, of which two were permanently disabled  |
+                | and three were identity that belongs beside the person's name.                |
+                |                                                                            |
+                | The bell and the help button went entirely rather than staying disabled: an   |
+                | inert control earns its place on a screen where the operator might reasonably |
+                | look for it, and nobody hunts the topbar for a feature that does not exist.   |
+                | They come back when `A-19` lands and there is something to notify.            |
+                |                                                                            |
+                | Identity moved to the SIDEBAR FOOTER, which is where the reference puts it    |
+                | and where it reads as "who am I" rather than as another toolbar button.        |
+                +-----------------------------------------------------------------------------+ */}
             <span className="hidden items-center gap-inline-2xs rounded-full bg-surface-subtle px-inset-sm py-inset-2xs text-xs font-medium text-content-secondary lg:inline-flex">
-              <span aria-hidden="true" className="h-[0.5rem] w-[0.5rem] rounded-full bg-success-solid" />
+              <span
+                aria-hidden="true"
+                className="h-[0.5rem] w-[0.5rem] rounded-full bg-success-solid"
+              />
               {t('adm.chrome.env')}
             </span>
 
-            {/* ┌─ BOTH INERT, AND BOTH SAY WHY WHEN YOU HOVER THEM ───────────────────────┐
-                │ There is no notifications table and no help centre — `A-19` leaves the      │
-                │ notification vendors open, so a bell that opened an empty tray would be     │
-                │ inventing the one thing a bell is for. Present because the shell is the     │
-                │ shell; disabled because the alternative is a lie with a badge on it.         │
-                └─────────────────────────────────────────────────────────────────────────────┘ */}
-            <button
-              type="button"
-              disabled
-              aria-label={t('adm.chrome.notifications')}
-              title={t('adm.chrome.notifications')}
-              className="gm-hit-target hidden rounded-control px-inset-2xs text-content-disabled sm:block"
-            >
-              <ChromeGlyph icon="notifications" />
-            </button>
-            <button
-              type="button"
-              disabled
-              aria-label={t('adm.chrome.help')}
-              title={t('adm.chrome.help')}
-              className="gm-hit-target hidden rounded-control px-inset-2xs text-content-disabled sm:block"
-            >
-              <ChromeGlyph icon="help" />
-            </button>
-
             <ThemeToggle />
-
-            {session.status === 'AUTHENTICATED' && (
-              <div className="flex items-center gap-inline-sm">
-                {/* ┌─ INITIALS AND A ROLE, NOT A PHOTO AND NOT A UUID ────────────────────────┐
-                    │ There is no avatar upload and no profile endpoint until `M-023`, and a    │
-                    │ stock face beside real platform figures is a small fiction on a screen    │
-                    │ whose whole job is being trustworthy.                                     │
-                    │                                                                          │
-                    │ The line under it is the operator's ROLE, read from the token's `roles`   │
-                    │ claim — real, and the thing they actually need confirmed before they      │
-                    │ suspend a gym. The identifier they typed sits in the `title`; after a     │
-                    │ reload only the uuid survives, and thirty-six characters of it in a       │
-                    │ topbar is noise rather than information.                                  │
-                    └──────────────────────────────────────────────────────────────────────────┘ */}
-                <span
-                  aria-hidden="true"
-                  className="grid h-[2.25rem] w-[2.25rem] shrink-0 place-items-center rounded-full bg-surface-brand-subtle text-xs font-semibold text-content-brand"
-                >
-                  {initialsOf(session.displayName)}
-                </span>
-                <span
-                  title={session.displayName}
-                  className="hidden max-w-[10rem] flex-col leading-tight lg:flex"
-                >
-                  <span className="truncate text-xs font-medium text-content">
-                    {session.roleLabel ?? t('adm.chrome.roleUnknown')}
-                  </span>
-                  <span className="truncate font-mono text-xs text-content-muted">
-                    {shortIdOf(session.displayName)}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void signOut();
-                  }}
-                  className="gm-hit-target rounded-control border border-subtle px-inset-sm py-inset-2xs text-sm text-content-secondary transition-colors duration-fast ease-standard hover:border-strong hover:text-content"
-                >
-                  {t('adm.chrome.signOut')}
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </header>
@@ -333,6 +299,9 @@ function AdminNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () =>
         ))}
       </div>
 
+      {/* The identity, pinned to the bottom of the sidebar. See the note in the topbar. */}
+      <SidebarIdentity collapsed={collapsed} />
+
       <button
         type="button"
         onClick={onToggle}
@@ -342,6 +311,81 @@ function AdminNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () =>
         {collapsed ? '>>' : `<< ${t('adm.chrome.collapse')}`}
       </button>
     </nav>
+  );
+}
+
+/**
+ * Who is signed in, and the way out. Pinned to the foot of the sidebar.
+ *
+ * ┌─ INITIALS AND A ROLE, NEVER A STOCK FACE ────────────────────────────────────────────────────┐
+ * │ There is no avatar upload and no profile endpoint until `M-023`, and a stock portrait beside  │
+ * │ real platform figures is a small fiction on a screen whose whole job is being trustworthy.    │
+ * │                                                                                              │
+ * │ The line under the name is the operator's ROLE, read from the token's `roles` claim — which   │
+ * │ is the thing they actually need confirmed before they suspend a gym. The identifier they typed │
+ * │ is in the `title`; after a reload only the uuid survives, and thirty-six characters of it in a │
+ * │ 256px sidebar is noise.                                                                       │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+function SidebarIdentity({ collapsed }: { readonly collapsed: boolean }) {
+  const session = useSession();
+  const { signOut } = useSessionController();
+
+  if (session.status !== 'AUTHENTICATED') return null;
+
+  return (
+    <div
+      className={`flex items-center gap-inline-sm border-t border-subtle px-inset-md py-inset-sm ${
+        collapsed ? 'justify-center' : ''
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        title={session.displayName}
+        className="grid h-[2.25rem] w-[2.25rem] shrink-0 place-items-center rounded-full bg-surface-brand-subtle text-xs font-semibold text-content-brand"
+      >
+        {initialsOf(session.displayName)}
+      </span>
+
+      {!collapsed && (
+        <>
+          <span className="min-w-0 flex-1" title={session.displayName}>
+            <span className="block truncate text-xs font-semibold text-content">
+              {session.roleLabel ?? t('adm.chrome.roleUnknown')}
+            </span>
+            <span className="block truncate font-mono text-xs text-content-muted">
+              {shortIdOf(session.displayName)}
+            </span>
+          </span>
+
+          <button
+            type="button"
+            onClick={() => {
+              void signOut();
+            }}
+            aria-label={t('adm.chrome.signOut')}
+            title={t('adm.chrome.signOut')}
+            className="gm-hit-target shrink-0 rounded-control px-inset-2xs text-content-muted transition-colors duration-fast ease-standard hover:text-content-danger"
+          >
+            {/* A door with an arrow. `aria-label` carries the meaning; the glyph is decorative. */}
+            <svg
+              viewBox="0 0 24 24"
+              width="17"
+              height="17"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <path d="M10 17l-5-5 5-5M5 12h11" />
+            </svg>
+          </button>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -409,7 +453,10 @@ function NavItemLink({
           {pending && (
             <span
               aria-hidden="true"
-              className="shrink-0 rounded-control border border-subtle px-inset-2xs text-xs font-medium text-content-muted"
+              // `content-tertiary` (7.58:1) rather than muted (4.76:1). Muted passes the floor and
+              // still fails the badge: this is 12px inside a 1px pill, and the floor is a minimum
+              // for BODY text, not a target for the smallest text on the screen.
+              className="shrink-0 rounded-control border border-subtle px-inset-2xs text-xs font-medium text-content-tertiary"
             >
               {t('adm.chrome.inDevelopmentShort')}
             </span>
