@@ -222,12 +222,20 @@ export function ForOwners() {
           </h2>
           <p className="mt-stack-sm text-base text-content-on-media">{t('web.home.owners.body')}</p>
           {/*
-           * `/for-gyms` does not exist yet, so this states the offer without promising a page.
-           * It becomes a Link in the phase that builds that surface — one line, one file.
+           * This was a `<p>` while `/for-gyms` did not exist — the offer stated without a promise
+           * of a page. The page exists now, so it is a link.
+           *
+           * `data-on-media` rather than `data-on-solid`: the focus ring under `on-solid` resolves
+           * to `content-inverse`, which goes near-black in dark theme and all but disappears on
+           * this band. `focus.css` carries the override.
            */}
-          <p className="mt-stack-lg inline-flex items-center rounded-control border border-strong px-inset-lg py-inset-sm text-base font-semibold text-content-on-media">
+          <Link
+            href="/for-gyms"
+            data-on-media="true"
+            className="gm-hit-target mt-stack-lg inline-flex items-center rounded-control border border-strong px-inset-lg py-inset-sm text-base font-semibold text-content-on-media transition-colors duration-fast ease-standard hover:bg-surface-inverse"
+          >
             {t('web.home.owners.cta')}
-          </p>
+          </Link>
         </div>
       </div>
     </section>

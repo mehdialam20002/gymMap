@@ -386,6 +386,105 @@ export const en = {
   'web.confirmation.next.email':
     'An email, once the payment is confirmed rather than when it is started.',
   'web.confirmation.pending.title': 'If the confirmation is slow',
+  // --- SCR-WEB-020 · how it works (members) --------------------------------
+  'web.howItWorks.title': 'How GymMap works',
+  'web.howItWorks.metaDescription':
+    'Find a verified gym, see the real price, join online and check in with a code. Here is each step and what happens behind it.',
+  'web.howItWorks.intro':
+    'Four steps, and one rule behind each of them. The rules are what make the steps worth trusting, so they are stated rather than implied.',
+  'web.howItWorks.rule': 'The rule behind it',
+  // Each step's rule is the business rule itself, in a member's words.
+  'web.howItWorks.discover.rule':
+    'A person reviews every gym before it is listed. Nothing appears here because it paid to.',
+  'web.howItWorks.compare.rule':
+    'Every figure on a listing is the gym’s own, shown in full. Taxes are added on the review screen before you commit, never after.',
+  'web.howItWorks.choose.rule':
+    'The total you approve is checked again on our server before any payment is taken. A mismatch stops the payment rather than charging a different figure.',
+  'web.howItWorks.join.rule':
+    'Your membership activates when the payment provider confirms the payment to our server — not when your browser returns. A dropped connection cannot leave you paid and without a membership.',
+  'web.howItWorks.reviews.title': 'Why the reviews here are different',
+  'web.howItWorks.reviews.body':
+    'A review can only be written by a member with a recorded check-in at that gym. That is the whole rule. It means a new gym starts with no reviews rather than with reviews nobody earned, and it means the ones you read came from people who actually went.',
+  'web.howItWorks.cta': 'Find a gym near you',
+
+  // --- SCR-WEB-030 · for gyms ----------------------------------------------
+  'web.forGyms.title': 'List your gym on GymMap',
+  'web.forGyms.metaDescription':
+    'Reach members searching for a gym near them, sell memberships online, take payments and track check-ins from one place.',
+  'web.forGyms.hero.eyebrow': 'For gym owners',
+  'web.forGyms.hero.body':
+    'People searching for a gym in your area are already looking. GymMap puts your listing in front of them with your real prices, and gives you the tools to turn a search into a member.',
+  'web.forGyms.hero.cta': 'Start listing',
+  'web.forGyms.hero.secondary': 'How verification works',
+
+  'web.forGyms.value.title': 'What you get',
+  'web.forGyms.value.reach.title': 'Local search that finds you',
+  'web.forGyms.value.reach.body':
+    'Your gym appears on the city and activity pages members actually search for, with your photos, your facilities and your prices.',
+  'web.forGyms.value.sell.title': 'Memberships sold online',
+  'web.forGyms.value.sell.body':
+    'Members choose a plan and pay before they arrive. The membership is issued automatically once the payment is confirmed.',
+  'web.forGyms.value.checkin.title': 'Check-in without a register',
+  'web.forGyms.value.checkin.body':
+    'Members show a code, your staff scan it on any phone or tablet, and the visit is recorded against the right membership.',
+  'web.forGyms.value.money.title': 'Money you can reconcile',
+  'web.forGyms.value.money.body':
+    'Every sale is broken down to the paise — what the member paid, the tax, our commission, the gateway fee and what settles to you. Nothing is rounded away.',
+
+  'web.forGyms.steps.title': 'How listing works',
+  'web.forGyms.steps.apply.title': 'Tell us about the gym',
+  'web.forGyms.steps.apply.body':
+    'Name, address, what you offer, your plans and prices, and the documents that show the business is yours.',
+  'web.forGyms.steps.verify.title': 'A person checks it',
+  'web.forGyms.steps.verify.body':
+    'Not a script. Someone reads the application and confirms the gym is real before anything goes live — which is the reason a member trusts what they find here.',
+  'web.forGyms.steps.live.title': 'The listing goes live',
+  'web.forGyms.steps.live.body':
+    'It appears in search, on your city page and on the pages for every activity you offer.',
+  'web.forGyms.steps.paid.title': 'You get paid',
+  'web.forGyms.steps.paid.body':
+    'Payments settle to your account on a fixed cycle, with a statement that reconciles to the paise.',
+
+  'web.forGyms.commission.title': 'What it costs',
+  // The rate itself is documented (LAUNCH_MARKET_INDIA.md) and publishing it is the owner's
+  // decision, not a page author's — so this states the SHAPE of the charge honestly and leaves
+  // the number to the signup conversation rather than inventing or leaking one.
+  'web.forGyms.commission.body':
+    'A commission per membership sold, and nothing else: no listing fee, no monthly charge and no fee for a month with no sales. The rate is agreed before you list and is shown on every statement, and the rate that applied on the day of a sale is the rate that sale keeps — a later change never rewrites an old settlement.',
+
+  'web.forGyms.faq.title': 'Questions owners ask',
+  'web.forGyms.faq.control.q': 'Do I lose control of my prices?',
+  'web.forGyms.faq.control.a':
+    'No. You set the plans and the prices, and you change them when you like. What GymMap guarantees a member is that the price they were shown is the price they are charged.',
+  'web.forGyms.faq.reviews.q': 'Can someone review my gym without visiting?',
+  'web.forGyms.faq.reviews.a':
+    'No. A review requires a recorded check-in at your gym. That protects you at least as much as it protects the member.',
+  'web.forGyms.faq.data.q': 'Whose members are they?',
+  'web.forGyms.faq.data.a':
+    'Yours. You see who holds a membership at your gym and when they came, and you can export it.',
+  'web.forGyms.faq.exclusive.q': 'Do I have to be exclusive to GymMap?',
+  'web.forGyms.faq.exclusive.a':
+    'No. Listing here does not stop you selling memberships at the door, on your own site, or anywhere else.',
+
+  'web.forGyms.signup.title': 'Start listing your gym',
+  'web.forGyms.signup.metaDescription':
+    'Send your gym’s details and a person will review the listing before it goes live.',
+  'web.forGyms.signup.intro':
+    'This is the first half of onboarding: enough for a person to check the gym is real. Plans, photos and payout details come after that, in the owner dashboard.',
+  'web.forGyms.signup.field.gym': 'Gym name',
+  'web.forGyms.signup.field.city': 'City',
+  'web.forGyms.signup.field.contact': 'Your name',
+  'web.forGyms.signup.field.email': 'Email',
+  'web.forGyms.signup.field.phone': 'Phone',
+  'web.forGyms.signup.field.about': 'Anything we should know',
+  'web.forGyms.signup.submit': 'Send the application',
+  // The form is complete and its endpoint is not. Said next to the button rather than discovered
+  // by a gym owner who filled it in.
+  'web.forGyms.signup.notice':
+    'Gym onboarding is not connected yet, so this form does not send anything. It is here so the fields can be reviewed — nothing you type is stored or transmitted.',
+  'web.forGyms.signup.verifyNote':
+    'Every application is read by a person. A gym is not listed until it has been approved, which is why the catalogue is smaller than a directory that lists anyone.',
+
   // --- SCR-WEB-008/009 · city and activity landings ------------------------
   // `{city}` / `{activity}` / `{count}` are substituted at the call site. A translator must be
   // able to move them, and several languages put the noun before the place.

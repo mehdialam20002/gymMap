@@ -32,10 +32,10 @@ export interface NavItem {
 export const PRIMARY_NAV: readonly NavItem[] = [
   { href: '/search', label: 'web.chrome.nav.search', built: true },
   { href: '/explore', label: 'web.chrome.nav.explore', built: true },
-  { href: '/how-it-works', label: 'web.chrome.nav.howItWorks', built: false },
+  { href: '/how-it-works', label: 'web.chrome.nav.howItWorks', built: true },
   { href: '/memberships', label: 'web.chrome.footer.memberships', built: false },
   { href: '/cities', label: 'web.chrome.nav.cities', built: true },
-  { href: '/for-gyms', label: 'web.chrome.nav.forGyms', built: false },
+  { href: '/for-gyms', label: 'web.chrome.nav.forGyms', built: true },
 ];
 
 export interface FooterColumn {
@@ -65,8 +65,8 @@ export const FOOTER_NAV: readonly FooterColumn[] = [
   {
     heading: 'web.chrome.footer.forGyms',
     items: [
-      { href: '/for-gyms', label: 'web.chrome.footer.listGym', built: false },
-      { href: '/for-gyms/signup', label: 'web.chrome.nav.signUp', built: false },
+      { href: '/for-gyms', label: 'web.chrome.footer.listGym', built: true },
+      { href: '/for-gyms/signup', label: 'web.chrome.nav.signUp', built: true },
     ],
   },
   {
