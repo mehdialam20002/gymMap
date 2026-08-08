@@ -3,8 +3,7 @@
  *
  * ┌─ TABULAR NUMERALS ON EVERY FIGURE IN A COLUMN — `DesignSystem.md` §1.1 ─────────────────────┐
  * │ Proportional digits make a column of numbers ragged, and a ragged column cannot be scanned  │
- * │ for an outlier — which is the only reason to put numbers in a column. `tabular-nums` on the │
- * │ commission cell is not typography preference, it is what makes the column readable.          │
+ * │ for an outlier — which is the only reason to put numbers in a column at all.                 │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
  * The commission arrives as integer basis points and is divided in exactly one place
@@ -12,191 +11,211 @@
  * rounding difference between what the gym agreed and what the ledger applies.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import {
+  Badge,
+  DataTable,
+  FilterTabs,
+  Pagination,
+  Panel,
+  StateBoundary,
+  TableSkeleton,
+  toSurfaceState,
+  type Column,
+} from '@gymmap/ui';
 
 import { t } from '../shared/i18n/index.ts';
-import {
-  GYM_STATUSES,
-  formatBps,
-  platformGyms,
-  type GymStatus,
-  type GymRow,
-} from '../shared/api/admin.ts';
-import { GYM_STATUS_LABEL, StatusPill } from './status-pill.tsx';
+import { formatBps, platformGyms, type GymRow, type GymStatus } from '../shared/api/admin.ts';
+import { toProblem } from '../shared/api/client.ts';
+import { GYM_STATUS_LABEL, statusTone } from './status-pill.tsx';
+import { PAGE_LABELS } from './approval-queue.route.tsx';
+
+const PAGE_SIZE = 10;
+
+/**
+ * The register's tabs, in the order an operator thinks about them.
+ *
+ * Not the eight raw enum values. `Active` folds APPROVED, and the three in-flight states live on
+ * the approval queue where the work is — a register is for looking things up, not for triage.
+ */
+const TABS: ReadonlyArray<{ id: string; label: string; statuses: readonly GymStatus[] | null }> = [
+  { id: 'all', label: 'All', statuses: null },
+  { id: 'active', label: 'Active', statuses: ['APPROVED'] },
+  { id: 'pending', label: 'In review', statuses: ['SUBMITTED', 'UNDER_REVIEW', 'INFO_REQUESTED'] },
+  { id: 'suspended', label: 'Suspended', statuses: ['SUSPENDED'] },
+  { id: 'rejected', label: 'Rejected', statuses: ['REJECTED'] },
+  { id: 'draft', label: 'Draft', statuses: ['DRAFT', 'CLOSED'] },
+];
 
 export function GymRegisterRoute() {
-  const [status, setStatus] = useState<GymStatus | null>(null);
+  const [tab, setTab] = useState('all');
+  const [page, setPage] = useState(1);
 
-  const gyms = useQuery({
-    queryKey: ['admin', 'gyms', status ?? 'all'],
-    queryFn: () => platformGyms(status),
+  const query = useQuery({
+    queryKey: ['admin', 'gyms', 'all'],
+    queryFn: () => platformGyms(),
     refetchInterval: 60_000,
   });
+
+  const all = query.data?.gyms ?? [];
+
+  const rows = useMemo(() => {
+    const admitted = TABS.find((entry) => entry.id === tab)?.statuses;
+    return admitted === null || admitted === undefined
+      ? all
+      : all.filter((gym) => admitted.includes(gym.status));
+  }, [all, tab]);
+
+  const counts = useMemo(
+    () =>
+      Object.fromEntries(
+        TABS.map((entry) => [
+          entry.id,
+          entry.statuses === null
+            ? all.length
+            : all.filter((gym) => entry.statuses?.includes(gym.status) === true).length,
+        ]),
+      ),
+    [all],
+  );
+
+  const state = toSurfaceState(query, {
+    isEmpty: () => rows.length === 0,
+    emptyReason: () => (tab === 'all' ? 'no-records' : 'filtered-out'),
+    toProblem,
+  });
+
+  const columns: readonly Column<GymRow>[] = [
+    {
+      key: 'gym',
+      header: t('adm.gyms.col.gym'),
+      cell: (gym) => (
+        <div className="min-w-0">
+          <Link
+            to={`/gyms/${gym.id}`}
+            className="truncate font-medium text-content hover:underline"
+          >
+            {gym.trading_name ?? gym.legal_name}
+          </Link>
+          {/* The legal name is what appears on an invoice and in a dispute, so it is shown too
+              when it differs — not collapsed into the trading name. */}
+          {gym.trading_name !== null && gym.trading_name !== gym.legal_name && (
+            <p className="truncate text-xs text-content-muted">{gym.legal_name}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'location',
+      header: t('adm.gyms.col.location'),
+      cell: (gym) => (
+        <span className="text-xs">{[gym.city, gym.state].filter(Boolean).join(', ') || '-'}</span>
+      ),
+    },
+    {
+      key: 'status',
+      header: t('adm.gyms.col.status'),
+      cell: (gym) => <Badge tone={statusTone(gym.status)}>{GYM_STATUS_LABEL[gym.status]}</Badge>,
+    },
+    {
+      key: 'subscription',
+      header: t('adm.gyms.col.subscription'),
+      secondary: true,
+      cell: (gym) => (
+        <span className="text-xs capitalize">
+          {gym.subscription_status.toLowerCase().replace(/_/g, ' ')}
+        </span>
+      ),
+    },
+    {
+      key: 'commission',
+      header: t('adm.gyms.col.commission'),
+      align: 'right',
+      cell: (gym) => <span className="tabular-nums">{formatBps(gym.commission_rate_bps)}</span>,
+    },
+    {
+      key: 'gstin',
+      header: t('adm.gyms.col.gstin'),
+      secondary: true,
+      cell: (gym) =>
+        gym.gstin === null ? (
+          // Not an error, and not every gym has one — below the turnover threshold registration
+          // is not required. An empty cell would read as missing data.
+          <span className="text-xs text-content-muted">{t('adm.gyms.notRegistered')}</span>
+        ) : (
+          <span className="font-mono text-xs tabular-nums">{gym.gstin}</span>
+        ),
+    },
+  ];
+
+  const paged = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
       <h1 className="text-xl font-semibold text-content">{t('adm.gyms.title')}</h1>
       <p className="mt-stack-2xs text-sm text-content-secondary">{t('adm.gyms.subtitle')}</p>
 
-      {/* Buttons rather than a <select>: eight options, all visible, one keystroke each. AX2 is
-          keyboard-first and a select needs three interactions to change one filter. */}
-      <div
-        role="group"
-        aria-label={t('adm.gyms.col.status')}
-        className="mt-stack-md flex flex-wrap gap-inline-2xs"
-      >
-        <FilterChip
-          active={status === null}
-          onClick={() => {
-            setStatus(null);
+      <div className="mt-stack-md">
+        <FilterTabs
+          label={t('adm.gyms.col.status')}
+          activeId={tab}
+          onSelect={(next) => {
+            setTab(next);
+            setPage(1);
           }}
-        >
-          {t('adm.gyms.filterAll')}
-        </FilterChip>
-        {GYM_STATUSES.map((candidate) => (
-          <FilterChip
-            key={candidate}
-            active={status === candidate}
-            onClick={() => {
-              // Clicking the active chip clears it. Two clicks to undo one is the commonest
-              // complaint about filter bars.
-              setStatus(status === candidate ? null : candidate);
-            }}
-          >
-            {GYM_STATUS_LABEL[candidate]}
-          </FilterChip>
-        ))}
+          tabs={TABS.map((entry) => {
+            const count = counts[entry.id];
+            return {
+              id: entry.id,
+              label: entry.id === 'all' ? t('adm.gyms.filterAll') : entry.label,
+              ...(count === undefined ? {} : { count }),
+            };
+          })}
+        />
       </div>
 
-      {gyms.isPending && (
-        <p className="mt-stack-md text-sm text-content-muted">{t('adm.state.loading')}</p>
-      )}
-
-      {gyms.isError && (
-        <p
-          role="alert"
-          className="mt-stack-md rounded-control border border-danger bg-surface-danger-subtle px-inset-sm py-inset-xs text-sm text-content-danger"
+      <Panel className="mt-stack-sm">
+        <StateBoundary
+          state={state}
+          regionLabelText={t('adm.gyms.title')}
+          loadingFallback={<TableSkeleton rows={8} />}
+          onRetry={() => {
+            void query.refetch();
+          }}
+          emptyState={(reason) => ({
+            title: reason === 'filtered-out' ? t('adm.gyms.empty') : t('adm.gyms.emptyAll'),
+            bodyText:
+              reason === 'filtered-out' ? t('adm.gyms.emptyBody') : t('adm.gyms.emptyAllBody'),
+            primaryAction: {
+              label: t('adm.gyms.filterAll'),
+              onAction: () => {
+                setTab('all');
+                setPage(1);
+              },
+            },
+          })}
         >
-          {t('adm.gyms.loadFailed')}
-        </p>
-      )}
-
-      {gyms.data !== undefined &&
-        (gyms.data.gyms.length === 0 ? (
-          <p className="mt-stack-md rounded-card border border-subtle bg-surface p-inset-lg text-sm text-content-secondary">
-            {t('adm.gyms.empty')}
-          </p>
-        ) : (
-          <div className="mt-stack-md overflow-x-auto rounded-card border border-subtle bg-surface">
-            <table className="w-full min-w-[52rem] border-collapse text-sm">
-              <caption className="gm-visually-hidden">{t('adm.gyms.subtitle')}</caption>
-              <thead>
-                <tr className="border-b border-subtle text-left">
-                  <Th>{t('adm.gyms.col.gym')}</Th>
-                  <Th>{t('adm.gyms.col.location')}</Th>
-                  <Th>{t('adm.gyms.col.status')}</Th>
-                  <Th>{t('adm.gyms.col.subscription')}</Th>
-                  <Th align="right">{t('adm.gyms.col.commission')}</Th>
-                  <Th>{t('adm.gyms.col.gstin')}</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {gyms.data.gyms.map((gym) => (
-                  <GymTableRow key={gym.id} gym={gym} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ))}
+          {() => (
+            <>
+              <DataTable
+                columns={columns}
+                rows={paged}
+                rowKey={(gym) => gym.id}
+                caption={t('adm.gyms.subtitle')}
+              />
+              <Pagination
+                page={page}
+                pageSize={PAGE_SIZE}
+                rowCount={rows.length}
+                onPage={setPage}
+                labels={PAGE_LABELS}
+              />
+            </>
+          )}
+        </StateBoundary>
+      </Panel>
     </>
-  );
-}
-
-function GymTableRow({ gym }: { gym: GymRow }) {
-  return (
-    <tr className="border-b border-subtle last:border-0 hover:bg-surface-sunken">
-      <Td>
-        <span className="font-medium text-content">{gym.trading_name ?? gym.legal_name}</span>
-        {/* The legal name is what appears on an invoice and in a dispute, so it is shown too
-            when it differs — not collapsed into the trading name. */}
-        {gym.trading_name !== null && gym.trading_name !== gym.legal_name && (
-          <span className="block truncate text-xs text-content-muted">{gym.legal_name}</span>
-        )}
-      </Td>
-      <Td>{[gym.city, gym.state].filter(Boolean).join(', ') || '-'}</Td>
-      <Td>
-        <StatusPill status={gym.status} />
-      </Td>
-      <Td>
-        <span className="text-xs text-content-secondary">
-          {gym.subscription_status.toLowerCase().replace(/_/g, ' ')}
-        </span>
-      </Td>
-      <Td align="right">
-        <span className="tabular-nums">{formatBps(gym.commission_rate_bps)}</span>
-      </Td>
-      <Td>
-        {gym.gstin === null ? (
-          // Not an error, and not every gym has one — below the threshold, registration is not
-          // required. Rendering an empty cell would read as missing data.
-          <span className="text-xs text-content-muted">{t('adm.gyms.notRegistered')}</span>
-        ) : (
-          <span className="font-mono text-xs tabular-nums text-content-secondary">{gym.gstin}</span>
-        )}
-      </Td>
-    </tr>
-  );
-}
-
-function Th({ children, align }: { children: React.ReactNode; align?: 'right' }) {
-  return (
-    <th
-      scope="col"
-      className={`px-inset-md py-inset-xs text-xs font-semibold uppercase tracking-wide text-content-muted ${
-        align === 'right' ? 'text-right' : ''
-      }`}
-    >
-      {children}
-    </th>
-  );
-}
-
-function Td({ children, align }: { children: React.ReactNode; align?: 'right' }) {
-  return (
-    <td
-      className={`max-w-[16rem] px-inset-md py-inset-xs align-top text-content-secondary ${
-        align === 'right' ? 'text-right' : ''
-      }`}
-    >
-      {children}
-    </td>
-  );
-}
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      // `aria-pressed` and not colour alone. A filter whose only "on" signal is a background tint
-      // is invisible to a screen reader (AX2).
-      aria-pressed={active}
-      className={`gm-hit-target rounded-control border px-inset-sm py-inset-2xs text-xs transition-colors duration-fast ease-standard ${
-        active
-          ? 'border-brand bg-surface-brand-subtle font-semibold text-content-brand'
-          : 'border-subtle text-content-secondary hover:text-content'
-      }`}
-    >
-      {children}
-    </button>
   );
 }

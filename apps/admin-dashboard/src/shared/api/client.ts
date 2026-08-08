@@ -218,3 +218,32 @@ export const listSessions = (): Promise<{ sessions: SessionRow[] }> =>
 
 export const revokeSession = (sessionId: string): Promise<null> =>
   api<null>(`/v1/auth/sessions/${sessionId}`, { method: 'DELETE' });
+
+/**
+ * `ApiError` to the shape `@gymmap/ui`'s state adapter expects.
+ *
+ * The bridge exists because `packages/ui` may not import this client (`R3`) and this client may
+ * not import TanStack Query types into the shared layer. Each side owns its own shape and this
+ * one function joins them, so the mapping lives in one place rather than at every call site.
+ */
+export function toProblem(error: unknown): {
+  code: string;
+  message: string;
+  correlationId?: string;
+  status?: number;
+} {
+  if (error instanceof ApiError) {
+    return {
+      code: error.code,
+      message: error.message,
+      status: error.status,
+      ...(error.correlationId === undefined ? {} : { correlationId: error.correlationId }),
+    };
+  }
+  // A network failure, not a rejection. Saying "check your details" here would send somebody
+  // looking for a typo that is not there.
+  return {
+    code: 'NETWORK',
+    message: 'Could not reach the server. Check that the API is running, then try again.',
+  };
+}

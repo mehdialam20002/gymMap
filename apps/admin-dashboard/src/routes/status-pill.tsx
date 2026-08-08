@@ -77,4 +77,15 @@ export const STATUS_BAR_CLASS: Record<GymStatus, string> = {
   CLOSED: 'bg-border-strong',
 };
 
+/**
+ * The tone for a status, for `@gymmap/ui`'s `Badge`.
+ *
+ * The local `StatusPill` still exists for the dashboard's compact rows; this exposes the same
+ * mapping to the shared component so a status cannot render amber on one screen and grey on the
+ * next. One map, two renderers.
+ */
+export function statusTone(status: GymStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+  return TONE[status];
+}
+
 export { LABEL as GYM_STATUS_LABEL };

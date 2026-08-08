@@ -66,6 +66,23 @@ export const en = {
   'adm.queue.waiting': 'waiting',
   'adm.queue.days': 'days',
   'adm.queue.day': 'day',
+  'adm.queue.col.applicant': 'Gym / applicant',
+  'adm.queue.col.type': 'Type',
+  'adm.queue.col.applied': 'Applied on',
+  'adm.queue.col.actions': 'Actions',
+  'adm.queue.daysAgo': 'days ago',
+  'adm.queue.review': 'Review',
+  'adm.queue.emptyBody':
+    'Every application has been dealt with. New ones appear here as gyms submit them.',
+  'adm.queue.emptyFiltered': 'Nothing in this state',
+  'adm.queue.emptyFilteredBody':
+    'No application is currently in this state. Other tabs may still have work waiting.',
+  'adm.page.showing': 'Showing',
+  'adm.page.to': 'to',
+  'adm.page.of': 'of',
+  'adm.page.results': 'results',
+  'adm.page.previous': 'Previous',
+  'adm.page.next': 'Next',
   'adm.queue.reviewNote':
     'Opening an application, and approving or rejecting it, arrives with M-036. This list is live: it reads the real tenant status column, which carries the whole approval state machine.',
 
@@ -81,6 +98,37 @@ export const en = {
   'adm.gyms.col.gstin': 'GSTIN',
   'adm.gyms.notRegistered': 'Not registered',
   'adm.gyms.empty': 'No gyms match this filter.',
+  // --- SCR-ADM-004 detail ----------------------------------------------------
+  'adm.detail.region': 'Gym detail',
+  'adm.detail.edit': 'Edit gym',
+  'adm.detail.notFound': 'No such gym',
+  'adm.detail.notFoundBody':
+    'This gym is not on the register. It may have been closed, or the link may be out of date.',
+  'adm.detail.tab.overview': 'Overview',
+  'adm.detail.tab.branches': 'Branches & facilities',
+  'adm.detail.tab.plans': 'Plans & pricing',
+  'adm.detail.tab.documents': 'Documents',
+  'adm.detail.tab.members': 'Members',
+  'adm.detail.tab.finance': 'Finance',
+  'adm.detail.tab.reviews': 'Reviews',
+  'adm.detail.tab.activity': 'Activity',
+  'adm.detail.business': 'Business',
+  'adm.detail.legalName': 'Legal name',
+  'adm.detail.entityType': 'Entity type',
+  'adm.detail.registeredOn': 'Registered on',
+  'adm.detail.address': 'Registered address',
+  'adm.detail.noAddress': 'No address on file',
+  // Says WHY the street line is absent rather than leaving a gap that reads as missing data.
+  'adm.detail.addressNote':
+    'The full street address is part of the application dossier and is not returned to the register, which lists gyms rather than contacts them.',
+  'adm.detail.identifiers': 'Identifiers',
+  'adm.detail.kyc': 'KYC & documents',
+  'adm.detail.kycPending':
+    'Document checks arrive with M-029. Showing a list of verified ticks before anything is verified would be the one thing on this screen nobody could check.',
+  'adm.gyms.emptyBody': 'No gym is in this state right now. Other tabs may still have rows.',
+  'adm.gyms.emptyAll': 'No gyms yet',
+  'adm.gyms.emptyAllBody':
+    'Gyms appear here as soon as they start an application, before anyone approves them.',
   'adm.gyms.loadFailed': 'Could not load the gym register.',
 
   // --- accounts -------------------------------------------------------------

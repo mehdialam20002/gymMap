@@ -34,6 +34,7 @@ import { NAV, PENDING_ROUTES, type NavItem } from './nav.ts';
 import { PlatformDashboardRoute } from './platform-dashboard.route.tsx';
 import { ApprovalQueueRoute } from './approval-queue.route.tsx';
 import { GymRegisterRoute } from './gym-register.route.tsx';
+import { GymDetailRoute } from './gym-detail.route.tsx';
 import { PeopleRoute } from './people.route.tsx';
 import { SessionsRoute } from './sessions.route.tsx';
 import { NotBuiltYet } from './not-built-yet.tsx';
@@ -278,6 +279,7 @@ export const router = createBrowserRouter([
       { index: true, element: <PlatformDashboardRoute /> },
       { path: 'approvals', element: <ApprovalQueueRoute /> },
       { path: 'gyms', element: <GymRegisterRoute /> },
+      { path: 'gyms/:gymId', element: <GymDetailRoute /> },
       { path: 'people', element: <PeopleRoute /> },
       { path: 'sessions', element: <SessionsRoute /> },
       ...PENDING_ROUTES.map((route) => ({
