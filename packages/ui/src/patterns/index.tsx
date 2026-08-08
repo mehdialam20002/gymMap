@@ -245,25 +245,89 @@ export interface Column<T> {
  * the content wraps to three lines each, which is less readable than a horizontal scroll and much
  * harder to notice going wrong.
  */
+export interface TableSelection {
+  /** The selected row keys. The CALLER owns this state, because it survives pagination. */
+  readonly selected: ReadonlySet<string>;
+  readonly onChange: (selected: ReadonlySet<string>) => void;
+  readonly labels: {
+    readonly selectAll: string;
+    /** `{n}` is replaced with the row's own name, so each checkbox announces what it selects. */
+    readonly selectRow: string;
+  };
+}
+
 export function DataTable<T>({
   columns,
   rows,
   rowKey,
+  rowLabel,
   caption,
   minWidth = '52rem',
+  selection,
 }: {
   readonly columns: readonly Column<T>[];
   readonly rows: readonly T[];
   readonly rowKey: (row: T) => string;
+  /**
+   * A human name for the row. Required WHEN `selection` is passed, because a checkbox whose
+   * accessible name is "Select row" thirty times over tells a screen-reader user which of the
+   * thirty they have just ticked: none of them.
+   */
+  readonly rowLabel?: (row: T) => string;
   readonly caption: string;
   readonly minWidth?: string;
+  /**
+   * Omit for a read-only table.
+   *
+   * ┌─ SELECTION IS THE CALLER'S STATE, DELIBERATELY ────────────────────────────────────────┐
+   * │ Holding it here would reset it on every re-render the parent causes — a poll landing, a │
+   * │ filter tab changing, a page turning. An operator who ticks eight rows and loses them    │
+   * │ because a 30-second refetch fired will not tick them again.                              │
+   * └────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  readonly selection?: TableSelection;
 }) {
+  const keys = rows.map(rowKey);
+  // "All" means all rows ON THIS PAGE. A header checkbox that silently selected 263 gyms across 27
+  // pages when the operator could see ten of them is how a bulk action hits rows nobody looked at.
+  const allOnPage = keys.length > 0 && keys.every((key) => selection?.selected.has(key) === true);
+
+  const toggle = (key: string) => {
+    if (selection === undefined) return;
+    const next = new Set(selection.selected);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    selection.onChange(next);
+  };
+
+  const toggleAll = () => {
+    if (selection === undefined) return;
+    const next = new Set(selection.selected);
+    // Adds or removes only this page's keys, leaving a selection made on another page intact.
+    for (const key of keys) {
+      if (allOnPage) next.delete(key);
+      else next.add(key);
+    }
+    selection.onChange(next);
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm" style={{ minWidth }}>
         <caption className="gm-visually-hidden">{caption}</caption>
         <thead>
           <tr className="border-b border-subtle text-left">
+            {selection !== undefined && (
+              <th scope="col" className="w-[2.5rem] px-inset-sm py-inset-xs">
+                <input
+                  type="checkbox"
+                  checked={allOnPage}
+                  onChange={toggleAll}
+                  aria-label={selection.labels.selectAll}
+                  className="gm-hit-target h-[1rem] w-[1rem] accent-[--gm-color-brand-solid]"
+                />
+              </th>
+            )}
             {columns.map((column) => (
               <th
                 key={column.key}
@@ -280,11 +344,35 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {rows.map((row) => {
+            const key = rowKey(row);
+            const checked = selection?.selected.has(key) === true;
+
+            return (
             <tr
-              key={rowKey(row)}
-              className="border-b border-subtle last:border-0 hover:bg-surface-sunken"
+              key={key}
+              // The selected row is TINTED, not merely ticked. A checkbox two hundred pixels away
+              // from the name it belongs to is not a usable answer to "which rows did I pick".
+              className={`border-b border-subtle last:border-0 ${
+                checked ? 'bg-surface-brand-subtle' : 'hover:bg-surface-sunken'
+              }`}
             >
+              {selection !== undefined && (
+                <td className="px-inset-sm py-inset-xs align-middle">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => {
+                      toggle(key);
+                    }}
+                    aria-label={selection.labels.selectRow.replace(
+                      '{n}',
+                      rowLabel?.(row) ?? key,
+                    )}
+                    className="gm-hit-target h-[1rem] w-[1rem] accent-[--gm-color-brand-solid]"
+                  />
+                </td>
+              )}
               {columns.map((column) => (
                 <td
                   key={column.key}
@@ -298,7 +386,8 @@ export function DataTable<T>({
                 </td>
               ))}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

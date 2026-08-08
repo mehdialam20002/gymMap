@@ -56,4 +56,25 @@ export {
   type Tone,
   type FilterTab,
   type Column,
+  type TableSelection,
 } from './patterns/index.tsx';
+
+export {
+  Timeline,
+  BulkBar,
+  DecisionBar,
+  type TimelineEntry,
+} from './patterns/timeline.tsx';
+
+export {
+  Modal,
+  ConfirmDialog,
+  Drawer,
+  Dropdown,
+  Tooltip,
+  ToastStack,
+  useToasts,
+  useOverlay,
+  type MenuItem,
+  type ToastMessage,
+} from './patterns/overlay.tsx';
