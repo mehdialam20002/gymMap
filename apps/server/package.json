@@ -3,11 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "license": "UNLICENSED",
+  "//dev": "`--env-file-if-exists` because the script could not start the server on its own: `loadAppConfig` never defaults a secret, so without the env file the boot fails on twelve required variables. It previously assumed the caller had already exported them, which is true of whoever set the shell up once and false of everybody else - including a restart after a crash. `-if-exists` rather than `--env-file` so a MISSING file still reaches the Zod error, which names the twelve variables and says to copy .env.example; a raw ENOENT would be a worse message than the one already written.",
   "//": "NOT type:module. NestJS + emitDecoratorMetadata is CommonJS territory; see packages/config/tsconfig/nest.json.",
   "main": "./dist/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "dev": "node --watch dist/main.js",
+    "dev": "node --watch --env-file-if-exists=../../.env.local dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --max-warnings=0",
     "architecture": "echo \"no-op\"",

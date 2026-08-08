@@ -81,7 +81,7 @@ export function SlaChip({ gym }: { readonly gym: GymRow }) {
       }
     >
       <span
-        className={`inline-flex items-center gap-inline-2xs rounded-control px-inset-2xs py-[0.0625rem] text-xs font-semibold tabular-nums ${CHIP[look.tone]}`}
+        className={`inline-flex items-center gap-inline-2xs whitespace-nowrap rounded-control px-inset-2xs py-[0.0625rem] text-xs font-semibold tabular-nums ${CHIP[look.tone]}`}
       >
         {look.glyph !== '' && <span aria-hidden="true">{look.glyph}</span>}
         {/* The WORD is in the accessible name, so the state never depends on the glyph or the
@@ -105,12 +105,14 @@ export function AgeCell({ gym }: { readonly gym: GymRow }) {
   // rendering of "not known" where `NaN` or `0 h` would be a wrong number.
   const hours = gym.age_hours;
   if (typeof hours !== 'number') {
-    return <span className="text-xs text-content-muted">&#8212;</span>;
+    return <span className="whitespace-nowrap text-xs text-content-muted">&#8212;</span>;
   }
   const label =
     hours < 72
       ? `${String(hours)}\u2009h`
       : `${String(Math.floor(hours / 24))}\u2009${t('adm.sla.days')}`;
 
-  return <span className="text-xs tabular-nums text-content-secondary">{label}</span>;
+  return (
+    <span className="whitespace-nowrap text-xs tabular-nums text-content-secondary">{label}</span>
+  );
 }

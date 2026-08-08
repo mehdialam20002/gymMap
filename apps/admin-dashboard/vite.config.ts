@@ -51,5 +51,26 @@ export default defineConfig({
     // alternative is an edit to a token that appears to do nothing until the dev server restarts,
     // which costs more time than the pre-bundling saves.
     exclude: ['@gymmap/ui', '@gymmap/types'],
+
+    // ┌─ EVERY PHOSPHOR ICON, PRE-BUNDLED UP FRONT ────────────────────────────────────────────┐
+    // │ `shared/icons/index.tsx` imports each glyph by its own deep path — `dist/ssr/Percent`,   │
+    // │ not the barrel — because the barrel is every icon in the set and pulling it costs        │
+    // │ megabytes. The consequence is that Vite sees TWENTY-SIX separate dependencies.           │
+    // │                                                                                        │
+    // │ Vite pre-bundles dependencies when the dev server STARTS. Adding a new icon while it is  │
+    // │ running leaves that path unoptimised, and the request for it answers `504 Outdated       │
+    // │ Optimize Dep`. That fails the icon module, which fails `NavGlyph`, which fails the whole  │
+    // │ module graph — so React never mounts and the page is BLANK WHITE with no error on it.    │
+    // │ Nothing in the UI says what happened; the reason is only in the console.                 │
+    // │                                                                                        │
+    // │ This happened for real: seven icons added during the redesign took the dev server's      │
+    // │ output to a white page, while the production build was fine the whole time — which is    │
+    // │ the confusing part, because "it builds" and "it runs" stopped agreeing.                  │
+    // │                                                                                        │
+    // │ A GLOB rather than the twenty-six paths listed by hand. A hand-written list is a         │
+    // │ maintenance trap: the twenty-seventh icon reintroduces exactly this failure, and the      │
+    // │ person adding it has no reason to suspect a Vite config.                                 │
+    // └────────────────────────────────────────────────────────────────────────────────────────┘
+    include: ['@phosphor-icons/react/dist/ssr/*'],
   },
 });
