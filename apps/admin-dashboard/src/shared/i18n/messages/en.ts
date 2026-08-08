@@ -30,6 +30,193 @@ export const en = {
   'adm.sample.metric.gmv': 'GMV',
   'adm.sample.metric.commission': 'Commission',
   'adm.sample.metric.memberships': 'Memberships',
+  // ===========================================================================================
+  // The planned screens - MASTER_PRD.md B8, quoted. See routes/screen-plan.ts.
+  //
+  // Each `.content` string is B8's own Content row for that screen, lightly reflowed. Quoted rather
+  // than paraphrased on purpose: a paraphrase drifts from the spec and this catalogue is where the
+  // drift would be invisible.
+  // ===========================================================================================
+  'adm.plan.blockedRegion': 'What this screen is waiting on',
+  'adm.plan.blockedTitle': 'Waiting on',
+  'adm.plan.needsBuilding': 'needs building',
+  // The distinction that matters: a decision cannot be scheduled the way a milestone can.
+  'adm.plan.needsDecision': 'needs a decision',
+  'adm.plan.filtersRegion': 'Filters this screen will carry',
+  'adm.plan.filterDisabled': 'Nothing to filter yet',
+  'adm.plan.noRows': 'No rows. The columns above are what this screen will show.',
+  'adm.plan.notATable': 'This screen is not a table. Its shape follows the report catalogue in B5.20.',
+
+  // -- Column labels, shared across the planned screens ---------------------------------------
+  'adm.plan.col.name': 'Name',
+  'adm.plan.col.kind': 'Kind',
+  'adm.plan.col.usage': 'In use by',
+  'adm.plan.col.status': 'Status',
+  'adm.plan.col.order': 'Order',
+  'adm.plan.col.member': 'Member',
+  'adm.plan.col.gym': 'Gym',
+  'adm.plan.col.amount': 'Amount',
+  'adm.plan.col.gatewayState': 'Gateway state',
+  'adm.plan.col.providerRef': 'Provider reference',
+  'adm.plan.col.failureReason': 'Failure reason',
+  'adm.plan.col.placedAt': 'Placed',
+  'adm.plan.col.cycle': 'Cycle',
+  'adm.plan.col.batchTotal': 'Batch total',
+  'adm.plan.col.payoutState': 'Payout',
+  'adm.plan.col.age': 'Age',
+  'adm.plan.col.policyPosition': 'Policy position',
+  'adm.plan.col.requester': 'Requested by',
+  'adm.plan.col.deadline': 'Deadline',
+  'adm.plan.col.case': 'Case',
+  'adm.plan.col.holdStatus': 'Balance hold',
+  'adm.plan.col.outcome': 'Outcome',
+  'adm.plan.col.day': 'Day',
+  'adm.plan.col.gatewayTotal': 'Gateway report',
+  'adm.plan.col.ledgerTotal': 'Internal ledger',
+  'adm.plan.col.variance': 'Variance',
+  'adm.plan.col.resolution': 'Resolution',
+  'adm.plan.col.signal': 'Signal',
+  'adm.plan.col.review': 'Review',
+  'adm.plan.col.reviewerHistory': 'Reviewer history',
+  'adm.plan.col.priority': 'Priority',
+  'adm.plan.col.sla': 'SLA',
+  'adm.plan.col.subject': 'Subject',
+  'adm.plan.col.assignee': 'Assignee',
+  'adm.plan.col.at': 'When',
+  'adm.plan.col.actor': 'Actor',
+  'adm.plan.col.action': 'Action',
+  'adm.plan.col.entity': 'Entity',
+  'adm.plan.col.impersonated': 'Impersonated',
+  'adm.plan.col.diff': 'Before / after',
+  'adm.plan.col.scope': 'Scope',
+  'adm.plan.col.rate': 'Rate',
+  'adm.plan.col.source': 'Source',
+  'adm.plan.col.validity': 'Valid',
+  'adm.plan.col.setBy': 'Set by',
+  'adm.plan.col.tier': 'Tier',
+  'adm.plan.col.price': 'Price',
+  'adm.plan.col.limits': 'Limits',
+  'adm.plan.col.tenants': 'Gyms on it',
+  'adm.plan.col.profile': 'Profile',
+  'adm.plan.col.appliesTo': 'Applies to',
+  'adm.plan.col.version': 'Version',
+  'adm.plan.col.entityType': 'Entity type',
+  'adm.plan.col.requirements': 'Requirements',
+  'adm.plan.col.flag': 'Flag',
+  'adm.plan.col.rollout': 'Rollout',
+  'adm.plan.col.changedBy': 'Changed by',
+  'adm.plan.col.template': 'Template',
+  'adm.plan.col.channel': 'Channel',
+  'adm.plan.col.locale': 'Locale',
+
+  // -- Filter labels ---------------------------------------------------------------------------
+  'adm.plan.filter.kind': 'Kind',
+  'adm.plan.filter.search': 'Search',
+  'adm.plan.filter.state': 'State',
+  'adm.plan.filter.tenant': 'Gym',
+  'adm.plan.filter.date': 'Date range',
+  'adm.plan.filter.amount': 'Amount',
+  'adm.plan.filter.cycle': 'Cycle',
+  'adm.plan.filter.status': 'Status',
+  'adm.plan.filter.deadline': 'Deadline',
+  'adm.plan.filter.varianceOnly': 'Variances only',
+  'adm.plan.filter.queue': 'Queue',
+  'adm.plan.filter.signal': 'Signal',
+  'adm.plan.filter.priority': 'Priority',
+  'adm.plan.filter.assignee': 'Assignee',
+  'adm.plan.filter.city': 'City',
+  'adm.plan.filter.tier': 'Tier',
+  'adm.plan.filter.cohort': 'Cohort',
+  'adm.plan.filter.actor': 'Actor',
+  'adm.plan.filter.entityType': 'Entity type',
+  'adm.plan.filter.action': 'Action',
+  'adm.plan.filter.impersonation': 'Impersonated only',
+  'adm.plan.filter.scope': 'Scope',
+  'adm.plan.filter.channel': 'Channel',
+
+  // -- B8 Content rows, quoted -----------------------------------------------------------------
+  'adm.plan.orders.content':
+    'All orders and payment attempts with gateway state, provider references and failure reasons; filters by state, gym, date and amount; drill-down to raw (redacted) provider payloads.',
+  'adm.plan.orders.note':
+    'Every amount here is integer paise on an append-only ledger, and the provider payload is redacted before it is stored - BR-PAY-08 keeps card and bank credentials out of the system entirely, so there is nothing on this screen to redact at render time.',
+
+  'adm.plan.settlements.content':
+    'Settlement runs by cycle with gym, batch total and status; approval with a dual-control option above a threshold; payout execution status; failure handling.',
+  'adm.plan.settlements.note':
+    'Approving a run instructs a bank transfer, so 5.2 requires the consequence line to state the exact net payable and the masked destination account. OQ-04 also leaves the cycle and the reserve percentage undecided - the defaults applied are T+7 with a 5% reserve released at 30 days.',
+
+  'adm.plan.refunds.content':
+    'Queue with request age, amount, usage, policy position, gym and requester; detail with the full computation and evidence; approve or reject with a reason.',
+  'adm.plan.refunds.note':
+    'A full refund revokes QR access immediately (FR-RFND-06), which is why the consequence line has to say so before the approval and not after it.',
+
+  'adm.plan.disputes.content':
+    'Case list with a deadline countdown; detail with the evidence pack, the submission action, outcome tracking and balance-hold status.',
+  'adm.plan.disputes.note':
+    'The deadline is the whole screen: a chargeback window that closes unrepresented is money lost with no appeal. It is the one queue where the countdown outranks every other column.',
+
+  'adm.plan.reconciliation.content':
+    'Daily comparison of the gateway settlement report to the internal ledger; variance list with drill-down; resolution notes; historical variance trend, target zero per KPI-26.',
+  'adm.plan.reconciliation.note':
+    'Resolving a variance as a write-off is SUPER_ADMIN-only, needs a 50-character reason (RD4) and leaves KPI-26 breached for that day - the breach is deliberately not erased by the resolution.',
+
+  'adm.plan.moderation.content':
+    'Reviews pending or flagged with the triggering signal, the review, the gym context and the reviewer history; publish, unpublish, request-edit or remove with a reason. Separate queues for gym content flags and user reports.',
+  'adm.plan.moderation.note':
+    'Removing a review is terminal - C4.6 gives REMOVED no way back - so it needs DC3 name-typing and DC6 permanence wording. At exactly three reviews the gym loses its numeric rating entirely (BR-REV-07), and the dialog has to say that too.',
+
+  'adm.plan.support.content':
+    'Ticket queue with assignment, priority and SLA; ticket detail with full customer context, linked entities, internal notes and canned responses.',
+  'adm.plan.support.note':
+    'KPI-25 commits to a median four-hour first response and Monitoring.md SLO-04 is explicit that business hours are NOT subtracted from it - a member who tickets at 21:00 IST experiences the wait regardless. OQ-19 leaves the staffing that delivers it open.',
+
+  'adm.plan.analytics.content':
+    'The platform report catalogue from B5.20, with city, tier and cohort dimensions.',
+  'adm.plan.analytics.note':
+    'Reports read from the ledger and the attendance tables, so this screen cannot precede them. NFR-PERF-06 also puts anything beyond twelve months on an asynchronous path with a notification rather than a spinner.',
+
+  'adm.plan.audit.content':
+    'Filter by actor, entity type, entity id, action type, date range and impersonation flag; result table with a before/after diff view; export.',
+  'adm.plan.audit.note':
+    'The table itself already exists - M-013 built audit_log, its append-only writer and the trigger that refuses an UPDATE even from a superuser. What is missing is the search endpoint and the diff view, which is a narrower gap than the other screens here.',
+
+  'adm.plan.taxonomy.content':
+    'Amenities, categories, cities and reason codes, with the count of gyms using each. Every change requires a reason, previews the entities it affects, and is audited.',
+  'adm.plan.taxonomy.note':
+    'Retiring an amenity that 200 gyms use is not a delete - the preview of affected entities is what stops it being treated as one.',
+
+  'adm.plan.commission.content':
+    'Commission rules at global, tier and gym level with the effective-rate resolver, showing the resolved rate WITH its source and the rate that would apply without the override.',
+  'adm.plan.commission.note':
+    'KL-006 is unanswered: whether tier deltas apply to the renewal rate. The adopted reading is that deltas apply to the standard rate only, and TN3 requires that assumption to be rendered on the screen rather than buried - a rate without its provenance is a rate somebody will dispute.',
+
+  'adm.plan.subscriptions.content':
+    'Subscription tiers with their prices, their limits on branches, members and staff seats, and how many gyms are on each.',
+  'adm.plan.subscriptions.note':
+    'OQ-03 leaves the actual prices to the client; A6.2 states its own values are a reference model. The tier LIMITS are enforced already - FR-STAF-06 seat limits - against tiers that have no agreed price.',
+
+  'adm.plan.tax.content':
+    'Tax profiles with their rates and what each applies to. Every change requires a reason, previews the affected entities, and is audited.',
+  'adm.plan.tax.note':
+    'The only screen here blocked on ADVICE rather than on code. BLK-04 is seven questions for a tax adviser, including whether GST applies to the platform commission at all (LAUNCH_MARKET_INDIA.md 11, conflict 2). Shipping a guessed rate would put a wrong figure on an invoice, which is not a bug that can be fixed by a later deploy.',
+
+  'adm.plan.kyc.content':
+    'KYC checklists by entity type and version, with the requirements each carries.',
+  'adm.plan.kyc.note':
+    'Versioned, and the version is snapshotted onto each application at submit (CL1). Adding a tenth required document in March must not make a February application retroactively incomplete.',
+
+  'adm.plan.flags.content':
+    'Feature flags with their rollout percentage, their scope and who last changed them.',
+  'adm.plan.flags.note':
+    'A change at 100% rollout needs DC3 name-typing. Money, tenancy and review-integrity rules are never flag-disableable, so those do not appear here at all.',
+
+  'adm.plan.notifications.content':
+    'Notification templates by channel and locale, with their publication status.',
+  'adm.plan.notifications.note':
+    'A-19 leaves the notification vendors unapproved, so there is no channel for a template to be rendered into. NFR-USE-05 also requires every message in the recipient\u2019s language, which makes the locale column part of the contract rather than a nicety.',
+
+  'adm.plan.settings.content':
+    'Platform-wide operational parameters - the ones that are configuration rather than code.',
   // -- SCR-ADM-004's eight administrative actions (FR-ADMN-01, AdminDashboard.md 6.4).
   'adm.gyms.action.suspend': 'Suspend',
   'adm.gyms.action.reinstate': 'Reinstate',

@@ -38,6 +38,8 @@ import { ThemeToggle } from '../shared/theme/theme-toggle.tsx';
 import { ChromeGlyph, NavGlyph } from '../shared/icons/index.tsx';
 import { ApplicationReviewRoute } from './application-review.route.tsx';
 import { MfaGate } from './mfa-gate.tsx';
+import { PlannedScreen } from './planned-screen.tsx';
+import { SCREEN_PLANS } from './screen-plan.ts';
 import { NAV, PENDING_ROUTES, type NavItem } from './nav.ts';
 import { PlatformDashboardRoute } from './platform-dashboard.route.tsx';
 import { ApprovalQueueRoute } from './approval-queue.route.tsx';
@@ -413,10 +415,26 @@ export const router = createBrowserRouter([
       { path: 'gyms/:gymId', element: <GymDetailRoute /> },
       { path: 'people', element: <PeopleRoute /> },
       { path: 'sessions', element: <SessionsRoute /> },
-      ...PENDING_ROUTES.map((route) => ({
-        path: route.path.replace(/^\//, ''),
-        element: <NotBuiltYet screen={route.screen ?? '-'} milestone={route.milestone ?? '-'} />,
-      })),
+      // ┌─ A SPECIFIED SCREEN WHERE THERE IS ONE, A PLACEHOLDER OTHERWISE ─────────────────────┐
+      // │ `SCREEN_PLANS` holds each unbuilt screen's own `§B8` specification, so the route      │
+      // │ renders the real columns, the real filters and an honest account of the gap rather    │
+      // │ than "SCR-ADM-009 · M-105", which answers neither question a reader has.               │
+      // │                                                                                      │
+      // │ `NotBuiltYet` remains the fallback for a nav entry with no plan written yet, so adding │
+      // │ a route never produces a blank page — the plan is an upgrade, not a prerequisite.      │
+      // └──────────────────────────────────────────────────────────────────────────────────────┘
+      ...PENDING_ROUTES.map((route) => {
+        const plan = SCREEN_PLANS[route.path];
+        return {
+          path: route.path.replace(/^\//, ''),
+          element:
+            plan === undefined ? (
+              <NotBuiltYet screen={route.screen ?? '-'} milestone={route.milestone ?? '-'} />
+            ) : (
+              <PlannedScreen plan={plan} />
+            ),
+        };
+      }),
     ],
   },
 ]);

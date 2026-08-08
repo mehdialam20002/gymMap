@@ -521,3 +521,59 @@ test('the console labels exactly the platform roles the server admits', () => {
     );
   }
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// The screen plans — B8's specification, and it must stay attached to the routes.
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('every screen plan is keyed by a real nav path, and agrees with it about the screen id', async () => {
+  const { SCREEN_PLANS } = await import('../src/routes/screen-plan.ts');
+  const { NAV } = await import('../src/routes/nav.ts');
+
+  const byPath = new Map(NAV.flatMap((group) => group.items).map((item) => [item.path, item]));
+
+  for (const [path, plan] of Object.entries(SCREEN_PLANS)) {
+    const item = byPath.get(path);
+    // ┌─ A TYPO'D KEY FAILS SILENTLY, WHICH IS WHY THIS TEST EXISTS ─────────────────────────────┐
+    // │ The router looks the plan up BY PATH. A key that matches no nav path is simply never      │
+    // │ found, the route falls back to `NotBuiltYet`, and the screen quietly loses its whole      │
+    // │ specification — with nothing on screen or in the build to say so.                          │
+    // └─────────────────────────────────────────────────────────────────────────────────────────┘
+    assert.ok(item, `SCREEN_PLANS has "${path}", which is not a path in NAV — the plan is dead`);
+    assert.equal(
+      plan.screen,
+      item?.screen,
+      `the plan for ${path} says ${plan.screen} and the nav says ${item?.screen ?? 'nothing'}`,
+    );
+  }
+});
+
+test('every blocker a plan cites is a real kind of identifier', () => {
+  // Not a spelling check — a shape check. `M-036` reads as schedulable and `BLK-04` does not, and
+  // `PlannedScreen` renders the two differently on purpose. An id in neither form would be rendered
+  // as a decision by the fallback, which for a milestone would be wrong.
+  const source = code('src/routes/screen-plan.ts');
+  const cited = [...source.matchAll(/blockedOn: \[([^\]]*)\]/g)].flatMap((match) =>
+    [...(match[1] ?? '').matchAll(/'([^']+)'/g)].map((inner) => inner[1]!),
+  );
+
+  assert.ok(cited.length > 10, `found only ${String(cited.length)} blockers — the scan is wrong`);
+  for (const id of cited) {
+    assert.match(
+      id,
+      /^(?:M-\d{3}|KL-\d{3}|BLK-\d{2}|OQ-\d{2}|A-\d{2})$/,
+      `"${id}" is not a milestone, known limitation, blocker, open question or stack addition`,
+    );
+  }
+});
+
+test('a plan never invents a row — the planned screen renders headers over an empty body', () => {
+  const source = code('src/routes/planned-screen.tsx');
+
+  // The one thing this component must never grow. Sample rows on a settlements or disputes screen
+  // would be a screenshot of an invented payout, and somebody quotes screenshots.
+  assert.ok(!/\.map\(\(row/.test(source), 'planned-screen.tsx has started rendering rows');
+  assert.match(source, /colSpan=\{plan\.columnKeys\.length\}/);
+  // A skeleton would say "data is coming in a moment", which is exactly what is not true here.
+  assert.ok(!/animate-pulse/.test(source), 'a loading skeleton appeared on a screen that is not loading');
+});
