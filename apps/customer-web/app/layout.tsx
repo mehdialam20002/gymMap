@@ -13,6 +13,7 @@ import { t } from '../src/shared/i18n/index.ts';
 import { themeScript } from '../src/shared/theme/theme-script.ts';
 // `app/` is routing only (`F1`). The chrome moved to `src/shared/chrome/` when it grew past two
 // links; a root layout may RENDER components, it may not be where they live.
+import { AnnouncementBar } from '../src/shared/chrome/announcement.tsx';
 import { SiteHeader } from '../src/shared/chrome/site-header.tsx';
 import { SiteFooter } from '../src/shared/chrome/site-footer.tsx';
 import '../src/styles/globals.css';
@@ -56,8 +57,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
          * `suppressHydrationWarning` on <html> above is required and is not a workaround: this
          * script deliberately mutates the element the server rendered, so React WILL see a
          * mismatch, and it is the correct one.
+         *
+         * ┌─ AND `suppressHydrationWarning` ON THE SCRIPT, FOR A DIFFERENT REASON ─────────────────┐
+         * │ React logged `Prop nonce did not match. Server: "" Client: "<the nonce>"`, which reads  │
+         * │ like the nonce failed to reach the server render. It did reach it — the browser then    │
+         * │ ERASED it. Nonce hiding is required behaviour: once the nonce is applied, the content   │
+         * │ attribute is emptied so a CSS selector or a DOM read cannot exfiltrate it and forge a   │
+         * │ trusted inline script. So React compares its prop against an attribute the browser has  │
+         * │ deliberately blanked and reports a mismatch that cannot be fixed by fixing anything.    │
+         * │                                                                                        │
+         * │ Suppressed HERE ONLY, on the one element whose attribute the browser removes. Not on    │
+         * │ <body> or a wrapper, where it would also hide real mismatches in everything below.      │
+         * └────────────────────────────────────────────────────────────────────────────────────────┘
          */}
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script
+          nonce={nonce}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: themeScript }}
+        />
       </head>
       <body>
         {/*
@@ -69,6 +86,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {t('web.chrome.skipToContent')}
         </a>
         <div className="flex min-h-screen flex-col">
+          {/* In normal flow, ABOVE the sticky header. That ordering is the whole behaviour: the
+              bar scrolls away and the navigation pill pins itself, with no scroll listener. */}
+          <AnnouncementBar />
           <SiteHeader />
           {/* `tabIndex={-1}` so the skip link can move focus here — without it the browser
               scrolls to the anchor but leaves focus at the top of the document, and the next Tab

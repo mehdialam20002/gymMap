@@ -10,6 +10,196 @@
 @import '@gymmap/ui/tokens.css';
 @import '@gymmap/ui/a11y.css';
 
+/*
+ * ═══════════════════════════════════════════════════════════════════════════════════════════
+ * THE CUSTOMER SITE IS DARK IN BOTH THEMES — `SCR-WEB-*`, owner decision of 2026-08-08
+ *
+ * ┌─ THESE ARE THE DESIGN SYSTEM'S OWN DARK VALUES, NOT NEW ONES ──────────────────────────┐
+ * │ Every declaration below is copied verbatim from `:root[data-theme='dark']` in           │
+ * │ `tokens.css`. That matters more than it looks: those values are proven AS A SET by      │
+ * │ `contrast.proof.ts`, so re-pointing the light theme at them introduces exactly zero new │
+ * │ pairings to measure. Inventing a dark palette here would have meant re-proving sixty.   │
+ * │                                                                                        │
+ * │ The marketplace is a dark product now, the way the reference is. The two DASHBOARDS are │
+ * │ untouched and keep both themes — an operator working a queue for eight hours is a       │
+ * │ different reader from a stranger being persuaded on a phone at night.                    │
+ * │                                                                                        │
+ * │ `data-theme` still switches, it just resolves to the same ground either way. That is    │
+ * │ deliberate: the theme script, the storage key and the OS query all keep working, so     │
+ * │ restoring the light theme is deleting this block rather than rebuilding a mechanism.     │
+ * └────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * The brand roles are NOT here. They are red, and they are set in the block below this one,
+ * where source order makes them win.
+ * ═══════════════════════════════════════════════════════════════════════════════════════════
+ */
+:root,
+:root[data-theme='light'] {
+  --gm-color-surface-default: #0F172A;
+  --gm-color-surface-subtle: #0F100E;
+  --gm-color-surface-sunken: #020617;
+  --gm-color-surface-raised: #1E293B;
+  --gm-color-surface-overlay: #1E293B;
+  --gm-color-surface-inverse: #F1F5F9;
+  --gm-color-surface-disabled: #1E293B;
+  --gm-color-surface-scrim: rgb(2 6 23 / 0.75);
+  --gm-color-surface-media: #020617;
+  --gm-color-surface-stale: #451A03;
+  --gm-color-surface-success-subtle: #052E16;
+  --gm-color-surface-warning-subtle: #451A03;
+  --gm-color-surface-danger-subtle: #450A0A;
+  --gm-color-surface-info-subtle: #082F49;
+  --gm-color-content-primary: #F8FAFC;
+  --gm-color-content-secondary: #E2E8F0;
+  --gm-color-content-tertiary: #CBD5E1;
+  --gm-color-content-muted: #94A3B8;
+  --gm-color-content-disabled: #475569;
+  --gm-color-content-inverse: #0F172A;
+  --gm-color-content-stale: #FCD34D;
+  --gm-color-content-on-success: #020617;
+  --gm-color-content-on-warning: #020617;
+  --gm-color-content-on-danger: #020617;
+  --gm-color-content-on-info: #020617;
+  --gm-color-content-on-media: #F8FAFC;
+  --gm-color-content-success: #86EFAC;
+  --gm-color-content-warning: #FCD34D;
+  --gm-color-content-danger: #FCA5A5;
+  --gm-color-content-info: #7DD3FC;
+  --gm-color-border-subtle: #334155;
+  --gm-color-border-default: #475569;
+  --gm-color-border-strong: #64748B;
+  --gm-color-border-input: #64748B;
+  --gm-color-border-input-hover: #94A3B8;
+  --gm-color-border-focus: #34D399;
+  --gm-color-border-success: #4ADE80;
+  --gm-color-border-warning: #FBBF24;
+  --gm-color-border-danger: #F87171;
+  --gm-color-border-info: #38BDF8;
+  --gm-color-border-success-subtle: #15803D;
+  --gm-color-border-warning-subtle: #B45309;
+  --gm-color-border-danger-subtle: #B91C1C;
+  --gm-color-border-info-subtle: #0369A1;
+  --gm-color-success-solid: #4ADE80;
+  --gm-color-success-solid-hover: #86EFAC;
+  --gm-color-success-solid-active: #BBF7D0;
+  --gm-color-success-subtle: #022C22;
+  --gm-color-success-subtle-hover: #064E3B;
+  --gm-color-warning-solid: #FBBF24;
+  --gm-color-warning-solid-hover: #FCD34D;
+  --gm-color-warning-solid-active: #FDE68A;
+  --gm-color-warning-subtle: #451A03;
+  --gm-color-warning-subtle-hover: #78350F;
+  --gm-color-danger-solid: #F87171;
+  --gm-color-danger-solid-hover: #FCA5A5;
+  --gm-color-danger-solid-active: #FECACA;
+  --gm-color-danger-solid-disabled: #1E293B;
+  --gm-color-danger-subtle: #450A0A;
+  --gm-color-danger-subtle-hover: #7F1D1D;
+  --gm-color-info-solid: #38BDF8;
+  --gm-color-info-subtle: #082F49;
+  --gm-color-viz-series-1: #3987E5;
+  --gm-color-viz-series-2: #D95926;
+  --gm-color-viz-series-3: #199E70;
+  --gm-color-viz-series-4: #C98500;
+}
+
+/*
+ * ═══════════════════════════════════════════════════════════════════════════════════════════
+ * THE CUSTOMER SITE'S BRAND RED — `SCR-WEB-*`, owner decision of 2026-08-08
+ *
+ * ┌─ WHY THIS IS HERE AND NOT IN `packages/ui` ─────────────────────────────────────────────┐
+ * │ `FolderStructure.md` §1.2 is that `packages/ui/src/tokens/` is the only place a colour   │
+ * │ is defined, and no app defines one. This block breaks that rule ON PURPOSE and with the  │
+ * │ owner's decision, for a reason the rule does not anticipate: the brand is being split.   │
+ * │                                                                                          │
+ * │ The two dashboards keep the emerald the design system ships. The customer marketplace     │
+ * │ takes red. A shared token cannot hold two values, so the choice was to fork the token in │
+ * │ `packages/ui` — which needs the other session's palette work to land first, and changes  │
+ * │ both dashboards on the way past — or to scope the override to the one app that wants it. │
+ * │                                                                                          │
+ * │ This is the reversible one. When the split is permanent it moves into `packages/ui` as a │
+ * │ second brand theme and this block is deleted; until then no other surface is touched.     │
+ * └──────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ EVERY PAIRING BELOW IS MEASURED, NOT PICKED ───────────────────────────────────────────┐
+ * │ `#E21B2D` is the reference's own red and it survives as a FILL — white on it is 4.74:1.  │
+ * │ It does NOT survive as ink on the light canvas at 4.32:1, which is why `content-brand`   │
+ * │ is a darker step rather than the same value used twice. That distinction is the whole    │
+ * │ reason the token set has separate `solid` and `content` roles.                            │
+ * │                                                                                          │
+ * │   CB1  white on brand-solid          #E21B2D    4.74:1                                    │
+ * │   CB2  white on brand-solid-hover    #C11021    6.24:1                                    │
+ * │   CB3  white on brand-solid-active   #9C0C1A    8.46:1                                    │
+ * │   CB4  content-brand on canvas       light      6.54:1                                    │
+ * │   CB5  content-brand on brand-subtle light      6.29:1                                    │
+ * │   CB6  content-brand on canvas       dark       8.02:1                                    │
+ * │   CB7  content-brand on brand-subtle dark       8.11:1                                    │
+ * │   CB8  accent on the flat media band            7.33:1                                    │
+ * │   CB9  accent on the 78% scrim, worst frame     3.24:1  against the 3:1 LARGE-text bar    │
+ * │                                                                                          │
+ * │ CB9 used to read "84%, 4.91:1" and to say the scrim sat at 84% because no red cleared    │
+ * │ 4.5 at 78%. Both halves were wrong in the same way: the accent is only ever half of a    │
+ * │ 72px bold headline, and `WCAG 1.4.3` puts large-scale text at 3:1. Ten points of scrim   │
+ * │ were being spent to clear a bar that never applied, and the top of the same gradient      │
+ * │ came up with it until the navigation was 87% black.                                       │
+ * │                                                                                          │
+ * │ The accent used here is `content-on-media-accent` and NOT `brand-solid`. `brand-solid`    │
+ * │ is a fill: it is proved by putting white ON it, and reusing it as ink over a photograph   │
+ * │ measured 2.28:1. Separate roles, separate proofs.                                          │
+ * │                                                                                          │
+ * │ And the reason nothing tinted sits on `.gm-glass`: the best red manages 4.24:1 there.    │
+ * │ Glass carries ink on this palette. `test/hero-contrast.spec.ts` recomputes all of it      │
+ * │ from the declarations themselves, so none of these figures can drift unnoticed again.     │
+ * └──────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * Three selectors, mirroring `tokens.css` exactly: the OS preference is the default and an
+ * explicit `data-theme` wins in both directions (`DM1`).
+ * ═══════════════════════════════════════════════════════════════════════════════════════════
+ */
+:root,
+:root[data-theme='light'] {
+  --gm-color-brand-solid: #e21b2d;
+  --gm-color-brand-solid-hover: #c11021;
+  --gm-color-brand-solid-active: #9c0c1a;
+  --gm-color-content-on-brand: #ffffff;
+  --gm-color-content-brand: #b00e1d;
+  --gm-color-border-brand: #e21b2d;
+  --gm-color-border-brand-subtle: #f8b4ba;
+  --gm-color-surface-brand-subtle: #fdecee;
+  --gm-color-content-link: #b00e1d;
+  --gm-color-content-link-hover: #9c0c1a;
+  /* Theme-invariant: the hero band is the same colour in both themes, so its accent is too. */
+  --gm-color-content-on-media-accent: #ff4757;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --gm-color-brand-solid: #e21b2d;
+    --gm-color-brand-solid-hover: #f23445;
+    --gm-color-brand-solid-active: #c11021;
+    --gm-color-content-on-brand: #ffffff;
+    --gm-color-content-brand: #ff8c96;
+    --gm-color-border-brand: #f23445;
+    --gm-color-border-brand-subtle: #9c0c1a;
+    --gm-color-surface-brand-subtle: #2a0d11;
+    --gm-color-content-link: #ff8c96;
+    --gm-color-content-link-hover: #ffa3ab;
+  }
+}
+
+:root[data-theme='dark'] {
+  --gm-color-brand-solid: #e21b2d;
+  --gm-color-brand-solid-hover: #f23445;
+  --gm-color-brand-solid-active: #c11021;
+  --gm-color-content-on-brand: #ffffff;
+  --gm-color-content-brand: #ff8c96;
+  --gm-color-border-brand: #f23445;
+  --gm-color-border-brand-subtle: #9c0c1a;
+  --gm-color-surface-brand-subtle: #2a0d11;
+  --gm-color-content-link: #ff8c96;
+  --gm-color-content-link-hover: #ffa3ab;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -73,24 +263,52 @@
    * footage keeps the top quarter. From `md` up the axis turns and the copy takes the left.
    */
   .gm-media-veil {
+    /*
+     * ┌─ EVERY STOP IS THE FLOOR ITS OWN BAND NEEDS, AND NOT ONE POINT DARKER ─────────────────┐
+     * │ The first version ran 62 / 88 / 88 / 66 and it was a mistake with a proof attached. The │
+     * │ arithmetic behind 88% was right and the THRESHOLD it was aimed at was wrong: it held    │
+     * │ the red accent to 4.5:1, the bar for body text, when the accent only ever appears as    │
+     * │ half of a 72px bold headline. `WCAG 1.4.3` puts large-scale text at 3:1, and applying   │
+     * │ the body bar to a 72px headline cost 10 points of scrim for nothing.                     │
+     * │                                                                                        │
+     * │ Worse was the top stop. 62% behind the navigation, plus the panel's own tint, MULTIPLY: │
+     * │ 1-(1-0.62)(1-0.66) = 87%. The glass had a proof and no glass in it. Twelve per cent of  │
+     * │ a photograph is not a photograph.                                                       │
+     * │                                                                                        │
+     * │ So each stop is now derived from what actually sits on it, over a blown highlight:      │
+     * │                                                                                        │
+     * │   28%  top      nothing but the nav, which carries its OWN tint — see `.gm-glass`       │
+     * │   78%  text     accent  3.24:1  needs 3.0 (72px bold, large-scale)                       │
+     * │                 ink    10.35:1  needs 4.5 (the 16px subtitle, the tighter of the two)   │
+     * │   62%  foot     trust cards, which also carry their own tint: ink there is 10.64:1      │
+     * │                                                                                        │
+     * │ 78% is a floor and not a preference: the accent has a FAILURE BAND. It clears 3:1 on a  │
+     * │ bright backdrop and again on a dark one, and fails everywhere between — 2.38:1 at 70%.  │
+     * │ The white subtitle independently forces >= 57%. Land anywhere in 57-77% and the red is  │
+     * │ illegible, so 78% is the first alpha that satisfies both. Reproduce with                 │
+     * │ `test/hero-contrast.spec.ts`, which sweeps 0-100% and pins the band.                        │
+     * └────────────────────────────────────────────────────────────────────────────────────────┘
+     */
     background-image: linear-gradient(
-      to top,
-      var(--gm-color-surface-media) 0%,
-      var(--gm-color-surface-media) 72%,
-      transparent 100%
+      to bottom,
+      color-mix(in srgb, var(--gm-color-surface-media) 28%, transparent) 0%,
+      color-mix(in srgb, var(--gm-color-surface-media) 78%, transparent) 26%,
+      color-mix(in srgb, var(--gm-color-surface-media) 78%, transparent) 70%,
+      color-mix(in srgb, var(--gm-color-surface-media) 62%, transparent) 100%
     );
   }
 
-  /* 768px is `screen-md` — `BP4` permits breakpoint widths and no others. */
-  @media (min-width: 768px) {
-    .gm-media-veil {
-      background-image: linear-gradient(
-        to right,
-        var(--gm-color-surface-media) 0%,
-        var(--gm-color-surface-media) 50%,
-        transparent 92%
-      );
-    }
+  /*
+   * The hero rises BEHIND the chrome, so the navigation floats on the photograph rather than on a
+   * bar above it. Pull up by exactly the header's own height plus its two insets, then put the
+   * same distance back as padding so the content still starts below the pill.
+   *
+   * On the home page only. Every other route keeps the header in flow, which is why this is a
+   * class on the hero and not a change to the header's position.
+   */
+  .gm-under-chrome {
+    margin-top: calc((var(--gm-chrome-height) + var(--gm-space-inset-sm) * 2) * -1);
+    padding-top: calc(var(--gm-chrome-height) + var(--gm-space-inset-sm) * 2);
   }
 
   /*
@@ -210,6 +428,404 @@
 
   .gm-scroll-row::-webkit-scrollbar {
     display: none;
+  }
+
+  /*
+   * ┌─ GLASS, MEASURED RATHER THAN REFUSED ──────────────────────────────────────────────────────┐
+   * │ `contrast.proof.ts` refuses to measure a translucent fill, and it is right to: a ratio      │
+   * │ against 45% black over arbitrary content is a hope with a number next to it. That is why    │
+   * │ `bg-surface/95` came off the header.                                                        │
+   * │                                                                                             │
+   * │ "Cannot be measured" was the wrong conclusion, though. Translucency is not unmeasurable, it │
+   * │ is BOUNDED. A photograph can present any pixel, but it cannot present a pixel brighter than │
+   * │ white — so compositing the panel over pure white gives the worst case it will ever face,    │
+   * │ and a pairing that clears its threshold there clears it against every frame that ever       │
+   * │ loads. No sampling, no "the current picture happens to be dark".                             │
+   * │                                                                                             │
+   * │ Two rules come out of measuring rather than guessing, and both are counter-intuitive:       │
+   * │                                                                                             │
+   * │ ONE. Alpha does not add, it MULTIPLIES. A 62% scrim under a 66% panel is 87% black, not     │
+   * │ "a bit darker than 66%". Every alpha here is therefore chosen against the whole stack at    │
+   * │ its thinnest point, never against the panel alone — the mistake that made the navigation    │
+   * │ opaque was measuring one layer correctly and forgetting the other one existed.               │
+   * │                                                                                             │
+   * │ TWO. GLASS CARRIES INK AND NEVER A TINT. Ink at 44% clears 4.5:1 over the worst frame with  │
+   * │ room to spare; the red accent manages 2.47:1 on the same panel and fails badly. Anything    │
+   * │ that wants the brand colour on glass uses a brand-solid FILL instead — a fill is opaque, so │
+   * │ `content-on-brand` on it is a fixed pairing that does not care what is behind. That is why  │
+   * │ the trust-card icons sit in a red disc rather than being drawn in red.                       │
+   * │                                                                                             │
+   * │ The accent is the pairing that fails first, every time. The previous wine accent had 0.06   │
+   * │ of headroom here, which is less than the drift of a single palette edit. Re-run             │
+   * │ `test/hero-contrast.spec.ts` re-derives all of it whenever the palette moves.                │
+   * │                                                                                             │
+   * │ `color-mix` and not an opacity utility: Tailwind's `/44` modifier cannot compose a `var()`  │
+   * │ colour, which is the defect that shipped a fully transparent header. This composes where it │
+   * │ actually works, and it still names the TOKEN, so the palette keeps owning the colour.        │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  .gm-glass {
+    /*
+     * ┌─ 44%, BECAUSE THE PANEL IS NEVER THE ONLY LAYER ───────────────────────────────────────────┐
+     * │ 66% was measured in isolation — the panel over a blown highlight, nothing between. But the │
+     * │ panel that matters most sits on the hero, and the scrim is already there. Two translucent  │
+     * │ darks MULTIPLY: 1-(1-0.62)(1-0.66) = 87%, so the navigation was 87% black and the effect   │
+     * │ every one of these declarations exists to produce was not happening at all.                 │
+     * │                                                                                            │
+     * │ So the alpha is derived from the STACK, at its thinnest point. The pill's top edge sits    │
+     * │ where the scrim has only reached 30.5%, and 16px ink needs 4.5:1 over a blown highlight:   │
+     * │                                                                                            │
+     * │   scrim 30.5% + glass 44%  =  61% dark   ink 5.40:1  PASSES, 39% of the photograph left    │
+     * │   scrim 41.8% + glass 44%  =  67% dark   ink 6.85:1  (the pill's lower edge)               │
+     * │                                                                                            │
+     * │ 39% against the 12% it was. Below about 42% the ink stops clearing 4.5:1 there, so this is │
+     * │ a floor and not a taste setting — the total darkening the stack needs is fixed by the      │
+     * │ contrast requirement, and moving it between the scrim and the panel does not buy anything. │
+     * │                                                                                            │
+     * │ Away from the hero the panel sits on the dark page instead, where 44% leaves ink at        │
+     * │ 16-18:1 and the tint is nearly invisible. That is what the lit edge and the shadow are     │
+     * │ for: over a dark ground the panel is read by its EDGES, not by its fill.                    │
+     * │                                                                                            │
+     * │ The reference tints WHITE at 5% and relies on its photograph being dark under the nav.     │
+     * │ That is not a bound — a lighter photograph would put white text on near-white glass — so   │
+     * │ this tints dark at the thinnest alpha that survives any frame. Reproduce with              │
+     * │ `test/hero-contrast.spec.ts`, which reads these declarations rather than restating them.    │
+     * └────────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    background-color: color-mix(in srgb, var(--gm-color-surface-media) 44%, transparent);
+    /*
+     * 18px, down from 28px. A heavy blur is what separates frosted glass from a pane you can see
+     * through, and at 44% there is finally enough light coming past the tint for the shape behind
+     * to be worth resolving. The reference sits at 12px; this stays a little softer so the nav
+     * labels are not competing with the dumbbells directly behind them.
+     */
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    /*
+     * The lit top edge and a deeper shadow. Both matter more now than they did at 66%: a panel
+     * this transparent is defined by its edges, and over the dark page below the hero the fill
+     * alone would not separate it from the ground at all.
+     */
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in srgb, var(--gm-color-content-on-media) 22%, transparent),
+      0 10px 30px -4px color-mix(in srgb, var(--gm-color-surface-media) 55%, transparent);
+  }
+
+  /*
+   * No `backdrop-filter` support means no blur, and 44% of a sharp photograph would read straight
+   * through the panel — legible by the bound above, since the bound never counted on the blur, but
+   * visually a mess rather than glass. It goes fully opaque instead, which is the version that
+   * always looked correct.
+   */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .gm-glass {
+      background-color: var(--gm-color-surface-media);
+    }
+  }
+
+  /*
+   * ┌─ ONE CARD TREATMENT, USED BY EVERY CARD ON THE SITE ───────────────────────────────────────┐
+   * │ The reference's cards are all the same object: a translucent panel, a hairline edge, a     │
+   * │ soft shadow, and a lift with a red edge on hover. Twenty components each reaching for      │
+   * │ their own combination of those four is how a site stops looking like one site.              │
+   * │                                                                                            │
+   * │ So it is one class. `gm-card` on the panel, and the component still owns its padding, its  │
+   * │ radius and its content — this only supplies the material.                                   │
+   * │                                                                                            │
+   * │ The ground is `surface-raised` rather than the glass mix: a card sits on the page, not on  │
+   * │ a photograph, so there is nothing behind it worth blurring and 8% of translucency would    │
+   * │ only wash it out. Glass is for chrome that floats OVER something.                            │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  .gm-card {
+    background-color: var(--gm-color-surface-raised);
+    border: 1px solid var(--gm-color-border-subtle);
+    box-shadow: var(--gm-shadow-md);
+    transition:
+      transform var(--gm-motion-duration-base) var(--gm-motion-ease-standard),
+      border-color var(--gm-motion-duration-base) var(--gm-motion-ease-standard),
+      box-shadow var(--gm-motion-duration-base) var(--gm-motion-ease-standard);
+  }
+
+  /*
+   * The lift is on the LINK-shaped cards only, applied by adding `gm-card-interactive`. A card
+   * that rises under the cursor and then does nothing when clicked is a worse lie than a flat one.
+   */
+  .gm-card-interactive:hover {
+    transform: translateY(-6px);
+    border-color: var(--gm-color-border-brand);
+    box-shadow: var(--gm-shadow-xl);
+  }
+
+  /*
+   * ┌─ TWO GRADIENTS THAT LIVE HERE RATHER THAN IN AN ARBITRARY TAILWIND VALUE ──────────────────┐
+   * │ Both were first written inline as `bg-[linear-gradient(to_top,var(--gm-color-surface-…),…)]`,│
+   * │ and the tile scrim rendered `background-image: none` while its rule sat correctly in the     │
+   * │ stylesheet. The cause was not Tailwind: the class attribute had picked up a trailing         │
+   * │ BACKSLASH, so the DOM token was `…)]\` and matched no selector. JSX does not process escapes │
+   * │ in attribute values, so the backslash was simply part of the class name, and nothing         │
+   * │ anywhere — build, lint, or types — has an opinion about a class that matches nothing.        │
+   * │                                                                                            │
+   * │ Named utilities remove the whole failure mode, which is what `.gm-media-veil` already does   │
+   * │ for the hero scrim. That matters most here: the tile scrim is not decoration, it is the only │
+   * │ thing making a city name legible over an arbitrary photograph, so it must not be able to     │
+   * │ evaporate quietly. `shell.spec.ts` now also fails any className containing a backslash.      │
+   * │                                                                                            │
+   * │ It also reads. Nobody reviews `transparent_62%` inside a bracket and notices a wrong stop.   │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   *
+   * The scrim under a city tile's label. Opaque at the foot where the text sits, clear by 62% so
+   * the photograph is still a photograph. Both stops resolve to the TOKEN — a hex here would opt
+   * the tile out of the palette and look identical while doing it.
+   */
+  .gm-tile-scrim {
+    background-image: linear-gradient(
+      to top,
+      var(--gm-color-surface-media) 0%,
+      color-mix(in srgb, var(--gm-color-surface-media) 62%, transparent) 38%,
+      transparent 62%
+    );
+  }
+
+  /*
+   * The corner glow on the gym-owner band — the reference's blurred brand disc.
+   *
+   * A radial gradient rather than `filter: blur(120px)` on a large div: that filter forces a
+   * full-size offscreen buffer and repaints it on every scroll frame over a tall band, which is the
+   * cost `MO4` exists to avoid. A gradient composites once.
+   */
+  .gm-brand-glow {
+    background-image: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--gm-color-brand-solid) 22%, transparent) 0%,
+      transparent 62%
+    );
+  }
+
+  /*
+   * The dashed rail between the "how it works" steps — the reference's segmented connector.
+   *
+   * A `repeating-linear-gradient` rather than a dashed BORDER: `border-style: dashed` lets the
+   * browser choose the dash length, which changes with the element's width, so a 24px gap renders
+   * two fat dashes on one engine and five thin ones on another. The gradient fixes the period at
+   * 4px-on / 5px-off, which is what the reference specifies and what stays identical everywhere.
+   *
+   * `border-strong` rather than the brand: four brand-red dashes across the section would compete
+   * with the four brand-red numerals they connect, and the rail is the quietest thing here.
+   */
+  .gm-step-rail {
+    height: 1px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--gm-color-border-strong) 0 4px,
+      transparent 4px 9px
+    );
+  }
+
+  /* The section eyebrow the reference puts above every heading: small, spaced, brand-coloured. */
+  .gm-eyebrow {
+    font-size: var(--gm-font-size-2xs);
+    font-weight: var(--gm-font-weight-bold);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gm-color-content-brand);
+  }
+
+  /*
+   * ┌─ THE MICRO-INTERACTIONS THE REFERENCE IS ACTUALLY MADE OF ─────────────────────────────────┐
+   * │ Layout got the page 80% of the way there and it still read flat, because what makes that   │
+   * │ reference feel expensive is not the arrangement — it is that every control answers when    │
+   * │ you touch it. Four behaviours, all `transform` and `opacity` only (`MO4`), all on the      │
+   * │ duration and easing TOKENS so `RM1` collapses them for a visitor who asked for less motion.│
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+
+  /*
+   * The search control lifts and takes a brand ring when anything inside it gains focus.
+   * `:focus-within` and not `:focus`: the ring belongs to the CONTROL, and the thing that
+   * actually receives focus is the select, the input or the button inside it.
+   *
+   * This is feedback, which §4.1 lists as a valid reason to animate — it is the page confirming
+   * that typing will go where the member expects.
+   */
+  .gm-search-slab {
+    transition:
+      transform var(--gm-motion-duration-base) var(--gm-motion-ease-standard),
+      box-shadow var(--gm-motion-duration-base) var(--gm-motion-ease-standard),
+      border-color var(--gm-motion-duration-base) var(--gm-motion-ease-standard);
+  }
+
+  .gm-search-slab:focus-within {
+    transform: translateY(-2px);
+    border-color: var(--gm-color-border-brand);
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--gm-color-brand-solid) 22%, transparent),
+      var(--gm-shadow-xl);
+  }
+
+  /*
+   * A nav link grows a brand underline from the left. `transform: scaleX` on a pseudo-element
+   * rather than animating `width`, per `MO4` — width is a layout property and animating it on
+   * six links at once is six reflows a frame.
+   */
+  .gm-nav-link {
+    position: relative;
+  }
+
+  .gm-nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.35rem;
+    height: 2px;
+    border-radius: var(--gm-radius-full);
+    background-color: var(--gm-color-brand-solid);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform var(--gm-motion-duration-fast) var(--gm-motion-ease-standard);
+  }
+
+  .gm-nav-link:hover::after,
+  .gm-nav-link:focus-visible::after {
+    transform: scaleX(1);
+  }
+
+  /* Chips and the location pill rise a little on hover. One value, used in three places, so the
+   * whole bar answers with the same gesture rather than three slightly different ones. */
+  .gm-lift {
+    transition:
+      transform var(--gm-motion-duration-fast) var(--gm-motion-ease-standard),
+      background-color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard),
+      border-color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard);
+  }
+
+  .gm-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  /*
+   * The headline sits ON the photograph, so it carries a shadow — not for depth as decoration,
+   * but because a 72px letter over a bright frame is where the scrim's average stops being the
+   * whole story. The shadow is what keeps the counters readable against a highlight.
+   */
+  .gm-display-ink {
+    text-shadow: 0 0.5rem 2rem color-mix(in srgb, var(--gm-color-surface-media) 70%, transparent);
+  }
+
+  /*
+   * ┌─ THE HEADLINE ACCENT IS THE REFERENCE'S EXACT RED, AND THAT IS ALLOWED ────────────────────┐
+   * │ `#E21B2D` measures 3.25:1 on the 88% scrim over a blown highlight. That is under the 4.5:1 │
+   * │ body-text floor, and it is NOT a compromise — WCAG 1.4.3 sets the bar for LARGE TEXT at    │
+   * │ 3:1, and large text is 18.66px bold or more. This headline is 72px bold.                    │
+   * │                                                                                            │
+   * │ The distinction is real rather than a loophole: the reason small text needs 4.5:1 is that  │
+   * │ thin strokes lose their edges against a busy ground. A 72px bold letter has strokes about  │
+   * │ 9px wide. Applying the small-text floor to it produced a pink `#FF6B78` that was legible   │
+   * │ and was not the brand colour, which is the wrong trade to make on the one word the whole   │
+   * │ page is built around.                                                                       │
+   * │                                                                                            │
+   * │ It is a CLASS and not the token for exactly this reason. `content-on-media-accent` stays   │
+   * │ at `#FF4757` (4.62:1) so it is safe wherever it is used at any size; this red is scoped to │
+   * │ the one element that earns it, and `hero.spec.ts` pins that it appears only on the `h1`.   │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  .gm-display-accent {
+    /*
+     * ┌─ THE ON-MEDIA ACCENT, NOT `brand-solid` ───────────────────────────────────────────────────┐
+     * │ This said `var(--gm-color-brand-solid)` and called it "the brand fill, reused as ink",     │
+     * │ which is the exact confusion the token set has separate roles to prevent. `brand-solid` is │
+     * │ a FILL: it is proved by putting `content-on-brand` ON it, and nothing about that proof     │
+     * │ says anything about using it AS ink over a photograph.                                     │
+     * │                                                                                            │
+     * │ Measured on the rendered page rather than reasoned about: `#E21B2D` on the scrim comes to  │
+     * │ 2.28:1, under the 3:1 that `WCAG 1.4.3` asks of a 72px bold headline. The token that       │
+     * │ exists for this exact job, `content-on-media-accent` `#FF4757`, makes 3.24:1 on the same   │
+     * │ ground — and reads brighter, which is what the reference looks like anyway.                 │
+     * │                                                                                            │
+     * │ Still one value in one place, so the headline still moves when the brand moves. It just    │
+     * │ tracks the role that means "accent, on media" instead of the one that means "fill".         │
+     * └────────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    color: var(--gm-color-content-on-media-accent);
+  }
+
+  /*
+   * ┌─ THE CHROME CONDENSES ON SCROLL, FROM THE STYLESHEET ──────────────────────────────────────┐
+   * │ `animation-timeline: scroll()` drives it from the document's own scroll position. §4.5 of   │
+   * │ the taste skill HARD BANS `window.addEventListener('scroll')`, and this is why the ban is   │
+   * │ affordable: the CSS version needs no listener, no state, no `class="scrolled"` toggle and   │
+   * │ no inline style for the CSP to drop.                                                        │
+   * │                                                                                             │
+   * │ `MO4` — `transform` and `opacity` only, never `height` or `margin`. So the bar does not     │
+   * │ animate its padding; it SCALES, which the compositor can do on its own thread, and the      │
+   * │ transform origin keeps it pinned to the top edge while it tightens.                          │
+   * │                                                                                             │
+   * │ The range is the first 120px, roughly the announcement bar. Past that the bar has scrolled  │
+   * │ away and the pill is the only chrome left.                                                   │
+   * │                                                                                             │
+   * │ Firefox and Safari do not implement scroll-driven animations yet. They get the RESTING      │
+   * │ state permanently, which is the correct fallback because resting is the roomier, higher-    │
+   * │ contrast end — the fallback must never be the condensed one.                                 │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  @keyframes gm-chrome-condense {
+    from {
+      transform: scaleY(1);
+    }
+    to {
+      transform: scaleY(0.88);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      .gm-chrome-pill {
+        transform-origin: top center;
+        animation: gm-chrome-condense linear both;
+        animation-timeline: scroll();
+        animation-range: 0 120px;
+      }
+
+      /* Counter-scale the contents, so the pill tightens without squashing the wordmark. */
+      .gm-chrome-pill > * {
+        animation: gm-chrome-uncondense linear both;
+        animation-timeline: scroll();
+        animation-range: 0 120px;
+      }
+    }
+  }
+
+  @keyframes gm-chrome-uncondense {
+    from {
+      transform: scaleY(1);
+    }
+    to {
+      transform: scaleY(1.136);
+    }
+  }
+
+  /*
+   * The hero's slow push-in. `MO1` — it communicates that the footage is a live place rather than
+   * a still, which is the whole reason the section carries video at all. 24s and 4%: below the
+   * threshold where a viewer notices it as motion, above the threshold where the frame feels dead.
+   *
+   * Guarded, not token-driven: `RM1` collapses the DURATION tokens to 1ms, and a 1ms infinite loop
+   * is still an infinite loop (§4.4). Scroll-driven and looping motion must go STATIC.
+   */
+  @keyframes gm-hero-push {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.04);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .gm-hero-push {
+      animation: gm-hero-push 24s var(--gm-motion-ease-standard) infinite alternate;
+    }
   }
 
   /*

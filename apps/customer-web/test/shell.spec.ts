@@ -15,6 +15,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { code, source, tsxFiles } from './helpers.ts';
 import { en } from '../src/shared/i18n/messages/en.ts';
 import { t, DEFAULT_LOCALE, LOCALES } from '../src/shared/i18n/index.ts';
@@ -23,8 +24,10 @@ import {
   STATIC_SECURITY_HEADERS,
   buildContentSecurityPolicy,
   generateNonce,
+  NEXT_IMAGE_STYLE_HASH,
   type CspHosts,
 } from '../src/shared/security/csp.ts';
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // NFR-SEC-12 · the CSP. Security.md §11.3.
@@ -36,6 +39,12 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const NONCE = 'dGVzdC1ub25jZS0xMjM0NQ==';
+/**
+ * What `style-src` must be, in both builds. Written once so the two tests below cannot drift into
+ * asserting different policies — which is how one of them ends up passing while the shipped header
+ * is the other one.
+ */
+const EXPECTED_STYLE_SRC = `'self' 'nonce-${NONCE}' 'unsafe-hashes' '${NEXT_IMAGE_STYLE_HASH}'`;
 const policy = (hosts: CspHosts = {}) => buildContentSecurityPolicy(NONCE, hosts);
 
 /** One directive's source list, or `undefined` if the directive is absent. */
@@ -98,14 +107,51 @@ test('unsafe-eval is a DEVELOPMENT concession and never reaches production', () 
   assert.ok(!buildContentSecurityPolicy(NONCE, {}, false).includes('unsafe-eval'));
 
   // And the concession is scoped to scripts — it must not leak into any other directive.
-  assert.equal(directive(dev, 'style-src'), `'self' 'nonce-${NONCE}'`);
+  assert.equal(directive(dev, 'style-src'), EXPECTED_STYLE_SRC);
   assert.equal(directive(dev, 'default-src'), "'none'");
 });
 
 test('style-src takes the nonce, because Tailwind compiles to a static stylesheet', () => {
   // unsafe-inline on styles is the cargo-culted default. A-03 makes it unnecessary here, and
   // that is a real property of the Tailwind choice worth keeping.
-  assert.equal(directive(policy(), 'style-src'), `'self' 'nonce-${NONCE}'`);
+  assert.equal(directive(policy(), 'style-src'), EXPECTED_STYLE_SRC);
+});
+
+test('the one style-attribute hash is `color:transparent` and nothing else', () => {
+  // ┌─ THIS TEST IS THE REASON THE CONCESSION IS SAFE ──────────────────────────────────────────┐
+  // │ `'unsafe-hashes'` is the only CSP mechanism that can allow a style ATTRIBUTE, and on its   │
+  // │ own it would allow EVERY attribute whose hash is listed. The listed hash is therefore the  │
+  // │ whole boundary, so it is recomputed here from the literal string rather than copied from   │
+  // │ the source — copying it from `csp.ts` would assert that a constant equals itself.          │
+  // └───────────────────────────────────────────────────────────────────────────────────────────┘
+  const digest = createHash('sha256').update('color:transparent', 'utf8').digest('base64');
+  assert.equal(NEXT_IMAGE_STYLE_HASH, `sha256-${digest}`);
+
+  // And it is not the spaced variant. `next/image` emits no space; if a future version does, the
+  // style is blocked again and the console says so — the failure is loud, not silent.
+  const spaced = createHash('sha256').update('color: transparent', 'utf8').digest('base64');
+  assert.notEqual(NEXT_IMAGE_STYLE_HASH, `sha256-${spaced}`);
+});
+
+test('unsafe-hashes NEVER becomes unsafe-inline, in either build', () => {
+  // The failure mode this guards is a maintainer meeting a new blocked-style violation and
+  // "extending the existing exception" — `'unsafe-inline'` beside `'unsafe-hashes'` looks like more
+  // of the same thing and is categorically different: it permits every inline style and, per spec,
+  // makes the browser IGNORE the nonce and hash allowlists entirely.
+  for (const csp of [policy(), buildContentSecurityPolicy(NONCE, {}, true)]) {
+    const styleSrc = directive(csp, 'style-src');
+    // Asserted rather than defaulted to `''`: a missing style-src would make the two checks below
+    // pass vacuously, and "the directive is absent" is a bigger failure than either of them.
+    assert.ok(styleSrc, `style-src is missing entirely: ${csp}`);
+    assert.ok(!styleSrc.includes("'unsafe-inline'"), `style-src admits unsafe-inline: ${styleSrc}`);
+    // Exactly one hash. A growing list of style hashes means inline styling is being written by
+    // hand somewhere, which Tailwind (A-03) is supposed to make unnecessary.
+    assert.equal(
+      styleSrc.match(/'sha256-/g)?.length,
+      1,
+      `style-src should carry exactly one hash: ${styleSrc}`,
+    );
+  }
 });
 
 test('every response gets a DIFFERENT nonce', () => {
@@ -237,6 +283,64 @@ test('the middleware attaches the policy and every static header', () => {
 // │ is always a class for it. These assertions are how that stays true.                           │
 // └──────────────────────────────────────────────────────────────────────────────────────────────┘
 // ═══════════════════════════════════════════════════════════════════════════
+
+test('no arbitrary utility hides inside an interpolated template literal', () => {
+  // ┌─ THE THIRD MEMBER OF THE SAME FAMILY ────────────────────────────────────────────────────┐
+  // │ `className={`w-full max-w-[1.25rem] … ${height}`}` produced no `max-w-[1.25rem]` rule at   │
+  // │ all: Tailwind finds candidates by scanning source TEXT, and does not reliably see them in a │
+  // │ template that also carries an interpolation. Grepping the built stylesheet is what proved   │
+  // │ it — the selector was absent while `h-[62%]` from a plain-string array was present.         │
+  // │                                                                                          │
+  // │ The fix is a plain string constant, concatenated at the call site. Extraction happens at   │
+  // │ build time and never runs the code, so the concatenation costs nothing.                    │
+  // │                                                                                          │
+  // │ Scoped to ARBITRARY values on purpose. A named utility that fails to generate is caught by │
+  // │ every other test in the suite the moment it changes layout; an arbitrary one is a length     │
+  // │ nothing else references, so its absence is invisible.                                       │
+  // └──────────────────────────────────────────────────────────────────────────────────────────┘
+  const offenders: string[] = [];
+  for (const file of [...tsxFiles('app'), ...tsxFiles('src')]) {
+    for (const match of code(file).matchAll(/className=\{`([^`]*)`\}/g)) {
+      const body = match[1] ?? '';
+      if (body.includes('${') && /[a-z-]\[[^\]]+\]/.test(body)) {
+        offenders.push(`${file}: ${body.replace(/\s+/g, ' ').slice(0, 70)}`);
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'an arbitrary utility sits in a template literal with an interpolation, where Tailwind may ' +
+      'not extract it. Move the static classes into a plain string constant:\n  ' +
+      offenders.join('\n  '),
+  );
+});
+
+test('no className contains a backslash, because the class would then match nothing', () => {
+  // ┌─ A REAL BUG THIS CAUGHT NOTHING ELSE COULD ──────────────────────────────────────────────┐
+  // │ A city tile's scrim shipped as `bg-[linear-gradient(…)]\` — one trailing backslash from an │
+  // │ editing slip. JSX does not process escapes in attribute values, so the backslash became    │
+  // │ part of the class NAME. Tailwind still generated the rule (it scans source text), the      │
+  // │ element still carried a class, and the DOM token matched no selector: the scrim was         │
+  // │ `background-image: none` and the city name sat on a bare photograph.                       │
+  // │                                                                                          │
+  // │ Nothing else in the toolchain has an opinion about a class that matches nothing. Types are │
+  // │ satisfied by any string, lint sees a valid literal, the build succeeds, and the page looks │
+  // │ plausible until the one photograph that is pale where the label sits.                      │
+  // └──────────────────────────────────────────────────────────────────────────────────────────┘
+  const offenders: string[] = [];
+  for (const file of [...tsxFiles('app'), ...tsxFiles('src')]) {
+    for (const match of code(file).matchAll(/className="([^"]*)"/g)) {
+      if (match[1]?.includes('\\')) offenders.push(`${file}: ${match[1].slice(0, 60)}`);
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'a className contains a backslash. It is part of the class name, so the utility silently ' +
+      'applies to nothing:\n  ' + offenders.join('\n  '),
+  );
+});
 
 test('no component sets an inline style, because the CSP would silently drop it', () => {
   const offenders: string[] = [];

@@ -13,6 +13,16 @@
  */
 
 /**
+ * `sha256("color:transparent")`, base64 — the one style attribute `next/image` writes.
+ *
+ * Taken from the value Chromium itself reported in the blocked-style violation, then confirmed by
+ * hashing the string, so it cannot be a hash of something adjacent: `"color: transparent"` with the
+ * space hashes to a completely different digest, and a wrong hash fails CLOSED (the style stays
+ * blocked and the console noise returns), which is the safe direction for a mistake here.
+ */
+export const NEXT_IMAGE_STYLE_HASH = 'sha256-zlqnbDt84zf1iSefLU/ImC54isoprH/MRiVZGskwexk=';
+
+/**
  * Hosts CSP admits, read from the environment so a deployment names its own CDN, tile and ingest
  * hosts without a code change. Empty in local development, where everything is `'self'`.
  */
@@ -89,7 +99,29 @@ export function buildContentSecurityPolicy(
     `script-src ${scriptSrc}`,
     // Tailwind (A-03) compiles to a static stylesheet, so inline styles are not needed. The
     // nonce covers only the small amount of framework-injected critical CSS.
-    `style-src ${sources("'self'", `'nonce-${nonce}'`)}`,
+    //
+    // ┌─ WHY ONE HASH AND `'unsafe-hashes'` ARE HERE, AND WHY THIS IS NARROW ──────────────────┐
+    // │ `next/image` writes `style="color:transparent"` onto every `<img>` it renders. A nonce   │
+    // │ cannot cover a style ATTRIBUTE — the spec excludes attributes from nonce and plain hash   │
+    // │ matching — so each image logged a blocked-inline-style violation. Seven per home page.    │
+    // │                                                                                          │
+    // │ The visual cost was nil (the declaration only hides alt text mid-load). The real cost was │
+    // │ that a genuine style injection would have arrived as violation number eight in a console   │
+    // │ that already cried wolf seven times — the noise was the vulnerability, not the style.      │
+    // │                                                                                          │
+    // │ `'unsafe-hashes'` is the only mechanism that allows a style attribute at all, and it is    │
+    // │ scoped by the hash beside it: the ONLY attribute value that may apply is the exact string  │
+    // │ `color:transparent`. An injected script gains the ability to make something transparent    │
+    // │ and nothing else — no positioning, no `background`, no data-bearing `url()`. Verified      │
+    // │ against the browser's own reported hash rather than computed and hoped for, and pinned by  │
+    // │ `shell.spec.ts` so a future `'unsafe-inline'` here cannot pass as "the same fix".          │
+    // └──────────────────────────────────────────────────────────────────────────────────────────┘
+    `style-src ${sources(
+      "'self'",
+      `'nonce-${nonce}'`,
+      "'unsafe-hashes'",
+      `'${NEXT_IMAGE_STYLE_HASH}'`,
+    )}`,
     // `data:` is required for inline SVG icons from the component library. Safe for images, and
     // granted to NEITHER script-src NOR object-src.
     `img-src ${sources("'self'", 'data:', hosts.media, hosts.tiles)}`,

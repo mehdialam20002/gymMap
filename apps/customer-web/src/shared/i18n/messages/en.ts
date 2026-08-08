@@ -37,6 +37,12 @@ export const en = {
   'web.chrome.location.label': 'Change location',
   'web.chrome.location.anywhere': 'All cities',
 
+  // --- the announcement bar -------------------------------------------------
+  // Three claims, and each one is a rule the code enforces rather than a slogan: BR-GYM-01,
+  // BR-PLN-03, BR-REV-01. A bar that says "50% OFF" is the version of this that gets ignored.
+  'web.chrome.announce.claims': 'Verified gyms · Transparent pricing · Earned reviews',
+  'web.chrome.announce.link': 'How GymMap works',
+
   // --- footer ---------------------------------------------------------------
   'web.chrome.footer.landmark': 'Footer',
   'web.chrome.footer.tagline': 'Find a gym you can trust, at a price you can see.',
@@ -90,11 +96,10 @@ export const en = {
   // BR-GYM-01, at the point of action. The subtitle carries the pricing promise, so this one
   // carries the other differentiator rather than repeating it.
   'web.home.hero.trust': 'Every gym here was approved by a person before it appeared.',
-  // WCAG 2.2.2. The hero loop runs longer than five seconds, so a mechanism to stop it is an
-  // obligation, not a courtesy — and the label has to say what it stops, because a lone pause
-  // glyph on a page with no audio reads as a media player.
-  'web.home.hero.motionPause': 'Pause background video',
-  'web.home.hero.motionPlay': 'Play background video',
+  // The hero is a still photograph now, so there is no motion to stop and WCAG 2.2.2 is not
+  // engaged. The alt describes what is IN the frame: "hero image" is a fact about the layout,
+  // which is not something a screen-reader user can do anything with.
+  'web.home.hero.photoAlt': 'A rack of dumbbells on a gym floor, with a member training behind it',
 
   // The combined search control. The city select is a real <select> inside the GET form, so it
   // works before hydration and lands in a shareable URL.
@@ -185,6 +190,9 @@ export const en = {
   // from data or it is absent - there is no strip of invented totals anywhere on this surface.
   'web.home.cities.count': '{count} gyms',
   'web.home.cities.countOne': '1 gym',
+  // Names the GYM, because that is what the photograph actually shows. "Gyms in Bengaluru"
+  // would describe a photo of a city that nobody took.
+  'web.home.cities.photoAlt': '{gym}',
 
   // --- SCR-WEB-001 · for gym owners -----------------------------------------
   'web.home.owners.eyebrow': 'For gym owners',
@@ -192,6 +200,20 @@ export const en = {
   'web.home.owners.body':
     'List your gym, sell memberships online, take payments and track check-ins from one place.',
   'web.home.owners.cta': 'List your gym',
+  // The four things the gym dashboard does. Capabilities, not outcomes — "get discovered" is a
+  // description of the product; "grow revenue 40%" would be a promise nobody has measured.
+  'web.home.owners.point.discovered': 'Get discovered locally',
+  'web.home.owners.point.sell': 'Sell memberships online',
+  'web.home.owners.point.checkins': 'Manage check-ins',
+  'web.home.owners.point.track': 'Track performance',
+  'web.home.owners.preview.title': 'Owner dashboard',
+  'web.home.owners.preview.live': 'Live',
+  'web.home.owners.preview.revenue': 'Revenue',
+  'web.home.owners.preview.members': 'Members',
+  // Says what the panel IS. Without this a reader is entitled to assume the blocks were numbers
+  // that failed to load, which is a worse impression than the honest one.
+  'web.home.owners.preview.caption':
+    'An illustration of the owner dashboard. Your own figures appear here once your gym is listed.',
 
   // --- SCR-WEB-001 · closing --------------------------------------------------
   'web.home.closing.title': 'Your next gym is closer than you think.',
@@ -484,6 +506,72 @@ export const en = {
     'Gym onboarding is not connected yet, so this form does not send anything. It is here so the fields can be reviewed — nothing you type is stored or transmitted.',
   'web.forGyms.signup.verifyNote':
     'Every application is read by a person. A gym is not listed until it has been approved, which is why the catalogue is smaller than a directory that lists anyone.',
+
+  // --- the section eyebrows -------------------------------------------------
+  'web.home.eyebrow.featured': 'Discover near you',
+  'web.home.eyebrow.goals': 'Find your fit',
+  'web.home.eyebrow.how': 'Simple by design',
+  'web.home.eyebrow.plans': 'Membership marketplace',
+  'web.home.eyebrow.compare': 'Smarter decisions',
+  'web.home.eyebrow.member': 'The member experience',
+  'web.home.eyebrow.cities': 'Explore by city',
+  'web.home.eyebrow.faq': 'Questions',
+  'web.home.eyebrow.why': 'Why us',
+
+  // --- SCR-WEB-001 · the membership marketplace ------------------------------
+  // NOT "Best memberships this month". Eight listings and no sales data, so "best" would be a
+  // ranking the platform cannot defend, on the screen where a member decides where to spend.
+  'web.home.plans.title': 'Plans from verified gyms',
+  'web.home.plans.body':
+    'Every plan below is the gym’s own price, listed as they set it. No introductory rate that expires and no fee added at checkout.',
+  'web.home.plans.seeAll': 'See all gyms',
+  'web.home.plans.perMonth': 'per month',
+  'web.home.plans.days': 'days',
+  'web.home.plans.view': 'View this plan',
+  // BR-PLN-03, stated where the prices are. The reference strikes through an invented "original"
+  // price on every card; a discount this page made up is one checkout would refuse to honour.
+  'web.home.plans.noDiscountNote':
+    'No struck-through prices here. A discount is real or it is not shown, and the figure you see is the figure the server charges.',
+
+  // --- SCR-WEB-001 · the compare teaser --------------------------------------
+  'web.home.compareTeaser.title': 'Still deciding? Put them side by side.',
+  'web.home.compareTeaser.body':
+    'Up to four gyms at once: price, distance, rating and every facility, in one view. The table below is live, from the same listings the results page uses.',
+  'web.home.compareTeaser.cta': 'Start comparing',
+  'web.home.compareTeaser.rowPrice': 'From, per month',
+  'web.home.compareTeaser.rowDistance': 'Distance',
+  'web.home.compareTeaser.rowRating': 'Rating',
+
+  // --- SCR-WEB-001 · what a membership gives you -----------------------------
+  'web.home.member.title': 'Your membership, in your pocket',
+  'web.home.member.body':
+    'Once you join, everything about the membership lives in your account: the code you show at the door, every visit that was recorded, and a receipt for every rupee.',
+  'web.home.member.qr.title': 'A code at the door',
+  'web.home.member.qr.body':
+    'Your gym scans it and the visit is recorded. The code is signed by our server and lasts sixty seconds, so a screenshot is worth nothing to anyone else.',
+  'web.home.member.visits.title': 'Every visit, listed',
+  'web.home.member.visits.body':
+    'A visit appears the moment a gym scans you in. It is the same record your gym sees, so there is nothing to dispute.',
+  'web.home.member.receipts.title': 'Receipts that never change',
+  'web.home.member.receipts.body':
+    'The figures on a receipt are the ones you were charged, stored with the order. A later change to a price or a tax rate cannot rewrite it.',
+  'web.home.member.cta': 'See the account',
+
+  // --- SCR-WEB-001 · FAQ ------------------------------------------------------
+  'web.home.faq.title': 'Good to know',
+  'web.home.faq.body': 'The four things people ask before they pick a gym here.',
+  'web.home.faq.verified.q': 'Are all the gyms really checked?',
+  'web.home.faq.verified.a':
+    'Yes. A person reads every application and confirms the gym is real before the listing appears. Nothing is listed because it paid to be.',
+  'web.home.faq.price.q': 'Is the price I see the price I pay?',
+  'web.home.faq.price.a':
+    'Yes. Taxes are shown on the review screen before you commit, and the total is checked again on our server before any payment is taken. If it does not match, the payment stops rather than going through at a different figure.',
+  'web.home.faq.reviews.q': 'Can someone review a gym they never visited?',
+  'web.home.faq.reviews.a':
+    'No. A review requires a recorded check-in at that gym. It is why a new listing starts with no reviews rather than with reviews nobody earned.',
+  'web.home.faq.checkin.q': 'How does check-in work?',
+  'web.home.faq.checkin.a':
+    'You open your membership and show the code. The gym scans it, and the visit appears in your history and in theirs within seconds.',
 
   // --- SCR-WEB-008/009 · city and activity landings ------------------------
   // `{city}` / `{activity}` / `{count}` are substituted at the call site. A translator must be

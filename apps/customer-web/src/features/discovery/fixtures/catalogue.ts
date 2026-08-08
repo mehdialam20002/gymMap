@@ -374,13 +374,40 @@ export const CATALOGUE: readonly GymDetail[] = [
   },
 ];
 
-/** The city facets, derived rather than listed — a hard-coded list drifts from the catalogue. */
-export const CITIES: ReadonlyArray<{ slug: string; name: string; count: number }> = Object.values(
-  CATALOGUE.reduce<Record<string, { slug: string; name: string; count: number }>>((acc, gym) => {
+/**
+ * The city facets, derived rather than listed — a hard-coded list drifts from the catalogue.
+ *
+ * ┌─ `photo` IS A REAL LISTING'S COVER, NOT A STOCK SHOT OF THE CITY ───────────────────────────┐
+ * │ The home page's city tiles need an image each. The reference fills them with skyline stock,   │
+ * │ and buying that here would mean a curated `city → photo` map: editorial data invented to      │
+ * │ decorate a page, which then has to be maintained per city forever and says nothing true.      │
+ * │                                                                                              │
+ * │ So a city's tile shows the cover of a gym that is ACTUALLY LISTED IN IT, and `photoAlt` names │
+ * │ that gym. A new city needs no new asset, a city with no listings has no tile because it is    │
+ * │ not in this list at all, and nothing on the page claims to be a photograph of a city.         │
+ * │                                                                                              │
+ * │ `?? gym.photo` rather than plain assignment: the reducer visits every gym, so assigning each  │
+ * │ time would leave whichever listing happens to be LAST in the file — the tile would change     │
+ * │ when an unrelated gym was appended. First-wins in catalogue order is stable.                  │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export const CITIES: ReadonlyArray<{
+  slug: string;
+  name: string;
+  count: number;
+  photo: string;
+  photoAlt: string;
+}> = Object.values(
+  CATALOGUE.reduce<
+    Record<string, { slug: string; name: string; count: number; photo: string; photoAlt: string }>
+  >((acc, gym) => {
+    const existing = acc[gym.citySlug];
     acc[gym.citySlug] = {
       slug: gym.citySlug,
       name: gym.city,
-      count: (acc[gym.citySlug]?.count ?? 0) + 1,
+      count: (existing?.count ?? 0) + 1,
+      photo: existing?.photo ?? gym.photo,
+      photoAlt: existing?.photoAlt ?? gym.photoAlt,
     };
     return acc;
   }, {}),
