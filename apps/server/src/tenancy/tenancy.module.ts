@@ -18,6 +18,7 @@
 import { Global, Module } from '@nestjs/common';
 
 import { APP_CONFIG, type AppConfig } from '../common/config/app-config.schema.js';
+import { ReadinessService } from '../common/health/readiness.service.js';
 import { PrismaService } from './prisma/prisma.service.js';
 import { TenantPingController } from './controllers/tenant-ping.controller.js';
 import { TenantPrismaRepository } from './infrastructure/tenant.prisma-repository.js';
@@ -51,8 +52,9 @@ import { AuditPrismaService } from './prisma/audit-prisma.service.js';
       // takes a validated `AppConfig`, and wiring it here keeps `PrismaService` free of Nest
       // decorators on its parameters — so it can be constructed directly in an integration
       // test without a DI container.
-      useFactory: (config: AppConfig) => new PrismaService(config),
-      inject: [APP_CONFIG],
+      useFactory: (config: AppConfig, readiness: ReadinessService) =>
+        new PrismaService(config, readiness),
+      inject: [APP_CONFIG, ReadinessService],
     },
   ],
   exports: [PrismaService, TenantPrismaRepository, PlatformPrismaService, AuditPrismaService],

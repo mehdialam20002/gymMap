@@ -14,12 +14,56 @@ export const en = {
   'adm.chrome.brand': 'GymMap Admin',
   'adm.chrome.nav.label': 'Sections',
   'adm.chrome.nav.dashboard': 'Dashboard',
+  'adm.chrome.nav.sessions': 'Your devices',
   'adm.chrome.nav.approvals': 'Approvals',
   'adm.chrome.nav.tenants': 'Gyms',
   'adm.chrome.nav.finance': 'Finance',
   'adm.chrome.nav.moderation': 'Moderation',
   'adm.chrome.nav.audit': 'Audit',
   'adm.chrome.signOut': 'Sign out',
+
+  // --- FR-AUTH-04, the sign-in form -----------------------------------------
+  'adm.signIn.identifier': 'Email or phone',
+  // Both, because FR-AUTH-01 makes the phone the primary identifier in the launch market and an
+  // operator should not have to work out which one this console wants.
+  'adm.signIn.identifierHint': 'The address or number your platform account was created with.',
+  'adm.signIn.password': 'Password',
+  'adm.signIn.working': 'Signing in…',
+  'adm.signIn.mfaNotice':
+    'Platform accounts will also require a second factor. That step arrives with the MFA milestone; until then a password is enough to reach this console, which is why it is not yet open to the internet.',
+
+  // --- FR-AUTH-09, the device list ------------------------------------------
+  'adm.sessions.title': 'Your devices',
+  'adm.sessions.subtitle':
+    'Every place your account is currently signed in. If you do not recognise one, revoke it — that signs it out immediately rather than when its token expires.',
+  'adm.sessions.thisDevice': 'This device',
+  'adm.sessions.unknownDevice': 'Unrecognised device',
+  'adm.sessions.unknownAddress': 'Address not recorded',
+  'adm.sessions.revoke': 'Revoke',
+  'adm.sessions.signOutHere': 'Sign out here',
+  'adm.sessions.revoking': 'Revoking…',
+  'adm.sessions.loadFailed': 'Could not load your devices. Try again in a moment.',
+  'adm.sessions.revokeFailed': 'That device could not be revoked. It may already be signed out.',
+
+  // --- SCR-ADM-001, the dashboard tiles -------------------------------------
+  'adm.dashboard.tile.api': 'API',
+  'adm.dashboard.tile.dependencies': 'Dependencies',
+  'adm.dashboard.tile.yourDevices': 'Your devices',
+  'adm.dashboard.tile.yourDevicesDetail': 'Signed-in sessions on your own account',
+  'adm.dashboard.tile.approvals': 'Gyms awaiting approval',
+  'adm.dashboard.tile.gyms': 'Listed gyms',
+  'adm.dashboard.tile.settlements': 'Settlements due',
+  'adm.dashboard.tile.moderation': 'Reports to review',
+  'adm.dashboard.api.ready': 'Ready',
+  'adm.dashboard.api.notReady': 'Not ready',
+  'adm.dashboard.lastUpdated': 'Updated',
+  'adm.dashboard.refreshing': 'Refreshing…',
+  'adm.dashboard.awaiting.title': 'Not built yet',
+  // Says why there is no number rather than showing a zero. A zero meaning "not built" and a zero
+  // meaning "nothing to do today" look identical, and only one of them needs an operator.
+  'adm.dashboard.awaiting.body':
+    'These tiles have no endpoint behind them yet, so they show no figure. A zero here would be indistinguishable from a real zero.',
+  'adm.dashboard.awaiting.milestone': 'Arrives in',
 
   // --- NFR-SEC-11, the gate -------------------------------------------------
   'adm.gate.loading': 'Checking your session',

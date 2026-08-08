@@ -15,16 +15,38 @@
  * │ M-024), and they must exist independently of this.                                            │
  * │                                                                                              │
  * │ What this buys is that the operator is not shown a screen they cannot use, and that the      │
- * │ shape is right before the real identity module lands — so wiring it up later is a change to  │
- * │ this file rather than to every route.                                                         │
+ * │ shape is right — so wiring the rest up later is a change to this file rather than to every   │
+ * │ route.                                                                                        │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
- * The real session arrives with M-019…M-025. Until then `useSession()` reports UNAUTHENTICATED
- * and the gate renders its sign-in prompt — which is honest: there is no auth endpoint yet, and a
- * shell that faked a logged-in state would be demonstrating something that does not exist.
+ * ┌─ WHAT IS REAL AS OF M-022, AND WHAT IS STILL A SEAM ────────────────────────────────────────┐
+ * │ REAL: the credential check, the access token, the httpOnly refresh cookie, silent renewal,  │
+ * │       the device list, and revocation. All of it against the running API.                   │
+ * │ SEAM: `permissions` is empty until M-023 encodes the B3.2 matrix, and `MFA_REQUIRED` is     │
+ * │       never entered because the server has no second factor until M-024. Both are stated    │
+ * │       here rather than faked — a stub that reported "MFA satisfied" would be demonstrating  │
+ * │       a control that does not exist, which is worse than showing none.                       │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+
+import {
+  ApiError,
+  login as apiLogin,
+  logout as apiLogout,
+  getAccessToken,
+  onAccessTokenChange,
+  refresh,
+} from '../api/client.ts';
 
 /**
  * The states an admin session can be in, as a discriminated union rather than three booleans.
@@ -50,23 +72,113 @@ export type AdminSession =
       readonly impersonating?: { readonly subjectId: string; readonly subjectLabel: string };
     };
 
-const SessionContext = createContext<AdminSession>({ status: 'LOADING' });
+export interface SessionController {
+  readonly session: AdminSession;
+  /** Resolves to `null` on success, or a human-readable reason to show under the form. */
+  readonly signIn: (identifier: string, password: string) => Promise<string | null>;
+  readonly signOut: () => Promise<void>;
+}
+
+const SessionContext = createContext<SessionController>({
+  session: { status: 'LOADING' },
+  signIn: () => Promise.resolve('No session provider is mounted.'),
+  signOut: () => Promise.resolve(),
+});
 
 export function SessionProvider({
   children,
   value,
 }: {
   children: ReactNode;
+  /** Overrides the live session. For tests and stories only. */
   value?: AdminSession;
 }) {
-  // Until M-022 there is no token endpoint to call. Reported honestly rather than stubbed to
-  // AUTHENTICATED: a shell that fakes a signed-in operator demonstrates a capability that does
-  // not exist, and the first real integration then has to un-fake it.
-  const session = useMemo<AdminSession>(() => value ?? { status: 'UNAUTHENTICATED' }, [value]);
-  return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
+  const [session, setSession] = useState<AdminSession>(
+    value ?? { status: value === undefined ? 'LOADING' : 'UNAUTHENTICATED' },
+  );
+
+  const authenticatedAs = useCallback(
+    (userId: string): AdminSession => ({
+      status: 'AUTHENTICATED',
+      userId,
+      // The identifier the operator typed is what they recognise. There is no profile endpoint
+      // until M-023, and inventing a display name would put a fiction on screen next to real data.
+      displayName: userId,
+      permissions: [],
+    }),
+    [],
+  );
+
+  // ── On mount: is there a session already? ──────────────────────────────────────────────────
+  //
+  // A reload leaves no access token — it lived in memory, deliberately. But the refresh cookie
+  // survives, so exactly one refresh attempt decides between "signed in" and "not". Without this,
+  // every reload would look like a sign-out and the console would be unusable.
+  useEffect(() => {
+    if (value !== undefined) return;
+
+    let cancelled = false;
+    void (async () => {
+      const restored = await refresh();
+      if (cancelled) return;
+
+      if (!restored) {
+        setSession({ status: 'UNAUTHENTICATED' });
+        return;
+      }
+      setSession(authenticatedAs(subjectOf(getAccessToken())));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [value, authenticatedAs]);
+
+  // ── The token can be lost without this component asking ────────────────────────────────────
+  //
+  // A background query hits a revoked session, the client's retry-refresh fails, and the token is
+  // cleared. Without this subscription the console would keep rendering a signed-in shell whose
+  // every request 401s — which reads to an operator as "the app is broken", not "you were signed
+  // out". `AC-10` makes that a real path: revocation reaches a token mid-session, by design.
+  useEffect(() => {
+    if (value !== undefined) return;
+    return onAccessTokenChange((token) => {
+      if (token === null) setSession({ status: 'UNAUTHENTICATED' });
+    });
+  }, [value]);
+
+  const signIn = useCallback(
+    async (identifier: string, password: string): Promise<string | null> => {
+      try {
+        const result = await apiLogin(identifier, password);
+        setSession(authenticatedAs(result.user_id));
+        return null;
+      } catch (error) {
+        setSession({ status: 'UNAUTHENTICATED' });
+        return messageFor(error);
+      }
+    },
+    [authenticatedAs],
+  );
+
+  const signOut = useCallback(async () => {
+    await apiLogout();
+    setSession({ status: 'UNAUTHENTICATED' });
+  }, []);
+
+  const controller = useMemo<SessionController>(
+    () => ({ session: value ?? session, signIn, signOut }),
+    [value, session, signIn, signOut],
+  );
+
+  return <SessionContext.Provider value={controller}>{children}</SessionContext.Provider>;
 }
 
 export function useSession(): AdminSession {
+  return useContext(SessionContext).session;
+}
+
+export function useSessionController(): SessionController {
   return useContext(SessionContext);
 }
 
@@ -78,4 +190,45 @@ export function useSession(): AdminSession {
  */
 export function mayAttempt(session: AdminSession, permission: string): boolean {
   return session.status === 'AUTHENTICATED' && session.permissions.includes(permission);
+}
+
+// ---------------------------------------------------------------------------
+// Helpers.
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads `sub` out of the access token's payload — WITHOUT verifying it.
+ *
+ * That is not a lapse, it is the only correct posture for a browser. The client cannot hold the
+ * signing key, so it cannot verify anything; a client-side "verification" would only ever confirm
+ * what an attacker who forged the token already chose. The server verifies every request, and
+ * this value is used for one thing: deciding which name to put in the corner.
+ */
+function subjectOf(token: string | null): string {
+  if (token === null) return 'unknown';
+  const payload = token.split('.')[1];
+  if (payload === undefined) return 'unknown';
+
+  try {
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/')) as string;
+    const claims = JSON.parse(json) as { sub?: unknown };
+    return typeof claims.sub === 'string' ? claims.sub : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+/**
+ * Turns a failure into something an operator can act on.
+ *
+ * `UNAUTHENTICATED` is passed through as the server's own wording deliberately: `Security.md` §1.6
+ * requires that "no such account" and "wrong password" be indistinguishable, and a client that
+ * helpfully rewrote one of them into "that email is not registered" would rebuild the enumeration
+ * oracle the server spent an Argon2id decoy hash preventing.
+ */
+function messageFor(error: unknown): string {
+  if (error instanceof ApiError) return error.message;
+  // A network failure, not a rejection. Saying "check your details" here would be wrong and would
+  // send the operator looking for a typo that is not there.
+  return 'Could not reach the server. Check that the API is running, then try again.';
 }

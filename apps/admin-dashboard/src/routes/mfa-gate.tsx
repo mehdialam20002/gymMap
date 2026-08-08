@@ -21,6 +21,7 @@ import type { ReactNode } from 'react';
 
 import { t } from '../shared/i18n/index.ts';
 import { useSession } from '../shared/auth/session.tsx';
+import { SignIn } from './sign-in.tsx';
 
 export function MfaGate({ children }: { children: ReactNode }) {
   const session = useSession();
@@ -33,24 +34,10 @@ export function MfaGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (session.status === 'UNAUTHENTICATED') {
-    return (
-      <GatePanel tone="info" title={t('adm.gate.signIn.title')}>
-        <p className="text-base text-content-secondary">{t('adm.gate.signIn.body')}</p>
-        {/* Disabled and SAID SO. A live-looking button that does nothing is worse than an
-            honestly disabled one — it teaches the operator the console is broken. */}
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          className="gm-hit-target mt-stack-md rounded-control bg-surface-disabled px-inset-lg py-inset-sm text-md font-semibold text-content-disabled"
-        >
-          {t('adm.gate.signIn.action')}
-        </button>
-        <p className="mt-stack-sm text-sm text-content-muted">{t('adm.gate.signIn.unavailable')}</p>
-      </GatePanel>
-    );
-  }
+  // A real form as of M-022. Until then this branch rendered a deliberately disabled button and
+  // said so, because there was no auth endpoint and a live-looking control that did nothing would
+  // have taught the operator that the console was broken.
+  if (session.status === 'UNAUTHENTICATED') return <SignIn />;
 
   if (session.status === 'MFA_REQUIRED') {
     return (

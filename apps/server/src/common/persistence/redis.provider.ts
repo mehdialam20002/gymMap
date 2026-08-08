@@ -26,12 +26,14 @@ import {
   Injectable,
   Logger,
   type OnApplicationShutdown,
+  type OnModuleInit,
   type Provider,
 } from '@nestjs/common';
 import { Redis } from 'ioredis';
 
 import { APP_CONFIG, type AppConfig } from '../config/app-config.schema.js';
 import { skipEagerConnect } from '../bootstrap/contract-only-mode.js';
+import { ReadinessService } from '../health/readiness.service.js';
 
 export const REDIS_CLIENT = Symbol('RedisClient');
 
@@ -99,8 +101,31 @@ export const redisProvider: Provider = {
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 @Injectable()
-export class RedisConnectionLifecycle implements OnApplicationShutdown {
-  constructor(@Inject(REDIS_CLIENT) private readonly client: Redis) {}
+export class RedisConnectionLifecycle implements OnApplicationShutdown, OnModuleInit {
+  constructor(
+    @Inject(REDIS_CLIENT) private readonly client: Redis,
+    private readonly readiness: ReadinessService,
+  ) {}
+
+  /**
+   * Registers the `/readyz` probe.
+   *
+   * `ReadinessService` reports `not_ready` while no probe is registered — correctly, because
+   * answering "ready" before any infrastructure has wired itself in is a lie that only surfaces
+   * under production traffic. So a `register()` nobody calls means the pod never becomes ready
+   * and the deployment stalls around a process that is working perfectly.
+   *
+   * Redis is on this list because `RLM3` makes the tier-1 rate limits FAIL CLOSED: with Redis
+   * gone, those endpoints refuse every request. An instance in that state must not be routed to.
+   */
+  onModuleInit(): void {
+    this.readiness.register({
+      name: 'redis',
+      check: async () => {
+        await this.client.ping();
+      },
+    });
+  }
 
   async onApplicationShutdown(): Promise<void> {
     // `quit()` drains in-flight commands and sends QUIT; `disconnect()` severs immediately and

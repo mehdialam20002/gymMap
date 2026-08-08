@@ -15,6 +15,21 @@ export default defineConfig({
   server: {
     port: 3003,
     strictPort: true,
+
+    // ┌─ THE API IS PROXIED, NOT CALLED CROSS-ORIGIN ────────────────────────────────────────┐
+    // │ `__Host-gm_rt` is `Secure` and `SameSite=Strict`. Calling `:3000` directly from        │
+    // │ `:3003` would need a CORS policy with `credentials: true` on the server — a real       │
+    // │ security surface, invented for a dev convenience, that production does not want.       │
+    // │                                                                                        │
+    // │ A proxy makes every request same-origin, so the cookie is set and returned under       │
+    // │ exactly the rules it will face in production. The dev setup then proves the real       │
+    // │ thing rather than a relaxed variant of it.                                              │
+    // └────────────────────────────────────────────────────────────────────────────────────────┘
+    proxy: {
+      '/v1': { target: 'http://127.0.0.1:3000', changeOrigin: false },
+      '/healthz': { target: 'http://127.0.0.1:3000', changeOrigin: false },
+      '/readyz': { target: 'http://127.0.0.1:3000', changeOrigin: false },
+    },
   },
   preview: { port: 3003, strictPort: true },
 

@@ -16,6 +16,7 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nest
 import { PrismaClient } from '@prisma/client';
 
 import { APP_CONFIG, type AppConfig } from '../../common/config/app-config.schema.js';
+import { ReadinessService } from '../../common/health/readiness.service.js';
 import { skipEagerConnect } from '../../common/bootstrap/contract-only-mode.js';
 import { withTenantContext } from './tenant-scoped-client.js';
 
@@ -78,7 +79,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   // (TD-030) the moment this class was provided by class reference instead of by factory —
   // and the failure appears at boot, pointing nowhere near here. The explicit token removes
   // the dependency on how the provider happens to be registered today.
-  constructor(@Inject(APP_CONFIG) private readonly config: AppConfig) {
+  constructor(
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
+    private readonly readiness: ReadinessService,
+  ) {
     this.raw = new PrismaClient({
       datasources: { db: { url: config.DATABASE_URL } },
       // `query` is emitted as an event rather than logged directly, so the OTel exporter can
@@ -100,6 +104,25 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     if (!skipEagerConnect(this.config.APP_ENV, 'PrismaService')) {
       await this.raw.$connect();
     }
+
+    // ┌─ `/readyz` HAS TO BE TOLD THIS CONNECTION EXISTS ────────────────────────────────────┐
+    // │ `ReadinessService` reports `not_ready` while no probe is registered, deliberately —   │
+    // │ answering "ready" before any infrastructure module has wired itself in is a lie that  │
+    // │ only surfaces under production traffic.                                                │
+    // │                                                                                        │
+    // │ Which means a `register()` that nobody calls is not a missing nicety: the pod never    │
+    // │ becomes ready, the orchestrator never routes to it, and the deployment stalls with a  │
+    // │ perfectly healthy process inside. Registered HERE rather than in a bootstrap file so   │
+    // │ the probe cannot outlive the connection it probes.                                     │
+    // └────────────────────────────────────────────────────────────────────────────────────────┘
+    this.readiness.register({
+      name: 'postgres',
+      // `SELECT 1` over the real pool. Not `$connect()`, which resolves from a cached connection
+      // and would keep reporting healthy after the database went away.
+      check: async () => {
+        await this.raw.$queryRaw`SELECT 1`;
+      },
+    });
 
     // Sampled, and the PARAMETERS ARE NEVER LOGGED.
     //
