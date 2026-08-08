@@ -27,6 +27,7 @@ import { t } from '../shared/i18n/index.ts';
 import { useSession, useSessionController } from '../shared/auth/session.tsx';
 import { platformOverview } from '../shared/api/admin.ts';
 import { ImpersonationBanner } from '../shared/impersonation/banner.tsx';
+import { ThemeToggle } from '../shared/theme/theme-toggle.tsx';
 import { MfaGate } from './mfa-gate.tsx';
 import { NAV, PENDING_ROUTES, type NavItem } from './nav.ts';
 import { PlatformDashboardRoute } from './platform-dashboard.route.tsx';
@@ -63,11 +64,20 @@ function AdminLayout() {
           <div className="flex min-w-0 flex-1 flex-col">
             <AdminHeader />
             {/* tabIndex={-1} so the skip link moves FOCUS here, not merely the scroll position. */}
+            {/* ┌─ THE CONTENT HAS A MEASURE, AND ON A WIDE SCREEN THAT IS THE POINT ──────────┐
+                │ `max-w-container` is 1440px. Without it the console stretches to whatever the │
+                │ monitor is, and on an 1800px screen a queue row puts a gym's name at one edge │
+                │ and its status at the other with 1400px of nothing between them. The eye      │
+                │ cannot associate the two, so every row has to be read twice.                   │
+                │                                                                                │
+                │ Compact density (`DesignSystem.md` §1.1) is about information per glance, not │
+                │ about filling the glass.                                                       │
+                └────────────────────────────────────────────────────────────────────────────────┘ */}
             <main
               id="main"
               tabIndex={-1}
               aria-label={t('adm.chrome.mainLandmark')}
-              className="min-w-0 flex-1 px-inset-lg py-inset-lg"
+              className="mx-auto w-full min-w-0 max-w-container flex-1 px-inset-lg py-inset-lg"
             >
               <Outlet />
             </main>
@@ -84,15 +94,31 @@ function AdminHeader() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-subtle bg-surface">
-      <div className="flex items-center justify-between gap-inline-md px-inset-lg py-inset-sm">
-        <span className="text-sm text-content-muted">{t('adm.dashboard.subtitle')}</span>
+      <div className="flex h-[3.5rem] items-center gap-inline-md px-inset-lg">
+        {/* Search is presented but INERT, and it says so.
+            Cross-entity search needs the B3.2 matrix to decide which results an operator may
+            see, so it arrives with M-023. A live-looking box that returns nothing is the one
+            control a demo is guaranteed to try, and finding it dead is worse than finding it
+            honestly disabled. */}
+        <label className="min-w-0 flex-1" htmlFor="admin-search">
+          <span className="gm-visually-hidden">{t('adm.chrome.search.label')}</span>
+          <input
+            id="admin-search"
+            type="search"
+            disabled
+            placeholder={t('adm.chrome.search.placeholder')}
+            className="h-[2.25rem] w-full max-w-ui rounded-control border border-subtle bg-surface-sunken px-inset-sm text-sm text-content placeholder:text-content-muted disabled:cursor-not-allowed"
+          />
+        </label>
+
+        <ThemeToggle />
 
         {session.status === 'AUTHENTICATED' && (
-          <div className="flex items-center gap-inline-md">
+          <div className="flex shrink-0 items-center gap-inline-sm">
             {/* The identifier they signed in with. Not a fabricated display name — there is no
                 profile endpoint until M-023, and a plausible invented name sitting next to real
                 data is the kind of detail nobody thinks to doubt. */}
-            <span className="hidden max-w-[16rem] truncate text-sm text-content-secondary md:inline">
+            <span className="hidden max-w-[14rem] truncate text-xs text-content-muted xl:inline">
               {session.displayName}
             </span>
             <button
@@ -215,11 +241,25 @@ function NavItemLink({
               {badge}
             </span>
           )}
+          {/* ┌─ A MARK, NOT A SENTENCE ─────────────────────────────────────────────────────┐
+              │ "In development" spelled out took ninety of the sidebar's two hundred and    │
+              │ forty pixels, so "Application detail" rendered as "Application de…" and       │
+              │ "Categories & amenities" as "Categories & a…". The badge was winning space    │
+              │ from the label it describes, which is backwards: the operator reads the label │
+              │ to navigate and the badge only to explain why a link is quiet.                │
+              │                                                                               │
+              │ `title` on the link carries the full wording, and `sr-only` text carries it   │
+              │ to a screen reader, so nothing is lost — it stops being shouted.               │
+              └───────────────────────────────────────────────────────────────────────────────┘ */}
           {pending && (
-            <span className="shrink-0 rounded-control border border-subtle px-inset-2xs text-xs font-medium text-content-muted">
-              {t('adm.chrome.inDevelopment')}
+            <span
+              aria-hidden="true"
+              className="shrink-0 rounded-control border border-subtle px-inset-2xs text-xs font-medium text-content-muted"
+            >
+              {t('adm.chrome.inDevelopmentShort')}
             </span>
           )}
+          {pending && <span className="gm-visually-hidden">{t('adm.chrome.inDevelopment')}</span>}
         </>
       )}
     </NavLink>

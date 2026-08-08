@@ -105,73 +105,116 @@ export function PlatformDashboardRoute() {
         />
       </div>
 
-      {/* ── The pipeline. The whole C4.4 state machine, with real counts. ──────────────── */}
-      <section className="mt-stack-lg rounded-card border border-subtle bg-surface p-inset-md">
-        <h2 className="text-sm font-semibold text-content">{t('adm.dashboard.pipeline.title')}</h2>
-        <p className="mt-stack-2xs text-xs text-content-muted">
-          {t('adm.dashboard.pipeline.body')}
-        </p>
+      <div className="mt-stack-lg grid gap-inline-lg xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="min-w-0">
+          {/* ── The pipeline. The whole C4.4 state machine, with real counts. ──────────────── */}
+          <section className="rounded-card border border-subtle bg-surface p-inset-md">
+            <h2 className="text-sm font-semibold text-content">
+              {t('adm.dashboard.pipeline.title')}
+            </h2>
+            <p className="mt-stack-2xs text-xs text-content-muted">
+              {t('adm.dashboard.pipeline.body')}
+            </p>
 
-        <ul className="mt-stack-sm flex flex-wrap gap-inline-md">
-          {PIPELINE.map((status) => (
-            <li key={status} className="min-w-[6rem]">
-              <p className="text-xl font-semibold tabular-nums text-content">
-                {gyms === undefined ? (
-                  <span className="text-sm font-normal text-content-muted">
-                    {t('adm.state.loading')}
+            <ul className="mt-stack-sm flex flex-wrap gap-inline-md">
+              {PIPELINE.map((status) => (
+                <li key={status} className="min-w-[6rem]">
+                  <p className="text-xl font-semibold tabular-nums text-content">
+                    {gyms === undefined ? (
+                      <span className="text-sm font-normal text-content-muted">
+                        {t('adm.state.loading')}
+                      </span>
+                    ) : (
+                      gyms.byStatus[status]
+                    )}
+                  </p>
+                  <p className="mt-stack-2xs text-xs text-content-secondary">
+                    {GYM_STATUS_LABEL[status]}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* ── Infrastructure. Two probes, and only two are claimed. ──────────────────────── */}
+          <section className="mt-stack-md rounded-card border border-subtle bg-surface p-inset-md">
+            <div className="flex flex-wrap items-center justify-between gap-inline-md">
+              <h2 className="text-sm font-semibold text-content">
+                {t('adm.dashboard.health.title')}
+              </h2>
+              {readiness.data !== undefined && (
+                <span
+                  className={`rounded-control px-inset-xs py-inset-2xs text-xs font-medium ${
+                    readiness.data.status === 'ready'
+                      ? 'bg-surface-success-subtle text-content-success'
+                      : 'bg-surface-danger-subtle text-content-danger'
+                  }`}
+                >
+                  {readiness.data.status === 'ready'
+                    ? t('adm.dashboard.api.ready')
+                    : t('adm.dashboard.api.notReady')}
+                  {total > 0 && ` · ${String(healthy)}/${String(total)}`}
+                </span>
+              )}
+            </div>
+
+            <ul className="mt-stack-sm flex flex-wrap gap-inline-md">
+              {Object.entries(dependencies).map(([name, up]) => (
+                <li key={name} className="flex items-center gap-inline-2xs text-sm">
+                  {/* Icon AND word AND colour, never colour alone (AX8). A green dot on its own is
+                  invisible to roughly one man in twelve. */}
+                  <span
+                    aria-hidden="true"
+                    className={up ? 'text-content-success' : 'text-content-danger'}
+                  >
+                    {up ? '●' : '○'}
                   </span>
-                ) : (
-                  gyms.byStatus[status]
-                )}
-              </p>
-              <p className="mt-stack-2xs text-xs text-content-secondary">
-                {GYM_STATUS_LABEL[status]}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* ── Infrastructure. Two probes, and only two are claimed. ──────────────────────── */}
-      <section className="mt-stack-lg rounded-card border border-subtle bg-surface p-inset-md">
-        <div className="flex flex-wrap items-center justify-between gap-inline-md">
-          <h2 className="text-sm font-semibold text-content">{t('adm.dashboard.health.title')}</h2>
-          {readiness.data !== undefined && (
-            <span
-              className={`rounded-control px-inset-xs py-inset-2xs text-xs font-medium ${
-                readiness.data.status === 'ready'
-                  ? 'bg-surface-success-subtle text-content-success'
-                  : 'bg-surface-danger-subtle text-content-danger'
-              }`}
-            >
-              {readiness.data.status === 'ready'
-                ? t('adm.dashboard.api.ready')
-                : t('adm.dashboard.api.notReady')}
-              {total > 0 && ` · ${String(healthy)}/${String(total)}`}
-            </span>
-          )}
+                  <span className="text-content-secondary">{name}</span>
+                  <span className={up ? 'text-content-success' : 'text-content-danger'}>
+                    {up ? t('adm.dashboard.health.up') : t('adm.dashboard.health.down')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-stack-sm text-xs text-content-muted">
+              {t('adm.dashboard.health.note')}
+            </p>
+          </section>
         </div>
 
-        <ul className="mt-stack-sm flex flex-wrap gap-inline-md">
-          {Object.entries(dependencies).map(([name, up]) => (
-            <li key={name} className="flex items-center gap-inline-2xs text-sm">
-              {/* Icon AND word AND colour, never colour alone (AX8). A green dot on its own is
-                  invisible to roughly one man in twelve. */}
-              <span
-                aria-hidden="true"
-                className={up ? 'text-content-success' : 'text-content-danger'}
-              >
-                {up ? '●' : '○'}
-              </span>
-              <span className="text-content-secondary">{name}</span>
-              <span className={up ? 'text-content-success' : 'text-content-danger'}>
-                {up ? t('adm.dashboard.health.up') : t('adm.dashboard.health.down')}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-stack-sm text-xs text-content-muted">{t('adm.dashboard.health.note')}</p>
-      </section>
+        {/* ── The rail. Navigation to what IS built, and nothing invented. ──────────────
+            The mockup this follows carries "System alerts" here. There is no alert source
+            yet — no orders, no payments, no moderation queue — so inventing four plausible
+            alert rows would be the one thing on this screen a viewer could not tell from
+            real, and the first question about it would have no honest answer. */}
+        <aside aria-label={t('adm.rail.quickActions')} className="min-w-0">
+          <div className="rounded-card border border-subtle bg-surface p-inset-md">
+            <h2 className="text-sm font-semibold text-content">{t('adm.rail.quickActions')}</h2>
+            <ul className="mt-stack-sm flex flex-col gap-stack-2xs">
+              {(
+                [
+                  ['/approvals', 'adm.rail.reviewQueue'],
+                  ['/gyms', 'adm.rail.gymRegister'],
+                  ['/people', 'adm.rail.accounts'],
+                  ['/sessions', 'adm.rail.devices'],
+                ] as const
+              ).map(([to, label]) => (
+                <li key={to}>
+                  <Link
+                    to={to}
+                    className="gm-hit-target flex items-center justify-between gap-inline-sm rounded-control border border-subtle px-inset-sm py-inset-2xs text-sm text-content-secondary transition-colors duration-fast ease-standard hover:border-strong hover:text-content"
+                  >
+                    <span className="truncate">{t(label)}</span>
+                    <span aria-hidden="true" className="shrink-0 text-content-muted">
+                      &rsaquo;
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      </div>
 
       {/* ── Not built. Named, with the milestone, carrying no figure. ──────────────────── */}
       <section className="mt-stack-lg">

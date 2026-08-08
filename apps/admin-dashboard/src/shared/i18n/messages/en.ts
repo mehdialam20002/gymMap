@@ -21,6 +21,17 @@ export const en = {
   'adm.chrome.nav.moderation': 'Moderation',
   'adm.chrome.nav.audit': 'Audit',
   'adm.chrome.signOut': 'Sign out',
+  'adm.chrome.search.label': 'Search gyms, accounts and transactions',
+  'adm.chrome.search.placeholder': 'Search gyms, accounts, transactions… (arrives with M-023)',
+  'adm.theme.label': 'Colour theme',
+  'adm.theme.system': 'Auto',
+  'adm.theme.light': 'Light',
+  'adm.theme.dark': 'Dark',
+  'adm.rail.quickActions': 'Quick actions',
+  'adm.rail.reviewQueue': 'Review the queue',
+  'adm.rail.gymRegister': 'Open the gym register',
+  'adm.rail.accounts': 'Accounts by role',
+  'adm.rail.devices': 'Your devices',
   'adm.chrome.group.gyms': 'Gym management',
   'adm.chrome.group.people': 'People',
   'adm.chrome.group.commerce': 'Commerce',
@@ -41,6 +52,9 @@ export const en = {
   // Shown ON the link, not only after clicking it. A nav item that looks identical to a working
   // one and lands on an empty panel teaches an operator that the console is unreliable.
   'adm.chrome.inDevelopment': 'In development',
+  // The sidebar mark. Short so the LABEL keeps the width; the full wording is on the link's
+  // `title` and in visually-hidden text, so nothing is lost to a screen reader.
+  'adm.chrome.inDevelopmentShort': 'dev',
   'adm.chrome.collapse': 'Collapse',
   'adm.chrome.expand': 'Expand',
 

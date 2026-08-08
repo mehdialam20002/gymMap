@@ -86,7 +86,19 @@ function QueueRow({ gym }: { readonly gym: GymRow }) {
   const stale = gym.waiting_days >= 10;
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-inline-md rounded-card border border-subtle bg-surface px-inset-md py-inset-sm">
+    /*
+     * ┌─ A GRID, NOT `justify-between` ───────────────────────────────────────────────────────┐
+     * │ `justify-between` puts each row's status wherever that row's text happens to end, so  │
+     * │ down a list of six the pills land at six different x positions. A queue is scanned    │
+     * │ down a COLUMN — "what is oldest", "what is still only submitted" — and a ragged column │
+     * │ has to be read row by row instead.                                                     │
+     * │                                                                                        │
+     * │ Fixed tracks for the two right-hand columns make them line up across every row. The   │
+     * │ first track is `minmax(0,1fr)` rather than `1fr` so the long legal names truncate      │
+     * │ instead of pushing the status columns off the card.                                    │
+     * └────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-inline-md rounded-card border border-subtle bg-surface px-inset-md py-inset-sm sm:grid-cols-[minmax(0,1fr)_9rem_9rem]">
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-content">
           {gym.trading_name ?? gym.legal_name}
@@ -98,13 +110,16 @@ function QueueRow({ gym }: { readonly gym: GymRow }) {
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-inline-md">
-        <span
-          className={`text-xs tabular-nums ${stale ? 'font-semibold text-content' : 'text-content-muted'}`}
-        >
-          {gym.waiting_days} {gym.waiting_days === 1 ? t('adm.queue.day') : t('adm.queue.days')}{' '}
-          {t('adm.queue.waiting')}
-        </span>
+      <span
+        className={`hidden text-right text-xs tabular-nums sm:block ${
+          stale ? 'font-semibold text-content' : 'text-content-muted'
+        }`}
+      >
+        {gym.waiting_days} {gym.waiting_days === 1 ? t('adm.queue.day') : t('adm.queue.days')}{' '}
+        {t('adm.queue.waiting')}
+      </span>
+
+      <div className="justify-self-end">
         <StatusPill status={gym.status} />
       </div>
     </li>
