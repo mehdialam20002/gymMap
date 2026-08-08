@@ -9,10 +9,17 @@
  * real discovery UI arrives from `src/features/discovery/` with `SCR-WEB-002`.
  */
 
-import Link from 'next/link';
-
 import { t } from '../src/shared/i18n/index.ts';
 import { Hero } from '../src/features/home/hero.tsx';
+import { Section } from '../src/features/home/section.tsx';
+import {
+  Cities,
+  Closing,
+  ForOwners,
+  Goals,
+  HowItWorks,
+  TrustStrip,
+} from '../src/features/home/sections.tsx';
 import { GymCard } from '../src/features/discovery/gym-card.tsx';
 import { FixtureNotice } from '../src/features/discovery/search-results.tsx';
 import { parseSearchQuery, search } from '../src/features/discovery/search.ts';
@@ -21,8 +28,31 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      <TrustStrip />
 
-      <section className="mx-auto max-w-container px-inset-md py-region-md">
+      {/*
+       * Six of the eight fixture listings, sorted nearest-first — the same query `/search` runs,
+       * through the same module, so the home page cannot drift from the results page.
+       */}
+      <Section
+        title="web.home.featured.title"
+        action={{ href: '/search', label: 'web.home.featured.seeAll' }}
+      >
+        <FixtureNotice />
+        <ul className="mt-stack-lg grid gap-stack-lg sm:grid-cols-2 lg:grid-cols-3">
+          {search(parseSearchQuery({ sort: 'distance' }))
+            .slice(0, 6)
+            .map((gym) => (
+              <GymCard key={gym.id} gym={gym} />
+            ))}
+        </ul>
+      </Section>
+
+      <Goals />
+      <HowItWorks />
+
+      {/* The long form of the three promises — the mechanism behind each strip item. */}
+      <Section title="web.home.why.title">
         <ul className="grid gap-stack-lg sm:grid-cols-2 xl:grid-cols-3">
           {(
             [
@@ -33,46 +63,35 @@ export default function HomePage() {
           ).map(([title, body]) => (
             <li
               key={title}
-              className="rounded-card border border-subtle bg-surface p-inset-lg shadow-xs dark:shadow-none"
+              className="rounded-card border border-subtle bg-surface-raised p-inset-lg shadow-xs dark:shadow-none"
             >
-              <h2 className="text-xl font-semibold text-content">{t(title)}</h2>
+              <h3 className="text-lg font-semibold text-content">{t(title)}</h3>
               <p className="mt-stack-xs text-base text-content-secondary">{t(body)}</p>
             </li>
           ))}
         </ul>
-      </section>
+      </Section>
+
+      <Cities />
+      <ForOwners />
+
+      <Closing />
 
       {/*
-       * Six of the eight fixture listings, sorted nearest-first — the same query `/search` runs,
-       * through the same module, so the home page cannot drift from the results page.
+       * Last band before the footer. It sat above the closing call to action first, which read as
+       * "join now — actually, none of this works". Same sentence, same honesty, and it no longer
+       * argues with the button directly above it.
        */}
-      <section className="mx-auto max-w-container px-inset-md pb-region-md">
-        <div className="flex flex-wrap items-baseline justify-between gap-inline-md">
-          <h2 className="text-2xl font-semibold text-content">{t('web.home.featured.title')}</h2>
-          <Link href="/search" className="text-base font-medium text-content-brand hover:underline">
-            {t('web.home.featured.seeAll')}
-          </Link>
-        </div>
-
-        <div className="mt-stack-md">
-          <FixtureNotice />
-        </div>
-
-        <ul className="mt-stack-md grid gap-stack-md lg:grid-cols-2">
-          {search(parseSearchQuery({ sort: 'distance' }))
-            .slice(0, 6)
-            .map((gym) => (
-              <GymCard key={gym.id} gym={gym} />
-            ))}
-        </ul>
-      </section>
-
-      <section className="mx-auto max-w-container px-inset-md pb-region-md">
-        <div className="rounded-card border border-info bg-surface-info-subtle p-inset-lg">
-          <h2 className="text-lg font-semibold text-content-info">{t('web.home.status.title')}</h2>
-          <p className="mt-stack-2xs max-w-ui text-base text-content-info">
-            {t('web.home.status.body')}
-          </p>
+      <section className="border-t border-subtle bg-surface">
+        <div className="gm-reveal mx-auto max-w-container px-inset-md py-region-sm">
+          <div className="rounded-card border border-info bg-surface-info-subtle p-inset-lg">
+            <h2 className="text-base font-semibold text-content-info">
+              {t('web.home.status.title')}
+            </h2>
+            <p className="mt-stack-2xs max-w-ui text-sm text-content-info">
+              {t('web.home.status.body')}
+            </p>
+          </div>
         </div>
       </section>
     </>

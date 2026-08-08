@@ -279,6 +279,97 @@ test('the middleware attaches the policy and every static header', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// The CONSEQUENCE of the policy above: no inline style may exist anywhere.
+//
+// ┌─ THIS IS THE RULE THAT COST A CORRECT-LOOKING SCREENSHOT ───────────────────────────────────┐
+// │ A nonce in `style-src` blocks EVERY inline style, not just `<style>` elements — CSP-3        │
+// │ §6.7.3.2 makes `'unsafe-inline'` inert as soon as a nonce or hash is present, and a nonce    │
+// │ cannot be attached to a `style` attribute in the first place.                                 │
+// │                                                                                              │
+// │ So a `style={{ … }}` prop renders into the markup, the browser drops it, and the element     │
+// │ falls back to whatever the stylesheet says. That is silent. It was found on the gym card,     │
+// │ where `next/image`'s `fill` mode is nothing but an inline style: the photo kept rendering,    │
+// │ clipped by `overflow-hidden` at its natural size rather than covering the box, and the        │
+// │ screenshot looked plausible. `getComputedStyle(img).position === 'static'` was the only tell.  │
+// │                                                                                              │
+// │ Keeping the policy strict is worth more than any single inline style, and A-03 means there    │
+// │ is always a class for it. These assertions are how that stays true.                           │
+// └──────────────────────────────────────────────────────────────────────────────────────────────┘
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('no component sets an inline style, because the CSP would silently drop it', () => {
+  const offenders: string[] = [];
+  for (const file of [...tsxFiles('app'), ...tsxFiles('src')]) {
+    if (/\bstyle=\{/.test(code(file))) offenders.push(file);
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'an inline style prop was found. It will render into the HTML and be discarded by the ' +
+      'browser, which looks like a layout bug rather than a security one. Use a utility class:\n  ' +
+      offenders.join('\n  '),
+  );
+});
+
+test('the gym card sizes its photo with classes, not with next/image `fill`', () => {
+  // `fill` is ENTIRELY an inline style. Intrinsic width/height plus `h-full w-full object-cover`
+  // is the same layout from the stylesheet, and it behaves identically in Safari, which does not
+  // implement the `style-src-attr` escape hatch the alternative would have needed.
+  const card = code('src/features/discovery/gym-card.tsx');
+  assert.ok(card.includes('<Image'), 'the card no longer renders next/image at all');
+  assert.ok(!/^\s*fill$/m.test(card), 'next/image `fill` is back — its positioning is inline');
+  assert.match(card, /width=\{1200\}/);
+  assert.match(card, /height=\{675\}/);
+  assert.match(card, /h-full w-full object-cover/);
+  // `sizes` is what stops Next serving the largest candidate to a phone (NFR-PERF-02).
+  assert.match(card, /sizes="/);
+});
+
+test('no token colour carries an opacity modifier, because Tailwind emits nothing for it', () => {
+  // The preset maps every colour to a finished token value rather than to the channel triplet
+  // `/95` needs, so `bg-surface/95` is not a class Tailwind can generate — it silently emits no
+  // rule at all and the element ends up with `rgba(0, 0, 0, 0)`. The sticky header shipped that
+  // way: fully transparent, nav labels over whatever photo was scrolling underneath.
+  //
+  // Two failures in one, which is why it is asserted rather than remembered: a class that looks
+  // applied and is not, and a contrast pairing that cannot be proved because it has no ground.
+  const modifier =
+    /\b(?:bg|text|border|ring|from|via|to|divide|outline)-(?:surface|content|border|brand|accent)[a-z-]*\/\d+/;
+  const offenders: string[] = [];
+  for (const file of [...tsxFiles('app'), ...tsxFiles('src')]) {
+    const match = modifier.exec(code(file));
+    if (match) offenders.push(`${file}: ${match[0]}`);
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `an opacity modifier on a token colour:\n  ${offenders.join('\n  ')}`,
+  );
+});
+
+test('the scroll reveal is CSS-driven, guarded by @supports AND by a motion preference', () => {
+  const css = source('src/styles/globals.css');
+  assert.match(css, /animation-timeline: view\(\)/);
+  // Both guards, and both for the same reason: content must never be left invisible waiting for
+  // an animation that will not run. Firefox and Safari do not implement scroll-driven animations,
+  // and a visitor who asked for less motion has asked not to have this at all.
+  assert.match(css, /@supports \(animation-timeline: view\(\)\)/);
+  assert.match(css, /@media \(prefers-reduced-motion: no-preference\)/);
+  // `cover` never completes for the last section on the page — it would sit permanently faded.
+  assert.match(css, /animation-range: entry [\d]+% entry [\d]+%/);
+  assert.ok(!/animation-range:[^;]*cover/.test(css), 'a cover-relative range crept back in');
+});
+
+test("Next's route announcer is hidden from the stylesheet, not by its own inline style", () => {
+  // Blocked, its inline recipe stops applying and the announced page title paints as visible
+  // text above the header on every client-side navigation. AX2 needs the live region to exist;
+  // nobody needs to read it.
+  const css = source('src/styles/globals.css');
+  assert.match(css, /#__next-route-announcer__\s*\{/);
+  assert.match(css, /clip: rect\(0 0 0 0\)/);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // NFR-USE-08 / I18N1 · no user-facing literal in a component.
 // ═══════════════════════════════════════════════════════════════════════════
 

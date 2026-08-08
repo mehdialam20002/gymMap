@@ -23,17 +23,29 @@
  */
 import type { Icon } from '@phosphor-icons/react';
 
-import { Barbell } from '@phosphor-icons/react/dist/ssr/Barbell';
-import { BoxingGlove } from '@phosphor-icons/react/dist/ssr/BoxingGlove';
-import { CaretDown } from '@phosphor-icons/react/dist/ssr/CaretDown';
-import { CurrencyInr } from '@phosphor-icons/react/dist/ssr/CurrencyInr';
-import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
-import { MapPin } from '@phosphor-icons/react/dist/ssr/MapPin';
-import { PersonSimpleRun } from '@phosphor-icons/react/dist/ssr/PersonSimpleRun';
-import { PersonSimpleSwim } from '@phosphor-icons/react/dist/ssr/PersonSimpleSwim';
-import { PersonSimpleTaiChi } from '@phosphor-icons/react/dist/ssr/PersonSimpleTaiChi';
-import { SealCheck } from '@phosphor-icons/react/dist/ssr/SealCheck';
-import { Star } from '@phosphor-icons/react/dist/ssr/Star';
+/*
+ * ┌─ `…Icon`, NOT THE BARE NAME ────────────────────────────────────────────────────────────────┐
+ * │ Phosphor 2.1 deprecated every unsuffixed export — `export declare const CaretRight` carries  │
+ * │ `@deprecated Use CaretRightIcon` — and kept it as an alias. Both compile; only one survives   │
+ * │ the major that removes them. Written the new way from the start so the migration is a diff    │
+ * │ that never has to happen, and so a reader does not learn the old spelling from this file.     │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+import { BarbellIcon } from '@phosphor-icons/react/dist/ssr/Barbell';
+import { BoxingGloveIcon } from '@phosphor-icons/react/dist/ssr/BoxingGlove';
+import { CaretDownIcon } from '@phosphor-icons/react/dist/ssr/CaretDown';
+import { CaretRightIcon } from '@phosphor-icons/react/dist/ssr/CaretRight';
+import { CurrencyInrIcon } from '@phosphor-icons/react/dist/ssr/CurrencyInr';
+import { ListIcon } from '@phosphor-icons/react/dist/ssr/List';
+import { MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
+import { MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
+import { PersonSimpleRunIcon } from '@phosphor-icons/react/dist/ssr/PersonSimpleRun';
+import { PersonSimpleSwimIcon } from '@phosphor-icons/react/dist/ssr/PersonSimpleSwim';
+import { PersonSimpleTaiChiIcon } from '@phosphor-icons/react/dist/ssr/PersonSimpleTaiChi';
+import { SealCheckIcon } from '@phosphor-icons/react/dist/ssr/SealCheck';
+import { ShieldCheckIcon } from '@phosphor-icons/react/dist/ssr/ShieldCheck';
+import { StarIcon } from '@phosphor-icons/react/dist/ssr/Star';
+import { XIcon } from '@phosphor-icons/react/dist/ssr/X';
 
 type Glyph = Icon;
 
@@ -43,22 +55,30 @@ type Glyph = Icon;
  */
 export const icon = {
   // The three product promises — BR-GYM-01, BR-PLN-03, BR-REV-01.
-  verified: SealCheck,
-  pricing: CurrencyInr,
-  reviews: Star,
+  verified: SealCheckIcon,
+  pricing: CurrencyInrIcon,
+  reviews: StarIcon,
+  secure: ShieldCheckIcon,
 
   // Search controls.
-  search: MagnifyingGlass,
-  place: MapPin,
-  expand: CaretDown,
+  search: MagnifyingGlassIcon,
+  place: MapPinIcon,
+  expand: CaretDownIcon,
+  // "This tile is a link, and it goes somewhere" — the affordance a card-shaped anchor otherwise
+  // has to earn from hover alone, which a touch device never sees.
+  next: CaretRightIcon,
+
+  // Chrome.
+  menu: ListIcon,
+  close: XIcon,
 
   // Categories, matching the strings the fixture catalogue actually carries. A category with no
   // icon falls back to `strength` rather than rendering an empty box.
-  strength: Barbell,
-  cardio: PersonSimpleRun,
-  yoga: PersonSimpleTaiChi,
-  boxing: BoxingGlove,
-  swimming: PersonSimpleSwim,
+  strength: BarbellIcon,
+  cardio: PersonSimpleRunIcon,
+  yoga: PersonSimpleTaiChiIcon,
+  boxing: BoxingGloveIcon,
+  swimming: PersonSimpleSwimIcon,
 } as const satisfies Record<string, Glyph>;
 
 export type IconName = keyof typeof icon;

@@ -26,10 +26,47 @@ export const en = {
   'web.chrome.theme.toggle': 'Switch theme',
   'web.chrome.theme.light': 'Light',
   'web.chrome.theme.dark': 'Dark',
+  'web.chrome.nav.primary': 'Main',
+  'web.chrome.nav.explore': 'Explore',
+  'web.chrome.nav.howItWorks': 'How it works',
+  'web.chrome.nav.cities': 'Cities',
+  'web.chrome.nav.signIn': 'Log in',
+  'web.chrome.nav.signUp': 'Sign up',
+  'web.chrome.nav.openMenu': 'Open menu',
+  'web.chrome.nav.closeMenu': 'Close menu',
+  'web.chrome.location.label': 'Change location',
+  'web.chrome.location.anywhere': 'All cities',
+
+  // --- footer ---------------------------------------------------------------
+  'web.chrome.footer.landmark': 'Footer',
+  'web.chrome.footer.tagline': 'Find a gym you can trust, at a price you can see.',
+  'web.chrome.footer.discover': 'Discover',
+  'web.chrome.footer.members': 'Members',
+  'web.chrome.footer.forGyms': 'For gyms',
+  'web.chrome.footer.company': 'Company',
+  'web.chrome.footer.support': 'Support',
+  'web.chrome.footer.memberships': 'Memberships',
+  'web.chrome.footer.compare': 'Compare gyms',
+  // Shown beside a nav item whose route does not exist yet. Better than a link to a 404, and
+  // better than hiding the item — the shape of the product is part of what the nav communicates.
+  'web.chrome.nav.soon': 'Soon',
+  'web.chrome.footer.checkIn': 'QR check-in',
+  'web.chrome.footer.visits': 'Visit history',
+  'web.chrome.footer.favourites': 'Favourites',
+  'web.chrome.footer.referrals': 'Referrals',
+  'web.chrome.footer.listGym': 'List your gym',
+  'web.chrome.footer.ownerDashboard': 'Owner dashboard',
+  'web.chrome.footer.about': 'About',
+  'web.chrome.footer.contact': 'Contact',
+  'web.chrome.footer.help': 'Help centre',
   'web.chrome.footer.legal': 'Legal',
   'web.chrome.footer.terms': 'Terms of use',
   'web.chrome.footer.privacy': 'Privacy policy',
   'web.chrome.footer.refunds': 'Refund policy',
+  // OQ-01 / OQ-16: India, and mandatory rather than configurable under RBI data localisation.
+  'web.chrome.footer.region': 'India',
+  'web.chrome.footer.language': 'English',
+  'web.chrome.footer.rights': 'GymMap',
 
   // --- SCR-WEB-001 home -----------------------------------------------------
   'web.home.meta.title': 'GymMap — find and join a gym near you',
@@ -89,6 +126,10 @@ export const en = {
   'web.home.hero.category.boxing': 'Boxing',
   'web.home.hero.category.swimming': 'Swimming',
 
+  // The LONG form of the three promises. The trust strip states them in four words each, directly
+  // under the hero; this section explains the mechanism behind each one further down the page.
+  // Two lengths, two jobs — not a duplicate.
+  'web.home.why.title': 'Why GymMap',
   'web.home.value.verified.title': 'Every gym is checked',
   // BR-GYM-01. Stated plainly because it is the differentiator, not a footnote.
   'web.home.value.verified.body':
@@ -100,6 +141,61 @@ export const en = {
   // BR-REV-01, BR-REV-03.
   'web.home.value.reviews.body':
     'A review can only be written by a member with a recorded check-in at that gym.',
+
+  // --- SCR-WEB-001 · trust strip --------------------------------------------
+  // The three promises the cards below state at length, plus payments. Presented as a strip
+  // because in a marketplace trust is not a feature list, it is the conversion mechanism.
+  'web.home.trust.verified.title': 'Verified gyms',
+  'web.home.trust.verified.body': 'Every listing is reviewed by a person before it goes live.',
+  'web.home.trust.pricing.title': 'Transparent pricing',
+  'web.home.trust.pricing.body': 'Taxes and fees are shown before you commit. No surprises.',
+  'web.home.trust.reviews.title': 'Earned reviews',
+  'web.home.trust.reviews.body': 'Only members with a recorded check-in can write one.',
+  'web.home.trust.payments.title': 'Secure payments',
+  'web.home.trust.payments.body': 'Your membership activates when the payment is confirmed.',
+
+  // --- SCR-WEB-001 · explore by goal ----------------------------------------
+  'web.home.goals.title': 'What are you training for?',
+  'web.home.goals.body': 'Start from the outcome, not the equipment list.',
+  'web.home.goals.strength': 'Build strength',
+  'web.home.goals.weight': 'Lose weight',
+  'web.home.goals.fitness': 'Improve fitness',
+  'web.home.goals.flexibility': 'Move better',
+  'web.home.goals.sport': 'Train for sport',
+  'web.home.goals.routine': 'Stay in a routine',
+
+  // --- SCR-WEB-001 · categories ---------------------------------------------
+  'web.home.categories.title': 'Explore by activity',
+  'web.home.categories.seeAll': 'See every activity',
+
+  // --- SCR-WEB-001 · how it works -------------------------------------------
+  'web.home.how.title': 'How GymMap works',
+  'web.home.how.discover.title': 'Discover',
+  'web.home.how.discover.body': 'Search gyms near you, filtered by what you actually need.',
+  'web.home.how.compare.title': 'Compare',
+  'web.home.how.compare.body': 'Put price, distance, facilities and reviews side by side.',
+  'web.home.how.choose.title': 'Choose',
+  'web.home.how.choose.body': 'Pick the plan that fits. The price you see is the price charged.',
+  'web.home.how.join.title': 'Join',
+  'web.home.how.join.body': 'Pay online and check in with a QR code from your phone.',
+
+  // --- SCR-WEB-001 · cities -------------------------------------------------
+  'web.home.cities.title': 'Where we have listings',
+  // "{count} gyms" with a real number from the catalogue. Every figure on this page is counted
+  // from data or it is absent - there is no strip of invented totals anywhere on this surface.
+  'web.home.cities.count': '{count} gyms',
+  'web.home.cities.countOne': '1 gym',
+
+  // --- SCR-WEB-001 · for gym owners -----------------------------------------
+  'web.home.owners.eyebrow': 'For gym owners',
+  'web.home.owners.title': 'Turn local searches into members.',
+  'web.home.owners.body':
+    'List your gym, sell memberships online, take payments and track check-ins from one place.',
+  'web.home.owners.cta': 'List your gym',
+
+  // --- SCR-WEB-001 · closing --------------------------------------------------
+  'web.home.closing.title': 'Your next gym is closer than you think.',
+  'web.home.closing.cta': 'Find a gym near you',
 
   // --- SCR-WEB-002 · the featured strip -------------------------------------
   'web.home.featured.title': 'Verified gyms near you',
@@ -145,6 +241,9 @@ export const en = {
   // --- the result card ------------------------------------------------------
   'web.gym.perMonthFrom': 'per month, from',
   'web.gym.verified': 'Verified',
+  // `{count}` is substituted at the call site. Not string concatenation: a translator must be
+  // able to move the number, and several languages put it after the noun.
+  'web.gym.amenitiesMore': '+{count} more',
   // BR-REV-01 — a review needs a recorded check-in, so a new listing has none. Never a zero.
   'web.gym.newListing': 'New listing · no reviews yet',
   'web.gym.reviews.one': 'review',
@@ -169,9 +268,14 @@ export const en = {
     'Checkout opens once payments are live. The price you see here is the price you will be charged — it is revalidated on the server before any payment is taken.',
   'web.gym.notFound.title': 'Gym not found',
 
-  'web.home.status.title': 'Coming together',
+  // The page-level disclosure. Deliberately the LAST thing before the footer: the closing call to
+  // action gets its moment, and the caveat lands where fine print belongs rather than interrupting
+  // the read. The listing grid carries its own, narrower notice — this one is about the platform,
+  // that one is about those eight cards.
+  'web.home.status.title': 'Where this is up to',
   'web.home.status.body':
-    'Search, gym profiles and online joining are being built. This page is the shell they arrive in.',
+    'Search and gym pages work, over a sample catalogue. Accounts, online joining and payments ' +
+    'are being built next, and no gym is listed here until a person has checked it.',
 
   // --- states, the four every screen must have (B6, §16.9) ------------------
   'web.state.loading': 'Loading',

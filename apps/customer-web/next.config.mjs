@@ -10,6 +10,24 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  /*
+   * ┌─ WHY THE BUILD DIRECTORY IS OVERRIDABLE ────────────────────────────────────────────────┐
+   * │ `next dev` and `next build` both own `.next` exclusively, and running one while the      │
+   * │ other is serving corrupts it: the running server keeps a manifest pointing at chunks the │
+   * │ new build has already deleted. It surfaces as `Cannot find module './776.js'`, or as a   │
+   * │ stylesheet that 400s and a completely unstyled page — neither of which names the cause.  │
+   * │                                                                                          │
+   * │ That is not hypothetical here. Two sessions work in this repository at once (see          │
+   * │ CLAUDE.md §3), so a build lands under a running dev server routinely.                     │
+   * │                                                                                          │
+   * │ Default is unchanged, so CI and deployment are untouched. A dev server that wants         │
+   * │ isolation sets the variable:                                                              │
+   * │                                                                                          │
+   * │     NEXT_DIST_DIR=.next-dev pnpm exec next dev -p 3001                                    │
+   * └──────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  distDir: process.env.NEXT_DIST_DIR || '.next',
+
   // `packages/ui` is consumed as SOURCE, not as build output (see its package.json). Without
   // this, Next refuses the workspace TypeScript and the failure reads as a module-resolution
   // problem rather than a missing transpile.
@@ -48,10 +66,18 @@ const nextConfig = {
     // smaller on the photography this site is mostly made of — which is where NFR-PERF-02's LCP
     // budget is actually spent.
     formats: ['image/avif', 'image/webp'],
-    // Remote patterns stay empty until the CDN host is provisioned. An empty list means the
-    // optimiser refuses unknown hosts, which is the correct default: a wildcard here turns the
-    // image endpoint into an open proxy that anyone can bill us for.
-    remotePatterns: [],
+    /*
+     * NAMED HOSTS ONLY. A wildcard here turns `/_next/image` into an open proxy that any stranger
+     * can point at any URL and that we get billed for — which is why the list was empty until
+     * something concrete needed it.
+     *
+     * Pexels serves the fixture catalogue's photography. Those listings are demo data, labelled
+     * as such by `FixtureNotice` on every page that renders them, and the licence permits
+     * commercial use without attribution. It comes OUT the day real gym media lands in the S3
+     * bucket (`FR-GYM-02`), and it is listed here rather than as a wildcard so that removal is a
+     * one-line diff somebody can actually find.
+     */
+    remotePatterns: [{ protocol: 'https', hostname: 'images.pexels.com' }],
   },
 
   // `NFR-PERF-10` — 200 KB gzipped. The header carries a build id and nothing about the stack.

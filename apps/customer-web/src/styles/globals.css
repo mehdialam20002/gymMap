@@ -93,6 +93,103 @@
     }
   }
 
+  /*
+   * ┌─ SCROLL REVEALS, WITH NO JAVASCRIPT AND NO INLINE STYLE ───────────────────────────────────┐
+   * │ Every section below the fold rises a little and fades in as it enters. `animation-timeline:  │
+   * │ view()` drives it from the scroll position itself, so there is no observer, no state, no     │
+   * │ hydration and — the part that matters here — no `style` attribute for the CSP to drop.       │
+   * │                                                                                             │
+   * │ A JS reveal library was the obvious first choice and is the wrong one on THIS page. It would │
+   * │ turn every server-rendered marketing section into a client component (`FR-SRCH-13` wants the │
+   * │ opposite), ship its runtime on the critical path (`NFR-PERF-10`), and set the opening        │
+   * │ `opacity: 0` as an inline style — which the policy blocks, so the "hidden" start state would │
+   * │ silently not apply and the animation would flash. Motion (`A-41`) is kept for the places     │
+   * │ that genuinely need a JS animator: gesture, drag, and exit — a filter sheet that has to      │
+   * │ animate OUT before it unmounts cannot be done in CSS at all.                                 │
+   * │                                                                                             │
+   * │ `@supports` is the whole safety net. Safari and Firefox do not implement scroll-driven       │
+   * │ animations yet, so they never enter this block and get the finished page immediately, which  │
+   * │ is the correct fallback — the content is never hidden waiting for an animation that will not │
+   * │ run. `AX9` / `NFR-USE-*`: a stated motion preference opts out entirely.                       │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  @keyframes gm-reveal {
+    from {
+      opacity: 0;
+      /* 1.25rem, not 3rem. A reveal that travels far reads as a page that has not finished
+       * loading; one that travels a little reads as the page settling. */
+      transform: translateY(1.25rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .gm-reveal {
+        animation: gm-reveal linear both;
+        animation-timeline: view();
+        /*
+         * An ENTRY-relative range, never `cover`. `cover` completes only once the element has
+         * crossed the whole scrollport, which the last section before the footer never does —
+         * it would sit permanently half-faded at the bottom of the page. `entry` finishes as
+         * soon as the element is fully in view, which is also when a reader expects it to.
+         */
+        animation-range: entry 10% entry 85%;
+      }
+    }
+  }
+
+  /*
+   * Paper has no scrollport, so "how far has this scrolled into view" has no answer and the
+   * reveal's start state is the one that would print: a page of blank bands. Explicit rather
+   * than trusted to the engine, because the failure only shows up on a printout nobody takes
+   * before shipping.
+   */
+  @media print {
+    .gm-reveal {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /*
+   * ┌─ NEXT'S ROUTE ANNOUNCER, HIDDEN FROM THE STYLESHEET INSTEAD OF INLINE ─────────────────────┐
+   * │ Next renders a live region that reads the new page title after a client-side navigation    │
+   * │ (`AX2` — it is how a screen-reader user learns the route changed at all). It hides itself   │
+   * │ with a `style` ATTRIBUTE, and `style-src` carries a nonce, which blocks inline styles       │
+   * │ outright — nonces never apply to attributes.                                                │
+   * │                                                                                            │
+   * │ Blocked, the recipe stops applying and the announcement paints as visible text at the top  │
+   * │ of the page on every in-app navigation. Not a crash, not an error anyone reads: just a      │
+   * │ stray page title appearing above the header.                                                │
+   * │                                                                                            │
+   * │ Same declarations, from a stylesheet the policy admits. Inline styles win the cascade, so   │
+   * │ this becomes inert rather than conflicting on the day Next stops needing it. The id has     │
+   * │ been stable since Next 10; if it ever changes the announcement reappears visibly, which is  │
+   * │ a loud failure rather than a silent one.                                                    │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  next-route-announcer {
+    position: absolute;
+  }
+
+  #__next-route-announcer__ {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    word-wrap: normal;
+  }
+
   /* Photography is never dimmed, tinted or filtered in dark mode (§9.4): a gym owner comparing
    * their own cover photo across themes must see the same photo. The one permitted change is a
    * hairline so a white-heavy image does not appear to float on the dark canvas. */

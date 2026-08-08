@@ -22,7 +22,8 @@
     "*.ts",
     "*.mjs",
     ".next/types/**/*.ts",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    ".next-dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

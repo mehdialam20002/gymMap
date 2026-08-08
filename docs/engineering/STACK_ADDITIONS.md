@@ -103,6 +103,7 @@ Status values: `PROPOSED` · `APPROVED` · `REJECTED` · `DEFERRED`
 | **A-29** | Bundle-size budget gate | **`size-limit`** | `NFR-PERF-10` (≤200 KB gzipped) | `APPROVED` |
 | **A-30** | Queue observability | **Bull Board** (admin-only, behind RBAC) | `FR-ADMN-13` system health view | `APPROVED` |
 | **A-40** | Icon set | **`@phosphor-icons/react`** (tree-shaken, per-icon imports) | `DesignSystem.md` §8 iconography; `SCR-ADM-001`…`015` and the dashboards need a consistent icon vocabulary. Hand-rolled SVG paths were the alternative and are a review liability: inconsistent optical sizing, no shared stroke weight, and every new glyph a fresh accessibility decision | `APPROVED` |
+| **A-41** | Animation library | **`motion`** (the maintained successor to `framer-motion`), `customer-web` ONLY | `DesignSystem.md` §6.6 fixes durations and easings but names no runtime, and CSS cannot express the marketplace's shared-element and list-reorder transitions. **Bounded on purpose:** the two dashboards stay CSS-only — §6.6's `MO1`–`MO6` are the whole motion budget there, and an operator opening the queue 60 times a day does not want choreography. Costs ~34 KB gzipped against `NFR-PERF-10`'s 200 KB, which is why it is scoped to one surface rather than to `packages/ui` | `APPROVED` |
 
 > **A-40 skipped the `A-31`…`A-39` block deliberately, and that is not tidiness.**
 > Those numbers are contested. `CI_CD.md` §13 claims `A-31`…`A-39` as a range; `A-32` is claimed

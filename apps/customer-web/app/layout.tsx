@@ -11,6 +11,10 @@ import { headers } from 'next/headers';
 
 import { t } from '../src/shared/i18n/index.ts';
 import { themeScript } from '../src/shared/theme/theme-script.ts';
+// `app/` is routing only (`F1`). The chrome moved to `src/shared/chrome/` when it grew past two
+// links; a root layout may RENDER components, it may not be where they live.
+import { SiteHeader } from '../src/shared/chrome/site-header.tsx';
+import { SiteFooter } from '../src/shared/chrome/site-footer.tsx';
 import '../src/styles/globals.css';
 
 export const metadata: Metadata = {
@@ -81,57 +85,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
       </body>
     </html>
-  );
-}
-
-function SiteHeader() {
-  return (
-    <header className="sticky top-0 z-app-chrome border-b border-subtle bg-surface/95 backdrop-blur">
-      <div className="mx-auto flex max-w-container items-center justify-between gap-inline-lg px-inset-md py-inset-sm">
-        <a href="/" className="gm-hit-target text-lg font-semibold text-content">
-          {t('web.chrome.brand')}
-        </a>
-        <nav aria-label={t('web.chrome.nav.search')} className="flex items-center gap-inline-lg">
-          <a
-            href="/search"
-            className="gm-hit-target text-base text-content-secondary hover:text-content"
-          >
-            {t('web.chrome.nav.search')}
-          </a>
-          <a
-            href="/for-gyms"
-            className="gm-hit-target text-base text-content-secondary hover:text-content"
-          >
-            {t('web.chrome.nav.forGyms')}
-          </a>
-        </nav>
-      </div>
-    </header>
-  );
-}
-
-function SiteFooter() {
-  return (
-    <footer className="border-t border-subtle bg-surface-subtle">
-      <div className="mx-auto max-w-container px-inset-md py-region-sm">
-        <nav aria-label={t('web.chrome.footer.legal')} className="flex flex-wrap gap-inline-xl">
-          {(
-            [
-              ['/legal/terms', 'web.chrome.footer.terms'],
-              ['/legal/privacy', 'web.chrome.footer.privacy'],
-              ['/legal/refunds', 'web.chrome.footer.refunds'],
-            ] as const
-          ).map(([href, key]) => (
-            <a
-              key={href}
-              href={href}
-              className="gm-hit-target text-sm text-content-tertiary underline"
-            >
-              {t(key)}
-            </a>
-          ))}
-        </nav>
-      </div>
-    </footer>
   );
 }
