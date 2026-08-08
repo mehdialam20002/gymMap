@@ -34,6 +34,8 @@ import type { Icon } from '@phosphor-icons/react';
 import { BarbellIcon } from '@phosphor-icons/react/dist/ssr/Barbell';
 import { BoxingGloveIcon } from '@phosphor-icons/react/dist/ssr/BoxingGlove';
 import { CaretDownIcon } from '@phosphor-icons/react/dist/ssr/CaretDown';
+import { CheckIcon } from '@phosphor-icons/react/dist/ssr/Check';
+import { MinusIcon } from '@phosphor-icons/react/dist/ssr/Minus';
 import { CaretRightIcon } from '@phosphor-icons/react/dist/ssr/CaretRight';
 import { CurrencyInrIcon } from '@phosphor-icons/react/dist/ssr/CurrencyInr';
 import { ListIcon } from '@phosphor-icons/react/dist/ssr/List';
@@ -71,6 +73,11 @@ export const icon = {
   // Chrome.
   menu: ListIcon,
   close: XIcon,
+
+  // The compare matrix. Both cells carry a glyph AND a word — a tick against nothing at all is
+  // "present vs absent" signalled by shape alone, which is exactly what `AX8` forbids.
+  has: CheckIcon,
+  hasNot: MinusIcon,
 
   // Categories, matching the strings the fixture catalogue actually carries. A category with no
   // icon falls back to `strength` rather than rendering an empty box.

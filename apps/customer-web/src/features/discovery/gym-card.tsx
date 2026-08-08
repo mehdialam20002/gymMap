@@ -28,6 +28,7 @@ import Link from 'next/link';
 
 import { t } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
+import { compareKey, toCompareParams } from '../compare/compare.ts';
 import { formatMinor } from './search.ts';
 import type { SearchResult } from './fixtures/catalogue.ts';
 
@@ -139,6 +140,25 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
             </li>
           )}
         </ul>
+
+        {/*
+         * ┌─ A LINK THAT STARTS A COMPARISON, NOT A TOGGLE THAT REMEMBERS ONE ───────────────────┐
+         * │ The card cannot know what is already being compared — the set lives in the compare    │
+         * │ page's URL, and this card is rendered on the home page, the results page and three    │
+         * │ gym pages. So it does the one thing it CAN state truthfully: it opens a comparison    │
+         * │ containing this gym, and the compare page's picker adds the rest.                      │
+         * │                                                                                       │
+         * │ The alternative is a checkbox backed by client state, which is the tray every other   │
+         * │ marketplace ships and the reason none of their comparisons can be shared.              │
+         * └───────────────────────────────────────────────────────────────────────────────────────┘
+         */}
+        <Link
+          href={toCompareParams([compareKey(gym)])}
+          className="gm-hit-target mt-stack-sm inline-block rounded-control text-sm font-medium text-content-link hover:underline"
+        >
+          {t('web.gym.compare.add')}
+          <span className="gm-visually-hidden">: {gym.name}</span>
+        </Link>
       </div>
     </li>
   );

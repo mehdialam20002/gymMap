@@ -50,7 +50,7 @@ export const FOOTER_NAV: readonly FooterColumn[] = [
       { href: '/search', label: 'web.chrome.nav.search', built: true },
       { href: '/explore', label: 'web.chrome.nav.explore', built: false },
       { href: '/cities', label: 'web.chrome.nav.cities', built: false },
-      { href: '/compare', label: 'web.chrome.footer.compare', built: false },
+      { href: '/compare', label: 'web.chrome.footer.compare', built: true },
     ],
   },
   {

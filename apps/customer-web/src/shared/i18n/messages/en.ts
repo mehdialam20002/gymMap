@@ -308,6 +308,41 @@ export const en = {
   'web.gym.plans.joinNotice':
     'Checkout opens once payments are live. The price you see here is the price you will be charged — it is revalidated on the server before any payment is taken.',
   'web.gym.notFound.title': 'Gym not found',
+  'web.gym.compare.add': 'Add to compare',
+  'web.gym.compare.remove': 'Remove from compare',
+
+  // --- SCR-WEB-004 · compare ------------------------------------------------
+  'web.compare.title': 'Compare gyms',
+  'web.compare.metaDescription':
+    'Put up to four verified gyms side by side — price, distance, rating and facilities.',
+  'web.compare.empty.title': 'Nothing to compare yet',
+  'web.compare.empty.body':
+    'Pick up to four gyms and see them side by side. Every listing here has been checked by a person before it appeared.',
+  'web.compare.pick.title': 'Add a gym',
+  'web.compare.pick.action': 'Compare these',
+  'web.compare.pick.full':
+    'Four gyms is the limit. Remove one to add another — past four this stops being a decision and becomes a spreadsheet.',
+  // `{keys}` is substituted at the call site.
+  'web.compare.unresolved':
+    'These are no longer listed and have been left out: {keys}. A gym can be delisted after a comparison is shared.',
+  'web.compare.truncated': 'Only the first four gyms in this link are shown.',
+  'web.compare.row.price': 'From, per month',
+  'web.compare.row.distance': 'Distance',
+  'web.compare.row.rating': 'Rating',
+  'web.compare.row.verified': 'Verified',
+  'web.compare.row.hours': 'Opening hours',
+  'web.compare.row.plans': 'Plans',
+  'web.compare.row.activities': 'Activities',
+  'web.compare.facilities': 'Facilities',
+  'web.compare.has': 'Yes',
+  'web.compare.hasNot': 'No',
+  'web.compare.view': 'View gym',
+  'web.compare.remove': 'Remove',
+  'web.compare.cheapest': 'Lowest price here',
+  'web.compare.nearest': 'Closest here',
+  // Says what the mark means before the table uses it. Never colour alone (AX8).
+  'web.compare.legend':
+    'A tick means the gym lists that facility. A dash means it has not listed it, which is not the same as not having it.',
 
   // The page-level disclosure. Deliberately the LAST thing before the footer: the closing call to
   // action gets its moment, and the caveat lands where fine print belongs rather than interrupting

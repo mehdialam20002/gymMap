@@ -236,6 +236,27 @@
   }
 
   /*
+   * `SCR-WEB-004` — the comparison's row-label column stays put while the gym columns scroll.
+   *
+   * Four gyms plus a label column does not fit a phone, so the TABLE scrolls inside its own
+   * container (`BP2`) and the page never does. Without a pinned label column that scroll makes
+   * the table useless: a row of four ticks with "Sauna" scrolled off the left is not a comparison
+   * of anything.
+   *
+   * The background must be opaque — a sticky column with a transparent ground shows the cells it
+   * is sliding over, which is the one thing worse than no sticky column at all.
+   */
+  .gm-compare-label {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background-color: var(--gm-color-surface-default);
+    /* The cell border does not travel with a sticky element the way a normal one does, so the
+     * right edge is drawn here instead of relying on `border-collapse`. */
+    box-shadow: 1px 0 0 0 var(--gm-color-border-subtle);
+  }
+
+  /*
    * `SCR-WEB-003`'s plan card. Same offset as the filter rail, and no max-height: three plans is
    * a short card, and capping it would add a scrollbar to something that never needs one. If a
    * gym ever lists ten plans the card grows past the viewport and simply stops being sticky at

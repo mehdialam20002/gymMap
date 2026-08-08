@@ -1,0 +1,127 @@
+/**
+ * Side-by-side comparison — `SCR-WEB-004`, `FR-CMP-01` … `FR-CMP-04`.
+ *
+ * ┌─ THE COMPARISON SET LIVES IN THE URL, NOT IN A CLIENT STORE ────────────────────────────────┐
+ * │ Every product that ships a compare feature ships it as a floating tray backed by             │
+ * │ `localStorage`, and every one of them has the same three bugs: the tray is empty in a second │
+ * │ tab, the comparison cannot be sent to the person who is actually paying, and a crawler sees  │
+ * │ one page for every possible comparison.                                                       │
+ * │                                                                                              │
+ * │ `?gym=bengaluru/iron-house-indiranagar&gym=delhi/…` fixes all three for free. The page is a  │
+ * │ pure function of its URL, so it is shareable, bookmarkable, back-button-correct and server-   │
+ * │ rendered — which is the same reason `SCR-WEB-002` keeps its filters there (`FR-SRCH-13`).    │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ `citySlug/gymSlug`, NEVER THE GYM SLUG ALONE ──────────────────────────────────────────────┐
+ * │ `findGym` is keyed on the PAIR, because two cities may each have a "Gold's Gym Central" and  │
+ * │ a slug is only promised unique within its city. The fixture's slugs happen to be globally    │
+ * │ unique today, which is exactly why a URL format that relies on it would survive review and   │
+ * │ break on the first real duplicate.                                                            │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+
+import { CATALOGUE, type GymDetail } from '../discovery/fixtures/catalogue.ts';
+import { findGym } from '../discovery/search.ts';
+import type { RawParams } from '../discovery/search.ts';
+
+/**
+ * Four.
+ *
+ * Not a rendering limit — five columns fit on a desktop. It is the point past which a comparison
+ * stops being a decision and becomes a spreadsheet, and on a phone each column is already a
+ * third of the screen. `FR-CMP-01` sets it; this constant is the only place it is written down.
+ */
+export const MAX_COMPARE = 4;
+
+/** A gym's stable identity in a compare URL. */
+export function compareKey(gym: { citySlug: string; slug: string }): string {
+  return `${gym.citySlug}/${gym.slug}`;
+}
+
+export interface CompareSelection {
+  /** The gyms that resolved, in the order the URL listed them, capped at `MAX_COMPARE`. */
+  readonly gyms: readonly GymDetail[];
+  /** Keys that named nothing. Reported rather than silently dropped — see below. */
+  readonly unresolved: readonly string[];
+  /** True when the URL asked for more than `MAX_COMPARE` and the extras were dropped. */
+  readonly truncated: boolean;
+}
+
+/**
+ * Reads a comparison out of the URL.
+ *
+ * ┌─ AN UNKNOWN GYM IS REPORTED, NOT SWALLOWED ─────────────────────────────────────────────────┐
+ * │ A shared comparison outlives the listings in it: a gym is delisted (`BR-GYM-01` works in     │
+ * │ both directions) and the link a member sent their friend now names four gyms and shows       │
+ * │ three. Dropping the fourth silently means the two of them are looking at different pages and │
+ * │ neither knows it. The page says which one is gone.                                            │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export function parseCompare(params: RawParams): CompareSelection {
+  const raw = params['gym'];
+  const requested = (raw === undefined ? [] : Array.isArray(raw) ? raw : [raw])
+    .flatMap((value) => value.split(','))
+    .map((value) => value.trim())
+    .filter((value) => value !== '');
+
+  // Deduplicated, first occurrence wins. `?gym=a&gym=a` is a link somebody built by hand or a
+  // double-submitted form; comparing a gym with itself is not a comparison.
+  const unique = [...new Set(requested)];
+
+  const gyms: GymDetail[] = [];
+  const unresolved: string[] = [];
+  for (const key of unique) {
+    const slash = key.indexOf('/');
+    const gym = slash === -1 ? null : findGym(key.slice(0, slash), key.slice(slash + 1));
+    if (gym === null) unresolved.push(key);
+    else gyms.push(gym);
+  }
+
+  return {
+    gyms: gyms.slice(0, MAX_COMPARE),
+    unresolved,
+    truncated: gyms.length > MAX_COMPARE,
+  };
+}
+
+/** The URL for a given set. `/compare` when it is empty, so the page has one canonical address. */
+export function toCompareParams(keys: readonly string[]): string {
+  const params = new URLSearchParams();
+  for (const key of keys.slice(0, MAX_COMPARE)) params.append('gym', key);
+  const encoded = params.toString();
+  return encoded === '' ? '/compare' : `/compare?${encoded}`;
+}
+
+/** The URL that adds a gym to the current set — or removes it, if it is already there. */
+export function toggleHref(
+  current: readonly GymDetail[],
+  gym: { citySlug: string; slug: string },
+): string {
+  const key = compareKey(gym);
+  const keys = current.map(compareKey);
+  return toCompareParams(keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]);
+}
+
+/**
+ * Every gym not already in the comparison, so the page can offer them.
+ *
+ * Nearest first, matching every other surface. When the catalogue is an API this becomes a
+ * request with an exclusion list, and the caller does not change.
+ */
+export function addableGyms(selected: readonly GymDetail[]): readonly GymDetail[] {
+  const chosen = new Set(selected.map(compareKey));
+  return [...CATALOGUE]
+    .filter((gym) => !chosen.has(compareKey(gym)))
+    .sort((a, b) => a.distanceKm - b.distanceKm);
+}
+
+/**
+ * The union of every amenity across the compared gyms, sorted.
+ *
+ * The union and not the intersection: the whole question a member is asking is "which of these
+ * has a sauna", and an intersection answers "all of them do" or shows nothing. A row per amenity
+ * with a mark per gym is the only shape that answers it.
+ */
+export function amenityMatrix(gyms: readonly GymDetail[]): readonly string[] {
+  return [...new Set(gyms.flatMap((gym) => gym.amenities))].sort((a, b) => a.localeCompare(b));
+}
