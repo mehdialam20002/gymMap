@@ -1,5 +1,20 @@
 # Accessibility Specification and its Verification
 
+
+> **NOT amended by `ADR-0037`, and deliberately so.** That ADR made the visual prescription in the
+> other seven `docs/ui/` documents advisory at the owner's instruction. This document is untouched.
+>
+> Nothing here is a style rule. A contrast ratio below 4.5:1 is not a look somebody dislikes — it is
+> a screen some people cannot read. An SLA chip that carries its state only in a tint says nothing to
+> a red-green colour-blind officer triaging sixty applications a day. `AdminDashboard.md` §1.1 has
+> Anita opening the approval queue 30–60 times a day, which makes the keyboard path her product
+> rather than an accommodation.
+>
+> These rules also cost a design nothing. The palette is one file and every shipped pairing already
+> measures above its floor; the glyph beside a coloured chip is four pixels. If the owner does want
+> any of this lifted, it needs its own ADR saying which requirement is being dropped and who it
+> excludes — not an omission from this one.
+
 **Surfaces:** `customer-web` (18 `SCR-WEB-*`) · `gym-dashboard` (22 `SCR-DASH-*`) · `admin-console`
 (15 `SCR-ADM-*`) · `packages/ui`
 **Governs:** `NFR-USE-01` … `NFR-USE-09`, `PROJECT_CONSTITUTION.md` §16.7 (`AX1`–`AX9`), §16.8, §16.9

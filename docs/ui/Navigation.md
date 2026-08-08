@@ -1,5 +1,17 @@
 # Navigation — information architecture, route tables and navigation law across three surfaces
 
+
+> **Amended 2026-08-08 by `ADR-0037`.** Every LAYOUT, column order, region list and wireframe in this
+> document is **advisory** — the owner lifted visual prescription so a design is not bound to the
+> arrangement recorded here. They remain the reasoned default and the reasoning is worth reading
+> before departing from it.
+>
+> What is **not** advisory: the contrast floors, colour never carrying meaning alone, full keyboard
+> operability, the four mandatory states, money rendered from server-computed minor units, and the
+> rule that no screen shows a fabricated figure as though it were read from the database. Those are
+> `MASTER_PRD.md` §B9 requirements and the `AX` rules, not style. `ADR-0037` lists them and says why
+> each one breaks something real if removed.
+
 **Surfaces:** `web` (`apps/customer-web`, Next.js 14 App Router, SSR for SEO) · `dash`
 (`apps/gym-dashboard`, React 18 + Vite SPA) · `admin` (`apps/admin-dashboard`, React 18 + Vite SPA)
 · **Launch market:** India (`LAUNCH_MARKET_INDIA.md`) · **Status:** specification frozen, **no

@@ -5549,7 +5549,75 @@ light-mode screen rendered on a yellow wash while the cards on it were near-neut
 
 ---
 
-**End of decision log.** Thirty-six ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
+---
+
+## ADR-0037 — Visual prescription in `docs/ui/` becomes advisory; the accessibility floor does not
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-08 |
+| **Decided by** | Project owner, during the admin console redesign |
+| **Amends** | `docs/ui/DesignSystem.md` `TK3` · the layout, column-order and region mandates of `AdminDashboard.md` §6.x, `GymDashboard.md` §6.x and `CustomerApp.md` §6.x |
+| **Does NOT amend** | `NFR-USE-02` · `NFR-USE-04` · `AX2` · `AX4` · `AX8` · `AX9` · `BR-PAY-01` · `MO3` · `DM1` |
+
+**The instruction.** The owner specified, in two messages: *"koi restriction hai kya ya kuch v hai
+kya aisa jo rokk rha hai best ui ux bnane ka"*, then *"ui style se related kuch v hai jo screen
+bnane me aata hai usko hata do — mai apne according best banawaunga websites ui ux ya dashboard,
+sirf style wagaira ka restriction hatana"*.
+
+`docs/ui/` is 14,381 lines and it is binding derived specification at rank 3. The owner is the only
+person who can move it, and this ADR is that move — recorded rather than performed by deleting a
+specification file, because `CLAUDE.md` §3 forbids rewriting one wholesale and a second session
+writes to `docs/` continuously.
+
+### What is lifted
+
+| Was | Now |
+| :--- | :--- |
+| **`TK3`** — *"Arbitrary values are forbidden in `apps/**`: `text-[#1a2b3c]`, `p-[13px]`, `z-[999]`, `w-[327px]`"* | **Advisory.** A design may use whatever value it needs. The trade-off is stated below rather than enforced |
+| **`AdminDashboard.md` §6.x column orders and region lists** — e.g. `SCR-ADM-002`'s *"SLA chip, age, tenant + gym, city, type, pre-check, assignee"* in that order | **Advisory.** The columns remain the useful default and the reasoning behind each is worth reading, but the arrangement is the designer's |
+| The prescribed **layouts** — the ASCII wireframes, the split ratios, the panel order, the mandated card anatomy of `Components.md` §2 | **Advisory.** They are reference, not contract |
+| Density, radius, spacing-step and type-scale **prescriptions** | **Advisory** |
+
+### What is not lifted, and why it is not style
+
+These are requirements in `MASTER_PRD.md` §B9 and `Accessibility.md`, not visual preference. Each
+one, if removed, breaks something that currently works or excludes somebody:
+
+| Kept | Because |
+| :--- | :--- |
+| **Text ≥ 4.5:1, interactive ≥ 3:1** (`NFR-USE-04`, `AX4`) | A non-functional requirement with sixty measured pairings and a passing proof suite. Contrast is not a look; below the floor some people cannot read the screen at all |
+| **Colour is never the sole carrier of meaning** (`AX9`, `AX8`) | An SLA chip that says only "red" says nothing to a red-green colour-blind officer triaging sixty applications a day. The glyph and the word cost nothing visually |
+| **Full keyboard operability** (`NFR-USE-02`, `AX2`) | `AdminDashboard.md` §1.1 has Anita opening the approval queue 30–60 times a day. The keyboard path is the product for her, not an accessibility afterthought |
+| **`DM1`** — one theme switch, both themes defined | Removing it does not free a design, it breaks the light/dark toggle that already ships |
+| **`MO3`** — nothing on a data path animates | A counting-up number makes a stale figure look live. That is a correctness claim about data, wearing a motion costume |
+| **`BR-PAY-01`** — money rendered from server-computed minor units | Invariant 2. Not negotiable at any layer |
+| **The sample-data discipline** | `SCR-ADM-003` may not show a fabricated pre-check pass. `RSK-01` scores 20, the highest in the register, and that screenshot is the claim the marketplace sells |
+
+### The trade-off `TK3` existed to prevent, now stated instead of enforced
+
+An arbitrary colour does not theme. `text-[#1a2b3c]` is the same in light mode and dark mode, so a
+screen using them looks correct in whichever mode it was designed in and wrong in the other. The
+token path is not a restriction on which colours may be used — the palette is one file — it is what
+makes one design work twice.
+
+Same for spacing: `theme.spacing` **replaces** Tailwind's numeric scale, so `p-4` emits **nothing**
+and the element renders with no padding at all, silently. That is a defect rather than a style
+choice, which is why `ci:tailwind-tokens` stays ON: it does not restrict a value, it catches a class
+that produces no CSS. Arbitrary values in brackets pass it, and always did.
+
+### Consequences
+
+- No code changes. Nothing in the repository violated `TK3`, so lifting it removes a constraint on
+  future work rather than legitimising existing work.
+- The lint rule `UI3` that `DesignSystem.md` names for `TK3` was never written, so there is nothing
+  to switch off.
+- `AdminDashboard.md` §6.2's column semantics are still what the current queue implements. They are
+  now a default that was reasoned about, not a mandate — and the reasoning is still in the code
+  comments where a future change can weigh it.
+
+**End of decision log.** Thirty-seven ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
-approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036 on 2026-08-08, during Phase 8 implementation.
+approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.
 

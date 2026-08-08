@@ -550,6 +550,19 @@ illustrative — not committed code
 
 ## 6. Screen specifications
 
+> **Amended 2026-08-08 by `ADR-0037`.** The LAYOUTS, column orders, region lists and wireframes in
+> this section are **advisory** — the owner lifted visual prescription so a design is not bound to
+> the arrangement recorded here. They remain the reasoned default, and the reasoning is worth reading
+> before departing from it: `SCR-ADM-002` leads with the SLA because that is the column which decides
+> which row gets opened, not because of where it sits.
+>
+> What is **not** advisory, in this section or any other: the contrast floors, colour never carrying
+> meaning alone, full keyboard operability, the four mandatory states, and the rule that no screen
+> shows a fabricated figure as though it were read from the database. Those are `MASTER_PRD.md` §B9
+> requirements and the `AX` rules, not style. `ADR-0037` lists them and says why each one breaks
+> something real if removed.
+
+
 Every screen below carries the same eight blocks: **identity**, **purpose**, **API contracts
 consumed**, **layout**, **regions**, **interactions and keyboard**, **states** (the four mandatory
 plus any the domain demands), and **acceptance checks** traced to `AC-` identifiers.

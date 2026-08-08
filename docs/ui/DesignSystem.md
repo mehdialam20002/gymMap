@@ -206,11 +206,17 @@ export default {
 };
 ```
 
+> **Amended 2026-08-08 by `ADR-0037`.** `TK3` below is now advisory. `TK1`, `TK2`, `TK4`, `TK5` and
+> `TK6` stand: they are what makes one design work in both themes and at every density, and removing
+> them breaks the theme switch rather than freeing a designer. The contrast floors of §3.6, the
+> colour-plus-icon rule of §4 and the motion law of §6 are **not** amended — see the ADR for why each
+> of those is a requirement rather than a preference.
+
 | Rule | Statement | Enforced by |
 | :--- | :--- | :--- |
 | **TK1** | `theme.colors`, `theme.spacing`, `theme.borderRadius`, `theme.boxShadow` and `theme.zIndex` are **replaced**, not extended. Tailwind's stock `slate-500` and `p-7` do not resolve in `apps/**`. | The preset itself; a missing class is a build-visible failure. |
 | **TK2** | An app declares **no** `theme` of its own. `presets: [preset]` and `content` are the whole config. | Review + a structure test on the three `tailwind.config.ts` files. |
-| **TK3** | Arbitrary values are forbidden in `apps/**`: `text-[#1a2b3c]`, `p-[13px]`, `z-[999]`, `w-[327px]`. | `UI3` lint rule matching `-\[` in a `className` string literal. |
+| **TK3** | ~~Arbitrary values are forbidden in `apps/**`: `text-[#1a2b3c]`, `p-[13px]`, `z-[999]`, `w-[327px]`.~~ **ADVISORY from 2026-08-08 — `ADR-0037`.** The owner lifted this so a design is not constrained by the token set. The trade-off is real and is now stated rather than enforced: an arbitrary COLOUR does not theme, so a screen using `text-[#1a2b3c]` looks correct in whichever mode it was designed in and wrong in the other. Prefer a token for anything colour-bearing; use whatever value a layout needs. | None. The `UI3` rule was never written. `ci:tailwind-tokens` remains ON and is unaffected — it catches a class that emits NO CSS (`p-4`, `stack-3xs`), which is a silent defect rather than a style choice, and bracketed values always passed it. |
 | **TK4** | The one legitimate arbitrary value — a genuinely one-off layout dimension such as a map pane width — is not arbitrary. It becomes a component token in `packages/ui/src/tokens/component/`, reviewed under §12. | Review. |
 | **TK5** | `packages/ui` may use Tier 1 through Tier 3. `apps/**` may use Tier 2 and Tier 3 only. | Lint: primitive class names (`gm-indigo-*`, `gm-space-*`) are not emitted by the preset at all, so a primitive in an app simply does not exist as a class. |
 | **TK6** | Dark mode is a `data-theme` attribute on `<html>`, not a class soup. `darkMode: ['class', '[data-theme="dark"]']` lets `dark:` utilities work while the attribute stays the single switch (§9.3). | The preset. |
