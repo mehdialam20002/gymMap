@@ -110,6 +110,49 @@ export const palette = {
     950: '#233400',
   },
 
+  /**
+   * `brand` — GymMap wine. A deep red, and DEEP is the load-bearing word.
+   *
+   * ┌─ WHY NOT A BRIGHT RED, WHICH IS WHAT "GymMap red" SOUNDS LIKE ───────────────────────────────┐
+   * │ `danger` is red, and this console adjudicates businesses: an "Approve" primary sitting beside │
+   * │ a "Reject" destructive is the single most consequential pair of buttons in the product. Two   │
+   * │ reds at the same lightness there is not a taste problem, it is a mis-click.                    │
+   * │                                                                                               │
+   * │ Hue cannot separate them — both are red. LIGHTNESS can, so the brand sits deep and danger     │
+   * │ stays bright:                                                                                  │
+   * │                                                                                               │
+   * │     wine-600 `#7A1637`  vs  danger-600 `#DC2626`   2.18:1                                     │
+   * │                                                                                               │
+   * │ That is a visible step apart, and it is the number to re-check if either ramp moves.          │
+   * └───────────────────────────────────────────────────────────────────────────────────────────────┘
+   *
+   * ┌─ THE SOLID TAKES A WHITE FOREGROUND, IN BOTH THEMES ────────────────────────────────────────┐
+   * │ White on `wine-600` is 10.51:1. The previous brand (`pear`, a yellow-green) was so light that │
+   * │ white on it measured 1.20:1 and every primary button had to carry DARK text — which is why    │
+   * │ the old solid also had to lighten on hover instead of deepening. A dark solid inverts both:   │
+   * │ white label, and hover goes deeper (600 → 700 → 800) the way a dark button should.            │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   *
+   * Brand vs the other semantics, at their text steps on white — all clear of 4.5:1 themselves and
+   * far enough from wine to read as different families: success emerald, warning amber, info sky.
+   */
+  wine: {
+    50: '#FDF2F5',
+    100: '#FAE2E9',
+    200: '#F2C1D0',
+    /** Brand text on the DARK canvas — 7.63:1 on `#0F172A`. */
+    300: '#E28FA9',
+    400: '#C55578',
+    500: '#A02E54',
+    /** `GymMap wine`. The brand solid. White on it is 10.51:1. */
+    600: '#7A1637',
+    /** Brand text and links on a light canvas, and the solid's hover — 12.9:1 on white. */
+    700: '#651230',
+    800: '#520E27',
+    900: '#3D0A1D',
+    950: '#260611',
+  },
+
   /** `success` — it worked. Payment captured, member checked in, plan published. */
   emerald: {
     50: '#ECFDF5',

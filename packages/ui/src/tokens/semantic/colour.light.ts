@@ -57,7 +57,7 @@ export const light = {
   'color-surface-media': p.neutral[950],
   /** `LC5` — a poll that FAILED must not look like one that is merely a few seconds old. */
   'color-surface-stale': p.amber[50],
-  'color-surface-brand-subtle': p.pear[50],
+  'color-surface-brand-subtle': p.wine[50],
   'color-surface-success-subtle': p.emerald[50],
   'color-surface-warning-subtle': p.amber[50],
   'color-surface-danger-subtle': p.red[50],
@@ -75,9 +75,9 @@ export const light = {
    * 9.6:1 — and the visited state stays DARKER than the default, so the progression still reads
    * as "already been there" rather than as a different link.
    */
-  'color-content-link': p.pear[800],
-  'color-content-link-hover': p.pear[900],
-  'color-content-link-visited': p.pear[950],
+  'color-content-link': p.wine[800],
+  'color-content-link-hover': p.wine[900],
+  'color-content-link-visited': p.wine[950],
   'color-content-stale': p.amber[900],
   // NG3 — one guaranteed-legible foreground per solid fill, so `text-white` is never a guess.
   /*
@@ -85,7 +85,7 @@ export const light = {
    * dark mode. White on pear is 1.20:1. A `text-white` here would be invisible and would look
    * like a rendering bug rather than a contrast one.
    */
-  'color-content-on-brand': p.neutral[900],
+  'color-content-on-brand': p.white,
   'color-content-on-success': p.white,
   'color-content-on-warning': p.white,
   'color-content-on-danger': p.white,
@@ -99,8 +99,8 @@ export const light = {
    * theme-varying brand token is. Pear itself serves: 15.60:1 (`MD3`). This is also the one place
    * the brand appears at full strength as TEXT, which it cannot do on the light canvas at all.
    */
-  'color-content-on-media-accent': p.pear[400],
-  'color-content-brand': p.pear[800],
+  'color-content-on-media-accent': p.wine[400],
+  'color-content-brand': p.wine[700],
   'color-content-success': p.emerald[800],
   'color-content-warning': p.amber[900],
   'color-content-danger': p.red[800],
@@ -114,8 +114,8 @@ export const light = {
   'color-border-input': p.neutral[500],
   'color-border-input-hover': p.neutral[600],
   /** 3.89:1 on the canvas. `pear-600` measures 1.87:1 and would be a ring nobody can see. */
-  'color-border-focus': p.pear[700],
-  'color-border-brand': p.pear[700],
+  'color-border-focus': p.wine[700],
+  'color-border-brand': p.wine[600],
   'color-border-success': p.emerald[700],
   'color-border-warning': p.amber[700],
   'color-border-danger': p.red[700],
@@ -130,12 +130,12 @@ export const light = {
    * means lightening: 14.81 → 15.63 → 16.23 as the state escalates. Darkening here would have
    * walked the button toward its own foreground.
    */
-  'color-brand-solid': p.pear[400],
-  'color-brand-solid-hover': p.pear[300],
-  'color-brand-solid-active': p.pear[200],
+  'color-brand-solid': p.wine[600],
+  'color-brand-solid-hover': p.wine[700],
+  'color-brand-solid-active': p.wine[800],
   'color-brand-solid-disabled': p.neutral[300],
-  'color-brand-subtle': p.pear[50],
-  'color-brand-subtle-hover': p.pear[100],
+  'color-brand-subtle': p.wine[50],
+  'color-brand-subtle-hover': p.wine[100],
 
   // --- success: it worked ---------------------------------------------------
   // 700, NOT 600. White on emerald-600 measures 3.77:1 — below the text floor. §3.8 F4.

@@ -5491,7 +5491,65 @@ one entry and its acceptance criteria are otherwise untouched. Recorded in `PHAS
 
 ---
 
-**End of decision log.** Thirty-five ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
+---
+
+## ADR-0036 — The brand becomes a deep wine red, and it must not be `danger`'s red
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-08 |
+| **Decided by** | Project owner, during the admin console redesign |
+| **Supersedes** | `pear` as the brand family in `packages/ui/src/tokens/primitive/palette.ts` |
+| **Tracked as** | Phase 1 of the console redesign |
+
+**The instruction.** The owner specified: *"GymMap's brand should use Primary: deep red / GymMap
+red"*, with red reserved for *"primary actions, active navigation, important metrics, critical
+states, selected controls"* and the explicit constraint that *"red must NOT dominate the whole
+dashboard"* — most surfaces stay neutral.
+
+This supersedes `pear` (`#BCFF00`, a yellow-green). A brand colour is the owner's to choose, and
+`DesignSystem.md` §2.4 already places the palette in `packages/ui` precisely so that changing it
+is one edit rather than sixty.
+
+**The problem the instruction creates, and how it is resolved.** The same brief assigns
+`red = danger`. This console adjudicates businesses: an **Approve** primary sitting beside a
+**Reject** destructive is the most consequential pair of buttons in the product, and two reds at
+the same lightness there is a mis-click rather than a matter of taste.
+
+Hue cannot separate them, because both are red. **Lightness can.** So the brand sits deep and
+`danger` stays bright:
+
+| Pair | Ratio |
+| :--- | :--- |
+| `wine-600` `#7A1637` vs `danger-600` `#DC2626` | **2.18:1** |
+| `wine-700` vs `danger-700` | 1.90:1 |
+
+2.18:1 is a visible step apart. It is the number to re-check if either ramp moves, and it is why
+the brand solid is at step 600 rather than the conventional 400.
+
+**This is the second time this argument has been had, in the opposite direction.** The palette
+file records the original: a brand green was reconsidered because `SCR-DASH-009` renders a green
+check-in verdict, and *"a green brand would put every primary button in the same perceptual
+neighbourhood as 'this member may enter'"*. `pear` survived that on the same measured basis. The
+method carries over unchanged; only the family changed.
+
+**A consequence worth stating.** `pear` was so light that white on it measured 1.20:1, so every
+primary button carried DARK text and the solid had to *lighten* on hover. `wine-600` takes white
+at 10.51:1, so `content-on-brand` is now white and hover *deepens* (600 → 700 → 800), which is
+what a dark button should do. Both themes changed together.
+
+**Verified.** All 87 token tests and every shipped contrast proof pass unchanged, which is the
+point of having them: the ramp moved and nothing that depended on a ratio broke.
+
+**Also in this change, and separately.** `neutral-50` and `neutral-100` were re-stepped off a
+yellow-green cast that did not sit on the same hue line as `neutral-200` and beyond. That was a
+ramp defect rather than a brand decision — the admin canvas is `surface-sunken` (100), so every
+light-mode screen rendered on a yellow wash while the cards on it were near-neutral.
+
+---
+
+**End of decision log.** Thirty-six ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
-approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 during Phase 8 implementation.
+approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036 on 2026-08-08, during Phase 8 implementation.
 
