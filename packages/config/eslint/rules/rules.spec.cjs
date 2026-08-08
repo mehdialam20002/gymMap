@@ -17,6 +17,7 @@ const noFloatMoney = require('./no-float-money.cjs');
 const noTenantIdParameter = require('./no-tenant-id-parameter.cjs');
 const noTypeImportInCtor = require('./no-type-import-in-ctor.cjs');
 const noBareDate = require('./no-bare-date.cjs');
+const noSurfaceCurrencyFormat = require('./no-surface-currency-format.cjs');
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -233,4 +234,72 @@ test('no-bare-date', () => {
       },
     ],
   });
+});
+
+// ---------------------------------------------------------------------------
+// no-surface-currency-format — FolderStructure.md §12 rules 12 & 14, LAUNCH_MARKET_INDIA.md §2
+// ---------------------------------------------------------------------------
+
+test('no-surface-currency-format', () => {
+  ruleTester.run('no-surface-currency-format', noSurfaceCurrencyFormat, {
+    valid: [
+      // The point of the rule: the ONE formatter is imported, not reimplemented.
+      { code: "import { formatIndianRupees } from '@gymmap/utils'; const s = formatIndianRupees(100n);" },
+
+      // A formatter with no currency intent. Grouping a row count is not the problem, and a rule
+      // that flagged it would be switched off within a week.
+      { code: "const n = new Intl.NumberFormat('en-IN').format(1234);" },
+      { code: "const n = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 }).format(1.25);" },
+      { code: "const p = new Intl.NumberFormat('en-IN', { style: 'percent' }).format(0.18);" },
+      { code: 'const s = value.toLocaleString();' },
+      { code: "const s = date.toLocaleString('en-IN', { dateStyle: 'medium' });" },
+      // Zero-argument and single-argument forms cannot express a currency.
+      { code: 'const f = new Intl.NumberFormat();' },
+
+      // A property NAMED currency on something that is not a formatter call.
+      { code: "const config = { currency: 'INR' };" },
+    ],
+
+    invalid: [
+      // The exact shape that reached the admin console's figures module.
+      {
+        code: "const s = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(x);",
+        errors: [{ messageId: 'surfaceFormat' }],
+      },
+      // `style: 'currency'` alone.
+      {
+        code: "const s = new Intl.NumberFormat('en-IN', { style: 'currency' }).format(x);",
+        errors: [{ messageId: 'surfaceFormat' }],
+      },
+      // A bare `currency:` key, without `style`. Still a currency formatter.
+      {
+        code: "const s = new Intl.NumberFormat('en-IN', { currency: 'INR' }).format(x);",
+        errors: [{ messageId: 'surfaceFormat' }],
+      },
+      // Without `new` — same constructor, same result, and easy to miss by eye.
+      {
+        code: "const s = Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(x);",
+        errors: [{ messageId: 'surfaceFormat' }],
+      },
+      // The method form, which is what §12 point 12 names literally.
+      {
+        code: "const s = amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' });",
+        errors: [{ messageId: 'surfaceFormat' }],
+      },
+      // A quoted key, because the AST shape differs and a rule that only read `Identifier` keys
+      // would be silently bypassed by adding two quote characters.
+      {
+        code: "const s = amount.toLocaleString('en-IN', { 'style': 'currency' });",
+        errors: [{ messageId: 'surfaceFormat' }],
+      },
+    ],
+  });
+});
+
+test('no-surface-currency-format names the one formatter, so the fix is in the message', () => {
+  const { surfaceFormat } = noSurfaceCurrencyFormat.meta.messages;
+  assert.match(surfaceFormat, /format-indian-grouping\.ts/);
+  assert.match(surfaceFormat, /formatIndianRupees/);
+  // The consequence, not just the prohibition. A rule that says only "banned" gets argued with.
+  assert.match(surfaceFormat, /2,50,000/);
 });

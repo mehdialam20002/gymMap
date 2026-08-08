@@ -9,7 +9,7 @@
     "dev": "next dev --port 3001",
     "start": "next start --port 3001",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "echo \"no-op\"",
+    "lint": "eslint . --max-warnings=0",
     "architecture": "echo \"no-op\"",
     "test:unit": "node --test test/*.spec.ts",
     "test:int": "echo \"no-op\"",
@@ -23,12 +23,15 @@
   "dependencies": {
     "@gymmap/types": "workspace:*",
     "@gymmap/ui": "workspace:*",
+    "@gymmap/utils": "workspace:*",
     "@phosphor-icons/react": "^2.1.10",
+    "motion": "^13.0.0",
     "next": "^14.2.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@gymmap/config": "workspace:*",
     "@types/node": "^22.10.5",
     "@types/react": "^18.3.18",
@@ -36,6 +39,9 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "^6.0.3"
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.66.0"
   }
 }

@@ -9,7 +9,7 @@
     "build": "echo \"no-op\"",
     "dev": "echo \"no-op\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "echo \"no-op\"",
+    "lint": "eslint . --max-warnings=0",
     "architecture": "echo \"no-op\"",
     "test:unit": "echo \"no-op\"",
     "test:int": "echo \"no-op\"",
@@ -21,7 +21,12 @@
     "openapi:check": "echo \"no-op\""
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@gymmap/config": "workspace:*",
-    "typescript": "^6.0.3"
-  }
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.66.0"
+  },
+  "//lint": "R1a keeps the ROOT devDependencies to seven packages and eslint is not one of them, so each workspace that lints declares its own runner (A-21). Turned on while this app is still one file, deliberately: a lint script that has never passed is easy to add and a lint script that has never run is what lets a thousand errors accumulate before anyone looks."
 }

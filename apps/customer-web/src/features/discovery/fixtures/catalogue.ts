@@ -29,7 +29,7 @@ export interface PlanSummary {
   readonly id: string;
   readonly name: string;
   /** Integer paise. See the header. */
-  readonly priceMinor: number;
+  readonly priceMinor: bigint;
   readonly durationDays: number;
 }
 
@@ -46,10 +46,21 @@ export interface SearchResult {
   readonly rating: number | null;
   readonly reviewCount: number;
   /** The cheapest plan, which is what a results card shows. Integer paise. */
-  readonly fromPriceMinor: number;
+  readonly fromPriceMinor: bigint;
   readonly distanceKm: number;
   /** `BR-GYM-01` — nothing is listed before a human approves it. All fixtures are verified. */
   readonly verified: true;
+  /**
+   * Cover photography. Pexels for now, because the fixture catalogue is demo data and real media
+   * arrives with `FR-GYM-02`'s upload path. The host is named in `next.config.mjs` and admitted by
+   * `CSP_MEDIA_HOST`; it is not a wildcard, so swapping it for the CDN is a two-line change.
+   *
+   * Sized at the width the card actually renders. Requesting a 4000px original and letting the
+   * browser scale it is the most common way a listing page spends its LCP budget.
+   */
+  readonly photo: string;
+  /** Alternative text. A gym's cover is decorative NEXT TO its name, so this stays short. */
+  readonly photoAlt: string;
 }
 
 export interface GymDetail extends SearchResult {
@@ -78,18 +89,21 @@ export const CATALOGUE: readonly GymDetail[] = [
     amenities: ['Free weights', 'Powerlifting platform', 'Showers', 'Parking'],
     rating: 4.7,
     reviewCount: 213,
-    fromPriceMinor: 2_49_900,
+    fromPriceMinor: 2_49_900n,
     distanceKm: 1.2,
     verified: true,
+    photo:
+      'https://images.pexels.com/photos/9958669/pexels-photo-9958669.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    photoAlt: 'barbell floor',
     about:
       'A barbell-first gym with four competition platforms and coaches who compete. Not a circuit ' +
       'studio — if you want to learn to squat, deadlift and press properly, this is the room.',
     address: '412, 12th Main Road, Indiranagar, Bengaluru 560038',
     openingHours: 'Mon–Sat 05:00–23:00 · Sun 06:00–14:00',
     plans: [
-      { id: 'p-001', name: 'Monthly', priceMinor: 2_49_900, durationDays: 30 },
-      { id: 'p-002', name: 'Quarterly', priceMinor: 6_49_900, durationDays: 90 },
-      { id: 'p-003', name: 'Annual', priceMinor: 21_99_900, durationDays: 365 },
+      { id: 'p-001', name: 'Monthly', priceMinor: 2_49_900n, durationDays: 30 },
+      { id: 'p-002', name: 'Quarterly', priceMinor: 6_49_900n, durationDays: 90 },
+      { id: 'p-003', name: 'Annual', priceMinor: 21_99_900n, durationDays: 365 },
     ],
   },
   {
@@ -103,17 +117,20 @@ export const CATALOGUE: readonly GymDetail[] = [
     amenities: ['Air conditioning', 'Steam room', 'Showers', 'Locker', 'Cafe'],
     rating: 4.3,
     reviewCount: 486,
-    fromPriceMinor: 1_99_900,
+    fromPriceMinor: 1_99_900n,
     distanceKm: 3.8,
     verified: true,
+    photo:
+      'https://images.pexels.com/photos/7031706/pexels-photo-7031706.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    photoAlt: 'machine floor',
     about:
       'A large mixed-use floor with a full cardio deck, three studios and classes running from ' +
       '06:00. Busy between 19:00 and 21:00 — the app shows live occupancy before you leave home.',
     address: '80 Feet Road, Koramangala 5th Block, Bengaluru 560095',
     openingHours: 'Mon–Sun 05:30–22:30',
     plans: [
-      { id: 'p-004', name: 'Monthly', priceMinor: 1_99_900, durationDays: 30 },
-      { id: 'p-005', name: 'Half-yearly', priceMinor: 9_99_900, durationDays: 180 },
+      { id: 'p-004', name: 'Monthly', priceMinor: 1_99_900n, durationDays: 30 },
+      { id: 'p-005', name: 'Half-yearly', priceMinor: 9_99_900n, durationDays: 180 },
     ],
   },
   {
@@ -127,17 +144,20 @@ export const CATALOGUE: readonly GymDetail[] = [
     amenities: ['Mats provided', 'Showers', 'Women-only hours'],
     rating: 4.9,
     reviewCount: 97,
-    fromPriceMinor: 1_49_900,
+    fromPriceMinor: 1_49_900n,
     distanceKm: 6.1,
     verified: true,
+    photo:
+      'https://images.pexels.com/photos/7186312/pexels-photo-7186312.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    photoAlt: 'empty studio floor',
     about:
       'Small classes, capped at twelve. Ashtanga and Iyengar in the mornings, restorative in the ' +
       'evenings. Two women-only slots a day.',
     address: '22, 11th Main, Jayanagar 4th Block, Bengaluru 560011',
     openingHours: 'Mon–Sat 06:00–20:00',
     plans: [
-      { id: 'p-006', name: 'Monthly · 12 classes', priceMinor: 1_49_900, durationDays: 30 },
-      { id: 'p-007', name: 'Monthly · unlimited', priceMinor: 2_29_900, durationDays: 30 },
+      { id: 'p-006', name: 'Monthly · 12 classes', priceMinor: 1_49_900n, durationDays: 30 },
+      { id: 'p-007', name: 'Monthly · unlimited', priceMinor: 2_29_900n, durationDays: 30 },
     ],
   },
   {
@@ -151,17 +171,20 @@ export const CATALOGUE: readonly GymDetail[] = [
     amenities: ['Rig', 'Rowers', 'Showers', 'Parking', 'Physio on site'],
     rating: 4.6,
     reviewCount: 154,
-    fromPriceMinor: 3_49_900,
+    fromPriceMinor: 3_49_900n,
     distanceKm: 2.4,
     verified: true,
+    photo:
+      'https://images.pexels.com/photos/9545914/pexels-photo-9545914.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    photoAlt: 'rig and conditioning',
     about:
       'An affiliate box running five classes a day plus open gym. Coaches scale every workout, so ' +
       'a first-timer and a regional competitor train in the same hour.',
     address: 'Hiranandani Gardens, Powai, Mumbai 400076',
     openingHours: 'Mon–Sat 06:00–22:00 · Sun 08:00–12:00',
     plans: [
-      { id: 'p-008', name: 'Monthly', priceMinor: 3_49_900, durationDays: 30 },
-      { id: 'p-009', name: 'Quarterly', priceMinor: 9_49_900, durationDays: 90 },
+      { id: 'p-008', name: 'Monthly', priceMinor: 3_49_900n, durationDays: 30 },
+      { id: 'p-009', name: 'Quarterly', priceMinor: 9_49_900n, durationDays: 90 },
     ],
   },
   {
@@ -175,17 +198,20 @@ export const CATALOGUE: readonly GymDetail[] = [
     amenities: ['Air conditioning', 'Sauna', 'Towel service', 'Valet parking'],
     rating: 4.1,
     reviewCount: 322,
-    fromPriceMinor: 4_99_900,
+    fromPriceMinor: 4_99_900n,
     distanceKm: 5.7,
     verified: true,
+    photo:
+      'https://images.pexels.com/photos/12250460/pexels-photo-12250460.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    photoAlt: 'cardio row',
     about:
       'A premium floor overlooking the bay, with personal training as the default rather than an ' +
       'upsell. Every membership includes an assessment and a written programme.',
     address: 'Turner Road, Bandra West, Mumbai 400050',
     openingHours: 'Mon–Sun 06:00–23:00',
     plans: [
-      { id: 'p-010', name: 'Monthly', priceMinor: 4_99_900, durationDays: 30 },
-      { id: 'p-011', name: 'Annual', priceMinor: 44_99_900, durationDays: 365 },
+      { id: 'p-010', name: 'Monthly', priceMinor: 4_99_900n, durationDays: 30 },
+      { id: 'p-011', name: 'Annual', priceMinor: 44_99_900n, durationDays: 365 },
     ],
   },
   {
@@ -201,17 +227,20 @@ export const CATALOGUE: readonly GymDetail[] = [
     // none, and the card must NOT render `0.0` next to four stars' worth of empty space.
     rating: null,
     reviewCount: 0,
-    fromPriceMinor: 1_79_900,
+    fromPriceMinor: 1_79_900n,
     distanceKm: 4.3,
     verified: true,
+    photo:
+      'https://images.pexels.com/photos/3916766/pexels-photo-3916766.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    photoAlt: 'dumbbell rack',
     about:
       'Opened this quarter. Weights floor plus a full ring, with boxing classes four evenings a ' +
       'week. No reviews yet — reviews here can only be left by members who actually checked in.',
     address: 'Press Enclave Road, Saket, New Delhi 110017',
     openingHours: 'Mon–Sat 05:00–22:00',
     plans: [
-      { id: 'p-012', name: 'Monthly', priceMinor: 1_79_900, durationDays: 30 },
-      { id: 'p-013', name: 'Quarterly', priceMinor: 4_79_900, durationDays: 90 },
+      { id: 'p-012', name: 'Monthly', priceMinor: 1_79_900n, durationDays: 30 },
+      { id: 'p-013', name: 'Quarterly', priceMinor: 4_79_900n, durationDays: 90 },
     ],
   },
   {
@@ -227,15 +256,18 @@ export const CATALOGUE: readonly GymDetail[] = [
     reviewCount: 61,
     // The floor of the range. A results page where everything costs about the same makes a price
     // sort look like it does nothing.
-    fromPriceMinor: 89_900,
+    fromPriceMinor: 89_900n,
     distanceKm: 8.9,
     verified: true,
+    photo:
+      'https://images.pexels.com/photos/17211446/pexels-photo-17211446.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    photoAlt: 'small floor',
     about:
       'No frills and no contract pressure. Machines, dumbbells to 40 kg, and a treadmill row. ' +
       'The cheapest verified listing in South Delhi.',
     address: 'Ring Road, Lajpat Nagar IV, New Delhi 110024',
     openingHours: 'Mon–Sun 06:00–21:30',
-    plans: [{ id: 'p-014', name: 'Monthly', priceMinor: 89_900, durationDays: 30 }],
+    plans: [{ id: 'p-014', name: 'Monthly', priceMinor: 89_900n, durationDays: 30 }],
   },
   {
     id: 'gym-008',
@@ -248,17 +280,20 @@ export const CATALOGUE: readonly GymDetail[] = [
     amenities: ['25m pool', 'Showers', 'Locker', 'Parking'],
     rating: null,
     reviewCount: 0,
-    fromPriceMinor: 2_79_900,
+    fromPriceMinor: 2_79_900n,
     distanceKm: 3.1,
     verified: true,
+    photo:
+      'https://images.pexels.com/photos/8933584/pexels-photo-8933584.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    photoAlt: 'bikes and pool hall',
     about:
       'A 25-metre pool with lane hours from 05:30, plus a weights floor. Swim-only and combined ' +
       'memberships are priced separately.',
     address: '2nd Avenue, Besant Nagar, Chennai 600090',
     openingHours: 'Mon–Sun 05:30–21:00',
     plans: [
-      { id: 'p-015', name: 'Swim only · monthly', priceMinor: 2_79_900, durationDays: 30 },
-      { id: 'p-016', name: 'Swim + gym · monthly', priceMinor: 3_99_900, durationDays: 30 },
+      { id: 'p-015', name: 'Swim only · monthly', priceMinor: 2_79_900n, durationDays: 30 },
+      { id: 'p-016', name: 'Swim + gym · monthly', priceMinor: 3_99_900n, durationDays: 30 },
     ],
   },
 ];

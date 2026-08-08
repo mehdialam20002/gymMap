@@ -129,7 +129,9 @@ function Field({
           onChange(event.target.value);
         }}
         autoComplete={autoComplete}
-        // eslint-disable-next-line jsx-a11y/no-autofocus -- one form, one purpose, nothing above it
+        // One form, one purpose, nothing above it, so focusing the first field costs a keyboard
+        // user nothing and saves them a tab. `jsx-a11y` is not installed and has no `A-NN` row,
+        // so this is prose rather than a disable comment for a rule that does not exist.
         autoFocus={autoFocus}
         {...(hint === undefined ? {} : { 'aria-describedby': hintId })}
         className="gm-hit-target rounded-control border border-subtle bg-surface-sunken px-inset-sm py-inset-xs text-base text-content"

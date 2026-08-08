@@ -34,10 +34,16 @@
 /** Rendered above every panel fed from this file. */
 export const SAMPLE_NOTICE_KEY = 'adm.sample.notice' as const;
 
+import {
+  formatIndianRupees,
+  indianAmountParts,
+  percentStringFromBps,
+} from '@gymmap/utils';
+
 export interface HeadlineFigure {
   readonly key: string;
   /** Integer paise, or `null` when the figure is a count rather than money. */
-  readonly amountMinor: number | null;
+  readonly amountMinor: bigint | null;
   readonly count: number | null;
   /** Basis points of change. 1860 = +18.60%. Integer, same discipline as money. */
   readonly deltaBps: number;
@@ -48,7 +54,7 @@ export interface HeadlineFigure {
 export const HEADLINES: readonly HeadlineFigure[] = [
   {
     key: 'adm.sample.totalRevenue',
-    amountMinor: 48_74_932_00,
+    amountMinor: 48_74_932_00n,
     count: null,
     deltaBps: 1860,
     comparison: 'THIRTY_DAYS',
@@ -56,7 +62,7 @@ export const HEADLINES: readonly HeadlineFigure[] = [
   },
   {
     key: 'adm.sample.todayRevenue',
-    amountMinor: 3_45_678_00,
+    amountMinor: 3_45_678_00n,
     count: null,
     deltaBps: 1240,
     comparison: 'YESTERDAY',
@@ -64,7 +70,7 @@ export const HEADLINES: readonly HeadlineFigure[] = [
   },
   {
     key: 'adm.sample.commission',
-    amountMinor: 7_32_489_00,
+    amountMinor: 7_32_489_00n,
     count: null,
     deltaBps: 1630,
     comparison: 'THIRTY_DAYS',
@@ -102,7 +108,7 @@ export const HEADLINES: readonly HeadlineFigure[] = [
 /** A point on the revenue series. `label` is the axis tick; paise on the value. */
 export interface SeriesPoint {
   readonly label: string;
-  readonly valueMinor: number;
+  readonly valueMinor: bigint;
 }
 
 /**
@@ -112,26 +118,26 @@ export interface SeriesPoint {
  * chart is decorative, and it also hides whether the renderer copes with a downward segment.
  */
 export const REVENUE_SERIES: readonly SeriesPoint[] = [
-  { label: '5 Jul', valueMinor: 62_40_000_00 },
-  { label: '12 Jul', valueMinor: 71_10_000_00 },
-  { label: '19 Jul', valueMinor: 58_70_000_00 },
-  { label: '26 Jul', valueMinor: 76_30_000_00 },
-  { label: '4 Aug', valueMinor: 81_90_000_00 },
+  { label: '5 Jul', valueMinor: 62_40_000_00n },
+  { label: '12 Jul', valueMinor: 71_10_000_00n },
+  { label: '19 Jul', valueMinor: 58_70_000_00n },
+  { label: '26 Jul', valueMinor: 76_30_000_00n },
+  { label: '4 Aug', valueMinor: 81_90_000_00n },
 ];
 
 export interface BreakdownSlice {
   readonly key: string;
-  readonly amountMinor: number;
+  readonly amountMinor: bigint;
   /** Categorical slot 1-4. Assigned in order and never cycled — see `tokens.css`. */
   readonly slot: 1 | 2 | 3 | 4;
 }
 
 /** Four slices. A fifth would fold into "Others" rather than taking a fifth colour. */
 export const REVENUE_BREAKDOWN: readonly BreakdownSlice[] = [
-  { key: 'adm.sample.marketplaceSales', amountMinor: 33_84_559_00, slot: 1 },
-  { key: 'adm.sample.saasSubscriptions', amountMinor: 9_79_548_00, slot: 2 },
-  { key: 'adm.sample.commissionSlice', amountMinor: 4_24_112_00, slot: 3 },
-  { key: 'adm.sample.others', amountMinor: 86_713_00, slot: 4 },
+  { key: 'adm.sample.marketplaceSales', amountMinor: 33_84_559_00n, slot: 1 },
+  { key: 'adm.sample.saasSubscriptions', amountMinor: 9_79_548_00n, slot: 2 },
+  { key: 'adm.sample.commissionSlice', amountMinor: 4_24_112_00n, slot: 3 },
+  { key: 'adm.sample.others', amountMinor: 86_713_00n, slot: 4 },
 ];
 
 export interface RegistrationSeries {
@@ -153,7 +159,7 @@ export interface SampleOrder {
   readonly ref: string;
   readonly member: string;
   readonly gym: string;
-  readonly amountMinor: number;
+  readonly amountMinor: bigint;
   readonly status: 'COMPLETED' | 'PAID' | 'PENDING' | 'REFUNDED';
   readonly minutesAgo: number;
 }
@@ -164,7 +170,7 @@ export const RECENT_ORDERS: readonly SampleOrder[] = [
     ref: 'ORD-78562',
     member: 'Ravi Sharma',
     gym: 'Iron House Strength Club',
-    amountMinor: 2_999_00,
+    amountMinor: 2_999_00n,
     status: 'COMPLETED',
     minutesAgo: 2,
   },
@@ -172,7 +178,7 @@ export const RECENT_ORDERS: readonly SampleOrder[] = [
     ref: 'ORD-78561',
     member: 'Neha Singh',
     gym: 'Pulse Fitness Koramangala',
-    amountMinor: 4_999_00,
+    amountMinor: 4_999_00n,
     status: 'COMPLETED',
     minutesAgo: 5,
   },
@@ -180,7 +186,7 @@ export const RECENT_ORDERS: readonly SampleOrder[] = [
     ref: 'ORD-78560',
     member: 'Aman Verma',
     gym: 'Apex CrossFit Powai',
-    amountMinor: 1_999_00,
+    amountMinor: 1_999_00n,
     status: 'PAID',
     minutesAgo: 10,
   },
@@ -188,7 +194,7 @@ export const RECENT_ORDERS: readonly SampleOrder[] = [
     ref: 'ORD-78559',
     member: 'Priya Patel',
     gym: 'Harbour Fitness Bandra',
-    amountMinor: 3_499_00,
+    amountMinor: 3_499_00n,
     status: 'COMPLETED',
     minutesAgo: 15,
   },
@@ -196,7 +202,7 @@ export const RECENT_ORDERS: readonly SampleOrder[] = [
     ref: 'ORD-78558',
     member: 'Suresh Kumar',
     gym: 'Capital Strength Saket',
-    amountMinor: 2_499_00,
+    amountMinor: 2_499_00n,
     status: 'PENDING',
     minutesAgo: 18,
   },
@@ -204,7 +210,7 @@ export const RECENT_ORDERS: readonly SampleOrder[] = [
     ref: 'ORD-78557',
     member: 'Fatima Sheikh',
     gym: 'Coastal Swim & Gym',
-    amountMinor: 3_999_00,
+    amountMinor: 3_999_00n,
     status: 'REFUNDED',
     minutesAgo: 24,
   },
@@ -247,23 +253,40 @@ export const SYSTEM_ALERTS: readonly SampleAlert[] = [
 /**
  * Integer paise to a rupee string, Indian grouping.
  *
- * The ONLY division by 100 on this surface. A second conversion site is how one of them starts
- * rounding differently from the other, and the difference reconciles to a few paise a month
- * forever without anyone finding it.
+ * ┌─ THE GROUPING COMES FROM `packages/utils`, AND THAT IS A RULE RATHER THAN A PREFERENCE ─────┐
+ * │ `FolderStructure.md` §12 rule 14: Indian digit grouping implemented in a SURFACE is a review │
+ * │ rejection, and rule 12 forbids `toLocaleString` with a currency option anywhere outside      │
+ * │ `packages/utils/src/money/`. This file used `Intl.NumberFormat({style:'currency'})`, which   │
+ * │ is the same violation wearing a different name.                                              │
+ * │                                                                                              │
+ * │ The reason it matters is not tidiness. `LAUNCH_MARKET_INDIA.md` §2: a gym owner who sees      │
+ * │ `₹250,000` on one screen where the invoice says `₹2,50,000` stops trusting BOTH figures. One  │
+ * │ formatter, consumed by every surface and by the PDF renderer, is the only arrangement in      │
+ * │ which they cannot disagree.                                                                   │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * `bigint`, because `no-float-money` is right: these values are integer paise and typing them
+ * `number` invites the one arithmetic that must never happen to them.
  */
-export function formatMinor(paise: number, withPaise = false): string {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: withPaise ? 2 : 0,
-    maximumFractionDigits: withPaise ? 2 : 0,
-  }).format(paise / 100);
+export function formatMinor(paise: bigint, withPaise = false): string {
+  if (withPaise) return formatIndianRupees(paise);
+  // No paise on a headline tile — `₹48,74,932.00` spends four characters saying `.00`. The parts
+  // still come from `indianAmountParts`, so the grouping has exactly one implementation.
+  const { sign, major } = indianAmountParts(paise, 2);
+  return `${sign}₹${major}`;
 }
 
-/** Basis points to a signed percentage. 1860 → "+18.6%". */
+/**
+ * Basis points to a signed percentage. 1860 → `+18.6%`.
+ *
+ * `percentStringFromBps` does the division with integer arithmetic — same reason as the paise.
+ * The one thing added here is the explicit `+`, which a delta needs and a commission rate does not.
+ */
 export function formatDeltaBps(bps: number): string {
-  const sign = bps >= 0 ? '+' : '-';
-  return `${sign}${(Math.abs(bps) / 100).toFixed(1)}%`;
+  const magnitude = percentStringFromBps(BigInt(Math.abs(bps)));
+  // One decimal place on a dashboard delta; `percentStringFromBps` gives two.
+  const trimmed = magnitude.replace(/(\.\d)\d$/, '$1');
+  return `${bps >= 0 ? '+' : '-'}${trimmed}%`;
 }
 
 /** Whole minutes to "2 min ago" / "2 hours ago". */
@@ -343,15 +366,15 @@ export const RECENT_ACTIVITY: readonly ActivityEntry[] = [
 export interface TopGym {
   readonly rank: number;
   readonly name: string;
-  readonly revenueMinor: number;
+  readonly revenueMinor: bigint;
 }
 
 export const TOP_GYMS: readonly TopGym[] = [
-  { rank: 1, name: 'Iron House Strength Club', revenueMinor: 4_32_890_00 },
-  { rank: 2, name: 'Apex CrossFit Powai', revenueMinor: 3_78_450_00 },
-  { rank: 3, name: 'Coastal Swim & Gym', revenueMinor: 2_91_320_00 },
-  { rank: 4, name: 'Pulse Fitness Koramangala', revenueMinor: 2_45_670_00 },
-  { rank: 5, name: 'Capital Strength Saket', revenueMinor: 2_12_890_00 },
+  { rank: 1, name: 'Iron House Strength Club', revenueMinor: 4_32_890_00n },
+  { rank: 2, name: 'Apex CrossFit Powai', revenueMinor: 3_78_450_00n },
+  { rank: 3, name: 'Coastal Swim & Gym', revenueMinor: 2_91_320_00n },
+  { rank: 4, name: 'Pulse Fitness Koramangala', revenueMinor: 2_45_670_00n },
+  { rank: 5, name: 'Capital Strength Saket', revenueMinor: 2_12_890_00n },
 ];
 
 export interface MembershipStat {

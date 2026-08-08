@@ -13,6 +13,8 @@
  * rather than one convenient pass.
  */
 
+import { compare, indianAmountParts } from '@gymmap/utils';
+
 import { CATALOGUE, type GymDetail, type SearchResult } from './fixtures/catalogue.ts';
 
 export const SORTS = ['relevance', 'price-asc', 'price-desc', 'rating', 'distance'] as const;
@@ -23,7 +25,7 @@ export interface SearchQuery {
   readonly city: string | null;
   readonly category: string | null;
   /** Integer paise, matching the catalogue. A rupee ceiling here would be the classic slip. */
-  readonly maxPriceMinor: number | null;
+  readonly maxPriceMinor: bigint | null;
   readonly sort: Sort;
 }
 
@@ -47,9 +49,14 @@ export function parseSearchQuery(params: RawParams): SearchQuery {
   const sortRaw = first(params['sort']);
   const sort = SORTS.find((candidate) => candidate === sortRaw) ?? 'relevance';
 
-  const maxRupees = Number(first(params['maxPrice']) ?? '');
-  const maxPriceMinor =
-    Number.isFinite(maxRupees) && maxRupees > 0 ? Math.round(maxRupees * 100) : null;
+  // The URL carries WHOLE RUPEES — `?maxPrice=2500` — so the parse is integer-only by
+  // construction. `Math.round(rupees * 100)` on a float would let `?maxPrice=2499.995` become a
+  // paise value nobody typed; a non-integer price ceiling is not a filter a user can express, so
+  // it falls back to "no ceiling" rather than being silently rounded into one.
+  const maxRupeesRaw = first(params['maxPrice']) ?? '';
+  const maxPriceMinor = /^\d{1,9}$/.test(maxRupeesRaw)
+    ? BigInt(maxRupeesRaw) * 100n
+    : null;
 
   return {
     q: first(params['q']) ?? '',
@@ -66,7 +73,8 @@ export function toSearchParams(query: Partial<SearchQuery>): string {
   if (query.q) params.set('q', query.q);
   if (query.city) params.set('city', query.city);
   if (query.category) params.set('category', query.category);
-  if (query.maxPriceMinor) params.set('maxPrice', String(Math.round(query.maxPriceMinor / 100)));
+  // Integer division, and exact: the value only ever arrives here as whole rupees × 100.
+  if (query.maxPriceMinor) params.set('maxPrice', String(query.maxPriceMinor / 100n));
   if (query.sort && query.sort !== 'relevance') params.set('sort', query.sort);
   const encoded = params.toString();
   return encoded === '' ? '/search' : `/search?${encoded}`;
@@ -98,8 +106,11 @@ function matches(gym: SearchResult, term: string): boolean {
 }
 
 const BY_SORT: Record<Sort, (a: GymDetail, b: GymDetail) => number> = {
-  'price-asc': (a, b) => a.fromPriceMinor - b.fromPriceMinor,
-  'price-desc': (a, b) => b.fromPriceMinor - a.fromPriceMinor,
+  // `compare` rather than subtraction: `Array.sort` needs a `number` and bigint subtraction gives
+  // a bigint. Coercing the difference with `Number()` would also work until two plan prices
+  // differed by more than 2^53 paise, which is the kind of bound nobody writes a test for.
+  'price-asc': (a, b) => compare(a.fromPriceMinor, b.fromPriceMinor),
+  'price-desc': (a, b) => compare(b.fromPriceMinor, a.fromPriceMinor),
   // Unrated gyms go LAST rather than being treated as zero. A new listing is not a bad one, and
   // sorting it below a 1-star gym would make "sort by rating" a penalty for being new.
   rating: (a, b) => (b.rating ?? -1) - (a.rating ?? -1),
@@ -131,19 +142,22 @@ export function findGym(citySlug: string, gymSlug: string): GymDetail | null {
 // ---------------------------------------------------------------------------
 
 /**
- * Integer paise → a rupee string.
+ * Integer paise → a rupee string, whole rupees.
  *
- * The ONLY place a division by 100 is allowed. Invariant 2 makes paise the representation
- * everywhere else, and a second conversion site is how one of them ends up rounding differently
- * from the other — which is a money bug that reconciles to a few paise a month and is never found.
+ * ┌─ TWO FILES BOTH CLAIMED TO BE "THE ONLY PLACE A DIVISION BY 100 IS ALLOWED" ────────────────┐
+ * │ This one and the admin console's figures module, in the same repository, each with a comment │
+ * │ saying it was the sole conversion site. Neither was wrong about why that matters — they were  │
+ * │ wrong about being alone. `FolderStructure.md` §12 rule 14 already forbade both; there was     │
+ * │ simply no lint rule reading it, and this app's `lint` script was `echo "no-op"`.              │
+ * │                                                                                              │
+ * │ Now the grouping comes from `packages/utils/src/money/`, which is also what the PDF renderer  │
+ * │ uses. A plan priced `₹2,499` on the gym page and `₹2,499` on the receipt is not luck.         │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * `bigint`, per invariant 2. Whole rupees, because Indian plan prices are not quoted in paise and
+ * `₹2,499.00` reads as though a machine wrote it.
  */
-export function formatMinor(paise: number): string {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    // Whole rupees. Indian plan prices are not quoted in paise, and `₹2,499.00` reads as a
-    // machine wrote it.
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(paise / 100);
+export function formatMinor(paise: bigint): string {
+  const { sign, major } = indianAmountParts(paise, 2);
+  return `${sign}₹${major}`;
 }

@@ -11,6 +11,7 @@ import { notFound } from 'next/navigation';
 import { t } from '../../../../src/shared/i18n/index.ts';
 import { findGym } from '../../../../src/features/discovery/search.ts';
 import { GymDetail } from '../../../../src/features/gym-detail/gym-detail.tsx';
+import { toJsonLd } from '../../../../src/features/gym-detail/json-ld.ts';
 
 interface RouteParams {
   readonly params: { readonly citySlug: string; readonly gymSlug: string };
@@ -47,9 +48,19 @@ export default function GymPage({ params }: RouteParams) {
        */}
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger -- JSON.stringify output, not user HTML
+        // ┌─ `toJsonLd`, NOT `JSON.stringify` ────────────────────────────────────────────────┐
+        // │ Every field below is text a GYM OWNER types. `JSON.stringify` escapes `"` because  │
+        // │ JSON requires it and leaves `<` alone because JSON does not care — but the HTML     │
+        // │ parser is still scanning this element for `</script`, so a description containing   │
+        // │ one closes our tag and opens the attacker's. `toJsonLd` escapes it as `\u003c`,  │
+        // │ which every JSON parser decodes back, so the structured data is unchanged and the   │
+        // │ HTML parser never sees the character.                                                │
+        // │                                                                                     │
+        // │ (`react/no-danger` is not installed and has no `A-NN` row, so this is prose rather  │
+        // │ than a disable comment for a rule that does not exist.)                              │
+        // └─────────────────────────────────────────────────────────────────────────────────────┘
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: toJsonLd({
             '@context': 'https://schema.org',
             '@type': 'ExerciseGym',
             name: gym.name,

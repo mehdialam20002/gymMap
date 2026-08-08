@@ -6,6 +6,8 @@
  * query runs — which is invisible from here, and is the point.
  */
 
+import { percentStringFromBps } from '@gymmap/utils';
+
 import { api } from './client.ts';
 
 /** `tenant_status_enum` — the `C4.4` approval state machine, verbatim. */
@@ -76,4 +78,4 @@ export const platformGyms = (status?: GymStatus | null): Promise<{ gyms: GymRow[
  * forever. This is the only place the division happens.
  */
 export const formatBps = (bps: number | null): string =>
-  bps === null ? '-' : `${(bps / 100).toFixed(2).replace(/\.00$/, '')}%`;
+  bps === null ? '-' : `${percentStringFromBps(BigInt(bps)).replace(/\.00$/, '')}%`;

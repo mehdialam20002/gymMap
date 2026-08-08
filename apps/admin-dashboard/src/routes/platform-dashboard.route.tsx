@@ -168,11 +168,18 @@ export function PlatformDashboardRoute() {
           <div className="grid gap-inline-sm xl:grid-cols-2">
             <Panel title={t('adm.sample.revenueOverview')} sample>
               <p className="text-xl font-semibold tabular-nums text-content">
-                {formatMinor(REVENUE_SERIES[REVENUE_SERIES.length - 1]?.valueMinor ?? 0)}
+                {formatMinor(REVENUE_SERIES[REVENUE_SERIES.length - 1]?.valueMinor ?? 0n)}
               </p>
               <div className="mt-stack-sm">
                 <AreaChart
-                  values={REVENUE_SERIES.map((point) => point.valueMinor)}
+                  // ┌─ `Number()` HERE, AND ONLY HERE ────────────────────────────────────────┐
+                  // │ A chart plots pixels, and a pixel is a float — so the geometry takes     │
+                  // │ `number`. The FIGURE beside it stays `bigint` all the way to             │
+                  // │ `formatMinor`, which is the half that a reader reconciles against an     │
+                  // │ invoice. Converting at the plotting boundary loses nothing; converting    │
+                  // │ upstream would put every displayed amount through IEEE754.                │
+                  // └─────────────────────────────────────────────────────────────────────────┘
+                  values={REVENUE_SERIES.map((point) => Number(point.valueMinor))}
                   labels={REVENUE_SERIES.map((point) => point.label)}
                   slot={1}
                 />
@@ -183,7 +190,8 @@ export function PlatformDashboardRoute() {
               <Donut
                 slices={REVENUE_BREAKDOWN.map((slice) => ({
                   label: t(slice.key as MessageKey),
-                  value: slice.amountMinor,
+                  // Geometry again — the arc length. `formatted` carries the exact figure.
+                  value: Number(slice.amountMinor),
                   slot: slice.slot,
                   formatted: formatMinor(slice.amountMinor),
                 }))}

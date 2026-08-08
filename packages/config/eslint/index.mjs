@@ -30,6 +30,7 @@ export const gymmapPlugin = {
     'no-tenant-id-parameter': require('./rules/no-tenant-id-parameter.cjs'),
     'no-type-import-in-ctor': require('./rules/no-type-import-in-ctor.cjs'),
     'no-bare-date': require('./rules/no-bare-date.cjs'),
+    'no-surface-currency-format': require('./rules/no-surface-currency-format.cjs'),
   },
 };
 
@@ -54,6 +55,11 @@ export default tseslint.config(
     ignores: [
       '**/dist/**',
       '**/.next/**',
+      // `next.config.mjs` sets a `distDir` so `next dev` and `next build` cannot fight over one
+      // directory. Both are generated output; ESLint walking either produces a thousand errors
+      // about webpack's own `any` usage and buries the nine in the source it was asked about.
+      '**/.next-dev/**',
+      '**/.next-build/**',
       '**/.turbo/**',
       '**/node_modules/**',
       '**/coverage/**',
@@ -94,11 +100,15 @@ export default tseslint.config(
     },
     plugins: { gymmap: gymmapPlugin },
     rules: {
-      // ── The four invariants this repository enforces mechanically ──────────────────────
+      // ── The five invariants this repository enforces mechanically ──────────────────────
       'gymmap/no-float-money': 'error',
       'gymmap/no-tenant-id-parameter': 'error',
       'gymmap/no-type-import-in-ctor': 'error',
       'gymmap/no-bare-date': 'error',
+      // §12 rule 14 named this rule as its enforcement long before anyone wrote it, which is how
+      // a second rupee formatter reached a surface. On repository-wide from the start: unlike
+      // `no-float-money` it needs no type to exist first, only an import.
+      'gymmap/no-surface-currency-format': 'error',
 
       // `any` defeats every other type-level control in this codebase, including the branded
       // ids and the Money value object. §9.1.
@@ -200,6 +210,13 @@ export default tseslint.config(
   },
 
   { files: BARE_DATE_ALLOWED, rules: { 'gymmap/no-bare-date': 'off' } },
+
+  {
+    // THE formatter. One directory, not a pattern — `**/money/**` would exempt every module that
+    // happens to have a `money` folder, and the point of the rule is that there is exactly one.
+    files: ['**/packages/utils/src/money/**'],
+    rules: { 'gymmap/no-surface-currency-format': 'off' },
+  },
 
   {
     // Test files construct deliberately-wrong values to prove the code refuses them, so the
