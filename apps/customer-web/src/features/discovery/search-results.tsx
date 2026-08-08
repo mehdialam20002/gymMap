@@ -150,7 +150,7 @@ function FacetGroup({
   return (
     <div>
       <h2 className="text-base font-semibold text-content">{title}</h2>
-      <ul className="mt-stack-xs flex flex-col gap-stack-3xs">
+      <ul className="mt-stack-xs flex flex-col gap-stack-2xs">
         <li>
           <Facet href={hrefFor(null)} active={selected === null} label={anyLabel} />
         </li>
@@ -197,7 +197,7 @@ function SortBar({ query }: { query: SearchQuery }) {
           key={sort}
           href={toSearchParams({ ...query, sort })}
           {...(query.sort === sort ? { 'aria-current': 'true' as const } : {})}
-          className={`gm-hit-target rounded-control px-inset-sm py-inset-3xs text-sm ${
+          className={`gm-hit-target rounded-control px-inset-sm py-inset-2xs text-sm ${
             query.sort === sort
               ? 'bg-surface-brand-subtle font-semibold text-content-brand'
               : 'text-content-secondary hover:text-content'

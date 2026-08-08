@@ -51,7 +51,7 @@ export class PlatformOverviewUseCase {
   async overview(context: ReadContext): Promise<PlatformOverview> {
     // Concurrent because they are independent reads and the screen needs all four. Sequential
     // would put four round trips on the critical path of the first thing an operator sees.
-    const [byStatusRaw, byRole, peopleTotal, activeSessions] = await Promise.all([
+    const [byStatusRaw, byRole, peopleCount, activeSessions] = await Promise.all([
       this.platform.countGymsByStatus(context),
       this.platform.countPeopleByRole(),
       this.platform.countPeople(),
@@ -62,12 +62,12 @@ export class PlatformOverviewUseCase {
       ALL_STATUSES.map((status) => [status, byStatusRaw[status] ?? 0]),
     ) as unknown as GymStatusCounts;
 
-    const gymTotal = ALL_STATUSES.reduce((sum, status) => sum + (byStatusRaw[status] ?? 0), 0);
+    const gymCount = ALL_STATUSES.reduce((sum, status) => sum + (byStatusRaw[status] ?? 0), 0);
     const awaitingReview = AWAITING.reduce((sum, status) => sum + (byStatusRaw[status] ?? 0), 0);
 
     return {
-      gyms: { total: gymTotal, byStatus, awaitingReview, listed: byStatus.APPROVED },
-      people: { total: peopleTotal, byRole, activeSessions },
+      gyms: { count: gymCount, byStatus, awaitingReview, listed: byStatus.APPROVED },
+      people: { count: peopleCount, byRole, activeSessions },
       generatedAt: this.clock.now().toISOString(),
     };
   }

@@ -44,7 +44,8 @@
     "ci:api-gates": "node packages/config/scripts/api-gates.mjs",
     "ci:api-absence": "node packages/config/scripts/api-absence-assertions.mjs",
     "ci:elevation-inventory": "node packages/config/scripts/elevation-inventory.mjs --check",
-    "ci:isolation-coverage": "node packages/config/scripts/isolation-coverage.mjs"
+    "ci:isolation-coverage": "node packages/config/scripts/isolation-coverage.mjs",
+    "ci:tailwind-tokens": "node packages/config/scripts/tailwind-tokens.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",

@@ -57,7 +57,7 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
               </span>
             </span>
           )}
-          <span className="rounded-control bg-surface-success-subtle px-inset-xs py-inset-3xs text-sm font-medium text-content-success">
+          <span className="rounded-control bg-surface-success-subtle px-inset-xs py-inset-2xs text-sm font-medium text-content-success">
             {t('web.gym.verifiedByPlatform')}
           </span>
         </div>
@@ -74,7 +74,7 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
               {gym.amenities.map((amenity) => (
                 <li
                   key={amenity}
-                  className="rounded-control bg-surface-sunken px-inset-sm py-inset-3xs text-base text-content-secondary"
+                  className="rounded-control bg-surface-sunken px-inset-sm py-inset-2xs text-base text-content-secondary"
                 >
                   {amenity}
                 </li>

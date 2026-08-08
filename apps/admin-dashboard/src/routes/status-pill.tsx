@@ -53,7 +53,7 @@ const LABEL: Record<GymStatus, string> = {
 export function StatusPill({ status }: { readonly status: GymStatus }) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-control px-inset-xs py-inset-3xs text-xs font-medium ${CLASSES[TONE[status]]}`}
+      className={`inline-block whitespace-nowrap rounded-control px-inset-xs py-inset-2xs text-xs font-medium ${CLASSES[TONE[status]]}`}
     >
       {LABEL[status]}
     </span>

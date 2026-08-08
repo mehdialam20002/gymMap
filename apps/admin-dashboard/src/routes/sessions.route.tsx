@@ -100,12 +100,12 @@ function SessionCard({
         <p className="text-base font-medium text-content">
           {row.device_label ?? t('adm.sessions.unknownDevice')}
           {row.current && (
-            <span className="ml-inline-xs rounded-control bg-surface-info-subtle px-inset-xs py-inset-3xs text-sm font-semibold text-content-info">
+            <span className="ml-inline-xs rounded-control bg-surface-info-subtle px-inset-xs py-inset-2xs text-sm font-semibold text-content-info">
               {t('adm.sessions.thisDevice')}
             </span>
           )}
         </p>
-        <p className="mt-stack-3xs text-sm text-content-secondary">
+        <p className="mt-stack-2xs text-sm text-content-secondary">
           {row.ip ?? t('adm.sessions.unknownAddress')} · {formatStarted(row.started_at)}
         </p>
       </div>

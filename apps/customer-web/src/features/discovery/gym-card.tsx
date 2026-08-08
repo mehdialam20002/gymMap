@@ -36,7 +36,7 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
               {gym.name}
             </Link>
           </h2>
-          <p className="mt-stack-3xs text-base text-content-secondary">
+          <p className="mt-stack-2xs text-base text-content-secondary">
             {gym.locality}, {gym.city} · {gym.distanceKm.toFixed(1)} km
           </p>
         </div>
@@ -51,7 +51,7 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
         <Rating rating={gym.rating} reviewCount={gym.reviewCount} />
         {/* BR-GYM-01 — nothing is listed before a human approves it, so the badge means
             something specific and is worth showing. */}
-        <span className="rounded-control bg-surface-success-subtle px-inset-xs py-inset-3xs text-sm font-medium text-content-success">
+        <span className="rounded-control bg-surface-success-subtle px-inset-xs py-inset-2xs text-sm font-medium text-content-success">
           {t('web.gym.verified')}
         </span>
       </div>
@@ -60,7 +60,7 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
         {gym.categories.map((category) => (
           <li
             key={category}
-            className="rounded-control bg-surface-sunken px-inset-xs py-inset-3xs text-sm text-content-secondary"
+            className="rounded-control bg-surface-sunken px-inset-xs py-inset-2xs text-sm text-content-secondary"
           >
             {category}
           </li>

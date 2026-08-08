@@ -52,7 +52,7 @@ export function PeopleRoute() {
   return (
     <>
       <h1 className="text-xl font-semibold text-content">{t('adm.people.title')}</h1>
-      <p className="mt-stack-3xs max-w-prose text-sm text-content-secondary">
+      <p className="mt-stack-2xs max-w-prose text-sm text-content-secondary">
         {t('adm.people.subtitle')}
       </p>
 
@@ -63,7 +63,7 @@ export function PeopleRoute() {
       {overview.data !== undefined && (
         <>
           <div className="mt-stack-md flex flex-wrap gap-inline-md">
-            <Figure label={t('adm.dashboard.tile.accounts')} value={overview.data.people.total} />
+            <Figure label={t('adm.dashboard.tile.accounts')} value={overview.data.people.count} />
             <Figure
               label={t('adm.dashboard.tile.sessions')}
               value={overview.data.people.activeSessions}
@@ -110,7 +110,7 @@ function Figure({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-card border border-subtle bg-surface px-inset-md py-inset-sm">
       <p className="text-xs font-medium uppercase tracking-wide text-content-muted">{label}</p>
-      <p className="mt-stack-3xs text-xl font-semibold tabular-nums text-content">{value}</p>
+      <p className="mt-stack-2xs text-xl font-semibold tabular-nums text-content">{value}</p>
     </div>
   );
 }

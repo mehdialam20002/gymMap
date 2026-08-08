@@ -31,13 +31,13 @@ export const AWAITING_STATUSES: readonly GymStatus[] = [
 
 export interface PlatformOverview {
   readonly gyms: {
-    readonly total: number;
+    readonly count: number;
     readonly byStatus: Readonly<Record<GymStatus, number>>;
     readonly awaitingReview: number;
     readonly listed: number;
   };
   readonly people: {
-    readonly total: number;
+    readonly count: number;
     readonly byRole: Readonly<Record<string, number>>;
     readonly activeSessions: number;
   };

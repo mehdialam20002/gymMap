@@ -30,11 +30,15 @@ export default function Loading() {
   return (
     <div className="mx-auto max-w-container px-inset-md py-region-md" aria-busy="true">
       <span className="gm-visually-hidden">{t('web.state.loading')}</span>
-      <div className="h-8 w-2/3 max-w-prose animate-pulse rounded-control bg-surface-sunken" />
-      <div className="mt-stack-md h-4 w-1/2 max-w-prose animate-pulse rounded-control bg-surface-sunken" />
+      {/* Heights are ARBITRARY VALUES, not `h-8` / `h-4`.
+          `DesignSystem.md` §2.4 replaces Tailwind's numeric spacing scale with the token scale
+          rather than extending it, so `h-8` resolves to nothing and Tailwind drops it silently.
+          These bars had no height at all, which made the skeleton three invisible rows. */}
+      <div className="h-[2rem] w-2/3 max-w-prose animate-pulse rounded-control bg-surface-sunken" />
+      <div className="mt-stack-md h-[1rem] w-1/2 max-w-prose animate-pulse rounded-control bg-surface-sunken" />
       <div className="mt-stack-xl grid gap-stack-lg sm:grid-cols-2 xl:grid-cols-3">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="h-40 animate-pulse rounded-card bg-surface-sunken" />
+          <div key={i} className="h-[10rem] animate-pulse rounded-card bg-surface-sunken" />
         ))}
       </div>
     </div>

@@ -117,7 +117,7 @@ function Field({
   const hintId = `${id}-hint`;
 
   return (
-    <div className="flex flex-col gap-stack-3xs">
+    <div className="flex flex-col gap-stack-2xs">
       <label htmlFor={id} className="text-base font-medium text-content">
         {label}
       </label>

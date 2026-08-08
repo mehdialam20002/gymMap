@@ -92,7 +92,7 @@ function AdminHeader() {
             {/* The identifier they signed in with. Not a fabricated display name — there is no
                 profile endpoint until M-023, and a plausible invented name sitting next to real
                 data is the kind of detail nobody thinks to doubt. */}
-            <span className="hidden max-w-64 truncate text-sm text-content-secondary md:inline">
+            <span className="hidden max-w-[16rem] truncate text-sm text-content-secondary md:inline">
               {session.displayName}
             </span>
             <button
@@ -100,7 +100,7 @@ function AdminHeader() {
               onClick={() => {
                 void signOut();
               }}
-              className="gm-hit-target rounded-control border border-subtle px-inset-sm py-inset-3xs text-sm text-content-secondary transition-colors duration-fast ease-standard hover:border-strong hover:text-content"
+              className="gm-hit-target rounded-control border border-subtle px-inset-sm py-inset-2xs text-sm text-content-secondary transition-colors duration-fast ease-standard hover:border-strong hover:text-content"
             >
               {t('adm.chrome.signOut')}
             </button>
@@ -124,10 +124,10 @@ function AdminNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () =>
     <nav
       aria-label={t('adm.chrome.nav.label')}
       className={`hidden shrink-0 flex-col border-r border-subtle bg-surface lg:flex ${
-        collapsed ? 'w-16' : 'w-60'
+        collapsed ? 'w-[4rem]' : 'w-[15rem]'
       }`}
     >
-      <div className="flex h-14 items-center gap-inline-sm border-b border-subtle px-inset-md">
+      <div className="flex h-[3.5rem] items-center gap-inline-sm border-b border-subtle px-inset-md">
         <span aria-hidden="true" className="text-lg font-bold text-content-brand">
           GM
         </span>
@@ -142,11 +142,11 @@ function AdminNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () =>
         {NAV.map((group, index) => (
           <div key={group.label ?? `group-${String(index)}`} className="mb-stack-sm">
             {group.label !== null && !collapsed && (
-              <p className="px-inset-sm pb-inset-3xs pt-inset-xs text-xs font-semibold uppercase tracking-wide text-content-muted">
+              <p className="px-inset-sm pb-inset-2xs pt-inset-xs text-xs font-semibold uppercase tracking-wide text-content-muted">
                 {t(group.label)}
               </p>
             )}
-            <ul className="flex flex-col gap-stack-3xs">
+            <ul className="flex flex-col gap-stack-2xs">
               {group.items.map((item) => (
                 <li key={item.path}>
                   <NavItemLink
@@ -196,7 +196,7 @@ function NavItemLink({
       // and it needs no library.
       title={pending ? `${t(item.label)} - ${t('adm.chrome.inDevelopment')}` : t(item.label)}
       className={({ isActive }) =>
-        `gm-hit-target flex items-center justify-between gap-inline-xs rounded-control px-inset-sm py-inset-3xs text-sm transition-colors duration-fast ease-standard ${
+        `gm-hit-target flex items-center justify-between gap-inline-xs rounded-control px-inset-sm py-inset-2xs text-sm transition-colors duration-fast ease-standard ${
           isActive
             ? 'bg-surface-brand-subtle font-semibold text-content-brand'
             : pending
@@ -211,12 +211,12 @@ function NavItemLink({
         <>
           {/* A real count, or nothing at all. Never a 0 placeholder. */}
           {badge !== undefined && badge > 0 && (
-            <span className="shrink-0 rounded-control bg-warning-solid px-inset-3xs text-xs font-semibold text-content-on-warning">
+            <span className="shrink-0 rounded-control bg-warning-solid px-inset-2xs text-xs font-semibold text-content-on-warning">
               {badge}
             </span>
           )}
           {pending && (
-            <span className="shrink-0 rounded-control border border-subtle px-inset-3xs text-xs font-medium text-content-muted">
+            <span className="shrink-0 rounded-control border border-subtle px-inset-2xs text-xs font-medium text-content-muted">
               {t('adm.chrome.inDevelopment')}
             </span>
           )}

@@ -37,7 +37,7 @@ export function GymRegisterRoute() {
   return (
     <>
       <h1 className="text-xl font-semibold text-content">{t('adm.gyms.title')}</h1>
-      <p className="mt-stack-3xs text-sm text-content-secondary">{t('adm.gyms.subtitle')}</p>
+      <p className="mt-stack-2xs text-sm text-content-secondary">{t('adm.gyms.subtitle')}</p>
 
       {/* Buttons rather than a <select>: eight options, all visible, one keystroke each. AX2 is
           keyboard-first and a select needs three interactions to change one filter. */}
@@ -165,7 +165,7 @@ function Th({ children, align }: { children: React.ReactNode; align?: 'right' })
 function Td({ children, align }: { children: React.ReactNode; align?: 'right' }) {
   return (
     <td
-      className={`max-w-64 px-inset-md py-inset-xs align-top text-content-secondary ${
+      className={`max-w-[16rem] px-inset-md py-inset-xs align-top text-content-secondary ${
         align === 'right' ? 'text-right' : ''
       }`}
     >
@@ -190,7 +190,7 @@ function FilterChip({
       // `aria-pressed` and not colour alone. A filter whose only "on" signal is a background tint
       // is invisible to a screen reader (AX2).
       aria-pressed={active}
-      className={`gm-hit-target rounded-control border px-inset-sm py-inset-3xs text-xs transition-colors duration-fast ease-standard ${
+      className={`gm-hit-target rounded-control border px-inset-sm py-inset-2xs text-xs transition-colors duration-fast ease-standard ${
         active
           ? 'border-brand bg-surface-brand-subtle font-semibold text-content-brand'
           : 'border-subtle text-content-secondary hover:text-content'

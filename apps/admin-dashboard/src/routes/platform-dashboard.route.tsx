@@ -97,7 +97,7 @@ export function PlatformDashboardRoute() {
           to="/approvals"
         />
         <Tile label={t('adm.dashboard.tile.listed')} value={gyms?.listed} to="/gyms" />
-        <Tile label={t('adm.dashboard.tile.accounts')} value={people?.total} to="/people" />
+        <Tile label={t('adm.dashboard.tile.accounts')} value={people?.count} to="/people" />
         <Tile
           label={t('adm.dashboard.tile.sessions')}
           value={people?.activeSessions}
@@ -108,13 +108,13 @@ export function PlatformDashboardRoute() {
       {/* ── The pipeline. The whole C4.4 state machine, with real counts. ──────────────── */}
       <section className="mt-stack-lg rounded-card border border-subtle bg-surface p-inset-md">
         <h2 className="text-sm font-semibold text-content">{t('adm.dashboard.pipeline.title')}</h2>
-        <p className="mt-stack-3xs text-xs text-content-muted">
+        <p className="mt-stack-2xs text-xs text-content-muted">
           {t('adm.dashboard.pipeline.body')}
         </p>
 
         <ul className="mt-stack-sm flex flex-wrap gap-inline-md">
           {PIPELINE.map((status) => (
-            <li key={status} className="min-w-24">
+            <li key={status} className="min-w-[6rem]">
               <p className="text-xl font-semibold tabular-nums text-content">
                 {gyms === undefined ? (
                   <span className="text-sm font-normal text-content-muted">
@@ -124,7 +124,7 @@ export function PlatformDashboardRoute() {
                   gyms.byStatus[status]
                 )}
               </p>
-              <p className="mt-stack-3xs text-xs text-content-secondary">
+              <p className="mt-stack-2xs text-xs text-content-secondary">
                 {GYM_STATUS_LABEL[status]}
               </p>
             </li>
@@ -138,7 +138,7 @@ export function PlatformDashboardRoute() {
           <h2 className="text-sm font-semibold text-content">{t('adm.dashboard.health.title')}</h2>
           {readiness.data !== undefined && (
             <span
-              className={`rounded-control px-inset-xs py-inset-3xs text-xs font-medium ${
+              className={`rounded-control px-inset-xs py-inset-2xs text-xs font-medium ${
                 readiness.data.status === 'ready'
                   ? 'bg-surface-success-subtle text-content-success'
                   : 'bg-surface-danger-subtle text-content-danger'
@@ -176,7 +176,7 @@ export function PlatformDashboardRoute() {
       {/* ── Not built. Named, with the milestone, carrying no figure. ──────────────────── */}
       <section className="mt-stack-lg">
         <h2 className="text-sm font-semibold text-content">{t('adm.dashboard.awaiting.title')}</h2>
-        <p className="mt-stack-3xs max-w-prose text-xs text-content-muted">
+        <p className="mt-stack-2xs max-w-prose text-xs text-content-muted">
           {t('adm.dashboard.awaiting.body')}
         </p>
 
@@ -187,7 +187,7 @@ export function PlatformDashboardRoute() {
               className="rounded-card border border-dashed border-subtle bg-surface-sunken px-inset-md py-inset-sm"
             >
               <p className="text-sm font-medium text-content-secondary">{t(route.label)}</p>
-              <p className="mt-stack-3xs text-xs text-content-muted">
+              <p className="mt-stack-2xs text-xs text-content-muted">
                 {t('adm.dashboard.awaiting.milestone')} {route.milestone}
               </p>
             </div>
@@ -217,7 +217,7 @@ function Tile({
       <p className="text-xs font-medium uppercase tracking-wide text-content-muted">{label}</p>
       {/* `undefined` renders the loading word, never a `0`. See the file header. */}
       <p
-        className={`mt-stack-3xs text-2xl font-semibold tabular-nums ${
+        className={`mt-stack-2xs text-2xl font-semibold tabular-nums ${
           tone === 'warning' && value !== undefined && value > 0
             ? 'text-content-warning'
             : 'text-content'
@@ -258,7 +258,7 @@ function LastUpdated({
       <button
         type="button"
         onClick={onRefresh}
-        className="gm-hit-target rounded-control border border-subtle px-inset-sm py-inset-3xs text-xs text-content-secondary transition-colors duration-fast ease-standard hover:text-content"
+        className="gm-hit-target rounded-control border border-subtle px-inset-sm py-inset-2xs text-xs text-content-secondary transition-colors duration-fast ease-standard hover:text-content"
       >
         {t('adm.dashboard.refresh')}
       </button>

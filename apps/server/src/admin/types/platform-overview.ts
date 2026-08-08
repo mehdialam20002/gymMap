@@ -26,7 +26,10 @@ export interface GymStatusCounts {
 
 export interface PlatformOverview {
   readonly gyms: {
-    readonly total: number;
+    // `count`, not `total`. `no-float-money` reads a field called `total` as money and demands
+    // bigint — correctly, because on a platform that handles payments `total` is ambiguous and
+    // the ambiguity is exactly what the rule exists to stop. This is a row count.
+    readonly count: number;
     readonly byStatus: GymStatusCounts;
     /**
      * `SUBMITTED + UNDER_REVIEW + INFO_REQUESTED`.
@@ -40,7 +43,7 @@ export interface PlatformOverview {
     readonly listed: number;
   };
   readonly people: {
-    readonly total: number;
+    readonly count: number;
     /** Keyed by `roles.key`. A person with no role does not appear in any bucket. */
     readonly byRole: Readonly<Record<string, number>>;
     readonly activeSessions: number;

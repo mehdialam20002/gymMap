@@ -42,7 +42,7 @@ export function ApprovalQueueRoute() {
   return (
     <>
       <h1 className="text-xl font-semibold text-content">{t('adm.queue.title')}</h1>
-      <p className="mt-stack-3xs max-w-prose text-sm text-content-secondary">
+      <p className="mt-stack-2xs max-w-prose text-sm text-content-secondary">
         {t('adm.queue.subtitle')}
       </p>
 
@@ -91,7 +91,7 @@ function QueueRow({ gym }: { readonly gym: GymRow }) {
         <p className="truncate text-sm font-medium text-content">
           {gym.trading_name ?? gym.legal_name}
         </p>
-        <p className="mt-stack-3xs truncate text-xs text-content-secondary">
+        <p className="mt-stack-2xs truncate text-xs text-content-secondary">
           {[gym.city, gym.state].filter(Boolean).join(', ') || gym.legal_name}
           {' · '}
           {gym.entity_type.toLowerCase().replace(/_/g, ' ')}
