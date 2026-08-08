@@ -14,7 +14,7 @@
 
 import { execFileSync } from 'node:child_process';
 
-import { DEMO_EMAIL_DOMAIN, DEMO_GYMS, DEMO_NAMESPACE, DEMO_PEOPLE } from './gyms.ts';
+import { DEMO_EMAIL_DOMAIN, DEMO_GYMS_ALL, DEMO_NAMESPACE, DEMO_PEOPLE } from './gyms.ts';
 
 const CONTAINER = 'gymmap-postgres';
 const DATABASE = 'gymmap';
@@ -33,7 +33,7 @@ const daysAgo = (n: number): string => `now() - interval '${String(n)} days'`;
  * "waiting 19 days" column would read zero for all of them.
  */
 function demoTenantsSql(): string {
-  const values = DEMO_GYMS.map(
+  const values = DEMO_GYMS_ALL.map(
     (gym) =>
       `  (${quote(gym.id)}, ${daysAgo(gym.createdDaysAgo)}, ${quote(gym.legalName)}, ` +
       `${quote(gym.tradingName)}, '${gym.entityType}', 'IN', 'INR', 'Asia/Kolkata', ` +
@@ -197,7 +197,7 @@ function main(): void {
       ? '\ndemo seed: role granted.\n'
       : args.includes('--remove')
         ? '\ndemo seed: removed.\n'
-        : `\ndemo seed: ${String(DEMO_GYMS.length)} gyms, ${String(DEMO_PEOPLE.length)} people.\n`,
+        : `\ndemo seed: ${String(DEMO_GYMS_ALL.length)} gyms, ${String(DEMO_PEOPLE.length)} people.\n`,
   );
 }
 

@@ -92,6 +92,7 @@ export function ApprovalQueueRoute() {
   const columns: readonly Column<GymRow>[] = [
     {
       key: 'gym',
+      flexible: true,
       header: t('adm.queue.col.applicant'),
       cell: (gym) => (
         <div className="min-w-0">

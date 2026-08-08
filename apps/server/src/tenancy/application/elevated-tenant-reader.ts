@@ -71,7 +71,7 @@ export class ElevatedTenantReader {
    * columns explicitly is what stops the next field added to the table from silently appearing
    * in an admin JSON response (`BR-DAT-06`).
    */
-  async listTenants(read: ElevatedRead, limit = 200): Promise<readonly TenantSummary[]> {
+  async listTenants(read: ElevatedRead, limit = 1000): Promise<readonly TenantSummary[]> {
     return runElevated(
       this.audit,
       { reason: reason(read.why), actor: read.actor, scope: 'READ_ALL_TENANTS' },

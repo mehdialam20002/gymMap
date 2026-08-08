@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Badge,
+  Button,
   DataTable,
   FilterTabs,
   Pagination,
@@ -90,6 +91,7 @@ export function GymRegisterRoute() {
   const columns: readonly Column<GymRow>[] = [
     {
       key: 'gym',
+      flexible: true,
       header: t('adm.gyms.col.gym'),
       cell: (gym) => (
         <div className="min-w-0">
@@ -148,14 +150,58 @@ export function GymRegisterRoute() {
           <span className="font-mono text-xs tabular-nums">{gym.gstin}</span>
         ),
     },
+    {
+      key: 'actions',
+      header: t('adm.queue.col.actions'),
+      align: 'right',
+      cell: (gym) => (
+        <div className="flex items-center justify-end gap-inline-2xs">
+          <Link
+            to={`/gyms/${gym.id}`}
+            className="gm-hit-target rounded-control px-inset-xs py-inset-2xs text-xs font-medium text-content-brand hover:underline"
+          >
+            {t('adm.gyms.view')}
+          </Link>
+          {/* The overflow menu is where suspend, reinstate and edit will live. Every one of them
+              is an audited mutation on a tenant (M-114), so the trigger is inert rather than
+              opening a menu of things that cannot be done. */}
+          <button
+            type="button"
+            disabled
+            aria-label={t('adm.gyms.moreActions')}
+            title={t('adm.gyms.moreActions')}
+            className="gm-hit-target rounded-control px-inset-xs text-sm text-content-disabled"
+          >
+            &#8943;
+          </button>
+        </div>
+      ),
+    },
   ];
 
   const paged = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
-      <h1 className="text-xl font-semibold text-content">{t('adm.gyms.title')}</h1>
-      <p className="mt-stack-2xs text-sm text-content-secondary">{t('adm.gyms.subtitle')}</p>
+      <div className="flex flex-wrap items-start justify-between gap-inline-md">
+        <div>
+          <h1 className="text-xl font-semibold text-content">{t('adm.gyms.title')}</h1>
+          <p className="mt-stack-2xs text-sm text-content-secondary">{t('adm.gyms.subtitle')}</p>
+        </div>
+
+        {/* Both inert, and both present. Filters beyond status need the query parameters the
+            register endpoint does not take yet; Export needs a generated file, an audit row for
+            who exported the platform's commercial terms, and a decision about what a CSV of every
+            gym's GSTIN is allowed to contain (BR-DAT-06). Neither is a button away. */}
+        <div className="flex items-center gap-inline-2xs">
+          <Button size="sm" disabled>
+            {t('adm.gyms.filters')}
+          </Button>
+          <Button size="sm" disabled>
+            {t('adm.gyms.export')}
+          </Button>
+        </div>
+      </div>
 
       <div className="mt-stack-md">
         <FilterTabs

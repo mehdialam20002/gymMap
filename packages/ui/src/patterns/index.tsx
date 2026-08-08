@@ -220,6 +220,22 @@ export interface Column<T> {
   readonly cell: (row: T) => ReactNode;
   /** Hidden below `lg`. For columns that are useful but not load-bearing on a narrow screen. */
   readonly secondary?: boolean;
+  /**
+   * The column that absorbs leftover width and truncates. At most one per table.
+   *
+   * A `<td>` sizes to its content by default, so `truncate` inside one does nothing — the cell
+   * simply grows and pushes the table wider than its container. `w-full max-w-[0]` is the
+   * standard fix: the cell claims the remaining space and is then allowed to be narrower than its
+   * text, which is what lets the overflow actually clip.
+   *
+   * The ARBITRARY value is required. `theme.maxWidth` here is `{prose, form, ui, container, full}`
+   * — there is no `0` step, so bare `max-w-0` resolves to nothing and Tailwind's JIT errors on it
+   * rather than dropping it quietly, which took the whole dev server down.
+   *
+   * Without it a long legal name adds a few pixels, the table overflows by that much, and a
+   * horizontal scrollbar appears under a table that visibly has room.
+   */
+  readonly flexible?: boolean;
 }
 
 /**
@@ -254,7 +270,9 @@ export function DataTable<T>({
                 scope="col"
                 className={`px-inset-sm py-inset-xs text-xs font-semibold uppercase tracking-wide text-content-muted ${
                   column.align === 'right' ? 'text-right' : ''
-                } ${column.secondary === true ? 'hidden lg:table-cell' : ''}`}
+                } ${column.secondary === true ? 'hidden lg:table-cell' : ''} ${
+                  column.flexible === true ? 'w-full' : ''
+                }`}
               >
                 {column.header}
               </th>
@@ -272,7 +290,9 @@ export function DataTable<T>({
                   key={column.key}
                   className={`px-inset-sm py-inset-xs align-middle text-content-secondary ${
                     column.align === 'right' ? 'text-right' : ''
-                  } ${column.secondary === true ? 'hidden lg:table-cell' : ''}`}
+                  } ${column.secondary === true ? 'hidden lg:table-cell' : ''} ${
+                    column.flexible === true ? 'w-full max-w-[0]' : ''
+                  }`}
                 >
                   {column.cell(row)}
                 </td>

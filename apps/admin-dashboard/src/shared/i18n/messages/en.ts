@@ -96,6 +96,10 @@ export const en = {
   'adm.gyms.col.subscription': 'Subscription',
   'adm.gyms.col.commission': 'Commission',
   'adm.gyms.col.gstin': 'GSTIN',
+  'adm.gyms.view': 'View',
+  'adm.gyms.moreActions': 'More actions',
+  'adm.gyms.filters': 'Filters',
+  'adm.gyms.export': 'Export',
   'adm.gyms.notRegistered': 'Not registered',
   'adm.gyms.empty': 'No gyms match this filter.',
   // --- SCR-ADM-004 detail ----------------------------------------------------

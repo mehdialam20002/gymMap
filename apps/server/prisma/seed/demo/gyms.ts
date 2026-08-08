@@ -563,3 +563,109 @@ export const DEMO_PEOPLE: readonly DemoPerson[] = [
   person(29, 'Manish Tripathi', 'manish.tripathi', 'SUPPORT_AGENT', null, 280),
   person(30, 'Ritu Bansal', 'ritu.bansal', 'FINANCE', null, 320),
 ];
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// Volume.
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Another 240 gyms, generated, so the register looks like a platform rather than a test fixture.
+ *
+ * ┌─ GENERATED, BUT NOT RANDOM ─────────────────────────────────────────────────────────────────┐
+ * │ `Math.random()` would give a different database on every run, which makes "the register      │
+ * │ showed 14 suspended yesterday" unreproducible and any screenshot un-recreatable. Every value │
+ * │ below is derived from the index, so the same command always produces the same 240 rows.      │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * The twenty-two written by hand above stay at the TOP of the register — they are backdated
+ * furthest and the list is newest-first, so a demo lands on the recognisable ones. These fill the
+ * pages behind them.
+ *
+ * The status mix is weighted the way a real platform is: roughly four in five approved, a working
+ * queue, and a thin tail of rejected and suspended. A register where every page looks the same
+ * proves nothing about the filters above it.
+ */
+const CITIES: ReadonlyArray<readonly [string, string, string]> = [
+  ['Bengaluru', 'Karnataka', '29'],
+  ['Mumbai', 'Maharashtra', '27'],
+  ['New Delhi', 'Delhi', '07'],
+  ['Chennai', 'Tamil Nadu', '33'],
+  ['Hyderabad', 'Telangana', '36'],
+  ['Pune', 'Maharashtra', '27'],
+  ['Kolkata', 'West Bengal', '19'],
+  ['Ahmedabad', 'Gujarat', '24'],
+  ['Jaipur', 'Rajasthan', '08'],
+  ['Kochi', 'Kerala', '32'],
+  ['Lucknow', 'Uttar Pradesh', '09'],
+  ['Indore', 'Madhya Pradesh', '23'],
+];
+
+const PREFIX = [
+  'Iron',
+  'Pulse',
+  'Apex',
+  'Summit',
+  'Titan',
+  'Core',
+  'Zenith',
+  'Forge',
+  'Vital',
+  'Prime',
+  'Urban',
+  'Alpha',
+  'Nova',
+  'Peak',
+  'Elite',
+];
+
+const SUFFIX = ['Fitness', 'Strength Club', 'Gym', 'Athletic Club', 'Wellness', 'Studio'];
+
+/** Index → status, on a fixed 20-slot wheel. Four in five approved. */
+const STATUS_WHEEL: readonly DemoGym['status'][] = [
+  ...(Array.from({ length: 15 }, () => 'APPROVED') as DemoGym['status'][]),
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'SUSPENDED',
+  'REJECTED',
+  'DRAFT',
+];
+
+function generated(): readonly DemoGym[] {
+  return Array.from({ length: 240 }, (_, index): DemoGym => {
+    const n = index + 100;
+    const city = CITIES[index % CITIES.length] ?? CITIES[0]!;
+    const status = STATUS_WHEEL[index % STATUS_WHEEL.length] ?? 'APPROVED';
+    const entity = (['COMPANY', 'PARTNERSHIP', 'SOLE_PROPRIETOR'] as const)[index % 3] ?? 'COMPANY';
+    const registered = index % 4 !== 3;
+    const tradingName = `${PREFIX[index % PREFIX.length] ?? 'Iron'} ${SUFFIX[index % SUFFIX.length] ?? 'Gym'} ${city[0]}`;
+
+    // A PAN-shaped string derived from the index. Deliberately not a real-looking issued PAN:
+    // the format is right so the column renders correctly, and the value is obviously synthetic.
+    const pan = `AAA${entity[0] ?? 'C'}D${String(1000 + index).slice(0, 4)}Z`;
+
+    return {
+      id: id(n),
+      legalName:
+        `${tradingName} ${entity === 'COMPANY' ? 'Private Limited' : entity === 'PARTNERSHIP' ? 'LLP' : ''}`.trim(),
+      tradingName,
+      entityType: entity,
+      status,
+      city: city[0],
+      state: city[1],
+      stateCode: city[2],
+      postalCode: `${city[2]}${String(1000 + index).slice(0, 4)}`,
+      addressLine1: `Unit ${String(index + 1)}, ${city[0]} Industrial Estate`,
+      pan,
+      gstin: registered ? `${city[2]}${pan}1Z${String(index % 10)}` : null,
+      taxStatus: registered ? 'REGISTERED' : 'NOT_REGISTERED',
+      // 10.50% to 14.00%, in quarter-point steps. Commission is negotiated, so a register where
+      // every row reads 12% hides the one column an operator scans for an outlier.
+      commissionBps: 1050 + (index % 15) * 25,
+      subscription: status === 'APPROVED' ? (index % 9 === 0 ? 'PAST_DUE' : 'ACTIVE') : 'TRIAL',
+      createdDaysAgo: index % 400,
+    };
+  });
+}
+
+/** The written rows first, then the generated fill. */
+export const DEMO_GYMS_ALL: readonly DemoGym[] = [...DEMO_GYMS, ...generated()];

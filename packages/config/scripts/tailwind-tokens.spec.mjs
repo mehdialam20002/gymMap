@@ -196,3 +196,34 @@ test('every spacing utility in the repository resolves', () => {
     problems.map((problem) => `${problem.file}: ${problem.message}`).join('\n'),
   );
 });
+
+// ---------------------------------------------------------------------------
+// `max-w` reads its own scale, not spacing.
+// ---------------------------------------------------------------------------
+
+test('CONTROL · `max-w-0` is caught — it is not in theme.maxWidth', () => {
+  // The blind spot that took the dev server down. `0` is a legal SPACING value and the gate
+  // scored `max-w` against the spacing scale, so it passed a class Tailwind's JIT then errored
+  // on. `theme.maxWidth` is a short named list and has no numeric steps at all.
+  withScratch('max-w-0', (problems) => {
+    assert.equal(problems.length, 1, JSON.stringify(problems));
+    assert.equal(problems[0].class, 'max-w-0');
+  });
+});
+
+test('the named max-widths and fractions still pass', () => {
+  withScratch(
+    'max-w-prose max-w-container max-w-ui max-w-form max-w-full max-w-1/2',
+    (problems) => {
+      assert.deepEqual(problems, []);
+    },
+  );
+});
+
+test('`w-0` is still fine — width DOES read the spacing scale', () => {
+  // The distinction the fix rests on: same `0`, different utility, different scale. If this
+  // started failing the fix has over-reached from `max-w` onto its neighbours.
+  withScratch('w-0 h-0 p-0 gap-0', (problems) => {
+    assert.deepEqual(problems, []);
+  });
+});

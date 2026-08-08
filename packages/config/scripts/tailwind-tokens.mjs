@@ -95,6 +95,15 @@ const ALWAYS_VALID = new Set([
   'form',
 ]);
 
+/**
+ * `max-w` does NOT read `theme.spacing`. It reads `theme.maxWidth`, which the preset sets to a
+ * short named list — `prose`, `form`, `ui`, `container`, `full`. Validating it against the
+ * spacing scale was a blind spot that let `max-w-0` through: `0` is in `ALWAYS_VALID`, so the
+ * gate passed it, and Tailwind's JIT then errored on a value that does not exist and took the
+ * dev server down with it. Same class of mistake this gate exists to catch, in the gate.
+ */
+const MAX_WIDTH_KEYS = new Set(['prose', 'form', 'ui', 'container', 'full', 'none']);
+
 /** `w-1/2`, `h-2/3`. Part of Tailwind's own width/height scale, not of spacing. */
 const FRACTION = /^\d+\/\d+$/;
 
@@ -219,8 +228,12 @@ export function checkTailwindTokens(repoRoot = process.cwd()) {
     );
   };
 
-  const isValid = (value) =>
-    value.startsWith('[') || scale.has(value) || ALWAYS_VALID.has(value) || FRACTION.test(value);
+  const isValid = (utility, value) => {
+    if (value.startsWith('[')) return true;
+    // `max-w` is scored against its OWN scale. See MAX_WIDTH_KEYS.
+    if (utility === 'max-w') return MAX_WIDTH_KEYS.has(value) || FRACTION.test(value);
+    return scale.has(value) || ALWAYS_VALID.has(value) || FRACTION.test(value);
+  };
 
   for (const root of roots) {
     for (const file of sourceFiles(resolve(repoRoot, root))) {
@@ -228,7 +241,7 @@ export function checkTailwindTokens(repoRoot = process.cwd()) {
 
       for (const region of classNameRegions(code)) {
         for (const [, utility, value] of region.matchAll(pattern)) {
-          if (isValid(value)) continue;
+          if (isValid(utility, value)) continue;
           problems.push({
             file: relative(repoRoot, file).split('\\').join('/'),
             class: `${utility}-${value}`,

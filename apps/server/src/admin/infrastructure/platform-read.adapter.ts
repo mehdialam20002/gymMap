@@ -46,7 +46,7 @@ export class PlatformReadAdapter implements PlatformReadPort {
     return this.tenants.countByStatus(PlatformReadAdapter.actor(context));
   }
 
-  listGyms(context: ReadContext, limit = 200): Promise<readonly TenantSummary[]> {
+  listGyms(context: ReadContext, limit = 1000): Promise<readonly TenantSummary[]> {
     return this.tenants.listTenants(PlatformReadAdapter.actor(context), limit);
   }
 
