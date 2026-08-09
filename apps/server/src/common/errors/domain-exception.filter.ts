@@ -77,6 +77,17 @@ export const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
   LAST_OWNER_PROTECTED:
     'This is the only owner of this gym. Add a second owner before removing or demoting this one.',
 
+  // --- M-025, impersonation -------------------------------------------------
+
+  // Names the remedy, because there is one and it takes a single click. A bare "forbidden"
+  // would send a support agent to raise a ticket about a restriction working as designed.
+  IMPERSONATION_FINANCIAL_MUTATION_REFUSED:
+    'Money cannot be moved while impersonating another user. End the session and try again as ' +
+    'yourself.',
+
+  IMPERSONATION_REFUSED:
+    'That impersonation session cannot be started. Check the reason and the duration.',
+
   // --- M-024, the second factor -------------------------------------------
 
   // ┌─ DELIBERATELY UNINFORMATIVE, AND THAT IS THE REQUIREMENT ────────────────────────────────┐

@@ -237,6 +237,34 @@ export const ERROR_REGISTRY = {
     detailsShape: '{ tenant_id: string; owner_count: number; }',
   },
 
+  // --- iam · M-025, impersonation ------------------------------------------
+
+  IMPERSONATION_FINANCIAL_MUTATION_REFUSED: {
+    module: 'iam',
+    class: 'Business',
+    // ┌─ 403 HERE, WHERE THE MFA REFUSALS ARE 422 ──────────────────────────────────────────────┐
+    // │ The difference is real. `MFA_MANDATORY_FOR_ROLE` is an operation available to NOBODY, so │
+    // │ 403 would misdescribe it as an authorisation gap. This one IS about who is asking: the   │
+    // │ agent's own identity may well move this money, and the fix is to end the impersonation.  │
+    // │ That is exactly what 403 means, and the message names the remedy.                         │
+    // └───────────────────────────────────────────────────────────────────────────────────────────┘
+    httpStatus: 403,
+    messageKey: 'error.iam.impersonation_financial_mutation_refused',
+    enforces: ['BR-DAT-02', 'E1.8', 'FR-AUTH-12'],
+    retryable: false,
+  },
+
+  IMPERSONATION_REFUSED: {
+    module: 'iam',
+    class: 'Business',
+    // 422: the caller may be permitted to impersonate in general — what they asked for is a state
+    // the domain refuses (no reason, over the cap, or a target who can themselves impersonate).
+    httpStatus: 422,
+    messageKey: 'error.iam.impersonation_refused',
+    enforces: ['FR-AUTH-12'],
+    retryable: false,
+  },
+
   // --- iam · M-024, the second factor -------------------------------------
 
   MFA_VERIFICATION_FAILED: {
