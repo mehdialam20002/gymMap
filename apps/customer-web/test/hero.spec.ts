@@ -30,7 +30,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -197,7 +197,17 @@ test('the home page is still a Server Component', () => {
   // And now nothing on this page does at all. The video's pause control was the last thing that
   // needed state; the photograph that replaced it needed none, and the drawn background that
   // replaced THAT is three gradients and a mask.
-  assert.ok(!code('src/features/home/sections.tsx').includes("'use client'"));
+  //
+  // Swept rather than named: this asserted `sections.tsx`, a file the consolidation deleted, and
+  // the assertion then failed on a missing path rather than on a client boundary. Every module in
+  // the folder is checked, so it holds however the sections are split up next.
+  const home = readdirSync(join(APP_ROOT, 'src/features/home'))
+    .filter((file) => file.endsWith('.tsx'))
+    .map((file) => `src/features/home/${file}`);
+  assert.ok(home.length >= 2, `only ${String(home.length)} home modules`);
+  for (const rel of home) {
+    assert.ok(!code(rel).includes("'use client'"), `${rel} opted into the client`);
+  }
 });
 
 test('the search form still works without JavaScript', () => {

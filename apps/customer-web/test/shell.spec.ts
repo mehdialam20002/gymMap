@@ -20,6 +20,7 @@ import { code, source, tsxFiles } from './helpers.ts';
 import { en } from '../src/shared/i18n/messages/en.ts';
 import { t, DEFAULT_LOCALE, LOCALES } from '../src/shared/i18n/index.ts';
 import { themeScript, THEME_STORAGE_KEY } from '../src/shared/theme/theme-script.ts';
+import { FOOTER_NAV } from '../src/shared/chrome/nav-model.ts';
 import {
   STATIC_SECURITY_HEADERS,
   buildContentSecurityPolicy,
@@ -27,7 +28,6 @@ import {
   NEXT_IMAGE_STYLE_HASH,
   type CspHosts,
 } from '../src/shared/security/csp.ts';
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // NFR-SEC-12 · the CSP. Security.md §11.3.
@@ -421,7 +421,8 @@ test('no className contains a backslash, because the class would then match noth
     offenders,
     [],
     'a className contains a backslash. It is part of the class name, so the utility silently ' +
-      'applies to nothing:\n  ' + offenders.join('\n  '),
+      'applies to nothing:\n  ' +
+      offenders.join('\n  '),
   );
 });
 
@@ -543,13 +544,63 @@ test('every catalogue key resolves, and t() falls back visibly', () => {
   assert.equal(DEFAULT_LOCALE, 'en');
 });
 
-test('the catalogue states the three product promises in the user’s words', () => {
+test('the footer grid has a track for every column it renders', () => {
+  /*
+   * The footer laid out `grid-cols-6` with the brand spanning two, so six tracks had to hold seven
+   * items and the last nav column wrapped underneath the brand - on every page, for as long as
+   * `FOOTER_NAV` had five entries. It looked like a deliberate second row, which is why nobody
+   * filed it.
+   *
+   * The track count cannot be computed from the model: Tailwind resolves classes by scanning
+   * source TEXT, so `repeat(${FOOTER_NAV.length},...)` would generate no utility at all. The
+   * number is therefore written in the class and this test is what keeps the two honest.
+   */
+  const footer = code('src/shared/chrome/site-footer.tsx');
+  const track = footer.match(/lg:grid-cols-\[1\.6fr_repeat\((\d+),/);
+  assert.ok(track, 'the footer grid template changed shape; update this assertion with it');
+  assert.equal(
+    Number(track[1]),
+    FOOTER_NAV.length,
+    `the grid has ${track[1]} nav tracks for ${String(FOOTER_NAV.length)} columns, so one wraps`,
+  );
+  // And the brand must not span, or the count is off by one again.
+  assert.ok(!/col-span-2/.test(footer), 'the brand block spans again, which needs an extra track');
+});
+
+test('the promises are stated in the user’s words AND rendered where anyone can read them', () => {
   // Not decoration. BR-GYM-01, BR-PLN-03 and BR-REV-01 are the differentiators, and a home page
   // that implies them rather than stating them is one that gets rewritten by somebody who does
   // not know they are load-bearing.
   assert.match(en['web.home.value.verified.body'], /approved/i);
   assert.match(en['web.home.hero.subtitle'], /price you see is the price you pay/i);
   assert.match(en['web.home.value.reviews.body'], /check-in/i);
+
+  /*
+   * And the second half, which this test did not have and needed.
+   *
+   * The identity rebuild moved the promises into an `aria-hidden` marquee and deleted the band
+   * that stated them in full. The three assertions above stayed green throughout: they prove a
+   * string sits in a catalogue file, which is not the same claim as anybody being able to read
+   * it, and the gap between those two is exactly where the regression lived.
+   *
+   * So: some component must reference the key, and that component must not be the marquee. The
+   * second half is deliberately narrow rather than a general "is this inside an aria-hidden
+   * subtree" check, which cannot be answered by reading source - `chalk.tsx` carries
+   * `aria-hidden` on its card artwork, and any proximity heuristic would fail on that instead of
+   * on the thing it is looking for. `gm-marquee` is the specific hidden container the promises
+   * were lost inside, and naming it is a claim this test can actually make good on.
+   */
+  const home = tsxFiles('src/features/home').map((rel) => ({ rel, text: code(rel) }));
+  assert.ok(home.length >= 2, `only ${String(home.length)} home modules found`);
+
+  for (const key of ['web.home.value.verified.body', 'web.home.value.reviews.body'] as const) {
+    const host = home.find((module) => module.text.includes(key));
+    assert.ok(host !== undefined, `${key} is in the catalogue but no component renders it`);
+    assert.ok(
+      !host.text.includes('gm-marquee'),
+      `${key} is rendered in ${host.rel}, which is the aria-hidden marquee`,
+    );
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

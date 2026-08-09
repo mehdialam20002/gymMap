@@ -21,8 +21,20 @@ export function SiteFooter() {
       className="border-t border-subtle bg-surface-subtle"
     >
       <div className="mx-auto max-w-container px-inset-md py-region-md">
-        <div className="grid gap-stack-xl sm:grid-cols-2 lg:grid-cols-6">
-          <div className="lg:col-span-2">
+        {/*
+         * Tracks sized from the CONTENT, not a round number of equal columns.
+         *
+         * This was `lg:grid-cols-6` with the brand block spanning two of them, which needs seven
+         * slots for six tracks: the last nav column wrapped onto a second row and sat alone under
+         * the brand, on every page of the site.
+         *
+         * The `5` mirrors `FOOTER_NAV.length` and is the one number here that can drift. It cannot
+         * be read from the model at build time - Tailwind resolves classes by scanning source text
+         * - so `shell.spec.ts` asserts the two agree instead, and adding a sixth column fails the
+         * suite rather than quietly wrapping the fifth again.
+         */}
+        <div className="grid gap-stack-xl sm:grid-cols-2 lg:grid-cols-[1.6fr_repeat(5,minmax(0,1fr))]">
+          <div>
             <p className="text-lg font-semibold tracking-tight text-content">
               {t('web.chrome.brand')}
             </p>

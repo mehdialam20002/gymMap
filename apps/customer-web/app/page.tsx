@@ -11,73 +11,41 @@
 
 import { t } from '../src/shared/i18n/index.ts';
 import { Hero } from '../src/features/home/hero.tsx';
-import { Section } from '../src/features/home/section.tsx';
-import { Cities, Closing, ForOwners, Goals, HowItWorks } from '../src/features/home/sections.tsx';
 import {
-  CompareTeaser,
-  HomeFaq,
+  CityGrid,
+  ClosingBand,
+  CompareBand,
+  Faq,
+  ForOwners,
+  Goals,
+  GymRail,
+  HowItWorks,
   MemberExperience,
-  Memberships,
+  PlanRow,
+  Promises,
   Reviews,
-} from '../src/features/home/marketplace.tsx';
-import { GymCard } from '../src/features/discovery/gym-card.tsx';
-import { FixtureNotice } from '../src/features/discovery/search-results.tsx';
-import { parseSearchQuery, search } from '../src/features/discovery/search.ts';
+} from '../src/features/home/chalk.tsx';
 
 export default function HomePage() {
   return (
     <>
       <Hero />
 
-      {/*
-       * Six of the eight fixture listings, sorted nearest-first — the same query `/search` runs,
-       * through the same module, so the home page cannot drift from the results page.
-       */}
-      <Section
-        eyebrow="web.home.eyebrow.featured"
-        title="web.home.featured.title"
-        action={{ href: '/search', label: 'web.home.featured.seeAll' }}
-      >
-        <FixtureNotice />
-        <ul className="mt-stack-lg grid gap-stack-lg sm:grid-cols-2 lg:grid-cols-3">
-          {search(parseSearchQuery({ sort: 'distance' }))
-            .slice(0, 6)
-            .map((gym) => (
-              <GymCard key={gym.id} gym={gym} />
-            ))}
-        </ul>
-      </Section>
+      <Promises />
+      <GymRail />
 
       <Goals />
       <HowItWorks />
-      <Memberships />
-      <CompareTeaser />
+      <PlanRow />
+      <CompareBand />
       <Reviews />
 
-      {/* The long form of the three promises — the mechanism behind each strip item. */}
-      <Section eyebrow="web.home.eyebrow.why" title="web.home.why.title">
-        <ul className="grid gap-stack-lg sm:grid-cols-2 xl:grid-cols-3">
-          {(
-            [
-              ['web.home.value.verified.title', 'web.home.value.verified.body'],
-              ['web.home.value.pricing.title', 'web.home.value.pricing.body'],
-              ['web.home.value.reviews.title', 'web.home.value.reviews.body'],
-            ] as const
-          ).map(([title, body]) => (
-            <li key={title} className="gm-card rounded-card p-inset-lg">
-              <h3 className="text-lg font-semibold text-content">{t(title)}</h3>
-              <p className="mt-stack-xs text-base text-content-secondary">{t(body)}</p>
-            </li>
-          ))}
-        </ul>
-      </Section>
-
       <MemberExperience />
-      <Cities />
+      <CityGrid />
       <ForOwners />
-      <HomeFaq />
+      <Faq />
 
-      <Closing />
+      <ClosingBand />
 
       {/*
        * Last band before the footer. It sat above the closing call to action first, which read as

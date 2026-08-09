@@ -1,0 +1,867 @@
+/**
+ * `SCR-WEB-001`'s sections, in "Chalk & Iron".
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════════════════
+ * EVERY FIGURE ON THIS PAGE COMES FROM THE CATALOGUE
+ *
+ * The reference hard-codes its data: six gyms with invented ratings, review counts and distances,
+ * and a compare table with three columns typed out by hand. That is the right way to build a
+ * design mockup and the wrong way to build a page, because the moment the two disagree the design
+ * is the one people believe.
+ *
+ * So every card, every price, every rating and the whole comparison read `CATALOGUE` and
+ * `search()` - the same calls `/search` and `/compare` make. A price here cannot differ from the
+ * price at checkout, and an unrated gym says so rather than showing a number, because the data is
+ * the same data.
+ * ═══════════════════════════════════════════════════════════════════════════════════════════
+ */
+
+import Link from 'next/link';
+
+import { t, type MessageKey } from '../../shared/i18n/index.ts';
+import { icon } from '../../shared/icons/index.tsx';
+import { compareKey, toCompareParams } from '../compare/compare.ts';
+import { CATALOGUE } from '../discovery/fixtures/catalogue.ts';
+import { EMPTY_QUERY, formatMinor, search } from '../discovery/search.ts';
+import { checkoutHref } from '../checkout/quote.ts';
+
+/**
+ * Six abstract grounds, assigned by position in the row.
+ *
+ * `BR-GYM-01` is that nothing is listed before a person approves it, so there are no photographs
+ * to show. A stock image of somebody else's gym under a badge reading "Verified" would be the
+ * exact claim the badge exists to prevent, so the artwork is deliberately non-representational:
+ * six distinct grounds that make the row scannable without pretending to be six places.
+ */
+const ART = ['gm-art-1', 'gm-art-2', 'gm-art-3', 'gm-art-4', 'gm-art-5', 'gm-art-6'] as const;
+
+function SectionHead({
+  eyebrow,
+  title,
+  lede,
+  action,
+}: {
+  readonly eyebrow: MessageKey;
+  readonly title: MessageKey;
+  readonly lede?: MessageKey;
+  readonly action?: { readonly href: string; readonly label: MessageKey };
+}) {
+  return (
+    <div className="gm-sec-head">
+      <div>
+        <p className="gm-eyebrow-k">{t(eyebrow)}</p>
+        <h2 className="gm-h2">{t(title)}</h2>
+        {lede ? <p className="gm-lede">{t(lede)}</p> : null}
+      </div>
+      {action ? (
+        <Link href={action.href} className="gm-btn gm-btn-ghost gm-btn-sm">
+          {t(action.label)} <i aria-hidden="true">→</i>
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Verified gyms
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function GymRail() {
+  const gyms = search({ ...EMPTY_QUERY, sort: 'distance' }).slice(0, 6);
+
+  return (
+    <section className="gm-sec" id="gyms">
+      <div className="gm-wrap">
+        <SectionHead
+          eyebrow="web.home.eyebrow.featured"
+          title="web.home.featured.title"
+          action={{ href: '/search', label: 'web.home.featured.seeAll' }}
+        />
+
+        <p className="gm-note">
+          <b>{t('web.home.fixture.label')}</b> {t('web.home.fixture.body')}
+        </p>
+
+        <ul className="gm-cards">
+          {gyms.map((gym, i) => (
+            <li key={gym.id} className="gm-card-k">
+              <div className="gm-card-media">
+                <div aria-hidden="true" className={`gm-card-art ${ART[i % ART.length]!}`} />
+
+                {/*
+                 * `BR-GYM-01` on the card. Every gym in the fixture set is approved, so every
+                 * badge here is earned - and the day one is not, the flag is on the record rather
+                 * than on the component.
+                 */}
+                <span className="gm-card-badge">
+                  <b aria-hidden="true">✓</b> {t('web.gym.facts.verified')}
+                </span>
+
+                <p className="gm-card-price">
+                  <strong>{formatMinor(gym.fromPriceMinor)}</strong>
+                  <span>{t('web.home.plans.perMonthFrom')}</span>
+                </p>
+              </div>
+
+              <div className="gm-card-body">
+                <h3 className="gm-h3">{gym.name}</h3>
+
+                <p className="gm-card-meta">
+                  <span>
+                    {gym.locality}, {gym.city}
+                  </span>
+                  <span>
+                    <b>{gym.distanceKm.toFixed(1)} km</b>
+                  </span>
+                  {/*
+                   * `BR-REV-01`. An unrated gym reads as a new listing, never as a zero - a zero
+                   * is a claim that members rated it badly, which is the opposite of the truth.
+                   */}
+                  <span>
+                    {gym.rating === null ? (
+                      t('web.gym.facts.unrated')
+                    ) : (
+                      <>
+                        <b>{gym.rating.toFixed(1)}</b> · {String(gym.reviewCount)}{' '}
+                        {t('web.gym.facts.reviews')}
+                      </>
+                    )}
+                  </span>
+                </p>
+
+                <ul className="gm-tags">
+                  {gym.amenities.slice(0, 3).map((amenity) => (
+                    <li key={amenity} className="gm-tag">
+                      {amenity}
+                    </li>
+                  ))}
+                  {gym.amenities.length > 3 ? (
+                    <li className="gm-tag">+{String(gym.amenities.length - 3)}</li>
+                  ) : null}
+                </ul>
+
+                <div className="gm-card-foot">
+                  {/*
+                   * "Add to compare" is a LINK, not a button with state. The compare set lives in
+                   * the URL (`FR-CMP-01`), so this is an href the compare page already parses -
+                   * which means it works before hydration and survives being shared.
+                   */}
+                  <Link
+                    href={toCompareParams([compareKey(gym)])}
+                    className="gm-hit-target text-sm font-semibold text-content-muted transition-colors duration-fast ease-standard hover:text-content"
+                  >
+                    {t('web.home.compare.add')}
+                  </Link>
+                  <Link
+                    href={`/gyms/${gym.citySlug}/${gym.slug}`}
+                    className="gm-btn gm-btn-ghost gm-btn-sm"
+                  >
+                    {t('web.home.card.view')} <i aria-hidden="true">→</i>
+                  </Link>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The four promises, in full
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Title shared with the hero's marquee, body written long.
+ *
+ * ┌─ THIS BAND EXISTS BECAUSE THE MARQUEE CANNOT BE THE ONLY COPY ──────────────────────────────┐
+ * │ The marquee is `aria-hidden` and unpausable, which is right for a decorative loop and wrong  │
+ * │ for the four claims that are the reason to use this marketplace. For one commit they were    │
+ * │ ONLY in the marquee: a sighted reader got them four words at a time, and a screen-reader     │
+ * │ user got nothing at all. `shell.spec.ts` was still green, because it asserted the strings    │
+ * │ existed in the catalogue rather than that anybody could read them.                            │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * Each row names the rule it is a statement of. They are the four the codebase actually enforces,
+ * so none of this is a claim the product would have to be trusted on.
+ */
+const PROMISES = [
+  {
+    glyph: 'verified',
+    title: 'web.home.trust.verified.title',
+    body: 'web.home.value.verified.body',
+  },
+  { glyph: 'pricing', title: 'web.home.trust.pricing.title', body: 'web.home.value.pricing.body' },
+  { glyph: 'reviews', title: 'web.home.trust.reviews.title', body: 'web.home.value.reviews.body' },
+  { glyph: 'secure', title: 'web.home.trust.payments.title', body: 'web.home.value.payments.body' },
+] as const satisfies readonly { glyph: keyof typeof icon; title: MessageKey; body: MessageKey }[];
+
+export function Promises() {
+  return (
+    <section className="gm-sec gm-sec-paper" id="promises">
+      <div className="gm-wrap">
+        <SectionHead
+          eyebrow="web.home.eyebrow.promises"
+          title="web.home.promises.title"
+          lede="web.home.promises.body"
+        />
+
+        {/*
+         * A `<ul>`, because it is four peers with no order between them. The heading level is `h3`
+         * under the section's `h2`, so the outline a screen reader builds matches the picture.
+         */}
+        <ul className="gm-promises">
+          {PROMISES.map((promise) => {
+            const Glyph = icon[promise.glyph];
+            return (
+              <li key={promise.title} className="gm-promise">
+                <span aria-hidden="true" className="gm-promise-mark">
+                  <Glyph className="h-[1.0625rem] w-[1.0625rem]" />
+                </span>
+                <h3>{t(promise.title)}</h3>
+                <p>{t(promise.body)}</p>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Plans
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function PlanRow() {
+  const cheapest = search({ ...EMPTY_QUERY, sort: 'price-asc' }).slice(0, 3);
+  const comparable = search({ ...EMPTY_QUERY, sort: 'distance' }).slice(0, 3);
+
+  return (
+    <section className="gm-sec gm-sec-paper" id="plans">
+      <div className="gm-wrap">
+        <SectionHead
+          eyebrow="web.home.eyebrow.plans"
+          title="web.home.plans.title"
+          lede="web.home.plans.body"
+          action={{ href: '/search', label: 'web.home.plans.seeAll' }}
+        />
+
+        <div className="gm-plans">
+          {cheapest.map((gym) => {
+            const plan = gym.plans[0];
+            if (!plan) return null;
+            return (
+              <article key={plan.id} className="gm-plan">
+                <span className="gm-plan-where">
+                  {gym.name} · {gym.city}
+                </span>
+                <p className="mb-1 mt-4 text-[15px] font-semibold">{plan.name}</p>
+                <p className="gm-plan-amt">{formatMinor(plan.priceMinor)}</p>
+                <p className="gm-plan-sub">
+                  {t('web.home.plans.perMonth')} · {String(plan.durationDays)}{' '}
+                  {t('web.home.plans.days')}
+                </p>
+                <ul className="gm-tags my-[18px]">
+                  {gym.amenities.slice(0, 3).map((amenity) => (
+                    <li key={amenity} className="gm-tag">
+                      {amenity}
+                    </li>
+                  ))}
+                </ul>
+                <Link href={checkoutHref(gym, plan)} className="gm-btn mt-auto w-full">
+                  {t('web.home.plans.view')} <i aria-hidden="true">→</i>
+                </Link>
+              </article>
+            );
+          })}
+
+          <article className="gm-plan gm-plan-alt">
+            <span className="gm-plan-where">{t('web.home.plans.compareTitle')}</span>
+            <p className="mb-1 mt-4 text-[15px] font-semibold">
+              {t('web.home.compareTeaser.title')}
+            </p>
+            <p className="gm-plan-sub">{t('web.home.plans.compareBody')}</p>
+            <Link
+              href={toCompareParams(comparable.map(compareKey))}
+              className="gm-btn mt-auto w-full"
+            >
+              {t('web.home.plans.compareCta')} <i aria-hidden="true">→</i>
+            </Link>
+          </article>
+        </div>
+
+        <p className="gm-smallprint">{t('web.home.plans.noDiscountNote')}</p>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Compare
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function CompareBand() {
+  const gyms = search({ ...EMPTY_QUERY, sort: 'distance' }).slice(0, 3);
+  if (gyms.length === 0) return null;
+
+  /**
+   * Each row knows how to read a gym, and which cell wins.
+   *
+   * The mark is computed rather than marked up, so the mint can never sit on the wrong column
+   * after an edit — and `AX8` means it is never colour alone: the cell also carries a visually
+   * hidden word.
+   *
+   * That word names the FACT, never a verdict. "Lowest price shown" is arithmetic about three
+   * numbers on screen; "best" would be the platform ranking one listing above another on the page
+   * where the decision is made, which `BR-GYM-*` gives no basis for. `compare.spec.ts` enforces
+   * it across the namespace, and it caught this exact wording.
+   */
+  const rows = [
+    {
+      mark: 'web.compare.markLowest' as MessageKey,
+      label: 'web.home.compareTeaser.rowPrice' as MessageKey,
+      cell: (gym: (typeof gyms)[number]) => formatMinor(gym.fromPriceMinor),
+      best: (gym: (typeof gyms)[number]) =>
+        gym.fromPriceMinor ===
+        gyms.reduce((a, b) => (a.fromPriceMinor < b.fromPriceMinor ? a : b)).fromPriceMinor,
+    },
+    {
+      mark: 'web.compare.markNearest' as MessageKey,
+      label: 'web.home.compareTeaser.rowDistance' as MessageKey,
+      cell: (gym: (typeof gyms)[number]) => `${gym.distanceKm.toFixed(1)} km`,
+      best: (gym: (typeof gyms)[number]) =>
+        gym.distanceKm === Math.min(...gyms.map((g) => g.distanceKm)),
+    },
+    {
+      mark: 'web.compare.markRated' as MessageKey,
+      label: 'web.home.compareTeaser.rowRating' as MessageKey,
+      cell: (gym: (typeof gyms)[number]) =>
+        gym.rating === null ? t('web.gym.facts.unrated') : gym.rating.toFixed(1),
+      /*
+       * The unrated are EXCLUDED from the maximum, not coerced into it.
+       *
+       * `g.rating ?? 0` was the first version and `home-sections.spec.ts` rejected it: it is the
+       * literal statement that a gym nobody has reviewed scored zero, which is `BR-REV-01`'s whole
+       * objection. It happens to mark the right cell today - `Math.max` ignores a zero when any
+       * real rating exists - so it is the kind of wrong that survives review and then decides a
+       * sort order six months later.
+       *
+       * With three unrated gyms nothing is marked, which is correct: there is no highest rating
+       * among no ratings.
+       */
+      best: (gym: (typeof gyms)[number]) => {
+        const rated = gyms.map((g) => g.rating).filter((r) => r !== null);
+        return rated.length > 0 && gym.rating !== null && gym.rating === Math.max(...rated);
+      },
+    },
+  ];
+
+  return (
+    <section className="gm-sec" id="compare">
+      <div className="gm-wrap gm-cmp">
+        <div>
+          <p className="gm-eyebrow-k">{t('web.home.eyebrow.compare')}</p>
+          <h2 className="gm-h2">{t('web.home.compareTeaser.title')}</h2>
+          <p className="gm-lede">{t('web.home.compareTeaser.body')}</p>
+          <p className="mt-[26px]">
+            <Link
+              href={toCompareParams(gyms.map(compareKey))}
+              className="gm-btn gm-btn-amber gm-btn-lg"
+            >
+              {t('web.home.compareTeaser.cta')} <i aria-hidden="true">→</i>
+            </Link>
+          </p>
+        </div>
+
+        <div className="gm-compare-scroll gm-table-box overflow-x-auto">
+          <table className="gm-table min-w-[30rem]">
+            <caption className="gm-visually-hidden">{t('web.compare.title')}</caption>
+            <thead>
+              <tr>
+                <th scope="col">
+                  <span className="gm-visually-hidden">{t('web.compare.rowLabel')}</span>
+                </th>
+                {gyms.map((gym) => (
+                  <th key={gym.id} scope="col">
+                    {gym.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{t(row.label)}</th>
+                  {gyms.map((gym) => {
+                    const wins = row.best(gym);
+                    return (
+                      <td key={gym.id} className={wins ? 'gm-best' : undefined}>
+                        {row.cell(gym)}
+                        {wins ? <span className="gm-visually-hidden"> ({t(row.mark)})</span> : null}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cities
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function CityGrid() {
+  /*
+   * Counted from the catalogue, one entry per city that actually has listings. The reference
+   * prints "3,245 gyms" under each tile; these are the real counts, which are small, and a small
+   * true number is worth more here than a large invented one.
+   */
+  const cities = [...new Set(CATALOGUE.map((gym) => gym.citySlug))].map((slug) => {
+    const gyms = CATALOGUE.filter((gym) => gym.citySlug === slug);
+    return { slug, name: gyms[0]!.city, count: gyms.length };
+  });
+
+  return (
+    <section className="gm-sec" id="cities">
+      <div className="gm-wrap">
+        <SectionHead
+          eyebrow="web.home.eyebrow.cities"
+          title="web.home.cities.title"
+          action={{ href: '/cities', label: 'web.home.cities.seeAll' }}
+        />
+
+        <ul className="gm-cities">
+          {cities.map((city, i) => (
+            <li key={city.slug}>
+              <Link href={`/gyms/${city.slug}`} className="gm-city">
+                <span aria-hidden="true" className={`gm-city-art ${ART[i % ART.length]!}`} />
+                <span className="gm-city-t">
+                  <strong>{city.name}</strong>
+                  <span>
+                    {String(city.count)}{' '}
+                    {t(
+                      city.count === 1 ? 'web.home.cities.listingsOne' : 'web.home.cities.listings',
+                    )}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FAQ
+// ─────────────────────────────────────────────────────────────────────────────
+
+const FAQ = [
+  { q: 'web.home.faq.verified.q', a: 'web.home.faq.verified.a' },
+  { q: 'web.home.faq.price.q', a: 'web.home.faq.price.a' },
+  { q: 'web.home.faq.reviews.q', a: 'web.home.faq.reviews.a' },
+  { q: 'web.home.faq.checkin.q', a: 'web.home.faq.checkin.a' },
+] as const satisfies readonly { q: MessageKey; a: MessageKey }[];
+
+export function Faq() {
+  return (
+    <section className="gm-sec" id="faq">
+      <div className="gm-wrap">
+        <SectionHead
+          eyebrow="web.home.eyebrow.faq"
+          title="web.home.faq.title"
+          lede="web.home.faq.body"
+        />
+
+        {/*
+         * `<details>` and not a JavaScript accordion. It opens before hydration, it is
+         * keyboard-operable and announced correctly with no work, and a crawler reads the answers
+         * whether or not it expands them — which is most of the point of an FAQ on a marketing
+         * page. The rotating `+` is CSS on `[open]`, so there is no state anywhere.
+         */}
+        <div className="gm-faq">
+          {FAQ.map((item, i) => (
+            <details key={item.q} className="gm-faq-i">
+              <summary className="gm-faq-q">
+                <span className="gm-faq-n">{String(i + 1).padStart(2, '0')}</span>
+                <span className="gm-h3">{t(item.q)}</span>
+                <span aria-hidden="true" className="gm-faq-x">
+                  +
+                </span>
+              </summary>
+              <p className="gm-faq-a">{t(item.a)}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Closing
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function ClosingBand() {
+  const Search = icon.search;
+
+  return (
+    <section className="gm-close">
+      <div className="gm-wrap">
+        <h2 className="gm-display">
+          {t('web.home.closing.titleLead')} <em>{t('web.home.closing.titleAccent')}</em>
+        </h2>
+        <p className="gm-lede mx-auto mt-[26px] text-center">{t('web.home.closing.body')}</p>
+        <p className="mt-[30px]">
+          <Link href="/search" className="gm-btn gm-btn-amber gm-btn-lg">
+            <Search aria-hidden="true" className="h-[1.125rem] w-[1.125rem]" />
+            {t('web.home.closing.cta')}
+          </Link>
+        </p>
+
+        {/* The brand set very large, as a full stop. Nothing to read that the header did not say. */}
+        <p aria-hidden="true" className="gm-wordmark">
+          {t('web.chrome.brand')}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Explore by goal
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Each goal is a real query. "Build strength" is `?category=Strength`, which the results page
+ * already understands, so these are crawlable entry points (`FR-SRCH-13`) rather than decoration.
+ */
+const GOALS = [
+  { label: 'web.home.goals.strength', query: 'category=Strength', glyph: 'strength' },
+  { label: 'web.home.goals.weight', query: 'category=Cardio', glyph: 'cardio' },
+  { label: 'web.home.goals.fitness', query: 'category=Gym', glyph: 'strength' },
+  { label: 'web.home.goals.flexibility', query: 'category=Yoga', glyph: 'yoga' },
+  { label: 'web.home.goals.sport', query: 'category=Boxing', glyph: 'boxing' },
+  { label: 'web.home.goals.routine', query: 'category=Group%20classes', glyph: 'cardio' },
+] as const satisfies readonly { label: MessageKey; query: string; glyph: keyof typeof icon }[];
+
+export function Goals() {
+  return (
+    <section className="gm-sec" id="goals">
+      <div className="gm-wrap">
+        <SectionHead
+          eyebrow="web.home.eyebrow.goals"
+          title="web.home.goals.title"
+          lede="web.home.goals.body"
+        />
+
+        <ul className="gm-goals">
+          {GOALS.map((goal) => {
+            const Glyph = icon[goal.glyph];
+            return (
+              <li key={goal.label}>
+                {/*
+                 * The whole tile is one link and its accessible name is the goal, so both the
+                 * glyph and the caret are `aria-hidden` - otherwise the name becomes "Build
+                 * strength, next", which names a control that is not there.
+                 */}
+                <Link href={`/search?${goal.query}`} className="gm-goal gm-hit-target">
+                  <Glyph aria-hidden="true" className="h-[1.25rem] w-[1.25rem] shrink-0" />
+                  <em>{t(goal.label)}</em>
+                  <span aria-hidden="true" className="gm-goal-arrow">
+                    →
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// How it works
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STEPS = [
+  { title: 'web.home.how.discover.title', body: 'web.home.how.discover.body' },
+  { title: 'web.home.how.compare.title', body: 'web.home.how.compare.body' },
+  { title: 'web.home.how.choose.title', body: 'web.home.how.choose.body' },
+  { title: 'web.home.how.join.title', body: 'web.home.how.join.body' },
+] as const satisfies readonly { title: MessageKey; body: MessageKey }[];
+
+export function HowItWorks() {
+  return (
+    <section className="gm-sec gm-sec-paper" id="how">
+      <div className="gm-wrap">
+        <SectionHead eyebrow="web.home.eyebrow.how" title="web.home.how.title" />
+
+        {/*
+         * Numbered, and here the numbers earn it: this is a sequence a member moves through in
+         * order, so the ordinal carries information the reader needs. An `<ol>` says to a screen
+         * reader what the mono numerals say to everyone else, and the rule filling under each step
+         * is the same fact a third time.
+         */}
+        <ol className="gm-steps">
+          {STEPS.map((step, index) => (
+            <li key={step.title} className="gm-step">
+              <p className="gm-step-n">{String(index + 1).padStart(2, '0')}</p>
+              <h3 className="gm-h3">{t(step.title)}</h3>
+              <p className="gm-lede">{t(step.body)}</p>
+              <span aria-hidden="true" className="gm-step-bar" />
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reviews
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The reviews band, with nothing in it, on purpose.
+ *
+ * ┌─ THE SECTION EXISTS. THE QUOTES DO NOT. ────────────────────────────────────────────────────┐
+ * │ The reference fills this with three five-star testimonials from three named members and a   │
+ * │ "4.8 from verified members" figure. `BR-REV-01` makes a review impossible without a recorded │
+ * │ check-in and there are no check-ins, so all four would be fabrications - on the page whose   │
+ * │ entire argument is that its reviews are the ones you can trust.                              │
+ * │                                                                                             │
+ * │ Leaving the band out was the earlier answer and it was weaker. A page that quietly omits     │
+ * │ reviews says nothing about the rule; a band that states the rule and then shows an honest    │
+ * │ zero demonstrates it. The empty state is not a gap here, it is the argument.                  │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export function Reviews() {
+  const Star = icon.reviews;
+  const Verified = icon.verified;
+
+  return (
+    <section className="gm-sec" id="reviews">
+      <div className="gm-wrap">
+        <SectionHead
+          eyebrow="web.home.eyebrow.reviews"
+          title="web.home.reviews.title"
+          lede="web.home.reviews.body"
+          action={{ href: '/how-it-works', label: 'web.home.reviews.cta' }}
+        />
+
+        <div className="gm-rev">
+          {/*
+           * The empty state is the LARGER half, not a footnote under three cards that are not
+           * there. It is what this section currently has to say.
+           */}
+          <div className="gm-rev-empty">
+            {/*
+             * A check-in scanner, because the check-in is the thing that has to happen before a
+             * review can exist. Decorative, `aria-hidden`, and it stops dead under reduced motion
+             * rather than strobing at 1ms - an infinite loop cannot be handled by the duration
+             * tokens the way a one-shot transition can.
+             */}
+            <div aria-hidden="true" className="gm-scanner">
+              <Verified className="h-[1.5rem] w-[1.5rem] text-content-muted" />
+            </div>
+            <h3 className="gm-h3 mt-[26px]">{t('web.home.reviews.emptyTitle')}</h3>
+            <p className="gm-lede mx-auto max-w-[46ch]">{t('web.home.reviews.emptyBody')}</p>
+          </div>
+
+          <ul className="grid content-start gap-[14px]">
+            {(
+              [
+                {
+                  Glyph: Verified,
+                  title: 'web.home.reviews.ruleTitle',
+                  body: 'web.home.reviews.ruleBody',
+                },
+                {
+                  Glyph: Star,
+                  title: 'web.home.reviews.unratedTitle',
+                  body: 'web.home.reviews.unratedBody',
+                },
+              ] as const
+            ).map((item) => (
+              <li key={item.title} className="gm-mini">
+                <p className="gm-eyebrow-k">
+                  <item.Glyph aria-hidden="true" className="h-[0.875rem] w-[0.875rem]" />
+                  {t(item.title)}
+                </p>
+                <p className="gm-lede mt-[10px]">{t(item.body)}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The account
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MEMBER_FEATURES = [
+  { glyph: 'verified', title: 'web.home.member.qr.title', body: 'web.home.member.qr.body' },
+  { glyph: 'place', title: 'web.home.member.visits.title', body: 'web.home.member.visits.body' },
+  {
+    glyph: 'pricing',
+    title: 'web.home.member.receipts.title',
+    body: 'web.home.member.receipts.body',
+  },
+] as const satisfies readonly { glyph: keyof typeof icon; title: MessageKey; body: MessageKey }[];
+
+/**
+ * The reference sells an app here, with two store buttons. There is no app and no store listing,
+ * so this sells the account, which exists, is linked, and is where all three of these live.
+ */
+export function MemberExperience() {
+  return (
+    <section className="gm-sec gm-sec-paper" id="member">
+      <div className="gm-wrap">
+        <SectionHead
+          eyebrow="web.home.eyebrow.member"
+          title="web.home.member.title"
+          lede="web.home.member.body"
+          action={{ href: '/account', label: 'web.home.member.cta' }}
+        />
+
+        {/* Three, not four - the band's own grid, so it divides evenly rather than leaving a gap. */}
+        <ul className="gm-promises gm-promises-3">
+          {MEMBER_FEATURES.map((feature) => {
+            const Glyph = icon[feature.glyph];
+            return (
+              <li key={feature.title} className="gm-promise">
+                <span aria-hidden="true" className="gm-promise-mark">
+                  <Glyph className="h-[1.0625rem] w-[1.0625rem]" />
+                </span>
+                <h3>{t(feature.title)}</h3>
+                <p>{t(feature.body)}</p>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// For gym owners
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The owner console, as a shape.
+ *
+ * ┌─ IT CARRIES NO FIGURES, AND THAT IS THE WHOLE DESIGN OF IT ─────────────────────────────────┐
+ * │ The reference fills this panel with `₹4.82L revenue +18.4%` and `1,284 members +12.8%`.      │
+ * │ Those are invented business results printed beside a "list your gym" button, which makes     │
+ * │ them a performance claim to a prospective seller rather than decoration - and a screenshot   │
+ * │ of this section would outlive any disclaimer next to it.                                      │
+ * │                                                                                              │
+ * │ So the labels stay and the figures are blocks. It still answers what the section is really   │
+ * │ asking - "what do I get?" - by showing the interface, which is a truthful answer.             │
+ * │                                                                                              │
+ * │ The bars are deliberately NOT a rising ramp. A chart that climbs left to right under a sales │
+ * │ pitch reads as a growth claim even with the axis stripped off, so the shape is flat-ish and  │
+ * │ unordered: it says "a chart lives here", which is all it is entitled to say.                  │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export function ForOwners() {
+  const Has = icon.has;
+
+  return (
+    <section className="gm-sec gm-owners" id="owners">
+      <div className="gm-wrap gm-owners-in">
+        <div>
+          <p className="gm-eyebrow-k">{t('web.home.owners.eyebrow')}</p>
+          <h2 className="gm-h2">{t('web.home.owners.title')}</h2>
+          <p className="gm-lede">{t('web.home.owners.body')}</p>
+
+          {/*
+           * The four capabilities, as the reference's two-column tick list. Each is something the
+           * gym dashboard actually does per the PRD - discovery, plan sales, check-in, reporting -
+           * and not one of them is a number.
+           */}
+          <ul className="gm-checks">
+            {(
+              [
+                'web.home.owners.point.discovered',
+                'web.home.owners.point.sell',
+                'web.home.owners.point.checkins',
+                'web.home.owners.point.track',
+              ] as const
+            ).map((key) => (
+              <li key={key}>
+                <Has aria-hidden="true" className="h-[1.0625rem] w-[1.0625rem] shrink-0" />
+                {t(key)}
+              </li>
+            ))}
+          </ul>
+
+          <Link href="/for-gyms" data-on-solid="true" className="gm-btn gm-btn-amber gm-btn-lg">
+            {t('web.home.owners.cta')} <i aria-hidden="true">→</i>
+          </Link>
+        </div>
+
+        <figure className="m-0">
+          <div className="gm-dash">
+            <div className="gm-dash-top">
+              <span>{t('web.home.owners.preview.title')}</span>
+              <span>{t('web.home.owners.preview.badge')}</span>
+            </div>
+
+            <div className="gm-dash-kpi">
+              {(
+                ['web.home.owners.preview.revenue', 'web.home.owners.preview.members'] as const
+              ).map((key) => (
+                <div key={key}>
+                  <span>{t(key)}</span>
+                  {/* Where the figure goes. A block, not a plausible number. */}
+                  <b aria-hidden="true" className="gm-dash-slot" />
+                </div>
+              ))}
+            </div>
+
+            {/*
+             * The heights are utility classes rather than an inline style, and literal rather than
+             * interpolated. `style-src` carries a nonce, so a `style` attribute is dropped outright
+             * and every bar would render at zero height; and Tailwind resolves classes by scanning
+             * source TEXT, so `h-[${n}]` generates nothing. Both failures are silent, and both have
+             * happened in this file's history.
+             */}
+            <div aria-hidden="true" className="gm-bars">
+              <i className="h-[62%]" />
+              <i className="h-[88%]" />
+              <i className="h-[54%]" />
+              <i className="h-[71%]" />
+              <i className="h-[95%]" />
+              <i className="h-[66%]" />
+              <i className="h-[78%]" />
+              <i className="h-[58%]" />
+            </div>
+          </div>
+
+          {/*
+           * A real caption. Nobody deciding whether to list their gym should have to work out
+           * whether this is a screenshot of results or a drawing of a product.
+           */}
+          <figcaption className="gm-smallprint mt-[14px]">
+            {t('web.home.owners.preview.caption')}
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+  );
+}

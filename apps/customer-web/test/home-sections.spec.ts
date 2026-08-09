@@ -26,8 +26,39 @@ import { CATALOGUE } from '../src/features/discovery/fixtures/catalogue.ts';
 import { EMPTY_QUERY, search } from '../src/features/discovery/search.ts';
 import { compareKey, parseCompare } from '../src/features/compare/compare.ts';
 
-const SECTION = 'src/features/home/marketplace.tsx';
 const PAGE = 'app/page.tsx';
+
+/**
+ * The modules the homepage renders, read off the page's own import list.
+ *
+ * ┌─ WHY THIS IS DERIVED AND NOT A PATH ───────────────────────────────────────────────────────┐
+ * │ This was `const SECTION = 'src/features/home/marketplace.tsx'`, and the identity rebuild    │
+ * │ moved five of the six sections into `chalk.tsx`. Every "no invented number" assertion below │
+ * │ kept passing — against a file the page had stopped rendering. The suite was green and       │
+ * │ covering nothing, which for a file whose whole job is proving absences is the worst way to  │
+ * │ fail, because a passing absence-test and a vacuous one look identical.                       │
+ * │                                                                                              │
+ * │ So the list follows the page. A section that moves house stays covered, a section added in  │
+ * │ a new module is covered the moment the page imports it, and a module the page drops stops   │
+ * │ being scanned rather than silently becoming the only thing scanned.                          │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+const MODULES: readonly string[] = (() => {
+  const found = [...code(PAGE).matchAll(/from '\.\.\/(src\/features\/home\/[\w.-]+\.tsx)'/g)].map(
+    (match) => match[1]!,
+  );
+  /*
+   * One module is enough to be real - the sections were consolidated into `chalk.tsx` and the
+   * count legitimately fell to two. The guard against a regex that matches nothing is this
+   * assertion; the guard against a regex that matches too little is `checked >= 8` in the
+   * presence test below, which counts the exports these files actually carry.
+   */
+  assert.ok(found.length >= 1, `no home modules found on ${PAGE}`);
+  return found;
+})();
+
+/** Every rendered section's code, comments blanked, as one text to scan. */
+const SECTIONS = MODULES.map((rel) => code(rel)).join('\n');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // The membership row — `BR-PLN-03`.
@@ -37,7 +68,7 @@ test('no struck-through price anywhere on the homepage', () => {
   // `BR-PLN-03` is "the price displayed is the price charged". A crossed-out second figure is a
   // price displayed that was never charged and never could be, which is the same defect wearing
   // a discount badge. The reference design has one on every card.
-  for (const rel of [SECTION, 'src/features/home/sections.tsx', PAGE]) {
+  for (const rel of [...MODULES, PAGE]) {
     const text = code(rel);
     assert.ok(!text.includes('line-through'), `${rel} strikes through a price`);
     assert.ok(!/\bwas\b|\bMRP\b|\bsave\s*\d/i.test(text), `${rel} implies a saving`);
@@ -45,7 +76,7 @@ test('no struck-through price anywhere on the homepage', () => {
 });
 
 test('every plan price on the homepage is a catalogue figure, formatted in one place', () => {
-  const text = code(SECTION);
+  const text = SECTIONS;
   // One formatter, used on integer paise. A second one is how two surfaces start disagreeing
   // about the same rupee.
   assert.ok(text.includes('formatMinor('), 'money is not run through the shared formatter');
@@ -84,21 +115,18 @@ test('the compare teaser link opens the same three gyms the table just showed', 
     'the teaser CTA would not resolve to the gyms in the table',
   );
   assert.deepEqual(parsed.unresolved, []);
-  assert.ok(
-    code(SECTION).includes('toCompareParams('),
-    'the CTA does not build a real compare URL',
-  );
+  assert.ok(SECTIONS.includes('toCompareParams('), 'the CTA does not build a real compare URL');
 });
 
 test('the teaser is a real table, not a grid of divs pretending to be one', () => {
-  const text = code(SECTION);
+  const text = SECTIONS;
   for (const tag of ['<table', '<thead', '<tbody', 'scope="col"', 'scope="row"', '<caption']) {
     assert.ok(text.includes(tag), `the comparison is missing ${tag}`);
   }
 });
 
 test('an unrated gym in the teaser reads as words, never 0.0 — BR-REV-01', () => {
-  const text = code(SECTION);
+  const text = SECTIONS;
   assert.ok(
     text.includes("t('web.gym.facts.unrated')"),
     'the rating row has no unrated branch, so a new listing would render a number',
@@ -125,7 +153,7 @@ test('there are no testimonials — a review needs a check-in, BR-REV-01', () =>
   }
   // The header comment DISCUSSES why there are none, which is why this reads `code()` and not
   // `source()` — the explanation must not be what trips the test.
-  assert.ok(!/testimonial/i.test(code(SECTION)), 'a testimonial is rendered');
+  assert.ok(!/testimonial/i.test(SECTIONS), 'a testimonial is rendered');
 });
 
 test('no app-store banner — there is no app to download', () => {
@@ -149,23 +177,37 @@ test('no invented aggregate counts on the homepage', () => {
 // Wiring and rhythm.
 // ═══════════════════════════════════════════════════════════════════════════
 
-test('all four sections are actually on the page', () => {
-  const page = code(PAGE);
-  for (const tag of [
-    '<Memberships />',
-    '<CompareTeaser />',
-    '<MemberExperience />',
-    '<HomeFaq />',
-  ]) {
-    assert.ok(page.includes(tag), `${tag} is exported but never rendered`);
+test('every section a rendered module exports is actually on the page', () => {
+  /*
+   * Was a hard-coded list of four tags, which is a list that goes stale in exactly one direction:
+   * rename a section and the test names a component nobody has, delete one and it fails for the
+   * right reason by accident. Deriving it from the exports catches the case the list could not -
+   * a section written, exported, and never wired up, which renders as nothing at all and looks
+   * like a section that simply was not built yet.
+   */
+  /*
+   * Whitespace collapsed and matched as a plain string, deliberately not a RegExp built from a
+   * template literal. A template literal swallows a backslash-s as a bare `s`, so the pattern
+   * reads "Heros" followed by a star, matches nothing, and the assertion reports every section
+   * missing while the page renders all of them. The counter below is the backstop: this test has
+   * no value if it silently checks nothing.
+   */
+  const page = code(PAGE).replace(/\s+/g, ' ');
+  let checked = 0;
+  for (const rel of MODULES) {
+    for (const [, name] of code(rel).matchAll(/^export function (\w+)\(/gm)) {
+      assert.ok(page.includes(`<${name!} />`), `${name!} is exported by ${rel} but never rendered`);
+      checked += 1;
+    }
   }
+  assert.ok(checked >= 8, `only ${String(checked)} sections checked`);
 });
 
 test('every homepage section carries an eyebrow, and every eyebrow key exists', () => {
   const eyebrows = Object.keys(en).filter((key) => key.startsWith('web.home.eyebrow.'));
   assert.ok(eyebrows.length >= 8, `only ${String(eyebrows.length)} eyebrow keys`);
 
-  const rendered = [code(PAGE), code(SECTION), code('src/features/home/sections.tsx')].join('\n');
+  const rendered = [code(PAGE), SECTIONS].join('\n');
   for (const key of eyebrows) {
     assert.ok(rendered.includes(key), `${key} is defined but never used`);
   }
@@ -174,7 +216,7 @@ test('every homepage section carries an eyebrow, and every eyebrow key exists', 
 test('the FAQ opens without JavaScript', () => {
   // `<details>` is readable before hydration and by a crawler, which is most of the reason to
   // put an FAQ on a marketing page at all. An accordion built from state is not.
-  const text = code(SECTION);
+  const text = SECTIONS;
   assert.ok(text.includes('<details'), 'the FAQ is not a details element');
   assert.ok(text.includes('<summary'), 'the FAQ has no summary');
   assert.ok(!text.includes("'use client'"), 'the sections became a client island');

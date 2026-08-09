@@ -95,25 +95,20 @@ export const en = {
   // "69 verified gyms live", which would be a false statement: there are eight fixtures and no
   // approved listings. This says the thing that is true.
   'web.home.hero.tagCities': 'Live in {n} cities · Bengaluru, Mumbai, Delhi, Chennai',
-  'web.home.hero.titleLead': 'Find a gym that fits',
   'web.home.hero.titleAccent': 'your life',
   // NOT "India's #1". Every superlative on this page has to be defensible, and a marketplace
   // with no live listings cannot defend a ranking claim to a consumer or to ASCI.
-  'web.home.hero.badge': 'Verified gyms, real prices',
   // BR-PLN-03 is a product promise, so the home page states it rather than implying it.
   'web.home.hero.subtitle':
     'Compare gyms near you by price, distance and facilities. The price you see is the price you pay.',
   'web.home.hero.searchLabel': 'Search by city, area or gym name',
   'web.home.hero.searchPlaceholder': 'Try “Indiranagar” or “Iron Temple”',
   'web.home.hero.searchAction': 'Search',
-  'web.home.hero.nearMe': 'Use my location',
   // BR-GYM-01, at the point of action. The subtitle carries the pricing promise, so this one
   // carries the other differentiator rather than repeating it.
-  'web.home.hero.trust': 'Every gym here was approved by a person before it appeared.',
   // The hero is a still photograph now, so there is no motion to stop and WCAG 2.2.2 is not
   // engaged. The alt describes what is IN the frame: "hero image" is a fact about the layout,
   // which is not something a screen-reader user can do anything with.
-  'web.home.hero.photoAlt': 'A rack of dumbbells on a gym floor, with a member training behind it',
 
   // The combined search control. The city select is a real <select> inside the GET form, so it
   // works before hydration and lands in a shareable URL.
@@ -131,12 +126,6 @@ export const en = {
    * BR-REV-01) and a hero that gestures at them while a strip of invented statistics does the
    * persuading has its priorities backwards.
    */
-  'web.home.hero.promise.verified.title': 'Verified gyms',
-  'web.home.hero.promise.verified.note': 'Approved by a person',
-  'web.home.hero.promise.pricing.title': 'Real price',
-  'web.home.hero.promise.pricing.note': 'No hidden fees',
-  'web.home.hero.promise.reviews.title': 'Earned reviews',
-  'web.home.hero.promise.reviews.note': 'Only after a check-in',
 
   'web.home.hero.browseLabel': 'Browse by activity',
   /*
@@ -150,21 +139,26 @@ export const en = {
   'web.home.hero.category.boxing': 'Boxing',
   'web.home.hero.category.swimming': 'Swimming',
 
-  // The LONG form of the three promises. The trust strip states them in four words each, directly
-  // under the hero; this section explains the mechanism behind each one further down the page.
-  // Two lengths, two jobs — not a duplicate.
-  'web.home.why.title': 'Why GymMap',
-  'web.home.value.verified.title': 'Every gym is checked',
+  // The LONG form of the four promises. The hero's marquee states each in four words; this band
+  // explains the mechanism behind it. Two lengths, two jobs — not a duplicate. The titles are
+  // shared with the marquee (`web.home.trust.*.title`) rather than written twice, because two
+  // strings for one claim is how the two surfaces start disagreeing.
+  'web.home.eyebrow.promises': 'What we guarantee',
+  'web.home.promises.title': 'Four rules the product enforces',
+  'web.home.promises.body':
+    'Not positioning. Each of these is a check in the code, and the page cannot show you something that breaks one.',
   // BR-GYM-01. Stated plainly because it is the differentiator, not a footnote.
   'web.home.value.verified.body':
     'A person reviews every listing before it appears here. No gym is visible until it has been approved.',
-  'web.home.value.pricing.title': 'The price you see is the price you pay',
+  // BR-PLN-03. The figure is revalidated on the server at checkout, and a mismatch aborts.
   'web.home.value.pricing.body':
     'Taxes and fees are shown before you commit. The total is confirmed again at checkout, and a mismatch stops the payment rather than charging you a different figure.',
-  'web.home.value.reviews.title': 'Reviews from people who actually went',
   // BR-REV-01, BR-REV-03.
   'web.home.value.reviews.body':
     'A review can only be written by a member with a recorded check-in at that gym.',
+  // BR-PAY-02. A browser that says "success" has not activated anything.
+  'web.home.value.payments.body':
+    'Your membership starts when the payment provider confirms the payment to us, not when the browser returns from the payment screen.',
 
   // --- SCR-WEB-001 · trust strip --------------------------------------------
   // The three promises the cards below state at length, plus payments. Presented as a strip
@@ -189,8 +183,6 @@ export const en = {
   'web.home.goals.routine': 'Stay in a routine',
 
   // --- SCR-WEB-001 · categories ---------------------------------------------
-  'web.home.categories.title': 'Explore by activity',
-  'web.home.categories.seeAll': 'See every activity',
 
   // --- SCR-WEB-001 · how it works -------------------------------------------
   'web.home.how.title': 'How GymMap works',
@@ -207,11 +199,8 @@ export const en = {
   'web.home.cities.title': 'Where we have listings',
   // "{count} gyms" with a real number from the catalogue. Every figure on this page is counted
   // from data or it is absent - there is no strip of invented totals anywhere on this surface.
-  'web.home.cities.count': '{count} gyms',
-  'web.home.cities.countOne': '1 gym',
   // Names the GYM, because that is what the photograph actually shows. "Gyms in Bengaluru"
   // would describe a photo of a city that nobody took.
-  'web.home.cities.photoAlt': '{gym}',
 
   // --- SCR-WEB-001 · for gym owners -----------------------------------------
   'web.home.owners.eyebrow': 'For gym owners',
@@ -226,7 +215,13 @@ export const en = {
   'web.home.owners.point.checkins': 'Manage check-ins',
   'web.home.owners.point.track': 'Track performance',
   'web.home.owners.preview.title': 'Owner dashboard',
-  'web.home.owners.preview.live': 'Live',
+  /*
+   * NOT "Live". `A-08` / `LC5`: nothing may claim to be live that is not, and this panel carries
+   * no data at all - it is a drawing of the console with the figures deliberately left as blocks.
+   * A green "Live" chip on a drawing is the same defect as a counting animation on a stale
+   * figure, and the caption underneath already tells the truth.
+   */
+  'web.home.owners.preview.badge': 'Illustration',
   'web.home.owners.preview.revenue': 'Revenue',
   'web.home.owners.preview.members': 'Members',
   // Says what the panel IS. Without this a reader is entitled to assume the blocks were numbers
@@ -235,8 +230,33 @@ export const en = {
     'An illustration of the owner dashboard. Your own figures appear here once your gym is listed.',
 
   // --- SCR-WEB-001 · closing --------------------------------------------------
+  // Split so the accent phrase can move: at 116px the closing headline is display type, and a
+  // translator has to be able to put the emphasis where their language puts it.
+  'web.home.closing.titleLead': 'Your next gym is closer',
+  'web.home.closing.titleAccent': 'than you think',
+  'web.home.closing.body':
+    'Search verified gyms, compare memberships and join with the price you were shown.',
   'web.home.closing.title': 'Your next gym is closer than you think.',
   'web.home.closing.cta': 'Find a gym near you',
+
+  // ── the "Chalk & Iron" sections ────────────────────────────────────────
+  'web.home.fixture.label': 'Sample',
+  'web.home.fixture.body':
+    'These listings are illustrative. Real ones appear here once gym onboarding and verification are live.',
+  'web.home.plans.perMonthFrom': 'per month, from',
+  'web.home.compare.add': 'Add to compare',
+  'web.home.card.view': 'View',
+  'web.home.cities.seeAll': 'View all cities',
+  // Deliberately "listings" and not "gyms". The figure is how many are LISTED, which today is a
+  // fixture count, and calling it anything grander would be the invented total this page keeps
+  // refusing to print.
+  /*
+   * Both forms. Chennai has one listing and the page read "1 listings" - the kind of defect that
+   * survives review because nobody re-reads a count they wrote the formatter for. The component
+   * picks; `en.ts` does not know the number.
+   */
+  'web.home.cities.listings': 'listings',
+  'web.home.cities.listingsOne': 'listing',
 
   // --- SCR-WEB-002 · the featured strip -------------------------------------
   'web.home.featured.title': 'Verified gyms near you',
@@ -331,6 +351,8 @@ export const en = {
   'web.gym.facts.km': 'km away',
   'web.gym.facts.rating': 'Rating',
   'web.gym.facts.unrated': 'Not yet rated',
+  'web.gym.facts.verified': 'Verified',
+  'web.gym.facts.reviews': 'reviews',
   // "4.7 213 reviews" ran together in the facts strip and read as one number. The preposition is
   // doing real work; `{count}` is substituted at the call site so a translator can move it.
   'web.gym.facts.reviewCount': 'from {count} reviews',
@@ -354,6 +376,21 @@ export const en = {
 
   // --- SCR-WEB-004 · compare ------------------------------------------------
   'web.compare.title': 'Compare gyms',
+  // The comparison's first column has no heading of its own - it labels the rows. A screen
+  // reader still needs to be told what the column IS, so the header cell carries this and hides
+  // it, rather than being empty and announcing nothing.
+  'web.compare.rowLabel': 'What is being compared',
+  /*
+   * `AX8` - the marked cell is mint AND says so, because colour is never the only signal.
+   *
+   * And it names the FACT rather than declaring a winner. "Best" is the platform ranking one
+   * listing above another on the screen where the decision is made, and `BR-GYM-*` gives no basis
+   * for that; "lowest price" is arithmetic about three numbers on display. `compare.spec.ts`
+   * enforces the distinction across the whole `web.compare.*` namespace.
+   */
+  'web.compare.markLowest': 'lowest price shown',
+  'web.compare.markNearest': 'nearest of these',
+  'web.compare.markRated': 'highest rated of these',
   'web.compare.metaDescription':
     'Put up to four verified gyms side by side — price, distance, rating and facilities.',
   'web.compare.empty.title': 'Nothing to compare yet',
@@ -536,7 +573,6 @@ export const en = {
   'web.home.eyebrow.cities': 'Explore by city',
   'web.home.eyebrow.reviews': 'Earned reviews',
   'web.home.eyebrow.faq': 'Questions',
-  'web.home.eyebrow.why': 'Why us',
 
   // --- SCR-WEB-001 · the membership marketplace ------------------------------
   // NOT "Best memberships this month". Eight listings and no sales data, so "best" would be a
