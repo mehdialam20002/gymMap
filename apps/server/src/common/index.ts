@@ -35,6 +35,7 @@ export {
   CORRELATION_HEADER,
   currentCorrelation,
   currentCorrelationId,
+  isStorableCorrelationId,
   newCorrelationId,
   runWithCorrelation,
   sanitiseCorrelationId,

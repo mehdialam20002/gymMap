@@ -17,9 +17,12 @@
  * nothing Prisma-shaped.
  */
 
+import { randomUUID } from 'node:crypto';
+
 import { Injectable, Logger } from '@nestjs/common';
 
 import { currentImpersonatorId } from '../../common/auth/impersonation.als.js';
+import { isStorableCorrelationId } from '../../common/logging/correlation.als.js';
 import { REDACTED_FIELD_NAMES } from '../../common/logging/redaction.js';
 // A VALUE import, not `import type`. TD-030: a type-only import is erased, so
 // emitDecoratorMetadata emits `undefined` and Nest fails at RUNTIME with an error that
@@ -78,6 +81,32 @@ export class AuditPrismaRepository implements AuditWritePort {
         ? 'SUPPORT_IMPERSONATION'
         : entry.actorType;
 
+    /*
+     * ┌─ THE SECOND HALF OF THE FIX IN `correlation.middleware.ts`, AND IT IS NOT REDUNDANT ──────┐
+     * │ `correlation_id` is `uuid NOT NULL`, this cast is inside the `try`, and the `catch` only  │
+     * │ logs. So ANY unstorable correlation id does not fail the audit write — it deletes it, and │
+     * │ the action proceeds unrecorded. That was reachable from a request header until the        │
+     * │ middleware was fixed to demand a uuid.                                                     │
+     * │                                                                                          │
+     * │ The middleware closes the HTTP door. This closes the rest of them: a job, a test harness,  │
+     * │ a future caller constructing a context by hand. Losing the whole row over the one field    │
+     * │ that identifies nothing about WHO did WHAT is the worst available trade, so an unstorable  │
+     * │ id is replaced rather than allowed to take the record with it — loudly, because a          │
+     * │ correlation id that reaches here in the wrong shape is a bug somewhere upstream.           │
+     * └──────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    let correlationId = entry.correlationId;
+    if (!isStorableCorrelationId(correlationId)) {
+      this.logger.error({
+        message:
+          'AUDIT correlation id is not a uuid — replaced so the row survives. Fix the caller.',
+        unstorableCorrelationId: correlationId,
+        entityType: entry.entityType,
+        action: entry.action,
+      });
+      correlationId = randomUUID();
+    }
+
     try {
       await this.db.executeRaw`
         INSERT INTO audit_log (
@@ -95,7 +124,7 @@ export class AuditPrismaRepository implements AuditWritePort {
           ${entry.reason ?? null}, ${entry.reasonCode ?? null},
           ${entry.permission ?? null}, ${entry.elevationScope ?? null},
           ${entry.ip ?? null}::inet, ${truncate(entry.userAgent)},
-          ${entry.correlationId}::uuid, ${entry.requestId ?? null}::uuid
+          ${correlationId}::uuid, ${entry.requestId ?? null}::uuid
         )`;
     } catch (error) {
       this.logger.error({
