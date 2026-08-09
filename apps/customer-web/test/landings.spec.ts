@@ -14,6 +14,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { code } from './helpers.ts';
+// What the routes actually serve, so the assertion below reads what ships rather than a
+// reconstruction of it. The routes are `.tsx` and the runner cannot load one, which is part of
+// why this composition moved out of `app/`.
+import {
+  activityLandingMetadata,
+  cityLandingMetadata,
+} from '../src/features/landings/landing-metadata.ts';
 import { CATALOGUE, CATEGORIES, CITIES } from '../src/features/discovery/fixtures/catalogue.ts';
 import {
   activityIndex,
@@ -104,15 +111,34 @@ test('a city landing only cross-links activities that are actually offered there
 // FR-SRCH-13 · what makes it a page rather than a view.
 // ═══════════════════════════════════════════════════════════════════════════
 
-test('every landing route declares its own canonical', () => {
-  // Without it `/gyms/bengaluru` and `/search?city=bengaluru` compete for the same results, and
-  // a search engine picks — usually the one with less copy on it.
-  for (const route of [
-    'app/gyms/[citySlug]/page.tsx',
-    'app/explore/[activitySlug]/page.tsx',
-    'app/cities/page.tsx',
-    'app/explore/page.tsx',
-  ]) {
+test('every landing declares its own canonical', () => {
+  /*
+   * Without one, `/gyms/bengaluru` and `/search?city=bengaluru` compete for the same results and
+   * a search engine picks - usually the one with less copy on it.
+   *
+   * The two DYNAMIC landings are checked by calling what they serve, which also proves the
+   * canonical is per-slug rather than one constant on every city. The two INDEX routes are still
+   * read as source: they hand Next a literal and there is nothing to call.
+   */
+  const seen = new Set<string>();
+  for (const city of CITIES) {
+    const canonical = cityLandingMetadata(city.slug).canonical;
+    assert.equal(canonical, `/gyms/${city.slug}`, `/gyms/${city.slug} has the wrong canonical`);
+    assert.ok(!seen.has(canonical), `${canonical} is claimed by two landings`);
+    seen.add(canonical);
+  }
+  for (const activity of activityIndex()) {
+    const canonical = activityLandingMetadata(activity.slug).canonical;
+    assert.equal(
+      canonical,
+      `/explore/${activity.slug}`,
+      `${activity.slug} has the wrong canonical`,
+    );
+    assert.ok(!seen.has(canonical), `${canonical} is claimed by two landings`);
+    seen.add(canonical);
+  }
+
+  for (const route of ['app/cities/page.tsx', 'app/explore/page.tsx']) {
     assert.match(code(route), /alternates:\s*\{\s*canonical:/, `${route} has no canonical`);
   }
 });
@@ -124,20 +150,51 @@ test('the two dynamic landings call notFound() rather than rendering nothing', (
 });
 
 test('no two landings share a title or a description', () => {
-  // Identical titles across a set of landings is what makes a search engine pick one and drop the
-  // rest — the exact failure these pages exist to avoid.
-  const titles = new Set<string>();
-  const descriptions = new Set<string>();
+  /*
+   * ┌─ THIS TEST USED TO ASSERT THAT A SET IT HAD JUST BUILT WAS AS BIG AS THE LIST IT BUILT IT  ┐
+   * │ FROM. It added `city:Bengaluru` and `activity:Yoga` - strings it invented on the spot, one │
+   * │ per landing, guaranteed distinct because the prefix and the name made them so - and then   │
+   * │ checked the count. No title and no description was ever read. Two landings could have       │
+   * │ shipped byte-identical metadata and it would have passed, which is the one failure it is    │
+   * │ named after.                                                                                │
+   * │                                                                                             │
+   * │ It calls the real `generateMetadata` now, the same function the route exports, for every    │
+   * │ city and every activity.                                                                     │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const titles = new Map<string, string>();
+  const descriptions = new Map<string, string>();
+
+  const record = (where: string, meta: { title?: unknown; description?: unknown }) => {
+    const title = String(meta.title ?? '');
+    const description = String(meta.description ?? '');
+    assert.notEqual(title, '', `${where} has no title`);
+    assert.notEqual(description, '', `${where} has no description`);
+    const clashTitle = titles.get(title);
+    assert.equal(
+      clashTitle,
+      undefined,
+      `${where} and ${String(clashTitle)} share a title: ${title}`,
+    );
+    const clashDescription = descriptions.get(description);
+    assert.equal(
+      clashDescription,
+      undefined,
+      `${where} and ${String(clashDescription)} share a description: ${description}`,
+    );
+    titles.set(title, where);
+    descriptions.set(description, where);
+  };
+
   for (const city of CITIES) {
-    titles.add(`city:${city.name}`);
-    descriptions.add(`city:${city.name}`);
+    record(`/gyms/${city.slug}`, cityLandingMetadata(city.slug));
   }
   for (const activity of activityIndex()) {
-    titles.add(`activity:${activity.name}`);
-    descriptions.add(`activity:${activity.name}`);
+    record(`/explore/${activity.slug}`, activityLandingMetadata(activity.slug));
   }
+
+  // And the count still has to add up, or a landing that returned nothing would pass silently.
   assert.equal(titles.size, CITIES.length + activityIndex().length);
-  assert.equal(descriptions.size, titles.size);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

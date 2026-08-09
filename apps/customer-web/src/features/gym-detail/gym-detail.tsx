@@ -42,12 +42,21 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
     <article className="gm-wrap gm-sec gm-sec-tight">
       <FixtureNotice />
 
-      <nav aria-label="Breadcrumb" className="mt-stack-lg text-sm text-content-secondary">
-        <Link href="/search" className="hover:underline">
+      {/*
+       * `gm-hit-target` on both crumbs.
+       *
+       * A trail's links are inline text and WCAG 2.2 SC 2.5.8 exempts those from its minimum, so
+       * they were left at 16px tall - which is defensible and still hard to hit on a phone. They
+       * sit in a ROW with a slash between them, not stacked, so the pointer target can grow
+       * without running into a neighbour. That is the whole reason the footer's column of links
+       * needed real row height instead: expansion there would have overlapped.
+       */}
+      <nav aria-label="Breadcrumb" className="gm-crumbs mt-stack-lg">
+        <Link href="/search" className="gm-hit-target hover:underline">
           {t('web.gym.breadcrumb.root')}
         </Link>
         {' / '}
-        <Link href={`/search?city=${gym.citySlug}`} className="hover:underline">
+        <Link href={`/search?city=${gym.citySlug}`} className="gm-hit-target hover:underline">
           {gym.city}
         </Link>
         {/* The current page is named and NOT linked. A breadcrumb whose last crumb links to

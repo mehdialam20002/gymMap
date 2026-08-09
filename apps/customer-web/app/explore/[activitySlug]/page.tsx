@@ -7,9 +7,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { t } from '../../../src/shared/i18n/index.ts';
 import { toJsonLd } from '../../../src/features/gym-detail/json-ld.ts';
 import { activityLanding, toItemList } from '../../../src/features/landings/landings.ts';
+import { activityLandingMetadata } from '../../../src/features/landings/landing-metadata.ts';
 import { ActivityLandingView } from '../../../src/features/landings/landing-views.tsx';
 
 const ORIGIN = process.env['NEXT_PUBLIC_SITE_ORIGIN'] ?? 'https://gymmap.example';
@@ -19,13 +19,12 @@ interface RouteParams {
 }
 
 export function generateMetadata({ params }: RouteParams): Metadata {
-  const landing = activityLanding(params.activitySlug);
-  if (landing === null) return { title: `${t('web.gym.notFound.title')} · GymMap` };
-
+  // See the note in the city route: composed in `landing-metadata.ts`, adapted here.
+  const meta = activityLandingMetadata(params.activitySlug);
   return {
-    title: `${t('web.landing.activity.title').replace('{activity}', landing.name)} · GymMap`,
-    description: t('web.landing.activity.metaDescription').replace('{activity}', landing.name),
-    alternates: { canonical: `/explore/${landing.slug}` },
+    title: meta.title,
+    ...(meta.description === undefined ? {} : { description: meta.description }),
+    ...(meta.canonical === undefined ? {} : { alternates: { canonical: meta.canonical } }),
   };
 }
 

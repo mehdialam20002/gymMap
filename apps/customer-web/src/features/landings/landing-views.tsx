@@ -41,8 +41,8 @@ export function CityLandingView({ landing }: { readonly landing: CityLanding }) 
     <div className="gm-wrap gm-sec gm-sec-tight">
       <FixtureNotice />
 
-      <nav aria-label="Breadcrumb" className="mt-stack-lg text-sm text-content-secondary">
-        <Link href="/cities" className="hover:underline">
+      <nav aria-label="Breadcrumb" className="gm-crumbs mt-stack-lg">
+        <Link href="/cities" className="gm-hit-target hover:underline">
           {t('web.landing.cities.title')}
         </Link>
         {' / '}
@@ -110,8 +110,8 @@ export function ActivityLandingView({ landing }: { readonly landing: ActivityLan
     <div className="gm-wrap gm-sec gm-sec-tight">
       <FixtureNotice />
 
-      <nav aria-label="Breadcrumb" className="mt-stack-lg text-sm text-content-secondary">
-        <Link href="/explore" className="hover:underline">
+      <nav aria-label="Breadcrumb" className="gm-crumbs mt-stack-lg">
+        <Link href="/explore" className="gm-hit-target hover:underline">
           {t('web.landing.explore.title')}
         </Link>
         {' / '}

@@ -68,3 +68,21 @@ export function tsxFiles(dir: string): string[] {
   }
   return out;
 }
+
+/**
+ * The `.ts` half — modules with no JSX in them.
+ *
+ * A scan that reads components only misses anything a plain module decides, and class names are
+ * the case that bites: `gym-art.ts` holds the six ground classes as literals and hands one to
+ * whichever component asks, precisely so the name is greppable rather than interpolated. Reading
+ * `.tsx` alone, the dead-rule sweep called all six unused the moment they moved out of a component.
+ */
+export function moduleFiles(dir: string): string[] {
+  const out: string[] = [];
+  for (const name of readdirSync(join(APP_ROOT, dir))) {
+    const rel = `${dir}/${name}`;
+    if (statSync(join(APP_ROOT, rel)).isDirectory()) out.push(...moduleFiles(rel));
+    else if (name.endsWith('.ts')) out.push(rel);
+  }
+  return out;
+}

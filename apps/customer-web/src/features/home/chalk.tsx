@@ -41,15 +41,11 @@ import { CATALOGUE, type GymDetail } from '../discovery/fixtures/catalogue.ts';
 import { EMPTY_QUERY, formatMinor, search } from '../discovery/search.ts';
 import { checkoutHref } from '../checkout/quote.ts';
 
-/**
- * Six abstract grounds, assigned by position in the row.
- *
- * `BR-GYM-01` is that nothing is listed before a person approves it, so there are no photographs
- * to show. A stock image of somebody else's gym under a badge reading "Verified" would be the
- * exact claim the badge exists to prevent, so the artwork is deliberately non-representational:
- * six distinct grounds that make the row scannable without pretending to be six places.
+/*
+ * `ART` lived here and is gone: every surface that used it now shows a photograph, and the six
+ * grounds survive in `gym-art.ts` as the fallback for a listing with no cover. One home for the
+ * decision, which is where it should have been from the start.
  */
-const ART = ['gm-art-1', 'gm-art-2', 'gm-art-3', 'gm-art-4', 'gm-art-5', 'gm-art-6'] as const;
 
 function SectionHead({
   eyebrow,
@@ -460,7 +456,17 @@ export function CityGrid() {
    */
   const cities = [...new Set(CATALOGUE.map((gym) => gym.citySlug))].map((slug) => {
     const gyms = CATALOGUE.filter((gym) => gym.citySlug === slug);
-    return { slug, name: gyms[0]!.city, count: gyms.length };
+    const first = gyms[0]!;
+    /*
+     * The tile wears a photograph from a gym in that city, with the same "Sample photo" marker
+     * every other cover carries.
+     *
+     * It was one of six abstract gradients before, and those six introduce five hues - orange,
+     * cyan, violet, green, pink - that appear nowhere else in this identity. Four of them in a
+     * row under an ink-and-amber page is a palette of its own. The gradients stay as the ground
+     * for a listing with no cover at all, which is what they were always for.
+     */
+    return { slug, name: first.city, count: gyms.length, cover: first };
   });
 
   return (
@@ -473,10 +479,14 @@ export function CityGrid() {
         />
 
         <ul className="gm-cities">
-          {cities.map((city, i) => (
+          {cities.map((city) => (
             <li key={city.slug}>
               <Link href={`/gyms/${city.slug}`} className="gm-city">
-                <span aria-hidden="true" className={`gm-city-art ${ART[i % ART.length]!}`} />
+                <GymPhoto
+                  gym={city.cover}
+                  sizes="(min-width: 1080px) 25vw, (min-width: 760px) 50vw, 100vw"
+                  className="gm-city-art"
+                />
                 <span className="gm-city-t">
                   <strong>{city.name}</strong>
                   <span>

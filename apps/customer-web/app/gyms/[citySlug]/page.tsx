@@ -8,9 +8,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { t } from '../../../src/shared/i18n/index.ts';
 import { toJsonLd } from '../../../src/features/gym-detail/json-ld.ts';
 import { cityLanding, toItemList } from '../../../src/features/landings/landings.ts';
+import { cityLandingMetadata } from '../../../src/features/landings/landing-metadata.ts';
 import { CityLandingView } from '../../../src/features/landings/landing-views.tsx';
 
 /** The origin structured data resolves against. Configured, never guessed from a request. */
@@ -20,16 +20,20 @@ interface RouteParams {
   readonly params: { readonly citySlug: string };
 }
 
+/**
+ * Next requires the EXPORT to live in the route file. The copy itself does not, so it does not —
+ * `F1`, and `landing-metadata.ts` carries the full reason.
+ *
+ * The adaptation is spread-conditional rather than a plain assignment because
+ * `exactOptionalPropertyTypes` is on: `{ description: undefined }` does not satisfy
+ * `description?: string`, and writing the key with no value would also emit an empty meta tag.
+ */
 export function generateMetadata({ params }: RouteParams): Metadata {
-  const landing = cityLanding(params.citySlug);
-  if (landing === null) return { title: `${t('web.gym.notFound.title')} · GymMap` };
-
+  const meta = cityLandingMetadata(params.citySlug);
   return {
-    title: `${t('web.landing.city.title').replace('{city}', landing.name)} · GymMap`,
-    description: t('web.landing.city.metaDescription').replace('{city}', landing.name),
-    // One canonical per place. Without it `/gyms/bengaluru` and `/search?city=bengaluru` compete
-    // for the same results and a search engine picks — usually the one with less copy on it.
-    alternates: { canonical: `/gyms/${landing.slug}` },
+    title: meta.title,
+    ...(meta.description === undefined ? {} : { description: meta.description }),
+    ...(meta.canonical === undefined ? {} : { alternates: { canonical: meta.canonical } }),
   };
 }
 

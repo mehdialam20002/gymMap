@@ -28,7 +28,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { code, source, tsxFiles } from './helpers.ts';
+import { code, moduleFiles, source, tsxFiles } from './helpers.ts';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WCAG 2.x, from the definitions.
@@ -445,8 +445,13 @@ test('no rule is left in the stylesheet with nothing using it', () => {
   const declared = new Set([...strip(CSS).matchAll(/\.(gm-[a-z0-9-]+)/g)].map(([, name]) => name!));
   assert.ok(declared.size >= 60, `only ${String(declared.size)} gm- rules found; the scan broke`);
 
-  const applied = tsxFiles('src')
-    .concat(tsxFiles('app'))
+  /*
+   * `.ts` as well as `.tsx`. A class name does not have to live in JSX to be applied: `gym-art.ts`
+   * holds the six ground classes and hands one to whichever component asks, which is exactly the
+   * shape this repository keeps reaching for so a name is greppable rather than interpolated.
+   * Scanning components only, the sweep called all six dead the moment they moved out of a `.tsx`.
+   */
+  const applied = [...tsxFiles('src'), ...tsxFiles('app'), ...moduleFiles('src')]
     .map((rel) => strip(source(rel)))
     .join('\n');
 
