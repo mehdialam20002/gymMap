@@ -94,17 +94,14 @@ export function ForGymsPage() {
       </section>
 
       <section className="mx-auto max-w-container px-inset-md py-region-md">
-        <h2 className="text-2xl font-semibold tracking-tight text-content sm:text-3xl">
+        <h2 className="text-3xl font-bold tracking-tight text-content sm:text-4xl">
           {t('web.forGyms.value.title')}
         </h2>
         <ul className="mt-stack-xl grid gap-stack-lg sm:grid-cols-2">
           {VALUE.map((item) => {
             const Glyph = icon[item.glyph];
             return (
-              <li
-                key={item.title}
-                className="rounded-card border border-subtle bg-surface-raised p-inset-lg"
-              >
+              <li key={item.title} className="gm-card gm-card-interactive rounded-card p-inset-lg">
                 <span className="flex h-[2.75rem] w-[2.75rem] items-center justify-center rounded-full bg-surface-brand-subtle">
                   <Glyph aria-hidden="true" className="h-[1.5rem] w-[1.5rem] text-content-brand" />
                 </span>
@@ -118,7 +115,7 @@ export function ForGymsPage() {
 
       <section id="how" className="border-y border-subtle bg-surface-subtle">
         <div className="mx-auto max-w-container px-inset-md py-region-md">
-          <h2 className="text-2xl font-semibold tracking-tight text-content sm:text-3xl">
+          <h2 className="text-3xl font-bold tracking-tight text-content sm:text-4xl">
             {t('web.forGyms.steps.title')}
           </h2>
           <ol className="mt-stack-xl grid gap-stack-lg sm:grid-cols-2 lg:grid-cols-4">
@@ -140,7 +137,7 @@ export function ForGymsPage() {
 
       <section className="mx-auto max-w-container px-inset-md py-region-md">
         <div className="max-w-prose">
-          <h2 className="text-2xl font-semibold tracking-tight text-content sm:text-3xl">
+          <h2 className="text-3xl font-bold tracking-tight text-content sm:text-4xl">
             {t('web.forGyms.commission.title')}
           </h2>
           <p className="mt-stack-md text-base text-content-secondary">

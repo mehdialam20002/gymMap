@@ -64,7 +64,12 @@ export function MobileNav() {
         onClick={openDrawer}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className="gm-hit-target inline-flex items-center justify-center rounded-control border border-subtle p-inset-2xs text-content transition-colors duration-fast ease-standard hover:border-strong lg:hidden"
+        data-on-media="true"
+        // The TRIGGER lives inside the glass pill, so it takes the media pair. `text-content` is
+        // the light-canvas ink and would go near-black on a near-black bar — correct-looking in
+        // the file, invisible on the page. The PANEL below is a normal light surface and keeps
+        // the canvas tokens; only this button crosses the boundary.
+        className="gm-hit-target inline-flex items-center justify-center rounded-full border border-strong p-inset-2xs text-content-on-media transition-opacity duration-fast ease-standard hover:opacity-80 lg:hidden"
       >
         <Menu aria-hidden="true" className="h-[1.25rem] w-[1.25rem]" />
         <span className="sr-only">{t('web.chrome.nav.openMenu')}</span>

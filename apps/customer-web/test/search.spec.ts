@@ -51,6 +51,7 @@ test('every filter survives a round trip through the URL', () => {
     amenity: 'Showers',
     maxPriceMinor: 2_50_000n,
     minRating: 4,
+    radiusKm: 5,
     sort: 'price-asc',
   };
   assert.deepEqual(roundTrip(query), query);

@@ -224,7 +224,7 @@ function HubPage({
           <li key={entry.key}>
             <Link
               href={entry.href}
-              className="group flex items-center gap-inline-md rounded-card border border-subtle bg-surface-raised p-inset-lg transition-colors duration-fast ease-standard hover:border-brand"
+              className="gm-card gm-card-interactive group flex items-center gap-inline-md rounded-card p-inset-lg"
             >
               <span className="flex h-[2.75rem] w-[2.75rem] shrink-0 items-center justify-center rounded-full bg-surface-brand-subtle">
                 <entry.Glyph
@@ -263,7 +263,7 @@ function GymGrid({
 }) {
   if (gyms.length === 0) {
     return (
-      <p className="mt-stack-xl max-w-prose rounded-card border border-subtle bg-surface-sunken p-inset-lg text-base text-content-secondary">
+      <p className="gm-card mt-stack-xl max-w-prose rounded-card p-inset-lg text-base text-content-secondary">
         {t(emptyKey)}
       </p>
     );
@@ -289,13 +289,13 @@ function ChipSection({
 
   return (
     <section className="mt-region-sm border-t border-subtle pt-stack-lg">
-      <h2 className="text-xl font-semibold text-content">{title}</h2>
+      <h2 className="text-2xl font-bold tracking-tight text-content">{title}</h2>
       <ul className="mt-stack-md flex flex-wrap gap-inline-xs">
         {chips.map((chip) => (
           <li key={chip.key}>
             <Link
               href={chip.href}
-              className="gm-hit-target inline-block rounded-control border border-subtle bg-surface-raised px-inset-md py-inset-xs text-base text-content-secondary transition-colors duration-fast ease-standard hover:border-strong hover:text-content"
+              className="gm-card gm-lift gm-hit-target inline-block rounded-control px-inset-md py-inset-xs text-base text-content-secondary hover:text-content"
             >
               {chip.label}
             </Link>

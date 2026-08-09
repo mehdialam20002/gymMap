@@ -41,7 +41,7 @@ export function AccountShell({
 
       <header className="mt-stack-lg flex flex-wrap items-baseline justify-between gap-inline-md">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-content">{t(title)}</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-content">{t(title)}</h1>
           <p className="mt-stack-2xs text-base text-content-secondary">
             {DEMO_MEMBER.name} · {t('web.account.memberSince')}{' '}
             <time dateTime={machineDate(DEMO_MEMBER.memberSince)}>

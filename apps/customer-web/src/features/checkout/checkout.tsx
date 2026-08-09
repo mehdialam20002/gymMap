@@ -38,7 +38,7 @@ export function Checkout({ selection }: { readonly selection: CheckoutSelection 
     <div className="mx-auto max-w-container px-inset-md py-region-sm">
       <FixtureNotice />
 
-      <h1 className="mt-stack-lg text-3xl font-bold tracking-tight text-content">
+      <h1 className="mt-stack-lg text-4xl font-bold tracking-tight text-content">
         {t('web.checkout.title')}
       </h1>
 
@@ -48,7 +48,7 @@ export function Checkout({ selection }: { readonly selection: CheckoutSelection 
             {t('web.checkout.section.membership')}
           </h2>
 
-          <div className="mt-stack-md flex flex-wrap gap-inline-lg rounded-card border border-subtle bg-surface-raised p-inset-lg">
+          <div className="gm-card mt-stack-md flex flex-wrap gap-inline-lg rounded-card p-inset-lg">
             <Link
               href={`/gyms/${gym.citySlug}/${gym.slug}`}
               className="relative block aspect-video w-[12rem] shrink-0 overflow-hidden rounded-card bg-surface-sunken"
@@ -104,7 +104,7 @@ export function Checkout({ selection }: { readonly selection: CheckoutSelection 
         </section>
 
         <aside className="gm-plan-card lg:self-start">
-          <div className="rounded-card border border-subtle bg-surface-raised p-inset-lg shadow-xs dark:shadow-none">
+          <div className="gm-card rounded-card p-inset-lg">
             <h2 className="text-lg font-semibold text-content">
               {t('web.checkout.section.total')}
             </h2>

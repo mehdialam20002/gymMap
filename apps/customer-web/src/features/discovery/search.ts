@@ -52,8 +52,20 @@ export interface SearchQuery {
   /** Integer paise, matching the catalogue. A rupee ceiling here would be the classic slip. */
   readonly maxPriceMinor: bigint | null;
   readonly minRating: number | null;
+  /**
+   * Distance ceiling in whole kilometres, or `null` for "anywhere".
+   *
+   * `FR-SRCH-03` lists a distance radius among the filters, and region 2 of `SCR-WEB-001` calls
+   * the popular rail with `radius_m=5000`. Kilometres rather than metres in the URL because the
+   * control offers 2 / 5 / 10 / 25 and `?radius=5` is a thing a person can read and edit; the
+   * metre value is an API detail, not a shareable one.
+   */
+  readonly radiusKm: number | null;
   readonly sort: Sort;
 }
+
+/** The distances the control offers. A free-text radius is a filter nobody asked to express. */
+export const RADII = [2, 5, 10, 25] as const;
 
 /** Anything `URLSearchParams` or Next's `searchParams` can hand over. */
 export type RawParams = Record<string, string | string[] | undefined>;
@@ -85,6 +97,10 @@ export function parseSearchQuery(params: RawParams): SearchQuery {
   const ratingRaw = first(params['rating']);
   const minRating = RATING_FLOORS.find((floor) => String(floor) === ratingRaw) ?? null;
 
+  // Same tolerance as everything else here: an unknown radius means "anywhere", not an error.
+  const radiusRaw = first(params['radius']);
+  const radiusKm = RADII.find((km) => String(km) === radiusRaw) ?? null;
+
   return {
     q: first(params['q']) ?? '',
     city: first(params['city']),
@@ -92,6 +108,7 @@ export function parseSearchQuery(params: RawParams): SearchQuery {
     amenity: first(params['amenity']),
     maxPriceMinor,
     minRating,
+    radiusKm,
     sort,
   };
 }
@@ -112,6 +129,7 @@ export function toSearchParams(query: Partial<SearchQuery>): string {
   // Integer division, and exact: the value only ever arrives here as whole rupees × 100.
   if (query.maxPriceMinor) params.set('maxPrice', String(query.maxPriceMinor / 100n));
   if (query.minRating) params.set('rating', String(query.minRating));
+  if (query.radiusKm) params.set('radius', String(query.radiusKm));
   if (query.sort && query.sort !== 'relevance') params.set('sort', query.sort);
   const encoded = params.toString();
   return encoded === '' ? '/search' : `/search?${encoded}`;
@@ -125,6 +143,7 @@ export const EMPTY_QUERY: SearchQuery = {
   amenity: null,
   maxPriceMinor: null,
   minRating: null,
+  radiusKm: null,
   sort: 'relevance',
 };
 
@@ -173,6 +192,9 @@ export function search(query: SearchQuery): readonly GymDetail[] {
     if (query.category !== null && !gym.categories.includes(query.category)) return false;
     if (query.amenity !== null && !gym.amenities.includes(query.amenity)) return false;
     if (query.maxPriceMinor !== null && gym.fromPriceMinor > query.maxPriceMinor) return false;
+    // `<=`, so "within 5 km" includes a gym at exactly 5.0. A member reading the label would be
+    // surprised to have it excluded, and there is no ambiguity to protect here.
+    if (query.radiusKm !== null && gym.distanceKm > query.radiusKm) return false;
     /*
      * An UNRATED gym fails a rating floor. That looks inconsistent with `BY_SORT.rating`, which
      * deliberately puts unrated gyms last rather than treating them as zero — and it is not.

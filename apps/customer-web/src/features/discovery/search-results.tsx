@@ -60,7 +60,7 @@ export function SearchResults({ query }: { readonly query: SearchQuery }) {
     <div className="mx-auto max-w-container px-inset-md py-region-sm">
       <FixtureNotice />
 
-      <h1 className="mt-stack-lg text-3xl font-bold tracking-tight text-content">
+      <h1 className="mt-stack-lg text-4xl font-bold tracking-tight text-content">
         {query.q === ''
           ? t('web.search.heading.any')
           : `${t('web.search.heading.query')} “${query.q}”`}
@@ -76,7 +76,24 @@ export function SearchResults({ query }: { readonly query: SearchQuery }) {
       <SearchForm query={query} />
       <ActiveFilters query={query} />
 
-      <div className="mt-stack-lg grid gap-inline-xl lg:grid-cols-[17rem_minmax(0,1fr)]">
+      {/*
+       * ┌─ `minmax(0,1fr)` ON THE BASE TRACK TOO, NOT ONLY ON THE `lg` ONE ──────────────────────┐
+       * │ The desktop template already said `minmax(0,1fr)` for the results column, and the      │
+       * │ reason it says that is exactly the reason the base track needed it: an `auto` track     │
+       * │ takes `min-content` as its MINIMUM, and a grid item's default `min-width: auto` lets    │
+       * │ that minimum win over the container.                                                    │
+       * │                                                                                        │
+       * │ Below `lg` there was no template at all, so the single implicit track was `auto`.       │
+       * │ Measured at 390px: the container was 358px and the track resolved to 1758px, so the     │
+       * │ page scrolled sideways by 1400px on every phone. The filter rail's chip rows are what   │
+       * │ set that min-content, and they have their own `overflow-x: auto` - which never got the  │
+       * │ chance to scroll, because the track had already grown to fit them.                       │
+       * │                                                                                        │
+       * │ Horizontal scroll on a phone is the defect that hides best: the content still looks     │
+       * │ right, and you only meet it by swiping.                                                 │
+       * └────────────────────────────────────────────────────────────────────────────────────────┘
+       */}
+      <div className="mt-stack-lg grid grid-cols-[minmax(0,1fr)] gap-inline-xl lg:grid-cols-[17rem_minmax(0,1fr)]">
         <Filters query={query} groups={groups} />
 
         <div className="min-w-0">
@@ -129,7 +146,7 @@ function SearchForm({ query }: { query: SearchQuery }) {
         type="search"
         defaultValue={query.q}
         placeholder={t('web.search.field.placeholder')}
-        className="min-w-0 flex-1 rounded-control border border-input bg-surface px-inset-md py-inset-sm text-md text-content placeholder:text-content-muted"
+        className="gm-search-slab min-w-0 flex-1 rounded-control border border-input bg-surface-raised px-inset-md py-inset-sm text-md text-content placeholder:text-content-muted"
       />
       {/*
        * Every OTHER filter rides along as a hidden field. Without these, typing a new term
@@ -261,7 +278,7 @@ function Filters({ query, groups }: { query: SearchQuery; groups: ReturnType<typ
       aria-label={t('web.search.filters.label')}
       // Tighter below `lg`: five chip rows at desktop rhythm push the first result a full screen
       // down on a phone, and the rows are already visually separated by their own headings.
-      className="gm-filter-rail flex flex-col gap-stack-sm lg:gap-stack-lg lg:self-start"
+      className="gm-filter-rail flex min-w-0 flex-col gap-stack-sm lg:gap-stack-lg lg:self-start"
     >
       <FacetGroup
         title="web.search.filters.city"
@@ -476,7 +493,7 @@ function EmptyState({ query }: { query: SearchQuery }) {
   ].filter((entry): entry is { label: string; href: string } => entry !== false);
 
   return (
-    <div className="mt-stack-md rounded-card border border-subtle bg-surface-sunken p-inset-lg">
+    <div className="gm-card mt-stack-md rounded-card p-inset-lg">
       <h2 className="text-lg font-semibold text-content">{t('web.search.empty.title')}</h2>
       <p className="mt-stack-2xs max-w-prose text-base text-content-secondary">
         {t('web.search.empty.body')}

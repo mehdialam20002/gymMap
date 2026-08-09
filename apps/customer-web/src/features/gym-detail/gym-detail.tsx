@@ -149,7 +149,7 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
         {/* `gm-plan-card` pins the card below the header on desktop — same
             `--gm-chrome-height` the filter rail uses, declared once in globals.css. */}
         <aside className="gm-plan-card lg:self-start">
-          <div className="rounded-card border border-subtle bg-surface-raised p-inset-lg shadow-xs dark:shadow-none">
+          <div className="gm-card rounded-card p-inset-lg">
             <h2 className="text-lg font-semibold text-content">{t('web.gym.plans.title')}</h2>
 
             {/*
@@ -228,7 +228,7 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-stack-xl first:mt-0">
-      <h2 className="text-xl font-semibold text-content">{title}</h2>
+      <h2 className="text-2xl font-bold tracking-tight text-content">{title}</h2>
       <div className="mt-stack-sm">{children}</div>
     </section>
   );
@@ -275,7 +275,7 @@ function AtAGlance({ gym }: { readonly gym: Gym }) {
   ];
 
   return (
-    <dl className="grid gap-stack-md rounded-card border border-subtle bg-surface-raised p-inset-lg sm:grid-cols-2 xl:grid-cols-4">
+    <dl className="gm-card grid gap-stack-md rounded-card p-inset-lg sm:grid-cols-2 xl:grid-cols-4">
       {facts.map((fact) => (
         <div key={fact.key}>
           <dt className="text-sm text-content-muted">{fact.term}</dt>

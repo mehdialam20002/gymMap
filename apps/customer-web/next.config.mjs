@@ -77,7 +77,14 @@ const nextConfig = {
      * bucket (`FR-GYM-02`), and it is listed here rather than as a wildcard so that removal is a
      * one-line diff somebody can actually find.
      */
-    remotePatterns: [{ protocol: 'https', hostname: 'images.pexels.com' }],
+    // Two named hosts, never a wildcard. Pexels carries the fixture catalogue's covers; Unsplash
+    // carries the hero poster. Both go the day `FR-GYM-02`'s upload path exists and the CDN takes
+    // over, and both are named again in `CSP_MEDIA_HOST` — the optimiser and the policy have to
+    // agree or the image 404s in one and is blocked in the other.
+    remotePatterns: [
+      { protocol: 'https', hostname: 'images.pexels.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+    ],
   },
 
   // `NFR-PERF-10` — 200 KB gzipped. The header carries a build id and nothing about the stack.

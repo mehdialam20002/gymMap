@@ -41,7 +41,7 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
   const hidden = gym.amenities.length - AMENITIES_SHOWN;
 
   return (
-    <li className="group overflow-hidden rounded-card border border-subtle bg-surface-raised shadow-xs transition-shadow duration-base ease-standard hover:shadow-md dark:shadow-none">
+    <li className="gm-card gm-card-interactive group overflow-hidden rounded-card">
       <Link href={`/gyms/${gym.citySlug}/${gym.slug}`} className="block">
         {/*
          * 16:9 via `aspect-video` rather than a fixed height: a fixed height crops differently at

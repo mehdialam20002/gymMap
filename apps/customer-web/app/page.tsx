@@ -12,14 +12,14 @@
 import { t } from '../src/shared/i18n/index.ts';
 import { Hero } from '../src/features/home/hero.tsx';
 import { Section } from '../src/features/home/section.tsx';
+import { Cities, Closing, ForOwners, Goals, HowItWorks } from '../src/features/home/sections.tsx';
 import {
-  Cities,
-  Closing,
-  ForOwners,
-  Goals,
-  HowItWorks,
-  TrustStrip,
-} from '../src/features/home/sections.tsx';
+  CompareTeaser,
+  HomeFaq,
+  MemberExperience,
+  Memberships,
+  Reviews,
+} from '../src/features/home/marketplace.tsx';
 import { GymCard } from '../src/features/discovery/gym-card.tsx';
 import { FixtureNotice } from '../src/features/discovery/search-results.tsx';
 import { parseSearchQuery, search } from '../src/features/discovery/search.ts';
@@ -28,13 +28,13 @@ export default function HomePage() {
   return (
     <>
       <Hero />
-      <TrustStrip />
 
       {/*
        * Six of the eight fixture listings, sorted nearest-first — the same query `/search` runs,
        * through the same module, so the home page cannot drift from the results page.
        */}
       <Section
+        eyebrow="web.home.eyebrow.featured"
         title="web.home.featured.title"
         action={{ href: '/search', label: 'web.home.featured.seeAll' }}
       >
@@ -50,9 +50,12 @@ export default function HomePage() {
 
       <Goals />
       <HowItWorks />
+      <Memberships />
+      <CompareTeaser />
+      <Reviews />
 
       {/* The long form of the three promises — the mechanism behind each strip item. */}
-      <Section title="web.home.why.title">
+      <Section eyebrow="web.home.eyebrow.why" title="web.home.why.title">
         <ul className="grid gap-stack-lg sm:grid-cols-2 xl:grid-cols-3">
           {(
             [
@@ -61,10 +64,7 @@ export default function HomePage() {
               ['web.home.value.reviews.title', 'web.home.value.reviews.body'],
             ] as const
           ).map(([title, body]) => (
-            <li
-              key={title}
-              className="rounded-card border border-subtle bg-surface-raised p-inset-lg shadow-xs dark:shadow-none"
-            >
+            <li key={title} className="gm-card rounded-card p-inset-lg">
               <h3 className="text-lg font-semibold text-content">{t(title)}</h3>
               <p className="mt-stack-xs text-base text-content-secondary">{t(body)}</p>
             </li>
@@ -72,8 +72,10 @@ export default function HomePage() {
         </ul>
       </Section>
 
+      <MemberExperience />
       <Cities />
       <ForOwners />
+      <HomeFaq />
 
       <Closing />
 
@@ -82,7 +84,8 @@ export default function HomePage() {
        * "join now — actually, none of this works". Same sentence, same honesty, and it no longer
        * argues with the button directly above it.
        */}
-      <section className="border-t border-subtle bg-surface">
+      {/* `subtle`, because the closing call to action above it is the plain band. */}
+      <section className="border-t border-subtle bg-surface-subtle">
         <div className="gm-reveal mx-auto max-w-container px-inset-md py-region-sm">
           <div className="rounded-card border border-info bg-surface-info-subtle p-inset-lg">
             <h2 className="text-base font-semibold text-content-info">

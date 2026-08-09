@@ -37,7 +37,7 @@ export function AccountOverview() {
         <h2 className="text-xl font-semibold text-content">{t('web.account.overview.active')}</h2>
 
         {active === null ? (
-          <div className="mt-stack-md rounded-card border border-subtle bg-surface-sunken p-inset-lg">
+          <div className="gm-card mt-stack-md rounded-card p-inset-lg">
             <p className="max-w-prose text-base text-content-secondary">
               {t('web.account.overview.none')}
             </p>
@@ -95,7 +95,7 @@ function MembershipCard({ membership }: { readonly membership: Membership }) {
   const Place = icon.place;
 
   return (
-    <article className="rounded-card border border-subtle bg-surface-raised p-inset-lg shadow-xs dark:shadow-none">
+    <article className="gm-card rounded-card p-inset-lg">
       <div className="flex flex-wrap items-start justify-between gap-inline-md">
         <div className="min-w-0">
           <h3 className="text-lg font-semibold text-content">
@@ -180,7 +180,7 @@ export function CheckInScreen({ membershipId }: { readonly membershipId: string 
         </p>
       ) : (
         <div className="grid gap-inline-xl lg:grid-cols-[24rem_minmax(0,1fr)]">
-          <div className="rounded-card border border-subtle bg-surface-raised p-inset-lg text-center">
+          <div className="gm-card rounded-card p-inset-lg text-center">
             {/*
              * ┌─ THE PANEL IS EMPTY, AND THAT IS THE FEATURE ───────────────────────────────────┐
              * │ `FR-CHK-02` / `BR-CHK-02`: the token is SERVER-SIGNED and expires in 60 seconds. │
@@ -297,10 +297,7 @@ export function Orders() {
       ) : (
         <ul className="mt-stack-lg flex flex-col gap-stack-lg">
           {DEMO_MEMBER.orders.map((order) => (
-            <li
-              key={order.id}
-              className="rounded-card border border-subtle bg-surface-raised p-inset-lg"
-            >
+            <li key={order.id} className="gm-card rounded-card p-inset-lg">
               <div className="flex flex-wrap items-start justify-between gap-inline-md">
                 <div className="min-w-0">
                   <h2 className="text-lg font-semibold text-content">{order.gymName}</h2>
@@ -390,7 +387,7 @@ export function Reviews() {
           {eligible.map((gymName) => (
             <li
               key={gymName}
-              className="flex flex-wrap items-center justify-between gap-inline-md rounded-card border border-subtle bg-surface-raised p-inset-lg"
+              className="gm-card flex flex-wrap items-center justify-between gap-inline-md rounded-card p-inset-lg"
             >
               <span className="flex items-center gap-inline-sm text-base font-medium text-content">
                 <Verified

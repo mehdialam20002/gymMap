@@ -24,7 +24,7 @@ export function ComparePage({ selection }: { readonly selection: CompareSelectio
     <div className="mx-auto max-w-container px-inset-md py-region-sm">
       <FixtureNotice />
 
-      <h1 className="mt-stack-lg text-3xl font-bold tracking-tight text-content">
+      <h1 className="mt-stack-lg text-4xl font-bold tracking-tight text-content">
         {t('web.compare.title')}
       </h1>
 
@@ -93,7 +93,9 @@ function Picker({
 
   return (
     <section className="mt-region-sm border-t border-subtle pt-stack-xl">
-      <h2 className="text-xl font-semibold text-content">{t('web.compare.pick.title')}</h2>
+      <h2 className="text-2xl font-bold tracking-tight text-content">
+        {t('web.compare.pick.title')}
+      </h2>
 
       {full && (
         <p className="mt-stack-xs max-w-prose text-base text-content-secondary">
@@ -113,7 +115,7 @@ function Picker({
             const isChosen = chosen.has(key);
             return (
               <li key={gym.id}>
-                <label className="gm-hit-target flex cursor-pointer items-start gap-inline-sm rounded-card border border-subtle bg-surface-raised p-inset-md transition-colors duration-fast ease-standard hover:border-strong has-[:checked]:border-brand has-[:checked]:bg-surface-brand-subtle">
+                <label className="gm-card gm-hit-target flex cursor-pointer items-start gap-inline-sm rounded-card p-inset-md has-[:checked]:border-brand has-[:checked]:bg-surface-brand-subtle">
                   <input
                     type="checkbox"
                     name="gym"

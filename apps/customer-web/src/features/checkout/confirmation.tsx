@@ -36,12 +36,12 @@ export function Confirmation() {
 
   return (
     <div className="mx-auto max-w-container px-inset-md py-region-md">
-      <h1 className="text-3xl font-bold tracking-tight text-content">
+      <h1 className="text-4xl font-bold tracking-tight text-content">
         {t('web.confirmation.title')}
       </h1>
 
       <div className="mt-stack-xl grid gap-inline-xl lg:grid-cols-2">
-        <section className="rounded-card border border-subtle bg-surface-raised p-inset-lg">
+        <section className="gm-card rounded-card p-inset-lg">
           <h2 className="flex items-start gap-inline-sm text-lg font-semibold text-content">
             <Secure
               aria-hidden="true"
@@ -54,7 +54,7 @@ export function Confirmation() {
           </p>
         </section>
 
-        <section className="rounded-card border border-subtle bg-surface-raised p-inset-lg">
+        <section className="gm-card rounded-card p-inset-lg">
           <h2 className="text-lg font-semibold text-content">{t('web.confirmation.next.title')}</h2>
           <ul className="mt-stack-sm flex flex-col gap-stack-sm">
             {NEXT_STEPS.map((key) => (

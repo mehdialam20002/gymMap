@@ -1,46 +1,43 @@
 /**
- * `SCR-WEB-001` — the hero.
+ * `SCR-WEB-001` — the hero, in "Chalk & Iron".
  *
  * Design read: `customer-web` for Priya, deciding, on a phone, being persuaded. Comfortable
- * density (`DesignSystem.md` §1.1), VARIANCE 7 and MOTION 4 — one moving thing, and it is the
- * footage. Nothing else on this surface animates.
+ * density (`DesignSystem.md` §1.1), VARIANCE 8 and MOTION 5 — the highest either has gone on this
+ * surface, and the owner's call.
  *
- * ┌─ WHY THE COPY SITS ON AN OPAQUE BAND RATHER THAN ON THE FOOTAGE ────────────────────────────┐
- * │ `contrast.proof.ts` refuses translucent colours on purpose, and the reason lands exactly    │
- * │ here: the ratio of light text over a scrim depends on the video FRAME behind it. Provable   │
- * │ against the establishing shot, unprovable four seconds later when the camera finds a        │
- * │ window. That is not a contrast measurement, it is a hope with a number next to it.          │
+ * ┌─ THE BACKGROUND IS DRAWN, NOT PHOTOGRAPHED ─────────────────────────────────────────────────┐
+ * │ Two radial washes, a 78px rule grid masked to an ellipse, three rings that read as weight    │
+ * │ plates seen edge-on, and 300 bytes of SVG grain. No image at all.                            │
  * │                                                                                              │
- * │ So `.gm-media-veil` reaches FULLY OPAQUE `surface-media` across the region the copy          │
- * │ occupies, and every pairing here is proved against it: `MD1` at 19.28:1 for the copy and    │
- * │ `MD3` at 10.12:1 for the accent. The brand's own `indigo-600` measures 3.21:1 on this band  │
- * │ and is not usable, which is why the accent has its own token.                                │
+ * │ Which removes the entire problem the last four versions of this file were about. A           │
+ * │ photograph can present any pixel, so copy on it needs a bounded worst case, a scrim tuned to │
+ * │ it, and a proof that survives the next photograph somebody swaps in. A gradient is a known   │
+ * │ colour: `content-primary` on `surface-default` is 17.76:1 and stays 17.76:1.                  │
+ * │                                                                                              │
+ * │ It is also faster. The LCP is text now, painted as soon as the font is ready, rather than a  │
+ * │ 180 KB decode sitting on the critical path.                                                   │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ WHAT THIS HERO DELIBERATELY DOES NOT HAVE ────────────────────────────────────────────────┐
- * │ No counter strip, no rating badge, no "#1" claim. Not an aesthetic preference:              │
+ * │ The reference's tag reads "69 verified gyms live". There are eight fixture listings and zero │
+ * │ approved ones, so that is a false statement made by a platform to a consumer. The tag keeps  │
+ * │ the shape and the live dot and states what is actually true, counted from the catalogue.      │
  * │                                                                                              │
- * │   A number is bound to a live endpoint or there is no number. There are 26 fixture gyms and │
- * │   zero real listings, so "12,000+ gyms" would be a false statement to a consumer.           │
- * │                                                                                              │
- * │   `BR-REV-01` is that a review requires a recorded check-in. A "4.8 from 50,000 reviews"    │
- * │   badge on a platform with no check-ins contradicts the exact promise the page is making    │
- * │   three sections further down, which is worse than merely being untrue.                      │
- * │                                                                                              │
- * │ The persuasion is the three promises instead. They are the differentiators, and they have   │
- * │ the advantage of being true today.                                                           │
+ * │ Same rule that took the counter strip off the last three versions of this page: a number is  │
+ * │ bound to something real, or there is no number.                                               │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
- * The search control is one real `<form method="get">`. City, query and category all land in the
- * URL, so the result is shareable, crawlable and works before hydration — the entire reason
- * `SCR-WEB-002` keeps its state there.
+ * The search console is one real `<form method="get">`. City, radius and query all land in the
+ * URL, so the result is shareable, crawlable and works before hydration — and `FR-SRCH-03`'s
+ * distance radius is a filter `search()` actually applies, not a control painted on the design.
  */
 
 import Link from 'next/link';
 
 import { t, type MessageKey } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
-import { HeroMotionToggle, HeroVideo } from './hero-video.tsx';
+import { CATALOGUE } from '../discovery/fixtures/catalogue.ts';
+import { RADII } from '../discovery/search.ts';
 
 /** The cities the catalogue actually carries. A select offering a city with no gyms is a lie. */
 const CITIES = ['Bengaluru', 'Mumbai', 'Delhi', 'Chennai'] as const;
@@ -54,151 +51,165 @@ const CATEGORIES = [
   { key: 'web.home.hero.category.swimming', value: 'Swimming', glyph: 'swimming' },
 ] as const satisfies readonly { key: MessageKey; value: string; glyph: keyof typeof icon }[];
 
-const PROMISES = [
-  {
-    glyph: 'verified',
-    title: 'web.home.hero.promise.verified.title',
-    note: 'web.home.hero.promise.verified.note',
-  },
-  {
-    glyph: 'pricing',
-    title: 'web.home.hero.promise.pricing.title',
-    note: 'web.home.hero.promise.pricing.note',
-  },
-  {
-    glyph: 'reviews',
-    title: 'web.home.hero.promise.reviews.title',
-    note: 'web.home.hero.promise.reviews.note',
-  },
-] as const satisfies readonly { glyph: keyof typeof icon; title: MessageKey; note: MessageKey }[];
+/**
+ * The four promises, as the marquee reads them.
+ *
+ * The same four claims the site makes everywhere — `BR-GYM-01`, `BR-PLN-03`, `BR-REV-01`,
+ * `BR-PAY-02` — each one a rule enforced elsewhere in this codebase, and each one true today,
+ * which a membership count is not.
+ */
+const CLAIMS = [
+  { title: 'web.home.trust.verified.title', body: 'web.home.trust.verified.body' },
+  { title: 'web.home.trust.pricing.title', body: 'web.home.trust.pricing.body' },
+  { title: 'web.home.trust.reviews.title', body: 'web.home.trust.reviews.body' },
+  { title: 'web.home.trust.payments.title', body: 'web.home.trust.payments.body' },
+] as const satisfies readonly { title: MessageKey; body: MessageKey }[];
 
 export function Hero() {
   const Place = icon.place;
   const Search = icon.search;
+  const Radius = icon.radius;
+
+  // Counted, not claimed.
+  const cities = new Set(CATALOGUE.map((gym) => gym.city)).size;
 
   return (
-    <section className="relative isolate overflow-hidden bg-surface-media">
-      <HeroVideo />
-
+    <section className="gm-hero">
       {/*
-       * `gm-media-veil` (globals.css) — flat `surface-media` across the region the copy occupies,
-       * with the stop position set per breakpoint. Tailwind's `via` is fixed at 50%, and on a
-       * phone the copy is taller than that, which put the headline over the footage.
+       * `aria-hidden`, because none of it carries meaning. A screen reader announcing "grid,
+       * circle, circle, circle" ahead of the headline is strictly worse than silence.
        */}
-      <div aria-hidden="true" className="gm-media-veil pointer-events-none absolute inset-0" />
+      <div aria-hidden="true" className="gm-hero-bg">
+        <div className="gm-hero-grid" />
+        <span className="gm-plate gm-plate-2" />
+        <span className="gm-plate gm-plate-1" />
+        <span className="gm-plate gm-plate-3" />
+        <div className="gm-noise" />
+      </div>
 
-      <div className="relative mx-auto max-w-container px-inset-md py-region-lg md:py-region-xl">
-        <div className="max-w-prose">
-          {/* An eyebrow that states a property of the product, not a ranking. */}
-          <p className="inline-flex items-center gap-inline-xs rounded-full border border-strong px-inset-sm py-inset-2xs text-xs font-medium text-content-on-media">
-            <icon.verified aria-hidden="true" className="h-[1rem] w-[1rem]" weight="fill" />
-            {t('web.home.hero.badge')}
-          </p>
+      <div className="gm-hero-in gm-wrap">
+        <p className="gm-hero-tag">
+          <span aria-hidden="true" className="gm-dot" />
+          {t('web.home.hero.tagCities').replace('{n}', String(cities))}
+        </p>
 
-          <h1 className="mt-stack-md text-4xl font-bold tracking-tight text-content-on-media md:text-5xl">
-            {t('web.home.hero.titleLead')}{' '}
-            <span className="text-content-on-media-accent">{t('web.home.hero.titleAccent')}</span>
-          </h1>
+        {/*
+         * Three lines, each in its own clipping box so it rises out of nothing. The breaks are
+         * DELIBERATE rather than a consequence of the measure — at 142px a headline that reflows
+         * is a different picture at every width, and this one is a composition.
+         */}
+        <h1 className="gm-display gm-display-hero">
+          <span className="gm-line">
+            <span>{t('web.home.hero.titleOne')}</span>
+          </span>
+          <span className="gm-line">
+            <span>{t('web.home.hero.titleTwo')}</span>
+          </span>
+          <span className="gm-line">
+            <span>
+              <em>{t('web.home.hero.titleAccent')}</em>
+            </span>
+          </span>
+        </h1>
 
-          <p className="mt-stack-md text-lg text-content-on-media">{t('web.home.hero.subtitle')}</p>
+        <div className="mt-[30px] flex flex-wrap items-end gap-[26px]">
+          <p className="m-0 max-w-[40ch] text-content-muted">{t('web.home.hero.subtitle')}</p>
+        </div>
+
+        <form action="/search" method="get" className="gm-console" role="search">
+          <div className="gm-field">
+            <label htmlFor="city">{t('web.home.hero.cityLabel')}</label>
+            <Place aria-hidden="true" className="mt-[14px] h-[15px] w-[15px] shrink-0" />
+            <select id="city" name="city" aria-label={t('web.home.hero.cityLabel')}>
+              <option value="">{t('web.home.hero.cityAny')}</option>
+              {CITIES.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/*
-           * The three promises, inline. Icon AND word AND position — never colour alone (AX8),
-           * which also means this row survives being read in greyscale.
+           * `FR-SRCH-03`'s distance radius. The design ships two fields; this is the third,
+           * because the filter is in the specification and `search()` applies it — a control the
+           * page draws but the query ignores is the thing this codebase keeps refusing to build.
            */}
-          <ul className="mt-stack-lg flex flex-wrap gap-x-inline-xl gap-y-stack-sm">
-            {PROMISES.map((promise) => {
-              const Glyph = icon[promise.glyph];
+          <div className="gm-field">
+            <label htmlFor="radius">{t('web.home.hero.radiusLabel')}</label>
+            <Radius aria-hidden="true" className="mt-[14px] h-[15px] w-[15px] shrink-0" />
+            <select id="radius" name="radius" aria-label={t('web.home.hero.radiusLabel')}>
+              <option value="">{t('web.home.hero.radiusAny')}</option>
+              {RADII.map((km) => (
+                <option key={km} value={km}>
+                  {t('web.home.hero.radiusWithin').replace('{km}', String(km))}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="gm-field">
+            <label htmlFor="q">{t('web.home.hero.searchLabel')}</label>
+            <Search aria-hidden="true" className="mt-[14px] h-[15px] w-[15px] shrink-0" />
+            <input
+              id="q"
+              name="q"
+              type="search"
+              placeholder={t('web.home.hero.searchPlaceholder')}
+              aria-label={t('web.home.hero.searchLabel')}
+            />
+          </div>
+
+          <button type="submit" className="gm-btn gm-btn-amber">
+            {t('web.home.hero.searchAction')} <i aria-hidden="true">→</i>
+          </button>
+        </form>
+
+        {/*
+         * Real links, not decoration. Each is a `/search?category=…` the results page already
+         * understands, which also makes them crawlable entry points (`FR-SRCH-13`).
+         */}
+        <nav aria-label={t('web.home.hero.browseLabel')} className="mt-[26px]">
+          <ul className="flex flex-wrap gap-inline-sm">
+            {CATEGORIES.map((category) => {
+              const Glyph = icon[category.glyph];
               return (
-                <li key={promise.title} className="flex items-start gap-inline-xs">
-                  <Glyph
-                    aria-hidden="true"
-                    className="mt-px h-[1.25rem] w-[1.25rem] shrink-0 text-content-on-media-accent"
-                  />
-                  <span className="flex flex-col">
-                    <span className="text-sm font-semibold text-content-on-media">
-                      {t(promise.title)}
-                    </span>
-                    <span className="text-xs text-content-on-media">{t(promise.note)}</span>
-                  </span>
+                <li key={category.value}>
+                  <Link
+                    href={`/search?category=${encodeURIComponent(category.value)}`}
+                    className="gm-hit-target inline-flex items-center gap-inline-xs rounded-full border border-subtle px-inset-md py-inset-xs text-sm font-semibold text-content-secondary transition-colors duration-fast ease-standard hover:border-brand hover:text-content"
+                  >
+                    <Glyph aria-hidden="true" className="h-[1rem] w-[1rem]" />
+                    {t(category.key)}
+                  </Link>
                 </li>
               );
             })}
           </ul>
+        </nav>
 
+        {/*
+         * The marquee is `aria-hidden` and every claim in it appears in full further down the
+         * page. A screen reader gets each sentence once, under a heading, rather than a loop of
+         * fragments it cannot pause.
+         */}
+        <div aria-hidden="true" className="gm-marquee">
           {/*
-           * One control, three inputs, one GET. The city is a real <select name="city"> and the
-           * query a real <input name="q">, so `/search?city=Mumbai&q=yoga` is what the browser
-           * produces on its own — no handler, no hydration, and a URL the visitor can send to a
-           * friend.
+           * The track is the claims TWICE. `translateX(-50%)` walks it exactly one copy, so the
+           * second set is under the cursor at the moment the first leaves - a seam nobody sees,
+           * and the only way to loop a marquee without measuring anything in JavaScript.
+           *
+           * Two passes rather than an index key: `pass` makes each key unique without keying on
+           * position, which is the thing the lint rule is actually about.
            */}
-          <form action="/search" method="get" className="mt-stack-xl max-w-form">
-            <div className="flex flex-col overflow-hidden rounded-control border border-input bg-surface sm:flex-row sm:items-stretch">
-              <div className="flex items-center gap-inline-xs border-b border-subtle px-inset-md py-inset-sm sm:border-b-0 sm:border-r">
-                <Place
-                  aria-hidden="true"
-                  className="h-[1.25rem] w-[1.25rem] shrink-0 text-content-muted"
-                />
-                <select
-                  name="city"
-                  aria-label={t('web.home.hero.cityLabel')}
-                  className="min-w-0 bg-surface text-md text-content"
-                >
-                  <option value="">{t('web.home.hero.cityAny')}</option>
-                  {CITIES.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <input
-                id="q"
-                name="q"
-                type="search"
-                aria-label={t('web.home.hero.searchLabel')}
-                placeholder={t('web.home.hero.searchPlaceholder')}
-                className="min-w-0 flex-1 bg-surface px-inset-md py-inset-sm text-md text-content placeholder:text-content-muted"
-              />
-
-              <button
-                type="submit"
-                data-on-solid="true"
-                className="gm-hit-target flex items-center justify-center gap-inline-xs bg-brand-solid px-inset-lg py-inset-sm text-md font-semibold text-content-on-brand transition-colors duration-fast ease-standard hover:bg-brand-solid-hover active:bg-brand-solid-active"
-              >
-                <Search aria-hidden="true" className="h-[1.25rem] w-[1.25rem]" />
-                {t('web.home.hero.searchAction')}
-              </button>
-            </div>
-          </form>
-
-          {/*
-           * Real links, not decoration. Each is a `/search?category=…` the results page already
-           * understands, which also makes them crawlable entry points (`FR-SRCH-13`).
-           */}
-          <nav aria-label={t('web.home.hero.browseLabel')} className="mt-stack-lg">
-            <ul className="flex flex-wrap gap-inline-sm">
-              {CATEGORIES.map((category) => {
-                const Glyph = icon[category.glyph];
-                return (
-                  <li key={category.value}>
-                    <Link
-                      href={`/search?category=${encodeURIComponent(category.value)}`}
-                      data-on-media="true"
-                      className="gm-hit-target inline-flex items-center gap-inline-xs rounded-full border border-strong px-inset-md py-inset-2xs text-sm font-medium text-content-on-media transition-colors duration-fast ease-standard hover:border-brand"
-                    >
-                      <Glyph aria-hidden="true" className="h-[1rem] w-[1rem]" />
-                      {t(category.key)}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-
-          <div className="mt-stack-lg">
-            <HeroMotionToggle />
+          <div className="gm-marquee-track">
+            {(['a', 'b'] as const).map((pass) =>
+              CLAIMS.map((claim) => (
+                <span key={`${pass}-${claim.title}`}>
+                  <b>{t(claim.title)}</b> · {t(claim.body)}
+                </span>
+              )),
+            )}
           </div>
         </div>
       </div>

@@ -23,7 +23,12 @@ export const en = {
   'web.chrome.nav.search': 'Find a gym',
   'web.chrome.nav.forGyms': 'List your gym',
   'web.chrome.nav.account': 'My account',
+  // `toggle` is the pre-hydration name only: the server cannot know which theme is showing, so
+  // for one paint the control names itself rather than an outcome it would get wrong half the
+  // time. The other two name the DESTINATION, which is the only thing a reader wants announced.
   'web.chrome.theme.toggle': 'Switch theme',
+  'web.chrome.theme.toLight': 'Switch to the light theme',
+  'web.chrome.theme.toDark': 'Switch to the dark theme',
   'web.chrome.theme.light': 'Light',
   'web.chrome.theme.dark': 'Dark',
   'web.chrome.nav.primary': 'Main',
@@ -81,6 +86,15 @@ export const en = {
   // Split so one phrase can carry the brand accent. Kept as two keys rather than markup inside
   // one string: a translator must be able to move the accent, and in several languages the
   // emphasised phrase is not the tail of the sentence.
+  // Three deliberate lines, because the display face is 142px and a headline that reflows at
+  // that size is a different picture at every width. Kept as three keys so a translator can
+  // rebreak them; one string with markup inside would not survive a language that reorders.
+  'web.home.hero.titleOne': 'Find a gym',
+  'web.home.hero.titleTwo': 'that fits',
+  // `{n}` is the city count, substituted from the catalogue at render. The reference says
+  // "69 verified gyms live", which would be a false statement: there are eight fixtures and no
+  // approved listings. This says the thing that is true.
+  'web.home.hero.tagCities': 'Live in {n} cities · Bengaluru, Mumbai, Delhi, Chennai',
   'web.home.hero.titleLead': 'Find a gym that fits',
   'web.home.hero.titleAccent': 'your life',
   // NOT "India's #1". Every superlative on this page has to be defensible, and a marketplace
@@ -105,6 +119,11 @@ export const en = {
   // works before hydration and lands in a shareable URL.
   'web.home.hero.cityLabel': 'City',
   'web.home.hero.cityAny': 'All cities',
+  // `FR-SRCH-03` distance radius. `{km}` is substituted at the call site rather than being four
+  // separate keys, so a translator writes the phrase once and the numbers stay numbers.
+  'web.home.hero.radiusLabel': 'Distance',
+  'web.home.hero.radiusAny': 'Any distance',
+  'web.home.hero.radiusWithin': 'Within {km} km',
 
   /*
    * The three promises, in the compact form the hero needs. Deliberately the SAME three claims
@@ -515,6 +534,7 @@ export const en = {
   'web.home.eyebrow.compare': 'Smarter decisions',
   'web.home.eyebrow.member': 'The member experience',
   'web.home.eyebrow.cities': 'Explore by city',
+  'web.home.eyebrow.reviews': 'Earned reviews',
   'web.home.eyebrow.faq': 'Questions',
   'web.home.eyebrow.why': 'Why us',
 
@@ -558,6 +578,31 @@ export const en = {
   'web.home.member.cta': 'See the account',
 
   // --- SCR-WEB-001 · FAQ ------------------------------------------------------
+  // ── The reviews band. The reference fills this with three five-star quotes from three named
+  // members. `BR-REV-01` makes a review impossible without a recorded check-in and there are
+  // none, so the section states the RULE and the current count instead. It is the same promise
+  // the page makes three sections up, and stating it while having nothing to show is the only
+  // version of this section that is true today.
+  'web.home.reviews.title': 'Reviews you can trust, when there are reviews',
+  'web.home.reviews.body':
+    'A review on GymMap requires a recorded check-in at that gym. Nobody can write about a gym they have never been to, and nobody can buy their way onto this page.',
+  'web.home.reviews.emptyTitle': 'No reviews yet',
+  'web.home.reviews.emptyBody':
+    'Check-ins start when the first gyms finish onboarding. Until then this space stays empty rather than filling up with quotes we made up.',
+  'web.home.reviews.ruleTitle': 'Earned, not collected',
+  'web.home.reviews.ruleBody':
+    'Only a member with a visit on record can leave one, and the visit has to be scanned by the gym.',
+  'web.home.reviews.unratedTitle': 'New listings say so',
+  'web.home.reviews.unratedBody':
+    'A gym with no reviews shows as a new listing. It never shows a zero, because a zero would read as members rating it badly.',
+  'web.home.reviews.cta': 'See how check-in works',
+
+  // ── The fourth card in the plans row, matching the reference's "not sure?" tile.
+  'web.home.plans.compareTitle': 'Not sure yet?',
+  'web.home.plans.compareBody':
+    'Put up to four gyms side by side and see price, distance, rating and every facility in one view.',
+  'web.home.plans.compareCta': 'Compare gyms',
+
   'web.home.faq.title': 'Good to know',
   'web.home.faq.body': 'The four things people ask before they pick a gym here.',
   'web.home.faq.verified.q': 'Are all the gyms really checked?',

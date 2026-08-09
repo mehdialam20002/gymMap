@@ -38,6 +38,9 @@ import { CheckIcon } from '@phosphor-icons/react/dist/ssr/Check';
 import { MinusIcon } from '@phosphor-icons/react/dist/ssr/Minus';
 import { CaretRightIcon } from '@phosphor-icons/react/dist/ssr/CaretRight';
 import { CurrencyInrIcon } from '@phosphor-icons/react/dist/ssr/CurrencyInr';
+import { CompassIcon } from '@phosphor-icons/react/dist/ssr/Compass';
+import { SunIcon } from '@phosphor-icons/react/dist/ssr/Sun';
+import { MoonIcon } from '@phosphor-icons/react/dist/ssr/Moon';
 import { ListIcon } from '@phosphor-icons/react/dist/ssr/List';
 import { MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
@@ -65,6 +68,9 @@ export const icon = {
   // Search controls.
   search: MagnifyingGlassIcon,
   place: MapPinIcon,
+  // Distance ceiling, `FR-SRCH-03`. A compass rather than a ruler: the filter is "how far from
+  // here", which is a bearing-and-distance idea, not a measurement of the gym.
+  radius: CompassIcon,
   expand: CaretDownIcon,
   // "This tile is a link, and it goes somewhere" — the affordance a card-shaped anchor otherwise
   // has to earn from hover alone, which a touch device never sees.
@@ -73,6 +79,10 @@ export const icon = {
   // Chrome.
   menu: ListIcon,
   close: XIcon,
+  // The theme control names its DESTINATION, so the glyph does too: a sun means "go light".
+  // Pairing the icon with the current state instead is the version everyone gets wrong.
+  themeLight: SunIcon,
+  themeDark: MoonIcon,
 
   // The compare matrix. Both cells carry a glyph AND a word — a tick against nothing at all is
   // "present vs absent" signalled by shape alone, which is exactly what `AX8` forbids.

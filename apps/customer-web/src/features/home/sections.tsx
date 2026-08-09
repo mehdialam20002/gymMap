@@ -200,7 +200,7 @@ export function Cities() {
   const cities = [...CITIES].sort((a, b) => b.count - a.count);
 
   return (
-    <Section eyebrow="web.home.eyebrow.cities" title="web.home.cities.title" tone="subtle">
+    <Section eyebrow="web.home.eyebrow.cities" title="web.home.cities.title">
       {/*
        * Photographic tiles, as the reference has them. Four columns rather than the reference's six
        * because there are four cities: a six-column grid would leave two dead cells, and stretching
@@ -242,10 +242,7 @@ export function Cities() {
                * A single translucent wash over the whole tile would have been simpler and would
                * have muddied the photograph for no gain, because the top of the tile carries no text.
                */}
-              <span
-                aria-hidden="true"
-                className="gm-tile-scrim absolute inset-0"
-              />
+              <span aria-hidden="true" className="gm-tile-scrim absolute inset-0" />
               <span className="absolute inset-x-0 bottom-0 flex flex-col gap-stack-2xs p-inset-md">
                 <span className="text-lg font-bold text-content-on-media">{entry.name}</span>
                 <span className="text-sm tabular-nums text-content-on-media">
@@ -353,24 +350,27 @@ function OwnerDashboardPreview() {
             {t('web.home.owners.preview.title')}
           </span>
           <span className="flex items-center gap-inline-2xs text-sm font-medium text-content-success">
-            <span aria-hidden="true" className="h-[0.5rem] w-[0.5rem] rounded-full bg-success-solid" />
+            <span
+              aria-hidden="true"
+              className="h-[0.5rem] w-[0.5rem] rounded-full bg-success-solid"
+            />
             {t('web.home.owners.preview.live')}
           </span>
         </div>
 
         <div className="mt-stack-md grid gap-stack-sm sm:grid-cols-2">
-          {(
-            ['web.home.owners.preview.revenue', 'web.home.owners.preview.members'] as const
-          ).map((key) => (
-            <div key={key} className="rounded-control bg-surface-sunken p-inset-md">
-              <span className="gm-eyebrow text-content-tertiary">{t(key)}</span>
-              {/* Where the figure goes. A block, not a plausible number. */}
-              <span
-                aria-hidden="true"
-                className="mt-stack-xs block h-[1.75rem] w-[7ch] rounded-control bg-surface-subtle"
-              />
-            </div>
-          ))}
+          {(['web.home.owners.preview.revenue', 'web.home.owners.preview.members'] as const).map(
+            (key) => (
+              <div key={key} className="rounded-control bg-surface-sunken p-inset-md">
+                <span className="gm-eyebrow text-content-tertiary">{t(key)}</span>
+                {/* Where the figure goes. A block, not a plausible number. */}
+                <span
+                  aria-hidden="true"
+                  className="mt-stack-xs block h-[1.75rem] w-[7ch] rounded-control bg-surface-subtle"
+                />
+              </div>
+            ),
+          )}
         </div>
 
         {/*
@@ -432,9 +432,7 @@ export function ForOwners() {
 
       <div className="gm-reveal relative mx-auto grid max-w-container items-center gap-region-sm px-inset-md py-region-md lg:grid-cols-2">
         <div className="max-w-prose">
-          <p className="gm-eyebrow text-content-on-media-accent">
-            {t('web.home.owners.eyebrow')}
-          </p>
+          <p className="gm-eyebrow text-content-on-media-accent">{t('web.home.owners.eyebrow')}</p>
           <h2 className="mt-stack-sm text-3xl font-bold tracking-tight text-content-on-media sm:text-5xl">
             {t('web.home.owners.title')}
           </h2>
@@ -490,7 +488,9 @@ export function ForOwners() {
 
 export function Closing() {
   return (
-    <section className="border-t border-subtle bg-surface-subtle">
+    // `bg-surface`, not `subtle`: the FAQ above it is the subtle band, and two in a row read as
+    // one very tall section. The alternation is the only thing separating them.
+    <section className="border-t border-subtle bg-surface">
       <div className="gm-reveal mx-auto max-w-container px-inset-md py-region-md text-center">
         <h2 className="mx-auto max-w-prose text-3xl font-bold tracking-tight text-content sm:text-5xl">
           {t('web.home.closing.title')}

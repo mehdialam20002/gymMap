@@ -54,7 +54,7 @@ const STEPS = [
 export function HowItWorksPage() {
   return (
     <div className="mx-auto max-w-container px-inset-md py-region-md">
-      <h1 className="text-4xl font-bold tracking-tight text-content">
+      <h1 className="text-4xl font-bold tracking-tight text-content sm:text-5xl">
         {t('web.howItWorks.title')}
       </h1>
       <p className="mt-stack-sm max-w-prose text-lg text-content-secondary">
@@ -69,7 +69,7 @@ export function HowItWorksPage() {
           return (
             <li
               key={step.title}
-              className="grid gap-inline-lg rounded-card border border-subtle bg-surface-raised p-inset-lg sm:grid-cols-[auto_minmax(0,1fr)]"
+              className="gm-card grid gap-inline-lg rounded-card p-inset-lg sm:grid-cols-[auto_minmax(0,1fr)]"
             >
               <span className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full bg-surface-brand-subtle">
                 <Glyph aria-hidden="true" className="h-[1.5rem] w-[1.5rem] text-content-brand" />
