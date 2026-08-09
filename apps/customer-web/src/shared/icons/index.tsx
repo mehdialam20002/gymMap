@@ -50,6 +50,8 @@ import { PersonSimpleTaiChiIcon } from '@phosphor-icons/react/dist/ssr/PersonSim
 import { SealCheckIcon } from '@phosphor-icons/react/dist/ssr/SealCheck';
 import { ShieldCheckIcon } from '@phosphor-icons/react/dist/ssr/ShieldCheck';
 import { StarIcon } from '@phosphor-icons/react/dist/ssr/Star';
+import { UsersThreeIcon } from '@phosphor-icons/react/dist/ssr/UsersThree';
+import { HeartbeatIcon } from '@phosphor-icons/react/dist/ssr/Heartbeat';
 import { XIcon } from '@phosphor-icons/react/dist/ssr/X';
 
 type Glyph = Icon;
@@ -88,6 +90,11 @@ export const icon = {
   // "present vs absent" signalled by shape alone, which is exactly what `AX8` forbids.
   has: CheckIcon,
   hasNot: MinusIcon,
+
+  // The hero's orbit. `A-40` approves the package and these are per-icon imports like the rest,
+  // so nothing new is being introduced - only two more glyphs from a set already in the tree.
+  group: UsersThreeIcon,
+  pulse: HeartbeatIcon,
 
   // Categories, matching the strings the fixture catalogue actually carries. A category with no
   // icon falls back to `strength` rather than rendering an empty box.

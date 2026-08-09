@@ -34,7 +34,12 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
   const Place = icon.place;
 
   return (
-    <article className="mx-auto max-w-container px-inset-md py-region-sm">
+    /*
+     * `gm-wrap` and the tight section rhythm, so the page a member lands on from the results looks
+     * like the same product they were just reading. It was `max-w-container` with `py-region-sm`,
+     * which is the pre-identity shell.
+     */
+    <article className="gm-wrap gm-sec gm-sec-tight">
       <FixtureNotice />
 
       <nav aria-label="Breadcrumb" className="mt-stack-lg text-sm text-content-secondary">
@@ -54,8 +59,14 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
       </nav>
 
       <header className="mt-stack-sm">
-        <h1 className="text-4xl font-bold tracking-tight text-content">{gym.name}</h1>
-        <p className="mt-stack-2xs text-lg text-content-secondary">
+        {/*
+         * `gm-h2` and not `gm-display`: this is a NAME, and the display face at `wdth 112` turns a
+         * gym's own name into a poster. The identity's largest voice belongs to the marketing
+         * copy; a listing gets the section voice, which is the same distinction `.gm-h3` makes on
+         * the cards.
+         */}
+        <h1 className="gm-h2">{gym.name}</h1>
+        <p className="gm-card-meta mt-stack-2xs">
           {gym.locality}, {gym.city}
         </p>
 

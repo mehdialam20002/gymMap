@@ -21,12 +21,10 @@ export function ComparePage({ selection }: { readonly selection: CompareSelectio
   const full = gyms.length >= MAX_COMPARE;
 
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-sm">
+    <div className="gm-wrap gm-sec gm-sec-tight">
       <FixtureNotice />
 
-      <h1 className="mt-stack-lg text-4xl font-bold tracking-tight text-content">
-        {t('web.compare.title')}
-      </h1>
+      <h1 className="gm-h2">{t('web.compare.title')}</h1>
 
       {/*
        * Both notices are `role="status"`, not `alert`. Nothing here is urgent and nothing is the

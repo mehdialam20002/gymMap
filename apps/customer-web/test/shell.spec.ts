@@ -471,8 +471,14 @@ test('every next/image on the site sizes itself from the stylesheet, never with 
     );
     assert.match(text, /width=\{\d+\}/, `${rel} renders an image with no intrinsic width`);
     assert.match(text, /height=\{\d+\}/, `${rel} renders an image with no intrinsic height`);
-    // `sizes` is what stops Next serving the largest candidate to a phone (NFR-PERF-02).
-    assert.match(text, /sizes="/, `${rel} renders an image with no sizes`);
+    /*
+     * `sizes` is what stops Next serving the largest candidate to a phone (NFR-PERF-02), and it
+     * may arrive as a PROP rather than a literal: the covers render through one `GymPhoto`, and
+     * each surface passes the width it really occupies. `sizes="` alone failed that component
+     * while the value was being threaded through it correctly - the guard was asserting the
+     * spelling rather than the property.
+     */
+    assert.match(text, /sizes=["{]/, `${rel} renders an image with no sizes`);
   }
 });
 

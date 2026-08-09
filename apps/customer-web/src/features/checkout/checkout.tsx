@@ -23,7 +23,7 @@ import { t } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
 import { FixtureNotice } from '../discovery/search-results.tsx';
 import { formatMinorExact } from '../discovery/search.ts';
-import { artFor } from '../discovery/gym-art.ts';
+import { GymPhoto } from '../discovery/gym-photo.tsx';
 import type { CheckoutSelection } from './quote.ts';
 
 export function Checkout({ selection }: { readonly selection: CheckoutSelection }) {
@@ -53,8 +53,8 @@ export function Checkout({ selection }: { readonly selection: CheckoutSelection 
               href={`/gyms/${gym.citySlug}/${gym.slug}`}
               className="relative block aspect-video w-[12rem] shrink-0 overflow-hidden rounded-card bg-surface-sunken"
             >
-              {/* Drawn, not photographed - `gym-art.ts` carries the reasoning. */}
-              <span aria-hidden="true" className={`block h-full w-full ${artFor(gym)}`} />
+              {/* Cover plus its own disclosure - see `gym-photo.tsx`. */}
+              <GymPhoto gym={gym} sizes="12rem" className="h-full w-full" />
             </Link>
 
             <div className="min-w-0 flex-1">

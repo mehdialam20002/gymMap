@@ -28,7 +28,7 @@ import Link from 'next/link';
 import { t } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
 import { compareKey, toCompareParams } from '../compare/compare.ts';
-import { artFor } from './gym-art.ts';
+import { GymPhoto } from './gym-photo.tsx';
 import { formatMinor } from './search.ts';
 import type { SearchResult } from './fixtures/catalogue.ts';
 
@@ -44,17 +44,15 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
     <li className="gm-card gm-card-interactive group overflow-hidden rounded-card">
       <Link href={`/gyms/${gym.citySlug}/${gym.slug}`} className="block">
         {/*
-         * An abstract ground, not a photograph. `gym-art.ts` carries the reasoning: the fixtures'
-         * photos are Pexels stock, and a stock photo under this card's own "Verified" badge is the
-         * claim the badge exists to prevent.
-         *
-         * The whole apparatus that used to live here went with it - `sizes`, the intrinsic
-         * `width`/`height` that worked around `fill`'s inline style being dropped by the CSP, and
-         * the `text-transparent` that stopped alt text painting over the box mid-flight. All of it
-         * was correct and all of it was in service of an image this card must not show. It comes
-         * back with the image, when a gym uploads its own cover and a person approves it.
+         * The cover, with its "Sample photo" marker attached - see `gym-photo.tsx`. The marker is
+         * part of the image rather than part of the page, so a screenshot of one card still says
+         * what the photograph is.
          */}
-        <div aria-hidden="true" className={`aspect-video ${artFor(gym)}`} />
+        <GymPhoto
+          gym={gym}
+          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+          className="aspect-video"
+        />
       </Link>
 
       <div className="p-inset-lg">

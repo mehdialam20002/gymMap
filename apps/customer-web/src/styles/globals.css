@@ -1066,7 +1066,12 @@
    */
 
   .gm-display-hero {
-    font-size: clamp(46px, 10.4vw, 142px);
+    /*
+     * Down from `clamp(46px, 10.4vw, 142px)`. At 142px the three lines took the whole viewport and
+     * left the constellation fighting them for the same pixels; the owner asked for it smaller and
+     * the composition wanted it too.
+     */
+    font-size: clamp(40px, 7.6vw, 104px);
     max-width: 16ch;
   }
 
@@ -2265,6 +2270,65 @@
     user-select: none;
   }
 
+  /*
+   * The compare table's marked fact, matching `.gm-best` on the home page's band.
+   *
+   * Amber, not the success green, and a shape as well as a hue: the pill's PRESENCE is the signal,
+   * which is a distinction that survives any colour vision (`AX8`).
+   */
+  .gm-best-pill {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--gm-color-accent-solid) 45%, transparent);
+    font-family: var(--gm-font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gm-color-content-on-media-accent);
+    vertical-align: middle;
+  }
+
+  /* ── discovery: a cover, and the marker that travels with it ───────────── */
+
+  .gm-photo {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: var(--gm-color-surface-sunken);
+  }
+
+  .gm-photo-art {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /*
+   * Bottom-LEFT. The price sits bottom-right on the home rail and the badge top-left, so this is
+   * the one corner of a cover that is never already spoken for.
+   *
+   * Its ground is its own, not the photograph's: a marker tinted onto an unknown frame is the
+   * bounded-contrast problem the hero spent a week on, and there is no reason to take it on for
+   * eleven characters. Ink and tint are the theme-invariant media roles, because a photograph is
+   * as dark in a light theme as in a dark one.
+   */
+  .gm-photo-sample {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--gm-color-surface-media) 82%, transparent);
+    backdrop-filter: blur(4px);
+    font-family: var(--gm-font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gm-color-content-on-media);
+  }
+
   /* ── discovery: the card, away from the home rail ──────────────────────── */
 
   /*
@@ -2328,6 +2392,289 @@
   .gm-tag-on {
     border-color: color-mix(in srgb, var(--gm-color-accent-solid) 45%, transparent);
     color: var(--gm-color-content-on-media-accent);
+  }
+
+  /* ── the hero's orbit ──────────────────────────────────────────────────── */
+
+  /*
+   * The five things this marketplace is FOR, arranged as a constellation beside the headline.
+   *
+   * ┌─ EVERY NODE IS A REAL QUERY, AND EVERY QUERY RETURNS GYMS ─────────────────────────────────┐
+   * │ The reference labels them Strength, Cardio, Wellness, Boxing and Community. Three of those  │
+   * │ are categories the catalogue carries and two are not - so the nodes read Yoga and Group     │
+   * │ classes instead, which is what `?category=` actually filters on. Same rule that fixed the   │
+   * │ hero's city select: a control the page draws and the query cannot answer is the thing this  │
+   * │ codebase keeps refusing to ship.                                                             │
+   * │                                                                                             │
+   * │ They are LINKS, not decoration, which is also why they carry labels: this is the category    │
+   * │ navigation the chip row used to be, and a screen reader gets five destinations rather than   │
+   * │ silence.                                                                                     │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   *
+   * Positioned as percentages of the orbit box rather than the reference's fixed pixels, so the
+   * constellation keeps its shape as the panel narrows instead of drifting off its own arcs.
+   */
+  .gm-orbit {
+    position: absolute;
+    /*
+     * Inset, not flush. A node is centred on its coordinate with `translate(-50%, -50%)`, so the
+     * rightmost one hangs half its width past the box - at `right: 0` that was 78px of sideways
+     * scroll on the document, which is invisible on a desktop and a real one-finger drag on a
+     * phone. The panel keeps its own margin instead of the nodes needing to know about the edge.
+     */
+    right: clamp(12px, 3vw, 46px);
+    /*
+     * 42%, not 50%. Centred on the hero, the lowest node sat behind the search console - the
+     * console is the widest thing in the panel and it reaches into the constellation's column at
+     * every width the orbit is shown at. Lifting the whole box clears it without moving the nodes
+     * off their own arcs.
+     */
+    top: 42%;
+    transform: translateY(-50%);
+    width: min(46vw, 560px);
+    aspect-ratio: 1;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /*
+   * The decorative half CLIPS, and it is the arcs that made it necessary.
+   *
+   * `gm-orbit-ring-3` is `inset: -14%` - deliberately larger than its box, so it bleeds off the
+   * panel the way the reference's do. On a 560px box that is 78px past each side, and the right
+   * side is the document's edge: 41px of sideways scroll, appearing at exactly 1181px where the
+   * constellation becomes visible. Invisible on a desktop, a real one-finger drag on a tablet.
+   *
+   * The reference clips at its section; here the clip belongs on the art rather than on `.gm-hero`,
+   * which had `overflow: hidden` removed so the hero's ground could reach up behind the chrome.
+   * The nodes are in a SEPARATE, unclipped element, so nothing that has to be reachable is cut.
+   */
+  .gm-orbit-art {
+    overflow: hidden;
+  }
+
+  /* The arcs. Decorative, so they never intercept a click aimed at a node. */
+  .gm-orbit-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px dashed color-mix(in srgb, var(--gm-color-brand-solid) 45%, transparent);
+    inset: 8%;
+  }
+
+  .gm-orbit-ring-2 {
+    inset: 22%;
+    border-color: color-mix(in srgb, var(--gm-color-accent-solid) 26%, transparent);
+  }
+
+  .gm-orbit-ring-3 {
+    inset: -14%;
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--gm-color-brand-solid) 26%, transparent);
+  }
+
+  /* A node: a ringed glyph with its name under it. */
+  .gm-orbit-node {
+    position: absolute;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    transform: translate(-50%, -50%);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gm-color-content-primary);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .gm-orbit-ico {
+    display: grid;
+    place-items: center;
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--gm-color-surface-default) 88%, transparent);
+    border: 2px solid var(--gm-color-brand-solid);
+    color: var(--gm-color-content-primary);
+    transition:
+      transform var(--gm-motion-duration-base) var(--gm-motion-ease-standard),
+      border-color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard);
+  }
+
+  .gm-orbit-node-amber .gm-orbit-ico {
+    border-color: var(--gm-color-accent-solid);
+  }
+
+  .gm-orbit-node:hover .gm-orbit-ico,
+  .gm-orbit-node:focus-visible .gm-orbit-ico {
+    transform: scale(1.06);
+    border-color: var(--gm-color-content-on-media-accent);
+  }
+
+  /* Five positions on the two rings, by eye against the reference's composition. */
+  .gm-orbit-1 {
+    left: 66%;
+    top: 10%;
+  }
+  .gm-orbit-2 {
+    left: 30%;
+    top: 34%;
+  }
+  /*
+   * 70%, not 78%. A node is centred on its coordinate, so the rightmost one hung half its width -
+   * ring plus label, and "Group classes" is a wide label - past the panel. Insetting the panel
+   * alone left 32px of it; the coordinate had to come in too.
+   */
+  .gm-orbit-3 {
+    left: 76%;
+    top: 38%;
+  }
+  .gm-orbit-4 {
+    left: 26%;
+    top: 62%;
+  }
+  .gm-orbit-5 {
+    left: 60%;
+    top: 72%;
+  }
+
+  /* The travelling marks. Amber, small, and on the ring rather than beside it. */
+  .gm-orbit-dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gm-color-accent-solid);
+    transform: translate(-50%, -50%);
+  }
+
+  .gm-orbit-dot-1 {
+    left: 52%;
+    top: 26%;
+  }
+  .gm-orbit-dot-2 {
+    left: 22%;
+    top: 57%;
+  }
+  .gm-orbit-dot-3 {
+    left: 76%;
+    top: 66%;
+  }
+
+  /*
+   * The float and the pulse.
+   *
+   * Both are infinite, so both live inside the no-preference query in full - `RM1` collapses the
+   * duration tokens to 1ms, which is right for a transition and turns a loop into a strobe. The
+   * reference runs them on everything; here the nodes drift and the dots breathe, and the arcs
+   * stay still, because five things moving at five phases is a screensaver.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    .gm-orbit-node {
+      animation: gm-orbit-float 5s ease-in-out infinite;
+    }
+
+    .gm-orbit-2 {
+      animation-delay: -1.2s;
+    }
+    .gm-orbit-3 {
+      animation-delay: -2.1s;
+    }
+    .gm-orbit-4 {
+      animation-delay: -0.7s;
+    }
+    .gm-orbit-5 {
+      animation-delay: -3s;
+    }
+
+    .gm-orbit-dot {
+      animation: gm-orbit-pulse 2.8s ease-in-out infinite;
+    }
+
+    .gm-orbit-dot-2 {
+      animation-delay: -0.9s;
+    }
+    .gm-orbit-dot-3 {
+      animation-delay: -1.7s;
+    }
+  }
+
+  /*
+   * `translate(-50%, -50%)` is in the keyframes, not only on the base rule.
+   *
+   * An animation on `transform` REPLACES the whole property, so a keyframe of `translateY(-5px)`
+   * would drop the centring and jump every node a half-width down and right the moment the
+   * animation started. The base rule cannot help; the keyframe has to carry both.
+   */
+  @keyframes gm-orbit-float {
+    0%,
+    100% {
+      transform: translate(-50%, -50%);
+    }
+    50% {
+      transform: translate(-50%, calc(-50% - 6px));
+    }
+  }
+
+  @keyframes gm-orbit-pulse {
+    0%,
+    100% {
+      opacity: 0.7;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.25);
+    }
+  }
+
+  /*
+   * The glyphs tucked into the headline.
+   *
+   * Inline in the flow rather than absolutely positioned: the display face is a `clamp()` that
+   * rewraps at every width, so anything pinned to a coordinate lands in the middle of a letter at
+   * some viewport. `vertical-align` keeps them sitting on the cap height.
+   */
+  .gm-hero-glyph {
+    display: inline-block;
+    vertical-align: 0.08em;
+    /*
+     * 0.3em, not 0.62. At the headline's own size the larger figure drew an 88px barbell next to
+     * a 100px letter - a second headline rather than a mark tucked into one. These are punctuation.
+     */
+    width: 0.3em;
+    height: 0.3em;
+    margin-inline: 0.14em;
+    color: var(--gm-color-content-on-media-accent);
+  }
+
+  .gm-hero-glyph-ink {
+    color: var(--gm-color-content-primary);
+  }
+
+  /*
+   * The stroke under "your life". A drawn swoosh, not `text-decoration`: an underline follows the
+   * baseline exactly and reads as a link at this size, which is the last thing a headline wants.
+   */
+  .gm-hero-stroke {
+    display: block;
+    width: min(62%, 420px);
+    height: 14px;
+    margin-top: 6px;
+    color: var(--gm-color-content-on-media-accent);
+  }
+
+  @media (max-width: 1180px) {
+    /*
+     * Below this the headline and the constellation want the same pixels, and the headline wins.
+     * Hidden with `display: none` rather than opacity so the five links leave the tab order too -
+     * a control nobody can see and Tab can still reach is worse than one that is simply not there.
+     * The category row under the console carries the same destinations at every width.
+     */
+    .gm-orbit {
+      display: none;
+    }
   }
 
   /* ── the footer ────────────────────────────────────────────────────────── */

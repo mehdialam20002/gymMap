@@ -93,6 +93,18 @@ const MODULES: readonly string[] = (() => {
 /** Every rendered section's code, comments blanked, as one text to scan. */
 const SECTIONS = MODULES.map((rel) => code(rel)).join('\n');
 
+/**
+ * What `app/page.tsx` imports ITSELF — the sections, as opposed to everything they reach.
+ *
+ * Two lists, because there are two questions. "Does this contain an invented number" is about
+ * every module the page pulls in, however deep, which is what `MODULES` above is for. "Is this
+ * rendered on the page" is only about sections: the transitive sweep reaches shared leaves like
+ * `GymPhoto`, and demanding `<GymPhoto />` in `page.tsx` is the test misreading what it found.
+ */
+const PAGE_SECTIONS: readonly string[] = [
+  ...code(PAGE).matchAll(/from '\.\.\/(src\/features\/[\w/.-]+\.tsx)'/g),
+].map((match) => match[1]!);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // The membership row — `BR-PLN-03`.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -244,7 +256,7 @@ test('every section a rendered module exports is actually on the page', () => {
    */
   const page = code(PAGE).replace(/\s+/g, ' ');
   let checked = 0;
-  for (const rel of MODULES) {
+  for (const rel of PAGE_SECTIONS) {
     // PascalCase only. A module can legitimately export a helper the page never renders as a tag
     // - `railToggleHref` builds an href - and demanding `<railToggleHref />` is the test insisting
     // on a component that was never claimed to be one.

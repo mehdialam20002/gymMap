@@ -79,8 +79,72 @@ const CLAIMS = [
   { title: 'web.home.trust.payments.title', body: 'web.home.trust.payments.body' },
 ] as const satisfies readonly { title: MessageKey; body: MessageKey }[];
 
+/**
+ * The orbit's five nodes.
+ *
+ * Every `value` is a category the catalogue actually carries, checked against it: Strength 3,
+ * Cardio 2, Yoga 1, Boxing 1, Group classes 1. The reference's "Wellness" and "Community" are not
+ * categories here, and a node that lands on an empty results page is the same defect as the city
+ * select that submitted a display name.
+ */
+/*
+ * The position class is written out, never `gm-orbit-${i + 1}`.
+ *
+ * It was interpolated first and `hero-contrast.spec.ts` failed the build: a class assembled at
+ * runtime appears nowhere in the source, so the sweep that keeps dead rules out of the stylesheet
+ * cannot tell `gm-orbit-3` from a rule nothing uses. The same shape is why `ART` in `chalk.tsx`
+ * is a list of literals - and in a Tailwind class it is worse than a lint failure, because the
+ * utility is never generated at all.
+ */
+const ORBIT = [
+  {
+    key: 'web.home.hero.category.strength',
+    value: 'Strength',
+    glyph: 'strength',
+    at: 'gm-orbit-1',
+    amber: false,
+  },
+  {
+    key: 'web.home.hero.category.cardio',
+    value: 'Cardio',
+    glyph: 'cardio',
+    at: 'gm-orbit-2',
+    amber: true,
+  },
+  {
+    key: 'web.home.hero.category.yoga',
+    value: 'Yoga',
+    glyph: 'yoga',
+    at: 'gm-orbit-3',
+    amber: false,
+  },
+  {
+    key: 'web.home.hero.category.boxing',
+    value: 'Boxing',
+    glyph: 'boxing',
+    at: 'gm-orbit-4',
+    amber: false,
+  },
+  {
+    key: 'web.home.hero.category.group',
+    value: 'Group classes',
+    glyph: 'group',
+    at: 'gm-orbit-5',
+    amber: true,
+  },
+] as const satisfies readonly {
+  key: MessageKey;
+  value: string;
+  glyph: keyof typeof icon;
+  at: string;
+  amber: boolean;
+}[];
+
 export function Hero() {
   const Place = icon.place;
+  const Strength = icon.strength;
+  const Boxing = icon.boxing;
+  const Pulse = icon.pulse;
   const Search = icon.search;
   const Radius = icon.radius;
 
@@ -101,6 +165,37 @@ export function Hero() {
         <div className="gm-noise" />
       </div>
 
+      {/*
+       * The constellation. It sits OUTSIDE `gm-hero-in` so it can reach the panel's right edge
+       * rather than stopping at the wrap's measure, and inside `.gm-hero` so it scrolls with it.
+       */}
+      <div aria-hidden="true" className="gm-orbit gm-orbit-art">
+        <span className="gm-orbit-ring gm-orbit-ring-3" />
+        <span className="gm-orbit-ring" />
+        <span className="gm-orbit-ring gm-orbit-ring-2" />
+        <span className="gm-orbit-dot gm-orbit-dot-1" />
+        <span className="gm-orbit-dot gm-orbit-dot-2" />
+        <span className="gm-orbit-dot gm-orbit-dot-3" />
+      </div>
+
+      <nav aria-label={t('web.home.hero.orbitLabel')} className="gm-orbit">
+        {ORBIT.map((node) => {
+          const Glyph = icon[node.glyph];
+          return (
+            <Link
+              key={node.value}
+              href={`/search?category=${encodeURIComponent(node.value)}`}
+              className={`gm-orbit-node ${node.at} ${node.amber ? 'gm-orbit-node-amber' : ''}`}
+            >
+              <span className="gm-orbit-ico">
+                <Glyph aria-hidden="true" className="h-[1.75rem] w-[1.75rem]" />
+              </span>
+              {t(node.key)}
+            </Link>
+          );
+        })}
+      </nav>
+
       <div className="gm-hero-in gm-wrap">
         <p className="gm-hero-tag">
           {/*
@@ -118,20 +213,54 @@ export function Hero() {
          * Three lines, each in its own clipping box so it rises out of nothing. The breaks are
          * DELIBERATE rather than a consequence of the measure — at 142px a headline that reflows
          * is a different picture at every width, and this one is a composition.
+         *
+         * The glyphs sit INSIDE the lines, in the flow. Absolutely positioning them against the
+         * headline was the obvious build and it does not survive: the display face is a `clamp()`
+         * that rewraps at every width, so a mark pinned to a coordinate lands in the middle of a
+         * letter at some viewport and nobody sees it there.
+         *
+         * All three are `aria-hidden`. The headline reads "Find a gym that fits your life" to a
+         * screen reader and gains nothing from "image, barbell" in the middle of it.
          */}
         <h1 className="gm-display gm-display-hero">
           <span className="gm-line">
-            <span>{t('web.home.hero.titleOne')}</span>
+            <span>
+              <Strength aria-hidden="true" className="gm-hero-glyph gm-hero-glyph-ink" />
+              {t('web.home.hero.titleOne')}
+            </span>
           </span>
           <span className="gm-line">
-            <span>{t('web.home.hero.titleTwo')}</span>
+            <span>
+              {t('web.home.hero.titleTwo')}
+              <Boxing aria-hidden="true" className="gm-hero-glyph gm-hero-glyph-ink" />
+            </span>
           </span>
           <span className="gm-line">
             <span>
               <em>{t('web.home.hero.titleAccent')}</em>
+              <Pulse aria-hidden="true" className="gm-hero-glyph" />
             </span>
           </span>
         </h1>
+
+        {/*
+         * The stroke under the accent line. An SVG path rather than `text-decoration`, which
+         * follows the baseline exactly and reads as a link at 142px.
+         */}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 420 14"
+          preserveAspectRatio="none"
+          className="gm-hero-stroke"
+        >
+          <path
+            d="M4 10C90 3 210 2 416 6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+        </svg>
 
         <div className="mt-[30px] flex flex-wrap items-end gap-[26px]">
           <p className="m-0 max-w-[40ch] text-content-muted">{t('web.home.hero.subtitle')}</p>

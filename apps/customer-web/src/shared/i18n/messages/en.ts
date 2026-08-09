@@ -154,6 +154,10 @@ export const en = {
    * literal string the catalogue carries, or the filter matches nothing the moment a second
    * language exists — a bug that would look like "search is broken in Hindi".
    */
+  // The orbit beside the headline. Its labels are the CATEGORY names the catalogue carries, so
+  // every node lands on results - see the note on ORBIT in hero.tsx.
+  'web.home.hero.orbitLabel': 'Browse by activity',
+  'web.home.hero.category.group': 'Group classes',
   'web.home.hero.category.strength': 'Strength',
   'web.home.hero.category.cardio': 'Cardio',
   'web.home.hero.category.yoga': 'Yoga',
@@ -372,6 +376,9 @@ export const en = {
    * disclosure: here it is directly under the mosaic, specific and unavoidable. On a card it was
    * a banner at the top of a list of eight, which does not travel with the screenshot of one card.
    */
+  // Rides ON the image, not on the page. A banner at the top of a results list does not travel
+  // with a screenshot of one card, and this is the same disclosure the gallery already carries.
+  'web.gym.samplePhoto': 'Sample photo',
   'web.gym.gallery.label': 'Sample photos, not this gym',
   // Stated on the page rather than only in a code comment: a member looking at four photos of a
   // gym they are about to pay for is entitled to know whose photos they are.

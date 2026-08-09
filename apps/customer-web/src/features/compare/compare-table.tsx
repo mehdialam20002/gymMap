@@ -23,7 +23,7 @@ import Link from 'next/link';
 import { t } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
 import { formatMinor } from '../discovery/search.ts';
-import { artFor } from '../discovery/gym-art.ts';
+import { GymPhoto } from '../discovery/gym-photo.tsx';
 import type { GymDetail } from '../discovery/fixtures/catalogue.ts';
 import { amenityMatrix, compareKey, toCompareParams } from './compare.ts';
 
@@ -68,13 +68,21 @@ export function CompareTable({ gyms }: { readonly gyms: readonly GymDetail[] }) 
                 >
                   <Link
                     href={`/gyms/${gym.citySlug}/${gym.slug}`}
-                    className="block overflow-hidden rounded-card"
+                    /*
+                     * No `overflow-hidden rounded-card` here any more, and it was not cosmetic:
+                     * a rounded clip applies at all four corners, the gym's name sits flush to the
+                     * left edge, and its FIRST GLYPH was being eaten by the corner curve - "Iron
+                     * House" rendered as "ron House" in every column. The clip existed to round
+                     * the photograph; the photograph is gone and the drawn ground rounds itself.
+                     */
+                    className="block"
                   >
-                    {/*
-                     * Drawn, not photographed. The fixtures' covers are stock, and this column
-                     * header carries the gym's name - `gym-art.ts` has the argument in full.
-                     */}
-                    <span aria-hidden="true" className={`block aspect-video ${artFor(gym)}`} />
+                    {/* Cover plus its own disclosure - see `gym-photo.tsx`. */}
+                    <GymPhoto
+                      gym={gym}
+                      sizes="(min-width: 1024px) 22vw, 45vw"
+                      className="aspect-video rounded-card"
+                    />
                     <span className="mt-stack-xs block text-base font-semibold text-content hover:underline">
                       {gym.name}
                     </span>
@@ -84,7 +92,7 @@ export function CompareTable({ gyms }: { readonly gyms: readonly GymDetail[] }) 
                   </span>
                   <Link
                     href={toCompareParams(keys.filter((key) => key !== compareKey(gym)))}
-                    className="gm-hit-target mt-stack-xs inline-block rounded-control text-sm font-medium text-content-link hover:underline"
+                    className="gm-hit-target gm-card-add mt-stack-xs inline-block rounded-control text-sm font-semibold"
                   >
                     {t('web.compare.remove')}
                     <span className="gm-visually-hidden">: {gym.name}</span>
@@ -257,9 +265,12 @@ function Cell({ children }: { readonly children: React.ReactNode }) {
 /** A fact marked because the page already knew it — never a ranking. */
 function Mark({ label }: { readonly label: string }) {
   return (
-    <span className="ml-inline-xs inline-block rounded-control bg-surface-success-subtle px-inset-2xs py-inset-2xs align-middle text-xs font-medium text-content-success">
-      {label}
-    </span>
+    /*
+     * Not the SUCCESS role. Green means "the thing you did worked"; this is a fact the page
+     * computed about three numbers on screen, and a green pill beside a price reads as a discount.
+     * The home page's compare band reached the same conclusion - `.gm-best` there, this here.
+     */
+    <span className="gm-best-pill">{label}</span>
   );
 }
 
@@ -273,6 +284,10 @@ function Mark({ label }: { readonly label: string }) {
 function Presence({ present }: { readonly present: boolean }) {
   const Glyph = present ? icon.has : icon.hasNot;
   return (
+    /*
+     * The tick keeps the success role and the cross does not, which is the one place green is
+     * right on this page: "the gym lists this facility" is a yes, not a ranking.
+     */
     <span className={present ? 'text-content-success' : 'text-content-muted'}>
       <Glyph aria-hidden="true" className="h-[1.125rem] w-[1.125rem]" />
       <span className="gm-visually-hidden">

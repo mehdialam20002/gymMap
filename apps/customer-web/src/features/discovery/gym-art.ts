@@ -15,13 +15,17 @@
  * it was captured under, which is the same argument that took the invented figures off the owner
  * console.
  *
- * So: no photograph of a gym nobody has approved. The homepage reached this first and drew abstract
- * grounds instead; this module is that decision made once, for every surface, rather than three
- * times with different answers.
- *
- * The photographs stay in the catalogue. When a gym uploads its own cover and a human approves the
- * listing, that is a real photograph of a real place and it belongs on the card - `artFor` is
- * where that switch happens, and nothing else has to change.
+ * ┌─ THE OWNER ASKED FOR THE PHOTOGRAPHS BACK, AND THAT IS THE DECISION ────────────────────────┐
+ * │ The objection above is real and it was raised. The answer is not to revert it away, it is to │
+ * │ make the disclosure travel WITH the image: every card that shows a stock cover carries a     │
+ * │ `Sample` marker on the media itself, so the screenshot that outlives the page banner still   │
+ * │ says what it is. That is the pattern the gym-detail gallery already uses, and it is the one  │
+ * │ place this codebase has been comfortable showing these photos all along.                     │
+ * │                                                                                             │
+ * │ So a listing shows its cover AND says the cover is a sample. `artFor` stays as the ground    │
+ * │ for anything with no photo at all, and as the one place to switch back if the owner changes  │
+ * │ their mind.                                                                                  │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
  * ═══════════════════════════════════════════════════════════════════════════════════════════
  */
 

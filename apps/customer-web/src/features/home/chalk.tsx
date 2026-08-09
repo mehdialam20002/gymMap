@@ -35,6 +35,7 @@ import Link from 'next/link';
 import { t, type MessageKey } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
 import { compareKey, toCompareParams } from '../compare/compare.ts';
+import { GymPhoto } from '../discovery/gym-photo.tsx';
 import { railToggleHref } from '../compare/compare-rail.tsx';
 import { CATALOGUE, type GymDetail } from '../discovery/fixtures/catalogue.ts';
 import { EMPTY_QUERY, formatMinor, search } from '../discovery/search.ts';
@@ -99,10 +100,19 @@ export function GymRail({ selected = [] }: { readonly selected?: readonly GymDet
         </p>
 
         <ul className="gm-cards">
-          {gyms.map((gym, i) => (
+          {gyms.map((gym) => (
             <li key={gym.id} className="gm-card-k" data-compared={chosen.has(compareKey(gym))}>
               <div className="gm-card-media">
-                <div aria-hidden="true" className={`gm-card-art ${ART[i % ART.length]!}`} />
+                {/*
+                 * The gym's own cover, with its "Sample photo" marker attached. The badge sits
+                 * top-left and the price bottom-right, so the marker's bottom-left corner is the
+                 * one place on this media that nothing else has claimed.
+                 */}
+                <GymPhoto
+                  gym={gym}
+                  sizes="(min-width: 1080px) 33vw, (min-width: 760px) 50vw, 100vw"
+                  className="gm-card-art"
+                />
 
                 {/*
                  * `BR-GYM-01` on the card. Every gym in the fixture set is approved, so every
