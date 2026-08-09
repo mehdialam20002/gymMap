@@ -59,6 +59,10 @@ test('the worker bootstrap returns a context with no getHttpServer', async () =>
     JWT_ACCESS_SECRET: 'a'.repeat(48),
     JWT_REFRESH_SECRET: 'b'.repeat(48),
     QR_SIGNING_PRIVATE_KEY: 'c'.repeat(48),
+    // M-024 — required with no default, so the worker will not boot without it.
+    // 64 hex characters = exactly 32 bytes. A 48-char value looked right and decoded to
+    // 36, which the cipher refuses at boot — the check doing precisely its job.
+    MFA_SECRET_KEY: 'd'.repeat(64),
     QR_SIGNING_KEY_ID: 'test-1',
     PAYMENT_PROVIDER: 'stub',
     SMTP_HOST: 'localhost',

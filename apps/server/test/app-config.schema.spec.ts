@@ -27,6 +27,10 @@ function validEnv(): Record<string, string> {
     JWT_REFRESH_SECRET: 'b'.repeat(48),
     QR_SIGNING_PRIVATE_KEY: 'c'.repeat(48),
     QR_SIGNING_KEY_ID: 'local-dev-1',
+    // M-024. `MFA_SECRET_KEY_ID` has a default, so only the key itself is required.
+    // 64 hex characters = exactly 32 bytes. A 48-char value looked right and decoded to
+    // 36, which the cipher refuses at boot — the check doing precisely its job.
+    MFA_SECRET_KEY: 'd'.repeat(64),
     PAYMENT_PROVIDER: 'stub',
     SMTP_HOST: 'localhost',
     SMTP_PORT: '1025',
@@ -50,6 +54,7 @@ const REQUIRED = [
   'JWT_REFRESH_SECRET',
   'QR_SIGNING_PRIVATE_KEY',
   'QR_SIGNING_KEY_ID',
+  'MFA_SECRET_KEY',
   'PAYMENT_PROVIDER',
   'SMTP_HOST',
   'SMTP_PORT',

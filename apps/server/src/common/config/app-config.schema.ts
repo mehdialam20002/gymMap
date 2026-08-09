@@ -130,6 +130,22 @@ export const appConfigSchema = z
     QR_SIGNING_KEY_ID: z.string().min(1),
     QR_TOKEN_TTL_SECONDS: z.coerce.number().int().min(15).max(300).default(60),
 
+    // --- MFA secret encryption (M-024, NFR-SEC-07) ------------------------
+    //
+    // ┌─ VALIDATED HERE SO A BAD KEY FAILS AT BOOT ────────────────────────────────────────────┐
+    // │ `AesGcmSecretCipher` refuses anything that is not 32 bytes, and this schema refuses it   │
+    // │ earlier still. Node would otherwise accept a 16-byte key and silently give AES-128 — a   │
+    // │ deployment that starts, serves traffic, and protects every TOTP secret at half the       │
+    // │ intended strength.                                                                        │
+    // │                                                                                          │
+    // │ `KL-101`: the key arrives through configuration rather than a managed secret store,      │
+    // │ exactly as `JWT_ACCESS_SECRET` and `QR_SIGNING_PRIVATE_KEY` already do. The gap is        │
+    // │ platform-wide and recorded; it is not introduced here.                                    │
+    // └──────────────────────────────────────────────────────────────────────────────────────────┘
+    MFA_SECRET_KEY: requiredSecret(32),
+    // Stamped into every envelope, so rotation can tell two keys apart and old rows still open.
+    MFA_SECRET_KEY_ID: z.string().min(1).default('local-dev-1'),
+
     // --- password hashing (A-12) ------------------------------------------
     //
     // The defaults are `Security.md` §2.4.2's recorded values, which is what A-12's approval

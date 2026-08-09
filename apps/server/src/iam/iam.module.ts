@@ -54,6 +54,13 @@ import {
   USER_ROLE_STORE,
 } from './application/change-user-role.use-case.js';
 import { UserRolePrismaRepository } from './infrastructure/user-role.prisma-repository.js';
+import { APP_CONFIG, type AppConfig } from '../common/config/app-config.schema.js';
+import { MFA_STORE } from './application/ports/mfa-store.port.js';
+import { MfaPrismaRepository } from './infrastructure/mfa.prisma-repository.js';
+import { AesGcmSecretCipher, SECRET_CIPHER } from './infrastructure/secret-cipher.js';
+import { EnrolMfaUseCase } from './application/enrol-mfa.use-case.js';
+import { VerifyMfaUseCase } from './application/verify-mfa.use-case.js';
+import { DisableMfaUseCase } from './application/disable-mfa.use-case.js';
 import { RedisLockoutCounter } from './infrastructure/redis-lockout-counter.adapter.js';
 import { UserPrismaRepository } from './infrastructure/user.prisma-repository.js';
 import { OtpRedisStore } from './infrastructure/otp.redis-store.js';
@@ -124,6 +131,29 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
     UserRolePrismaRepository,
     { provide: USER_ROLE_STORE, useExisting: UserRolePrismaRepository },
     ChangeUserRoleUseCase,
+
+    /*
+     * ┌─ M-024 · THE SECOND FACTOR ────────────────────────────────────────────────────────────┐
+     * │ `AesGcmSecretCipher` is a FACTORY rather than a class provider: it takes key material,   │
+     * │ not injectable dependencies, and its constructor refuses a key that is not 32 bytes. So  │
+     * │ a misconfigured deployment fails at BOOT with a message naming the problem, instead of   │
+     * │ starting and throwing on the first enrolment in front of a user.                          │
+     * │                                                                                          │
+     * │ Nothing here is exported. A module holding the cipher could decrypt every TOTP secret on │
+     * │ the platform, which is every second factor at once.                                       │
+     * └──────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    MfaPrismaRepository,
+    { provide: MFA_STORE, useExisting: MfaPrismaRepository },
+    {
+      provide: SECRET_CIPHER,
+      inject: [APP_CONFIG],
+      useFactory: (config: AppConfig) =>
+        new AesGcmSecretCipher(config.MFA_SECRET_KEY, config.MFA_SECRET_KEY_ID),
+    },
+    EnrolMfaUseCase,
+    VerifyMfaUseCase,
+    DisableMfaUseCase,
   ],
   // Only the session repository leaves the module, and only because M-023's session-management
   // endpoints will need it. Nothing that can hash, mint a token or verify a password is

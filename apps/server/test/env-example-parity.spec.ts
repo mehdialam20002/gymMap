@@ -77,8 +77,15 @@ test('the example parses cleanly through the real schema', () => {
 
   // The placeholder secrets are REJECTED by design (`requiredSecret` refuses CHANGEME), which is
   // the point of that rule — so substitute real-shaped values, exactly as a developer must.
-  for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'QR_SIGNING_PRIVATE_KEY']) {
-    parsed[key] = 'x'.repeat(48);
+  for (const key of [
+    'JWT_ACCESS_SECRET',
+    'JWT_REFRESH_SECRET',
+    'QR_SIGNING_PRIVATE_KEY',
+    'MFA_SECRET_KEY',
+  ]) {
+    // 64 hex characters: 48 satisfies the schema's length rule and decodes to 36 bytes, which
+    // `AesGcmSecretCipher` refuses. One value that satisfies both is simpler than two lists.
+    parsed[key] = 'd'.repeat(64);
   }
 
   const result = appConfigSchema.safeParse(parsed);

@@ -60,6 +60,11 @@ const CONTRACT_ONLY_PLACEHOLDERS: Readonly<Record<string, string>> = {
   JWT_REFRESH_SECRET: 'openapi-placeholder-not-a-secret-abcdef01234567',
   QR_SIGNING_PRIVATE_KEY: 'openapi-placeholder-not-a-key-0123456789abcdef',
   QR_SIGNING_KEY_ID: 'openapi-placeholder',
+  // 64 hex characters, because `AesGcmSecretCipher` decodes this and refuses anything that is
+  // not 32 bytes — a text placeholder like the ones above fails the boot the emitter needs.
+  // Obviously not a key: it spells the fact in hex, and the emitter never encrypts anything.
+  MFA_SECRET_KEY: 'deadbeef'.repeat(8),
+  MFA_SECRET_KEY_ID: 'openapi-placeholder',
   // `stub`, never `razorpay` — the generator must not imply a provider is configured.
   PAYMENT_PROVIDER: 'stub',
   SMTP_HOST: '127.0.0.1',
