@@ -64,12 +64,13 @@ export function MobileNav() {
         onClick={openDrawer}
         aria-expanded={open}
         aria-haspopup="dialog"
-        data-on-media="true"
-        // The TRIGGER lives inside the glass pill, so it takes the media pair. `text-content` is
-        // the light-canvas ink and would go near-black on a near-black bar — correct-looking in
-        // the file, invisible on the page. The PANEL below is a normal light surface and keeps
-        // the canvas tokens; only this button crosses the boundary.
-        className="gm-hit-target inline-flex items-center justify-center rounded-full border border-strong p-inset-2xs text-content-on-media transition-opacity duration-fast ease-standard hover:opacity-80 lg:hidden"
+        /*
+         * `text-content`, not the media pair. The trigger sits on `.gm-chrome-glass`, which tints
+         * with `surface-default` and therefore flips - so a pinned near-white glyph measured
+         * 1.05:1 on the light theme's white pill and simply was not there. Same defect, same
+         * cause, as the theme control beside it; the note there carries the measurement.
+         */
+        className="gm-hit-target inline-flex items-center justify-center rounded-full border border-strong p-inset-2xs text-content transition-opacity duration-fast ease-standard hover:opacity-80 lg:hidden"
       >
         <Menu aria-hidden="true" className="h-[1.25rem] w-[1.25rem]" />
         <span className="sr-only">{t('web.chrome.nav.openMenu')}</span>

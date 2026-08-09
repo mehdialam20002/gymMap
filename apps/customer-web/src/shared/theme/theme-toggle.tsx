@@ -100,21 +100,40 @@ export function ThemeToggle() {
 
   return (
     /*
-     * `border-strong`, matching the location pill beside it, and not `border-subtle`. The pill
-     * both of these sit on is dark in BOTH themes, so their boundary is an on-media pairing
-     * rather than a page one - `border-subtle` is tuned to the page ground and disappeared into
-     * the glass. Two adjacent controls with two different outlines is also how a bar stops
-     * looking designed.
+     * `border-strong`, matching the location pill beside it and not `border-subtle`, which is
+     * tuned to the page ground and disappears into the glass. Two adjacent controls wearing two
+     * different outlines is also how a bar stops looking designed.
+     *
+     * The note that used to sit here said the pill was "dark in BOTH themes". That was true of
+     * the old chrome and is the premise the bug below rests on - it is not true of
+     * `.gm-chrome-glass`, which tints with `surface-default`.
      *
      * 32px painted, 44px pointer target via `gm-hit-target` (`AX3` / `NFR-USE-03`).
+     */
+    /*
+     * `text-content`, NOT `text-content-on-media`.
+     *
+     * ┌─ THE ROLE WAS RIGHT UNTIL THE PANEL UNDER IT LEARNED TO FLIP ──────────────────────────┐
+     * │ `content-on-media` is pinned near-white in BOTH themes, because it is the ink for       │
+     * │ things that sit on a photograph. This control sits on `.gm-chrome-glass`, which tints   │
+     * │ with `surface-default` - so in the light theme the pill is white and the glyph was      │
+     * │ `#f4f5f2` on it: 1.05:1, measured, which is not "hard to see" but gone. The button was  │
+     * │ still there, still 32px, still focusable and still announced; only the picture of it    │
+     * │ was missing, which is why nothing failed.                                               │
+     * │                                                                                        │
+     * │ `content-primary` is what the pane itself sets as its `color`, so the control now takes │
+     * │ its ink from the same place as the ground it prints on and cannot drift from it again.  │
+     * │                                                                                        │
+     * │ `data-on-media` went with it: that attribute paints the FOCUS RING in the same pinned   │
+     * │ near-white, so keyboard focus was invisible on the light pill for the same reason.      │
+     * └────────────────────────────────────────────────────────────────────────────────────────┘
      */
     <button
       type="button"
       onClick={choose}
       aria-label={label}
       title={label}
-      data-on-media="true"
-      className="gm-hit-target gm-lift inline-flex h-[2rem] w-[2rem] items-center justify-center rounded-full border border-strong text-content-on-media transition-colors duration-fast ease-standard hover:border-brand"
+      className="gm-hit-target gm-lift inline-flex h-[2rem] w-[2rem] items-center justify-center rounded-full border border-strong text-content transition-colors duration-fast ease-standard hover:border-brand"
     >
       <Glyph aria-hidden="true" className="h-[1rem] w-[1rem]" />
     </button>

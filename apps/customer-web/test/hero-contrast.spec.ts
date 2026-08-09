@@ -28,7 +28,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { source, tsxFiles } from './helpers.ts';
+import { code, source, tsxFiles } from './helpers.ts';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WCAG 2.x, from the definitions.
@@ -357,6 +357,58 @@ test('the header uses the chrome pane, never a hero pane', () => {
   assert.ok(
     !classes.split(/\s+/).includes('gm-glass'),
     'the header uses the media pane, which expects a scrim it will not have',
+  );
+});
+
+test('nothing on the chrome pill wears ink pinned to a ground that flips', () => {
+  /*
+   * ┌─ A CONTROL THAT WAS THERE, FOCUSABLE, ANNOUNCED, AND INVISIBLE ────────────────────────────┐
+   * │ `content-on-media` and `content-on-media-accent` are pinned near-white in BOTH themes,      │
+   * │ because they are the ink for things printed on a photograph. `.gm-chrome-glass` tints with  │
+   * │ `surface-default`, so the pill it paints is white in the light theme - and the theme        │
+   * │ control's glyph measured 1.05:1 on it. Not dim: gone. The button kept its size, its focus   │
+   * │ order and its accessible name, so nothing in the suite or the browser complained; only the  │
+   * │ picture of it was missing, and it took a screenshot from the owner to find.                  │
+   * │                                                                                             │
+   * │ `data-on-media` is the same defect for keyboard focus: it repaints the outline in that same │
+   * │ pinned near-white.                                                                          │
+   * │                                                                                             │
+   * │ The announcement bar is exempt and is the reason this test names files rather than sweeping │
+   * │ the chrome folder - that strip keeps its own solid `surface-media` in both themes, so the   │
+   * │ pinned roles are exactly right there.                                                        │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const onPill = [
+    'src/shared/theme/theme-toggle.tsx',
+    'src/shared/chrome/site-header.tsx',
+    'src/shared/chrome/mobile-nav.tsx',
+  ];
+
+  for (const rel of onPill) {
+    const text = code(rel);
+    // `mobile-nav.tsx` also renders the DRAWER, which is its own opaque surface. Only the part
+    // before the dialog opens sits on the pill.
+    const trigger = text.split('<dialog')[0]!;
+    assert.ok(
+      !/text-content-on-media\b/.test(trigger),
+      `${rel} inks a control on the chrome pill with a role pinned to dark media`,
+    );
+    assert.ok(
+      !/data-on-media/.test(trigger),
+      `${rel} paints a focus ring on the chrome pill in ink pinned to dark media`,
+    );
+  }
+
+  // And the pane really does take its ink from a role that flips, which is what makes
+  // `text-content` on the controls correct rather than a coincidence.
+  const pane = CSS.slice(
+    CSS.indexOf('.gm-chrome-glass {'),
+    CSS.indexOf('.gm-chrome-glass {') + 500,
+  );
+  assert.match(
+    pane,
+    /color:\s*var\(--gm-color-content-primary\)/,
+    'the chrome pane no longer inks with content-primary, so the controls on it need re-deriving',
   );
 });
 
