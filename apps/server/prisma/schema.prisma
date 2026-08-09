@@ -279,6 +279,22 @@ model User {
 
   status      UserStatusEnum @default(PENDING_VERIFICATION)
   mfaEnabled  Boolean        @default(false) @map("mfa_enabled")
+
+  /// M-024 · `FR-AUTH-07`, `Security.md` §2.8. `mfaEnabled` is the flag; these carry the rest.
+  ///
+  /// `ck_users__mfa_enabled_has_timestamp` binds `mfaEnabled` to `mfaEnrolledAt` in the database,
+  /// because two columns describing one fact diverge the moment a code path writes one of them.
+  /// Prisma cannot express a cross-column CHECK, so the constraint lives in the migration and this
+  /// comment is the only warning a reader gets here.
+  ///
+  /// The secret and the codes are C5: never logged, never returned after enrolment. `mfaSecret`
+  /// holds an encryption ENVELOPE, never the raw 160 bits.
+  mfaEnrolledAt        DateTime? @map("mfa_enrolled_at") @db.Timestamptz(6)
+  mfaSecretEncrypted   String?   @map("mfa_secret_encrypted")
+  mfaRecoveryCodesHashed String[] @map("mfa_recovery_codes_hashed")
+  /// The highest accepted TOTP step. Refusing anything at or below it is what stops replay.
+  mfaLastStep          BigInt?   @map("mfa_last_step")
+
   lastLoginAt DateTime?      @map("last_login_at") @db.Timestamptz(6)
 
   /// BR-DAT-04. The durable reference a financial record keeps after the identity is gone.
