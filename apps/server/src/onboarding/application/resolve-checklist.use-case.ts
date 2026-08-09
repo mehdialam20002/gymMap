@@ -24,46 +24,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { BusinessRuleException } from '../../common/errors/domain-exception.js';
 import { currentTenantContext } from '../../tenancy/context/tenant-context.als.js';
 import { MissingTenantContextError } from '../../tenancy/domain/tenancy.errors.js';
+import { CHECKLIST_STORE, type ChecklistStore } from './ports/checklist-store.port.js';
 import {
   checklistCompleteness,
   resolveChecklist,
-  type ApplicantFacts,
   type ChecklistCompleteness,
-  type ChecklistItem,
   type ResolvedItem,
 } from '../domain/checklist.js';
-
-export interface LiveChecklist {
-  readonly id: string;
-  readonly version: number;
-  readonly items: readonly ChecklistItem[];
-}
-
-/**
- * ┌─ NO `tenantId` PARAMETER ANYWHERE ON THIS PORT ────────────────────────────────────────────────┐
- * │ §11.5 `BR5`, enforced by `gymmap/no-tenant-id-parameter`. `applicantFacts()` takes nothing and  │
- * │ reads the tenant from the request context; `liveChecklist()` takes a country and an entity      │
- * │ type, which are properties of the market and the business form, not identifiers of a tenant.    │
- * └─────────────────────────────────────────────────────────────────────────────────────────────────┘
- */
-export interface ChecklistStore {
-  /**
-   * The one live version, or `null` if this country and entity type have no published checklist.
-   *
-   * "The one" is a database guarantee, not a convention:
-   * `uq_kyc_checklists__one_live_per_entity_type` is a partial unique index on
-   * `(country_code, entity_type) WHERE superseded_at IS NULL`, so two live rows cannot exist and
-   * this cannot silently return whichever the planner reached first.
-   */
-  liveChecklist(countryCode: string, entityType: string): Promise<LiveChecklist | null>;
-
-  /** The applicant's own facts, read from the tenant in the ambient request context. */
-  applicantFacts(): Promise<
-    (ApplicantFacts & { readonly countryCode: string; readonly entityType: string }) | null
-  >;
-}
-
-export const CHECKLIST_STORE = Symbol('CHECKLIST_STORE');
 
 export interface ResolveChecklistResult {
   readonly checklistId: string;

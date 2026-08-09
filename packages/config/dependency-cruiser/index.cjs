@@ -169,6 +169,25 @@ const STRUCTURAL_RULES = [
     },
     to: {
       dependencyTypes: ['npm-dev'],
+      /*
+       * ┌─ A PEER DEPENDENCY IS SUPPLIED BY THE CONSUMER, SO IT IS NEVER PRUNED AWAY ─────────────┐
+       * │ `packages/ui` declares `react` as BOTH a `devDependency` (so the package can build and  │
+       * │ typecheck on its own) and a `peerDependency` (so the app supplies the single copy). That │
+       * │ is the correct shape for a component library, and dependency-cruiser reports the edge as │
+       * │ `['npm-dev', 'npm-peer']` — `dependencyTypes` matches on ANY, so all six React-importing │
+       * │ files in `packages/ui` were flagged.                                                      │
+       * │                                                                                          │
+       * │ The exemption is the rule's own reasoning applied honestly: the failure it prevents is   │
+       * │ "works locally, fails in the production image where devDependencies are pruned". React   │
+       * │ cannot go missing there — `apps/customer-web` and `apps/admin-dashboard` both declare it  │
+       * │ as a real `dependency`, which is what a peer requirement means.                            │
+       * │                                                                                          │
+       * │ This was RED on committed code, which is worse than it sounds: CI job 5 runs this gate,  │
+       * │ and a newcomer told to run `pnpm architecture` met six errors that were not theirs.       │
+       * │ A dev-only runtime import STILL fails — `05-architecture.spec.sh` proves it.               │
+       * └──────────────────────────────────────────────────────────────────────────────────────────┘
+       */
+      dependencyTypesNot: ['npm-peer'],
       // `@types/*` packages are ERASED at compile time — `import type { Request } from 'express'`
       // emits nothing, so there is no runtime import to break in a pruned production image.
       // Declaring them as devDependencies is correct, and flagging them here was a false positive

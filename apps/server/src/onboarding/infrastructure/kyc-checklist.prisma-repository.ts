@@ -20,8 +20,11 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../tenancy/prisma/prisma.service.js';
 import { currentTenantContext } from '../../tenancy/context/tenant-context.als.js';
 import { MissingTenantContextError } from '../../tenancy/domain/tenancy.errors.js';
-import type { ApplicantFacts } from '../domain/checklist.js';
-import type { ChecklistStore, LiveChecklist } from '../application/resolve-checklist.use-case.js';
+import type {
+  ApplicantProfile,
+  ChecklistStore,
+  LiveChecklist,
+} from '../application/ports/checklist-store.port.js';
 import { parseChecklistItems } from '../domain/checklist-items.parser.js';
 
 /**
@@ -67,9 +70,7 @@ export class KycChecklistPrismaRepository implements ChecklistStore {
     };
   }
 
-  async applicantFacts(): Promise<
-    (ApplicantFacts & { readonly countryCode: string; readonly entityType: string }) | null
-  > {
+  async applicantFacts(): Promise<ApplicantProfile | null> {
     const context = currentTenantContext();
     if (context.kind !== 'TENANT') {
       throw new MissingTenantContextError('Tenant', 'applicantFacts');

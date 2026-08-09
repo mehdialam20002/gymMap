@@ -21,10 +21,8 @@ import { Module } from '@nestjs/common';
 import { ApplicationPrismaRepository } from './infrastructure/application.prisma-repository.js';
 import { KycDocumentPrismaRepository } from './infrastructure/kyc-document.prisma-repository.js';
 import { KycChecklistPrismaRepository } from './infrastructure/kyc-checklist.prisma-repository.js';
-import {
-  CHECKLIST_STORE,
-  ResolveChecklistUseCase,
-} from './application/resolve-checklist.use-case.js';
+import { ResolveChecklistUseCase } from './application/resolve-checklist.use-case.js';
+import { CHECKLIST_STORE } from './application/ports/checklist-store.port.js';
 import { UploadKycDocumentUseCase } from './application/upload-kyc-document.use-case.js';
 import { OBJECT_STORAGE_PORT } from '../common/storage/object-storage.port.js';
 import { MALWARE_SCAN_PORT } from '../common/storage/malware-scan.port.js';
