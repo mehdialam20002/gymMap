@@ -847,12 +847,34 @@
 
   /* ── hero ──────────────────────────────────────────────────────────────── */
 
+  /*
+   * ┌─ THE SLACK GOES BELOW THE CONTENT, NOT ABOVE IT ───────────────────────────────────────────┐
+   * │ This was `align-items: flex-end` with `min-height: 100svh`, which pins the block to the    │
+   * │ bottom and hands EVERY spare pixel to the top. The gap between the navigation and the      │
+   * │ opening line was 150px at 900px tall, 233px at 1030px and 403px at 1200px - the bigger the │
+   * │ screen, the more dead space, which is exactly backwards. On a laptop it pushed the search  │
+   * │ console under the fold.                                                                     │
+   * │                                                                                            │
+   * │ `stretch` lets the inner column own the height, so the copy starts a FIXED distance below  │
+   * │ the chrome at every size and the slack collects at the bottom - where the marquee sits, on │
+   * │ the background, doing no harm. Measured at five viewport heights rather than eyeballed.    │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   .gm-hero {
     position: relative;
-    min-height: 100svh;
+    /*
+     * Capped, so the slack can never grow without limit.
+     *
+     * A bare `100svh` on a 1200px screen leaves 340px of empty background under the category
+     * chips - the emptiness moved from above the headline to below the console rather than going
+     * away. The content needs about 815px; the cap gives it at most ~175px of air and then lets
+     * the next band peek in, which is a better scroll cue than a void.
+     */
+    min-height: min(100svh, 62rem);
     display: flex;
-    align-items: flex-end;
-    padding-top: 150px;
+    align-items: stretch;
+    /* Clears the chrome and leaves a deliberate gap, tightening on a short screen. */
+    padding-top: clamp(56px, 7.5vh, 96px);
     overflow: hidden;
   }
 
@@ -947,6 +969,17 @@
     z-index: 2;
     width: 100%;
     padding-bottom: 34px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /*
+   * The marquee rides the bottom edge, which is what collects the slack the hero no longer puts
+   * above the headline. On a short screen the content overflows the viewport and `auto` resolves
+   * to nothing, so the composition is unchanged there.
+   */
+  .gm-hero-in .gm-marquee {
+    margin-top: auto;
   }
 
   .gm-hero-tag {
@@ -961,6 +994,13 @@
     font-family: var(--gm-font-mono);
     letter-spacing: 0.04em;
     margin-bottom: 26px;
+    /*
+     * `inline-flex` shrinks to its text everywhere EXCEPT as a flex item, and `.gm-hero-in` became
+     * a column when the hero was re-anchored - so the pill stretched the full width of the
+     * container and read as an empty bar with a sentence at one end. The item has to opt out of
+     * the cross-axis stretch itself.
+     */
+    align-self: flex-start;
     background: color-mix(in srgb, var(--gm-color-surface-subtle) 55%, transparent);
     backdrop-filter: blur(8px);
   }
