@@ -84,22 +84,42 @@ export function parseCompare(params: RawParams): CompareSelection {
   };
 }
 
-/** The URL for a given set. `/compare` when it is empty, so the page has one canonical address. */
-export function toCompareParams(keys: readonly string[]): string {
+/**
+ * The URL for a given set, on a given page.
+ *
+ * ┌─ THE SELECTION IS THE URL, WHICH IS WHY IT WORKS EVERYWHERE ────────────────────────────────┐
+ * │ `base` exists so a page other than `/compare` can carry a selection: the homepage rail adds │
+ * │ and removes gyms by navigating to ITSELF with a different query, which needs no client       │
+ * │ state, no store and no hydration. The same links work in a crawler, in a shared message, and │
+ * │ with JavaScript switched off, and the back button undoes a selection because the selection   │
+ * │ IS a history entry.                                                                          │
+ * │                                                                                             │
+ * │ `fragment` keeps the reader where they were. Without it, adding the fourth gym on a page     │
+ * │ nine screens long returns them to the top, which is how a control that works feels broken.   │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export function toCompareParams(keys: readonly string[], base = '/compare', fragment = ''): string {
   const params = new URLSearchParams();
   for (const key of keys.slice(0, MAX_COMPARE)) params.append('gym', key);
   const encoded = params.toString();
-  return encoded === '' ? '/compare' : `/compare?${encoded}`;
+  const query = encoded === '' ? '' : `?${encoded}`;
+  return `${base}${query}${fragment}`;
 }
 
 /** The URL that adds a gym to the current set — or removes it, if it is already there. */
 export function toggleHref(
   current: readonly GymDetail[],
   gym: { citySlug: string; slug: string },
+  base = '/compare',
+  fragment = '',
 ): string {
   const key = compareKey(gym);
   const keys = current.map(compareKey);
-  return toCompareParams(keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]);
+  return toCompareParams(
+    keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key],
+    base,
+    fragment,
+  );
 }
 
 /**

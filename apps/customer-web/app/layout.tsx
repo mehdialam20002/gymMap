@@ -85,6 +85,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a href="#main" className="gm-skip-link">
           {t('web.chrome.skipToContent')}
         </a>
+
+        {/*
+         * Scroll progress. `aria-hidden`, because a `progressbar` role would put a value in the
+         * accessibility tree that changes on every scroll frame and means nothing to anyone: how
+         * far down a document you are is a thing a screen reader already reports on its own terms.
+         *
+         * Driven entirely by `animation-timeline: scroll()`. §4.5 bans a scroll listener outright,
+         * and this is the case that used to justify one. Where the timeline is unsupported the
+         * element is `display: none` - an empty bar is honest, a full one would be a false
+         * statement about position.
+         */}
+        <div aria-hidden="true" className="gm-progress" />
+
         <div className="flex min-h-screen flex-col">
           {/* In normal flow, ABOVE the sticky header. That ordering is the whole behaviour: the
               bar scrolls away and the navigation pill pins itself, with no scroll listener. */}

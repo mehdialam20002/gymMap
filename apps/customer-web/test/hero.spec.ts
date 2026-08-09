@@ -34,6 +34,9 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { CITIES } from '../src/features/discovery/fixtures/catalogue.ts';
+import { RADII, parseSearchQuery, search } from '../src/features/discovery/search.ts';
+
 const APP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Comments blanked, newlines kept — the same discipline as `shell.spec.ts`. A test that reads
@@ -122,17 +125,53 @@ test('every looping animation STOPS under reduced motion rather than speeding up
    * pulse becomes a flicker. Both therefore live INSIDE `prefers-reduced-motion: no-preference`
    * so they are never declared at all for a reader who asked for stillness.
    */
+  /*
+   * Every `infinite` declaration in the file, found rather than listed.
+   *
+   * This named `['gm-slide', 'gm-pulse']` and there were four: `gm-scan` on the reviews band and
+   * the marquee's second track were both unchecked. A hard-coded list turns "every looping
+   * animation" into "the two loops that existed when this was written", and the next one is added
+   * by somebody who never reads this file.
+   */
   const css = readFileSync(join(APP_ROOT, 'src/styles/globals.css'), 'utf8');
-  for (const name of ['gm-slide', 'gm-pulse']) {
-    const at = css.indexOf(`animation: ${name}`);
-    assert.notEqual(at, -1, `${name} is no longer used`);
-    const before = css.slice(0, at);
+  const loops = [...css.matchAll(/animation:[^;]*\binfinite\b/g)];
+  assert.ok(loops.length >= 2, `only ${String(loops.length)} looping animations found`);
+
+  for (const loop of loops) {
+    const before = css.slice(0, loop.index);
     const query = before.lastIndexOf('@media (prefers-reduced-motion: no-preference)');
     const closed = before.lastIndexOf('\n  }\n');
+    const declaration = loop[0].replace(/\s+/g, ' ');
+    assert.notEqual(query, -1, `${declaration} loops with no reduced-motion query anywhere above`);
     assert.ok(
-      query !== -1 && query > closed,
-      `${name} loops outside a no-preference query, so RM1 turns it into a strobe`,
+      query > closed,
+      `${declaration} loops outside a no-preference query, so RM1 turns it into a strobe`,
     );
+  }
+});
+
+test('nothing on a loop animates a layout property — MO4', () => {
+  /*
+   * `MO4` allows `transform` and `opacity`. The reviews scanner animated `top`, which is a layout
+   * and a paint on every frame of a loop with no end, and it read as fine because the element is
+   * 74px square and the cost never shows up anywhere a person looks.
+   *
+   * Scoped to `@keyframes`, because a one-shot transition on `height` is a different (and also
+   * discouraged) thing, and this test is about the loops.
+   */
+  const css = readFileSync(join(APP_ROOT, 'src/styles/globals.css'), 'utf8');
+  const banned = /^\s*(top|left|right|bottom|width|height|margin|padding)\s*:/m;
+  for (const block of css.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+    let depth = 0;
+    let end = block.index + block[0].length - 1;
+    do {
+      if (css[end] === '{') depth += 1;
+      else if (css[end] === '}') depth -= 1;
+      end += 1;
+    } while (depth > 0 && end < css.length);
+    const body = css.slice(block.index, end);
+    const hit = banned.exec(body);
+    assert.equal(hit, null, `@keyframes ${block[1]!} animates ${hit?.[1] ?? ''}, which MO4 bans`);
   }
 });
 
@@ -218,4 +257,52 @@ test('the search form still works without JavaScript', () => {
   assert.match(src, /method="get"/);
   assert.match(src, /name="q"/);
   assert.ok(!src.includes('onSubmit'), 'the search form was converted to a JavaScript handler');
+});
+
+test('every value the search form can submit actually finds gyms', () => {
+  /*
+   * ┌─ THE TEST THIS FILE DID NOT HAVE, AND THE BUG IT WOULD HAVE CAUGHT ────────────────────────┐
+   * │ The city select submitted `?city=Bengaluru` while `search()` filters on `citySlug`, which  │
+   * │ is `bengaluru`. Every city choice in the homepage's primary call to action returned zero    │
+   * │ gyms, onto a results page whose empty state is well built enough that nothing looked wrong. │
+   * │                                                                                            │
+   * │ Every assertion above passes on that version: the form is a GET, the action is `/search`,  │
+   * │ the field is named `city`. They check the form's SHAPE. This one runs each value the form  │
+   * │ can emit through the parser and the filter the results page uses, which is the only        │
+   * │ property anybody cares about.                                                               │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  for (const city of CITIES) {
+    const query = parseSearchQuery({ city: city.slug });
+    assert.equal(query.city, city.slug, `the parser did not keep ${city.slug}`);
+    const found = search(query);
+    assert.ok(found.length > 0, `?city=${city.slug} returns no gyms`);
+    for (const gym of found) {
+      assert.equal(gym.citySlug, city.slug, `${gym.name} is not in ${city.name}`);
+    }
+  }
+
+  // And the radius, for the same reason: a control the page draws and the query ignores.
+  for (const km of RADII) {
+    const found = search(parseSearchQuery({ radius: String(km) }));
+    for (const gym of found) {
+      assert.ok(
+        gym.distanceKm <= km,
+        `${gym.name} at ${String(gym.distanceKm)}km survived ?radius=${String(km)}`,
+      );
+    }
+  }
+  assert.ok(
+    search(parseSearchQuery({ radius: String(RADII[0]) })).length <
+      search(parseSearchQuery({})).length,
+    'the tightest radius excludes nothing, so the filter proves nothing',
+  );
+
+  // The markup really does emit slugs. Without this the two halves could agree in the test and
+  // disagree in the DOM, which is exactly how the original defect survived.
+  const src = code(HERO);
+  assert.ok(
+    /value=\{city\.slug\}/.test(src),
+    'the city option submits something other than the slug the filter compares against',
+  );
 });

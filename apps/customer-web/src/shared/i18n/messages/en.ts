@@ -94,7 +94,18 @@ export const en = {
   // `{n}` is the city count, substituted from the catalogue at render. The reference says
   // "69 verified gyms live", which would be a false statement: there are eight fixtures and no
   // approved listings. This says the thing that is true.
-  'web.home.hero.tagCities': 'Live in {n} cities · Bengaluru, Mumbai, Delhi, Chennai',
+  /*
+   * NOT "Live in 4 cities".
+   *
+   * Two problems in six words. "Live" is a market-presence claim, and there are zero approved
+   * listings - the same claim this rewrite deleted from the owner console for exactly this
+   * reason. And the four city NAMES were typed in beside a counted `{n}`, so the number came from
+   * the catalogue and the list did not: add a fifth city and the tag reads "5 cities" over four
+   * names.
+   *
+   * Both halves are counted now, and the sentence describes the sample rather than the market.
+   */
+  'web.home.hero.tagCities': 'Sample catalogue · {cities}',
   'web.home.hero.titleAccent': 'your life',
   // NOT "India's #1". Every superlative on this page has to be defensible, and a marketplace
   // with no live listings cannot defend a ranking claim to a consumer or to ASCI.
@@ -244,6 +255,7 @@ export const en = {
   'web.home.fixture.body':
     'These listings are illustrative. Real ones appear here once gym onboarding and verification are live.',
   'web.home.plans.perMonthFrom': 'per month, from',
+  'web.home.compare.remove': 'Remove from compare',
   'web.home.compare.add': 'Add to compare',
   'web.home.card.view': 'View',
   'web.home.cities.seeAll': 'View all cities',
@@ -388,6 +400,17 @@ export const en = {
    * for that; "lowest price" is arithmetic about three numbers on display. `compare.spec.ts`
    * enforces the distinction across the whole `web.compare.*` namespace.
    */
+  // --- FR-CMP-01 · the compare rail -----------------------------------------
+  // The selection lives in the URL, so every one of these labels describes a LINK. "Clear" is a
+  // link to the page with no gyms on it, not a button that mutates something.
+  'web.compare.rail.label': 'Gyms you are comparing',
+  // One form, because "1 of 4 gyms selected" is already grammatical - a singular key here would
+  // be two strings a translator has to keep identical for no reason.
+  'web.compare.rail.count': 'of {max} gyms selected',
+  'web.compare.rail.remove': 'Remove {gym} from the comparison',
+  'web.compare.rail.clear': 'Clear',
+  'web.compare.rail.cta': 'Compare',
+  'web.compare.rail.full': 'That is the maximum. Remove one to swap in another.',
   'web.compare.markLowest': 'lowest price shown',
   'web.compare.markNearest': 'nearest of these',
   'web.compare.markRated': 'highest rated of these',
@@ -592,7 +615,11 @@ export const en = {
   // --- SCR-WEB-001 · the compare teaser --------------------------------------
   'web.home.compareTeaser.title': 'Still deciding? Put them side by side.',
   'web.home.compareTeaser.body':
-    'Up to four gyms at once: price, distance, rating and every facility, in one view. The table below is live, from the same listings the results page uses.',
+    // NOT "live". The table is built from the sample catalogue, and "live" beside three figures
+    // is the reader taking them for current market data. What is true, and is the point, is that
+    // it comes from the SAME listings the results page and checkout use, so it cannot disagree
+    // with them.
+    'Up to four gyms at once: price, distance, rating and every facility, in one view. The table below is built from the same listings the results page uses, so the figures cannot disagree.',
   'web.home.compareTeaser.cta': 'Start comparing',
   'web.home.compareTeaser.rowPrice': 'From, per month',
   'web.home.compareTeaser.rowDistance': 'Distance',

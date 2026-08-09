@@ -11,6 +11,9 @@
 
 import { t } from '../src/shared/i18n/index.ts';
 import { Hero } from '../src/features/home/hero.tsx';
+import type { RawParams } from '../src/features/discovery/search.ts';
+import { parseCompare } from '../src/features/compare/compare.ts';
+import { CompareRail } from '../src/features/compare/compare-rail.tsx';
 import {
   CityGrid,
   ClosingBand,
@@ -26,13 +29,25 @@ import {
   Reviews,
 } from '../src/features/home/chalk.tsx';
 
-export default function HomePage() {
+/**
+ * `searchParams`, because the compare selection lives in the URL (`FR-CMP-01`).
+ *
+ * This opts the route out of static rendering. The HTML is still produced on the server, so
+ * `FR-SRCH-13` and everything about crawling is unchanged; what is given up is the full-page
+ * cache. That is the price of a selection that survives being shared, works with JavaScript off,
+ * and is undone by the back button - and it is a price this page can pay while its catalogue is a
+ * fixture. The alternative was a client island holding the same list in React state, which is a
+ * second copy of a fact the URL already carries.
+ */
+export default function HomePage({ searchParams }: { readonly searchParams: RawParams }) {
+  const { gyms: selected } = parseCompare(searchParams);
+
   return (
     <>
       <Hero />
 
       <Promises />
-      <GymRail />
+      <GymRail selected={selected} />
 
       <Goals />
       <HowItWorks />
@@ -65,6 +80,13 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/*
+       * Last in the document, which is also where it sits on screen. A fixed bar declared early
+       * would reach a screen reader before the page it is about, announcing a selection nobody has
+       * made yet.
+       */}
+      <CompareRail selected={selected} />
     </>
   );
 }

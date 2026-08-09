@@ -39,18 +39,22 @@ type Theme = 'light' | 'dark';
  * What the page is showing right now, read from the element the bootstrap script writes.
  *
  * ┌─ THE FALLBACK HAS TO MIRROR THE STYLESHEET'S SELECTOR, NOT THE OS ─────────────────────────┐
- * │ The dark ground is applied by `:root[data-theme='dark']`, so anything that is NOT that      │
- * │ attribute is painted light - including the absent attribute, which is the state of every    │
- * │ first visit. `light` is therefore the only correct fallback.                                 │
+ * │ The customer site's dark palette is applied by `:root:not([data-theme='light'])`, which     │
+ * │ matches an element with NO attribute - so the absent case, which is every first visit, is   │
+ * │ DARK. `light` is therefore only correct when the attribute says so.                          │
  * │                                                                                             │
- * │ Reading `prefers-color-scheme` here would be the intuitive version and it would be a bug:   │
- * │ a reader on a dark-mode laptop would get a MOON on a page that is painted light, offering   │
- * │ to switch them to the theme they are already looking at. The control has to agree with the  │
- * │ stylesheet, and the stylesheet does not consult the OS.                                      │
+ * │ This read `=== 'dark' ? 'dark' : 'light'` while the stylesheet said the opposite, and the   │
+ * │ two disagreed on exactly one state: the first visit. The header showed a moon and announced │
+ * │ "switch to the dark theme" on a page that was already dark, and the click set               │
+ * │ `data-theme="dark"` - which the palette block was already matching, so nothing changed. The │
+ * │ control appeared broken, and only the second click reached light.                            │
+ * │                                                                                             │
+ * │ Reading `prefers-color-scheme` here would be the intuitive version and would be a different │
+ * │ bug: the stylesheet does not consult the OS, so the control must not either.                 │
  * └─────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 function currentTheme(): Theme {
-  return document.documentElement.dataset['theme'] === 'dark' ? 'dark' : 'light';
+  return document.documentElement.dataset['theme'] === 'light' ? 'light' : 'dark';
 }
 
 export function ThemeToggle() {

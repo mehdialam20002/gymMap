@@ -44,16 +44,49 @@ const PAGE = 'app/page.tsx';
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 const MODULES: readonly string[] = (() => {
-  const found = [...code(PAGE).matchAll(/from '\.\.\/(src\/features\/home\/[\w.-]+\.tsx)'/g)].map(
-    (match) => match[1]!,
-  );
   /*
-   * One module is enough to be real - the sections were consolidated into `chalk.tsx` and the
-   * count legitimately fell to two. The guard against a regex that matches nothing is this
-   * assertion; the guard against a regex that matches too little is `checked >= 8` in the
-   * presence test below, which counts the exports these files actually carry.
+   * TRANSITIVE, not one level.
+   *
+   * The first version read only `app/page.tsx`'s own imports, which meant a module the page
+   * reached THROUGH another one was scanned by nothing here - `compare-rail.tsx` renders on the
+   * homepage, is imported by `page.tsx` and by `chalk.tsx`, and a component pulled in one step
+   * further would have been invisible to every absence assertion in this file. The whole point of
+   * deriving the list was to stop it going stale; stopping at depth one just moves where it goes
+   * stale to.
+   *
+   * Bounded to `src/features/`, because that is where sections live. It follows relative imports
+   * from whichever file it is currently reading, so a path is resolved against its importer
+   * rather than against the page.
    */
-  assert.ok(found.length >= 1, `no home modules found on ${PAGE}`);
+  const seen = new Set<string>();
+  const queue = [PAGE];
+
+  while (queue.length > 0) {
+    const from = queue.shift()!;
+    const dir = from.slice(0, from.lastIndexOf('/'));
+    for (const [, spec] of code(from).matchAll(/from '([^']+\.tsx?)'/g)) {
+      if (!spec!.startsWith('.')) continue;
+      const parts = `${dir}/${spec!}`.split('/');
+      const resolved: string[] = [];
+      for (const part of parts) {
+        if (part === '.' || part === '') continue;
+        if (part === '..') resolved.pop();
+        else resolved.push(part);
+      }
+      const rel = resolved.join('/');
+      if (!rel.startsWith('src/features/') || seen.has(rel)) continue;
+      seen.add(rel);
+      queue.push(rel);
+    }
+  }
+
+  // Sections only. `search.ts`, `compare.ts` and the fixtures are data, and scanning them for
+  // "no rupee figure written into the component" would fail on the catalogue itself.
+  const found = [...seen].filter((rel) => rel.endsWith('.tsx'));
+  assert.ok(
+    found.length >= 3,
+    `only ${String(found.length)} rendered modules reached from ${PAGE}`,
+  );
   return found;
 })();
 
@@ -164,13 +197,30 @@ test('no app-store banner — there is no app to download', () => {
 });
 
 test('no invented aggregate counts on the homepage', () => {
-  // "3,245 verified gyms" is the single most common thing a marketing page makes up, and this
-  // one would be contradicted by scrolling down to the results.
-  const strings = JSON.stringify(en);
-  const inflated = strings.match(/\b\d{1,3},\d{3}\+?\s*(members|gyms|users|cities|reviews)/gi);
-  assert.equal(inflated, null, `invented totals in the catalogue: ${String(inflated)}`);
-  const plus = strings.match(/\b\d+[km]?\+\s*(members|gyms|users|reviews)/gi);
-  assert.equal(plus, null, `invented totals in the catalogue: ${String(plus)}`);
+  /*
+   * "3,245 verified gyms" is the single most common thing a marketing page makes up, and this one
+   * would be contradicted by scrolling down to the results.
+   *
+   * Scanned in the COMPONENTS as well as the catalogue. This read `JSON.stringify(en)` and
+   * nothing else, so a figure typed straight into JSX - which is where a number like that
+   * actually gets added, because adding it to a message catalogue takes a key and a second
+   * thought - was invisible to the one file whose header says its purpose is "A NUMBER APPEARING
+   * FROM NOWHERE".
+   */
+  const inflated = /\b\d{1,3},\d{3}\+?\s*(members|gyms|users|cities|reviews)/gi;
+  const plus = /\b\d+[km]?\+\s*(members|gyms|users|reviews)/gi;
+  // A bare figure next to the noun, which is the form a hard-coded count takes in markup.
+  const bare = /(?<!\{)\b\d{2,}\s*(?:\+\s*)?(members|gyms|users|reviews|listings)\b/gi;
+
+  for (const [where, text] of [
+    ['the catalogue', JSON.stringify(en)],
+    ...MODULES.map((rel) => [rel, code(rel)] as const),
+  ] as const) {
+    for (const pattern of [inflated, plus, bare]) {
+      const hits = text.match(pattern);
+      assert.equal(hits, null, `invented totals in ${where}: ${String(hits)}`);
+    }
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -195,8 +245,16 @@ test('every section a rendered module exports is actually on the page', () => {
   const page = code(PAGE).replace(/\s+/g, ' ');
   let checked = 0;
   for (const rel of MODULES) {
-    for (const [, name] of code(rel).matchAll(/^export function (\w+)\(/gm)) {
-      assert.ok(page.includes(`<${name!} />`), `${name!} is exported by ${rel} but never rendered`);
+    // PascalCase only. A module can legitimately export a helper the page never renders as a tag
+    // - `railToggleHref` builds an href - and demanding `<railToggleHref />` is the test insisting
+    // on a component that was never claimed to be one.
+    for (const [, name] of code(rel).matchAll(/^export function ([A-Z]\w*)\(/gm)) {
+      // `<Name ` or `<Name/` - a section that takes props is still rendered. Requiring the exact
+      // `<Name />` failed the day `GymRail` grew a `selected` prop, which is the test being
+      // strict about JSX punctuation rather than about the section being on the page. The space
+      // or slash is what stops `<GymRailFooter` matching `GymRail`.
+      const rendered = page.includes(`<${name!} `) || page.includes(`<${name!}/`);
+      assert.ok(rendered, `${name!} is exported by ${rel} but never rendered`);
       checked += 1;
     }
   }

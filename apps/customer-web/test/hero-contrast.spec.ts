@@ -97,15 +97,44 @@ function token(name: string): number[] {
     }
   };
 
-  const appliesToDefault = (selector: string): boolean =>
-    selector.split(',').some((one) => !/data-theme=['"]?dark/.test(one));
+  /*
+   * ┌─ "LATER WINS" IS ONLY TRUE AT EQUAL SPECIFICITY, AND THIS FILE STOPPED BEING EQUAL ────────┐
+   * │ The default theme is now `:root:not([data-theme='light'])`, and `:not()` contributes its    │
+   * │ argument's weight - so that block is (0,2,0) and beats the bare `:root` (0,1,0) that both   │
+   * │ `tokens.css` and this file's light block use. Taking the LAST applicable definition read    │
+   * │ `content-on-media-accent` as the light `#9a6600` while the browser painted `#ffb627`, and   │
+   * │ the accent proof measured a colour no reader ever sees. It passed, which is worse.          │
+   * │                                                                                            │
+   * │ So each applicable arm is scored the way the cascade scores it, and the winner is the       │
+   * │ highest specificity, ties broken by source order. The helper's own docblock above warns     │
+   * │ about exactly this failure against `tokens.css`; it just did not apply the lesson to        │
+   * │ `globals.css` once `globals.css` grew the same shape.                                       │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const applicableWeight = (selector: string): number | null => {
+    let best: number | null = null;
+    for (const arm of selector.split(',')) {
+      // An arm that REQUIRES an attribute cannot match a root that carries none.
+      const required = arm.replace(/:not\([^)]*\)/g, '');
+      if (/\[data-theme/.test(required)) continue;
+      // `:root` is one class-level unit; every `:not([...])` adds its argument's.
+      const weight = 1 + (arm.match(/:not\(\s*\[[^\]]*\]\s*\)/g) ?? []).length;
+      best = best === null ? weight : Math.max(best, weight);
+    }
+    return best;
+  };
 
   const readFrom = (css: string): string | null => {
     let found: string | null = null;
+    let bestWeight = -1;
     for (const [, selector, body] of dropDarkMedia(css).matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-      if (!appliesToDefault(selector!)) continue;
+      const weight = applicableWeight(selector!);
+      if (weight === null || weight < bestWeight) continue;
       const hit = new RegExp(`--gm-color-${name}\\s*:\\s*(#[0-9a-fA-F]{6})`).exec(body!);
-      if (hit) found = hit[1]!;
+      if (hit) {
+        found = hit[1]!;
+        bestWeight = weight;
+      }
     }
     return found;
   };
@@ -130,10 +159,28 @@ function token(name: string): number[] {
  * │ follows the declaration instead of naming a colour, and it measures whatever is there.      │
  * └────────────────────────────────────────────────────────────────────────────────────────────┘
  */
-function accent(): { name: string; rgb: number[] } {
-  const use = /\.gm-display-accent\s*\{[\s\S]*?color:\s*var\((--[\w-]+)\)/.exec(CSS);
-  assert.ok(use, '.gm-display-accent no longer sets its colour from a token');
-  const name = use[1]!;
+function accent(selector: string): { name: string; rgb: number[] } {
+  /*
+   * Third version, and the reason for it is the reason this helper takes a selector now.
+   *
+   * It read `.gm-display-accent`, a rule NOTHING rendered - the class was left in the stylesheet
+   * when the hero was rebuilt, and the proof went on measuring it. Green, and about a colour no
+   * reader ever saw. The two accents that ship are the hero's `<em>` and the closing band's, and
+   * both are measured below.
+   */
+  /*
+   * `indexOf` and then a FIXED regex on the slice, not a regex built from the selector.
+   *
+   * A pattern assembled in a template literal swallows every backslash escape in it - `\s` reads
+   * as a bare `s` - so the built regex matches nothing and the assertion below fires on a rule
+   * that is perfectly fine. That has happened three times in this repository; `panelAlpha()`
+   * below uses this shape for the same reason.
+   */
+  const open = CSS.indexOf(`${selector} {`);
+  assert.notEqual(open, -1, `${selector} is not declared`);
+  const rule = /color:\s*var\((--[\w-]+)\)/.exec(CSS.slice(open, open + 400));
+  assert.ok(rule, `${selector} no longer sets its colour from a token`);
+  const name = rule[1]!;
   return { name, rgb: token(name.replace('--gm-color-', '')) };
 }
 
@@ -141,8 +188,6 @@ function accent(): { name: string; rgb: number[] } {
 // The chrome, which is the only translucent thing left.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MEDIA = token('surface-media');
-const ON_MEDIA = token('content-on-media');
 const SURFACE = token('surface-default');
 const INK = token('content-primary');
 
@@ -158,24 +203,94 @@ const over = (top: readonly number[], under: readonly number[], a: number): numb
  * drives the composite to its own luminance. The sweep covers every case without needing to know
  * which kind of colour it was handed.
  */
-function worstCase(fg: readonly number[], alpha: number): number {
+/*
+ * The ground is a PARAMETER now. It was hard-coded to `surface-media`, which was right while the
+ * pane it measured tinted with that token; `.gm-chrome-glass` tints with `surface-default`, and a
+ * bound computed against the wrong ground is not a bound.
+ */
+function worstCase(fg: readonly number[], ground: readonly number[], alpha: number): number {
   let lowest = Infinity;
   for (let tone = 0; tone <= 255; tone++) {
-    lowest = Math.min(lowest, contrast(fg, over(MEDIA, [tone, tone, tone], alpha)));
+    lowest = Math.min(lowest, contrast(fg, over(ground, [tone, tone, tone], alpha)));
   }
   return lowest;
 }
 
+/**
+ * The chrome pane's tint, read off the rule the header actually carries.
+ *
+ * ┌─ THIS MEASURED A RULE NOTHING RENDERED ────────────────────────────────────────────────────┐
+ * │ It read `.gm-glass`, which was declared in the stylesheet and applied by no component - the │
+ * │ header wears `.gm-chrome-glass`. So the one proof standing between the site chrome and an   │
+ * │ illegible header on every listing route was measuring dead CSS, and passing.                │
+ * │                                                                                            │
+ * │ `.gm-glass` is deleted now, and `.gm-chrome-glass` mixes `surface-default` rather than      │
+ * │ `surface-media`, so the ground and the ink below changed with it.                           │
+ * └────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
 function panelAlpha(): number {
-  const open = CSS.indexOf('.gm-glass {');
-  assert.notEqual(open, -1, '.gm-glass is not declared');
+  const open = CSS.indexOf('.gm-chrome-glass {');
+  assert.notEqual(open, -1, '.gm-chrome-glass is not declared');
   const found =
-    /background-color:\s*color-mix\(in srgb,\s*var\(--gm-color-surface-media\)\s*(\d+)%/.exec(
+    /background-color:\s*color-mix\(in srgb,\s*var\(--gm-color-surface-default\)\s*(\d+)%/.exec(
       CSS.slice(open),
     );
-  assert.ok(found, '.gm-glass no longer declares a color-mix background');
+  assert.ok(found, '.gm-chrome-glass no longer declares a color-mix background');
   return Number(found[1]) / 100;
 }
+
+test('the resolver reads the same block the browser paints from', () => {
+  /*
+   * ┌─ EVERY RATIO BELOW IS ONLY AS GOOD AS `token()`, SO `token()` GETS A TEST ─────────────────┐
+   * │ It resolved `content-on-media-accent` to the light theme's `#9a6600` while the page painted │
+   * │ `#ffb627`, because it took the LAST applicable declaration and the winning one was the      │
+   * │ MORE SPECIFIC one earlier in the file. Every proof in this file kept passing, about colours │
+   * │ nobody saw.                                                                                │
+   * │                                                                                            │
+   * │ Rather than restating a hex - which this file's whole discipline is against - the check     │
+   * │ ties the resolver to the theme policy through a second, independent declaration. The block  │
+   * │ that carries `color-scheme` is by definition the one that decides the default page, so the  │
+   * │ neutral the resolver returns has to be the neutral declared alongside it. Flip the default  │
+   * │ and both move together, or this fails.                                                     │
+   * │                                                                                            │
+   * │ Cross-checked once against the running page over the DevTools protocol, which is where the  │
+   * │ discrepancy was found: `getPropertyValue('--gm-color-surface-default')` on the un-stamped   │
+   * │ root returns exactly what this asserts.                                                     │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const bare = CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+  const blocks = [...bare.matchAll(/([^{}]*)\{([^{}]*)\}/g)].filter(([, , body]) =>
+    /color-scheme:\s*dark/.test(body!),
+  );
+  assert.equal(
+    blocks.length,
+    1,
+    `${String(blocks.length)} blocks declare color-scheme: dark; the default theme must be decided in exactly one`,
+  );
+
+  const [, selector, body] = blocks[0]!;
+  assert.match(
+    selector!,
+    /:root:not\(\[data-theme=['"]light['"]\]\)/,
+    'the default-theme block is no longer the one that beats a bare :root on specificity',
+  );
+
+  const declared = /--gm-color-surface-default:\s*(#[0-9a-fA-F]{6})/.exec(body!);
+  assert.ok(declared, 'the default-theme block no longer declares the page ground');
+  assert.deepEqual(
+    token('surface-default'),
+    rgb(declared[1]!),
+    'the resolver is reading a different block from the one that decides the default theme',
+  );
+
+  // And the toggle has to agree, or it offers to switch to the theme already on screen.
+  const toggle = source('src/shared/theme/theme-toggle.tsx').replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.match(
+    toggle,
+    /dataset\['theme'\] === 'light' \? 'light' : 'dark'/,
+    'the theme control treats the absent attribute as light, but the stylesheet paints it dark',
+  );
+});
 
 test('the hero ground is flat, so its copy needs no bound at all', () => {
   /*
@@ -194,12 +309,20 @@ test('the hero ground is flat, so its copy needs no bound at all', () => {
   assert.ok(measured >= 4.5, `hero ink is ${measured.toFixed(2)}:1 on the hero ground`);
 });
 
-test('the display accent clears 3:1 on the hero ground — WCAG 1.4.3 large text', () => {
+test('both display accents clear 3:1 on the ground they sit on — WCAG 1.4.3 large text', () => {
   // Amber `#FFB627` is a LIGHT accent: it fails on a bright backdrop and rises as the ground
   // darkens. On the ink ground it is 11.08:1, which clears the body bar too.
-  const { name, rgb: colour } = accent();
-  const measured = contrast(colour, SURFACE);
-  assert.ok(measured >= 3, `the accent (${name}) is ${measured.toFixed(2)}:1 on the hero ground`);
+  //
+  // BOTH of them, because they were two different colours until the audit: the hero's amber and
+  // the closing band's periwinkle `content-brand`. Measuring one said nothing about the other.
+  for (const selector of ['.gm-display-hero em', '.gm-close .gm-display em']) {
+    const { name, rgb: colour } = accent(selector);
+    const measured = contrast(colour, SURFACE);
+    assert.ok(
+      measured >= 3,
+      `${selector} takes ${name} at ${measured.toFixed(2)}:1 on the page ground`,
+    );
+  }
 });
 
 /*
@@ -214,10 +337,15 @@ test('the display accent clears 3:1 on the hero ground — WCAG 1.4.3 large text
  */
 
 test('the header panel is legible with nothing but a photograph under it', () => {
-  const measured = worstCase(ON_MEDIA, panelAlpha());
+  /*
+   * The pane tints with `surface-default` and inks with `content-primary`, so the composite is
+   * those two and not the media roles - the chrome flips with the theme, which is what makes it
+   * self-bounding on a route with no scrim.
+   */
+  const lowest = worstCase(INK, SURFACE, panelAlpha());
   assert.ok(
-    measured >= 4.5,
-    `.gm-glass alone is ${measured.toFixed(2)}:1 over the worst frame, which is what every ` +
+    lowest >= 4.5,
+    `.gm-chrome-glass is ${lowest.toFixed(2)}:1 over the worst frame, which is what every ` +
       `listing route actually gives it`,
   );
 });
@@ -233,18 +361,48 @@ test('the header uses the chrome pane, never a hero pane', () => {
 });
 
 test('no rule is left in the stylesheet with nothing using it', () => {
-  // The scrim, the on-scrim pane and the headline shadow all existed to put text on a
-  // photograph. Deleted rather than left behind as dead rules with elaborate proofs attached to
-  // nothing - a comment describing CSS that no longer exists sends the next reader looking.
-  const rules = CSS.replace(/\/\*[\s\S]*?\*\//g, '');
-  for (const gone of [
-    '.gm-media-veil',
-    '.gm-glass-on-scrim',
-    '.gm-under-chrome',
-    '.gm-display-ink',
-  ]) {
-    assert.ok(!rules.includes(gone), `${gone} is still declared but nothing applies it`);
-  }
+  /*
+   * ┌─ A LIST OF FOUR NAMES BECAME A SWEEP, BECAUSE THE LIST MISSED EIGHT ───────────────────────┐
+   * │ This named the four rules deleted when the photograph went, which is a test that proves    │
+   * │ those four are gone and nothing about the ninth. Eight more had gone dead by the time an   │
+   * │ audit looked: `.gm-glass`, `.gm-display-accent`, `.gm-brand-glow`, `.gm-hero-push`,        │
+   * │ `.gm-mono`, `.gm-step-rail`, `.gm-tile-scrim`, `.gm-card-badge-new`.                        │
+   * │                                                                                            │
+   * │ Two of those were not merely untidy. `.gm-glass` and `.gm-display-accent` were the rules    │
+   * │ the contrast proofs in this file MEASURED - so the header's legibility bound and the        │
+   * │ accent's 3:1 check were both computed against CSS no component applied, and both passed.    │
+   * │ A dead rule here is not dead weight, it is a place for a proof to go and quietly stop       │
+   * │ meaning anything.                                                                           │
+   * │                                                                                            │
+   * │ Comments are stripped from BOTH sides. `.gm-glass` survived the first sweep purely because  │
+   * │ a component mentioned it in a comment explaining why it does not use it.                    │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const strip = (text: string): string =>
+    text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+
+  const declared = new Set([...strip(CSS).matchAll(/\.(gm-[a-z0-9-]+)/g)].map(([, name]) => name!));
+  assert.ok(declared.size >= 60, `only ${String(declared.size)} gm- rules found; the scan broke`);
+
+  const applied = tsxFiles('src')
+    .concat(tsxFiles('app'))
+    .map((rel) => strip(source(rel)))
+    .join('\n');
+
+  /*
+   * The only exemptions, and each is a class a COMPONENT cannot carry:
+   *   `gm-skip-link` and `gm-visually-hidden` are applied by the layout and by generated markup;
+   *   `gm-hit-target` is applied all over, so it is not exempt - it is simply found.
+   * Anything added here needs a reason of that kind, not "it will be used later".
+   */
+  const exempt = new Set<string>([]);
+
+  const orphans = [...declared].filter((name) => !exempt.has(name) && !applied.includes(name));
+  assert.deepEqual(
+    orphans,
+    [],
+    `declared in globals.css and applied by no component: ${orphans.join(', ')}`,
+  );
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

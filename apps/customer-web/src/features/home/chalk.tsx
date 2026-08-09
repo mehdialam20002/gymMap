@@ -21,7 +21,8 @@ import Link from 'next/link';
 import { t, type MessageKey } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
 import { compareKey, toCompareParams } from '../compare/compare.ts';
-import { CATALOGUE } from '../discovery/fixtures/catalogue.ts';
+import { railToggleHref } from '../compare/compare-rail.tsx';
+import { CATALOGUE, type GymDetail } from '../discovery/fixtures/catalogue.ts';
 import { EMPTY_QUERY, formatMinor, search } from '../discovery/search.ts';
 import { checkoutHref } from '../checkout/quote.ts';
 
@@ -66,8 +67,9 @@ function SectionHead({
 // Verified gyms
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function GymRail() {
+export function GymRail({ selected = [] }: { readonly selected?: readonly GymDetail[] }) {
   const gyms = search({ ...EMPTY_QUERY, sort: 'distance' }).slice(0, 6);
+  const chosen = new Set(selected.map(compareKey));
 
   return (
     <section className="gm-sec" id="gyms">
@@ -84,7 +86,7 @@ export function GymRail() {
 
         <ul className="gm-cards">
           {gyms.map((gym, i) => (
-            <li key={gym.id} className="gm-card-k">
+            <li key={gym.id} className="gm-card-k" data-compared={chosen.has(compareKey(gym))}>
               <div className="gm-card-media">
                 <div aria-hidden="true" className={`gm-card-art ${ART[i % ART.length]!}`} />
 
@@ -142,15 +144,24 @@ export function GymRail() {
 
                 <div className="gm-card-foot">
                   {/*
-                   * "Add to compare" is a LINK, not a button with state. The compare set lives in
-                   * the URL (`FR-CMP-01`), so this is an href the compare page already parses -
-                   * which means it works before hydration and survives being shared.
+                   * "Add to compare" is a LINK, not a button with state. The selection lives in
+                   * the URL (`FR-CMP-01`), so this href names the NEXT selection and the rail at
+                   * the foot of the page renders the current one. It works before hydration, the
+                   * back button undoes it, and a shared link opens with the same gyms.
+                   *
+                   * `aria-pressed` would be wrong for the same reason `role="switch"` is wrong on
+                   * the theme control: this is a link that navigates, not a control that holds
+                   * state, so the label changes instead.
                    */}
                   <Link
-                    href={toCompareParams([compareKey(gym)])}
-                    className="gm-hit-target text-sm font-semibold text-content-muted transition-colors duration-fast ease-standard hover:text-content"
+                    href={railToggleHref(selected, gym)}
+                    className="gm-hit-target gm-card-add text-sm font-semibold transition-colors duration-fast ease-standard"
                   >
-                    {t('web.home.compare.add')}
+                    {t(
+                      chosen.has(compareKey(gym))
+                        ? 'web.home.compare.remove'
+                        : 'web.home.compare.add',
+                    )}
                   </Link>
                   <Link
                     href={`/gyms/${gym.citySlug}/${gym.slug}`}
@@ -257,7 +268,7 @@ export function PlanRow() {
                 <span className="gm-plan-where">
                   {gym.name} · {gym.city}
                 </span>
-                <p className="mb-1 mt-4 text-[15px] font-semibold">{plan.name}</p>
+                <p className="mb-[0.25rem] mt-[1rem] text-[15px] font-semibold">{plan.name}</p>
                 <p className="gm-plan-amt">{formatMinor(plan.priceMinor)}</p>
                 <p className="gm-plan-sub">
                   {t('web.home.plans.perMonth')} · {String(plan.durationDays)}{' '}
@@ -279,7 +290,7 @@ export function PlanRow() {
 
           <article className="gm-plan gm-plan-alt">
             <span className="gm-plan-where">{t('web.home.plans.compareTitle')}</span>
-            <p className="mb-1 mt-4 text-[15px] font-semibold">
+            <p className="mb-[0.25rem] mt-[1rem] text-[15px] font-semibold">
               {t('web.home.compareTeaser.title')}
             </p>
             <p className="gm-plan-sub">{t('web.home.plans.compareBody')}</p>

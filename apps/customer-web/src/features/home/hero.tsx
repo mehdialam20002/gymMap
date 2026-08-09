@@ -36,11 +36,25 @@ import Link from 'next/link';
 
 import { t, type MessageKey } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
-import { CATALOGUE } from '../discovery/fixtures/catalogue.ts';
+import { CATALOGUE, CITIES } from '../discovery/fixtures/catalogue.ts';
 import { RADII } from '../discovery/search.ts';
 
-/** The cities the catalogue actually carries. A select offering a city with no gyms is a lie. */
-const CITIES = ['Bengaluru', 'Mumbai', 'Delhi', 'Chennai'] as const;
+/*
+ * ┌─ THE OPTION'S VALUE IS THE SLUG, AND THAT IS THE WHOLE BUG THIS REPLACES ───────────────────┐
+ * │ This was a hand-typed `['Bengaluru', 'Mumbai', 'Delhi', 'Chennai']` submitted as both the   │
+ * │ label AND the value, so the form produced `?city=Bengaluru`. `search()` filters on           │
+ * │ `gym.citySlug !== query.city`, and `citySlug` is `bengaluru` - so every city choice in the   │
+ * │ homepage's primary call to action returned NO GYMS.                                          │
+ * │                                                                                             │
+ * │ It looked correct in review, it typechecked, and the page it lands on renders a perfectly    │
+ * │ good empty state, so nothing about it read as broken. Found by issuing the request the form  │
+ * │ builds and counting the listings that came back: `?city=bengaluru` returns three,            │
+ * │ `?city=Bengaluru` returns zero.                                                              │
+ * │                                                                                             │
+ * │ Now derived from the catalogue, so the option list cannot offer a city with no listings and  │
+ * │ the value cannot drift from what the filter compares against.                                │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
 
 /** Label key, the literal category value the catalogue stores, and the concept for its glyph. */
 const CATEGORIES = [
@@ -70,8 +84,8 @@ export function Hero() {
   const Search = icon.search;
   const Radius = icon.radius;
 
-  // Counted, not claimed.
-  const cities = new Set(CATALOGUE.map((gym) => gym.city)).size;
+  // Counted, not claimed - and the NAMES are counted too, not typed in beside the number.
+  const cities = [...new Set(CATALOGUE.map((gym) => gym.city))].join(', ');
 
   return (
     <section className="gm-hero">
@@ -89,8 +103,15 @@ export function Hero() {
 
       <div className="gm-hero-in gm-wrap">
         <p className="gm-hero-tag">
-          <span aria-hidden="true" className="gm-dot" />
-          {t('web.home.hero.tagCities').replace('{n}', String(cities))}
+          {/*
+           * A mark, not a status dot. It was a pulsing green `success-solid` circle, which is the
+           * universal "this is live right now" signal, sitting beside a figure computed from a
+           * fixture file at build time. `ai-tells.md` bans the decorative status dot for this
+           * reason and `A-08` bans the claim; the shape stays because the tag needs an anchor,
+           * and it is amber and still, which asserts nothing.
+           */}
+          <span aria-hidden="true" className="gm-tag-mark" />
+          {t('web.home.hero.tagCities').replace('{cities}', cities)}
         </p>
 
         {/*
@@ -123,8 +144,8 @@ export function Hero() {
             <select id="city" name="city" aria-label={t('web.home.hero.cityLabel')}>
               <option value="">{t('web.home.hero.cityAny')}</option>
               {CITIES.map((city) => (
-                <option key={city} value={city}>
-                  {city}
+                <option key={city.slug} value={city.slug}>
+                  {city.name}
                 </option>
               ))}
             </select>

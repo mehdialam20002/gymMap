@@ -84,17 +84,30 @@
  * │ working a queue for eight hours is a different reader from a stranger being persuaded    │
  * │ on a phone at night.                                                                     │
  * │                                                                                        │
- * │ The SELECTOR is the whole theme policy. This block is `:root[data-theme='dark']`, so the │
- * │ neutral dark ground is now an explicit OPT-IN and the default page is light - the light  │
- * │ palette in `tokens.css`, which is already proven as a set and needs nothing from here.   │
- * │                                                                                        │
- * │ It deliberately ignores `prefers-color-scheme`. A reader on a dark-mode laptop still     │
- * │ lands on the light marketplace, because the default is a product decision rather than a │
- * │ guess about the reader, and the toggle in the header is how they say otherwise. `DM1`   │
- * │ still holds where it matters: an explicit choice wins, and it wins in both directions.   │
- * │                                                                                        │
- * │ The HERO does not follow any of this - see the media roles below. It is a photograph,    │
- * │ and it is dark in both themes because the photograph is.                                  │
+ * │ ┌─ THE SELECTOR IS THE WHOLE THEME POLICY, AND IT SAYS DARK BY DEFAULT ───────────────┐ │
+ * │ │ `:root:not([data-theme='light'])` matches an element with NO `data-theme` attribute,│ │
+ * │ │ which is every first visit, so this palette is the default and light is the opt-in. │ │
+ * │ │ That is the owner's instruction of 2026-08-08, after seeing both.                    │ │
+ * │ │                                                                                     │ │
+ * │ │ The specificity is the reason it works and the reason it is easy to get wrong:      │ │
+ * │ │ `:not()` contributes its argument's weight, so this is (0,2,0) and it beats the     │ │
+ * │ │ bare `:root` (0,1,0) that `tokens.css` uses for the light palette. A plain           │ │
+ * │ │ `:root[data-theme='dark']` here would tie with `tokens.css`'s                        │ │
+ * │ │ `:root[data-theme='light']` and lose the un-stamped case entirely.                   │ │
+ * │ │                                                                                     │ │
+ * │ │ Three things have to agree with this and are easy to leave behind, because each     │ │
+ * │ │ fails silently on its own:                                                           │ │
+ * │ │   - `color-scheme`, below, or the scrollbars and form chrome stay light on a dark   │ │
+ * │ │     page;                                                                            │ │
+ * │ │   - `theme-toggle.tsx`'s `currentTheme()`, or the header offers "switch to dark" on  │ │
+ * │ │     a page that is already dark and the first click appears to do nothing;           │ │
+ * │ │   - every token used as INK, which must be declared for BOTH arms - see the amber    │ │
+ * │ │     note below.                                                                       │ │
+ * │ │                                                                                     │ │
+ * │ │ It deliberately ignores `prefers-color-scheme`: the default is a product decision,   │ │
+ * │ │ not a guess about the reader, and the toggle is how they say otherwise. `DM1` still  │ │
+ * │ │ holds where it matters - an explicit choice wins, in both directions.                │ │
+ * │ └─────────────────────────────────────────────────────────────────────────────────────┘ │
  * └────────────────────────────────────────────────────────────────────────────────────────┘
  *
  * The brand roles are NOT here. They are red, and they are set in the block below this one,
@@ -111,12 +124,21 @@
   --gm-color-surface-disabled: #1c2231;
   --gm-color-surface-scrim: rgb(5 5 5 / 0.75);
   /*
-   * Amber as a FILL is theme-invariant: it is the same swatch on either ground and always carries
-   * `#141005` ink at 10.82:1. Amber as INK is a different problem and lives in
-   * `content-on-media-accent`, which does flip. Separate roles, as always.
+   * Amber as INK. The FILL roles are genuinely theme-invariant and live in the pinned block at the
+   * end of this section; declaring them HERE meant they were undefined under an explicit light
+   * theme, and a `background: var(--undefined)` is invalid at computed-value time - every amber
+   * button lost its fill and rendered as bare text.
    */
-  --gm-color-accent-solid: #ffb627;
-  --gm-color-content-on-accent: #141005;
+  --gm-color-content-on-media-accent: #ffb627;
+
+  /*
+   * The parts CSS does not own: scrollbars, form control chrome, the caret, the spellcheck
+   * underline. `tokens.css` declares `color-scheme: light` on a bare `:root`, and this block wins
+   * the un-stamped case on specificity - so without this line the default visit was a dark page
+   * with light scrollbars and a white select popup, which is the one theme bug a screenshot of
+   * the page body never shows.
+   */
+  color-scheme: dark;
   --gm-color-surface-media: #08090d;
   --gm-color-surface-stale: #451a03;
   --gm-color-surface-success-subtle: #052e16;
@@ -208,40 +230,22 @@
  * │ second brand theme and this block is deleted; until then no other surface is touched.     │
  * └──────────────────────────────────────────────────────────────────────────────────────────┘
  *
- * ┌─ EVERY PAIRING BELOW IS MEASURED, NOT PICKED ───────────────────────────────────────────┐
- * │ `#E21B2D` is the reference's own red and it survives as a FILL — white on it is 4.74:1.  │
- * │ It does NOT survive as ink on the light canvas at 4.32:1, which is why `content-brand`   │
- * │ is a darker step rather than the same value used twice. That distinction is the whole    │
- * │ reason the token set has separate `solid` and `content` roles.                            │
- * │                                                                                          │
- * │   CB1  white on brand-solid          #E21B2D    4.74:1                                    │
- * │   CB2  white on brand-solid-hover    #C11021    6.24:1                                    │
- * │   CB3  white on brand-solid-active   #9C0C1A    8.46:1                                    │
- * │   CB4  content-brand on canvas       light      6.54:1                                    │
- * │   CB5  content-brand on brand-subtle light      6.29:1                                    │
- * │   CB6  content-brand on canvas       dark       8.02:1                                    │
- * │   CB7  content-brand on brand-subtle dark       8.11:1                                    │
- * │   CB8  accent on the flat media band            7.33:1                                    │
- * │   CB9  accent on the 78% scrim, worst frame     3.24:1  against the 3:1 LARGE-text bar    │
- * │                                                                                          │
- * │ CB9 used to read "84%, 4.91:1" and to say the scrim sat at 84% because no red cleared    │
- * │ 4.5 at 78%. Both halves were wrong in the same way: the accent is only ever half of a    │
- * │ 72px bold headline, and `WCAG 1.4.3` puts large-scale text at 3:1. Ten points of scrim   │
- * │ were being spent to clear a bar that never applied, and the top of the same gradient      │
- * │ came up with it until the navigation was 87% black.                                       │
- * │                                                                                          │
- * │ The accent used here is `content-on-media-accent` and NOT `brand-solid`. `brand-solid`    │
- * │ is a fill: it is proved by putting white ON it, and reusing it as ink over a photograph   │
- * │ measured 2.28:1. Separate roles, separate proofs.                                          │
- * │                                                                                          │
- * │ The glass and the scrim these figures were measured against are gone - the hero is a      │
- * │ light two-column layout now and nothing sits on a photograph. What survives is the rule   │
- * │ they taught: `brand-solid` is a FILL, and `content-brand` is the ink. The one exception   │
- * │ is the 72px headline, which takes `brand-solid` at 4.74:1 under the large-text bar.       │
- * └──────────────────────────────────────────────────────────────────────────────────────────┘
- *
- * Three selectors, mirroring `tokens.css` exactly: the OS preference is the default and an
- * explicit `data-theme` wins in both directions (`DM1`).
+ * ┌─ THE MEASURED REGISTER THAT USED TO BE HERE WAS ABOUT A COLOUR THIS FILE NO LONGER SHIPS ─┐
+ * │ Nine rows, CB1 to CB9, every one of them measured against `#E21B2D` / `#C11021` /         │
+ * │ `#9C0C1A` and against a 78% scrim over a photograph. The declarations below are cobalt     │
+ * │ `#2743ff`, and there is no scrim and no photograph - so the register certified colours     │
+ * │ that had been gone for two commits, on a page structure that no longer existed.            │
+ * │                                                                                            │
+ * │ It is deleted rather than rewritten. Restating ratios in a comment is how this happened:   │
+ * │ the numbers were right when typed, nothing recomputed them, and a stale proof reads        │
+ * │ exactly like a current one. `test/hero-contrast.spec.ts` PARSES these declarations and     │
+ * │ recomputes every ratio from whatever is actually here, which is a proof that cannot go     │
+ * │ stale because it is not written down.                                                       │
+ * │                                                                                            │
+ * │ What survives is the RULE the register taught, which is not a number: `brand-solid` is a   │
+ * │ FILL and is proved by putting `content-on-brand` on it. Using it as ink is a different     │
+ * │ pairing with a different answer - it measured 2.28:1 the one time somebody tried.          │
+ * └────────────────────────────────────────────────────────────────────────────────────────────┘
  * ═══════════════════════════════════════════════════════════════════════════════════════════
  */
 :root,
@@ -295,7 +299,15 @@
 :root,
 :root[data-theme='light'] {
   --gm-color-content-muted: #565d6b;
-  --gm-color-content-on-media-accent: #9a6600;
+  /*
+   * `#9a6300`, not `#9a6600`. Three units of green.
+   *
+   * `#9a6600` measures 4.4899:1 on `surface-subtle` `#F1F5F9`, which is the ground `.gm-step-n`
+   * sits on, and the bar is 4.5. It was derived against the page ground `#FFFFFF` (5.02:1) and
+   * the subtle band is the one that actually carries this ink. Measured in the browser, on the
+   * rendered element, rather than against the ground it was designed for.
+   */
+  --gm-color-content-on-media-accent: #9a6300;
 }
 
 /*
@@ -337,7 +349,21 @@
   --gm-font-display: 'Archivo', var(--gm-font-sans);
   --gm-color-surface-media: #08090d;
   --gm-color-content-on-media: #f4f5f2;
-  --gm-color-content-on-media-accent: #ffb627;
+  /*
+   * Amber as a FILL, and the ink that sits on it. Genuinely theme-invariant: the same swatch on
+   * either ground, always carrying `#141005` at 10.82:1, because a button is its own background
+   * rather than something read against the page.
+   *
+   * `content-on-media-accent` used to be pinned here too and it was wrong. It is amber as INK, and
+   * the premise for pinning it - "the hero is a photograph and is dark in both themes" - stopped
+   * being true when the photograph became a drawn background with a light-theme variant
+   * (`.gm-hero-bg::before`, both arms). Pinned, it clobbered the measured light value `#9a6600`
+   * and put `#ffb627` on pale grounds at 1.5-1.75:1, under even the large-text bar. It flips with
+   * the theme now, and the two bands that really are dark in both themes redefine it for their
+   * own subtree instead - see `.gm-owners`.
+   */
+  --gm-color-accent-solid: #ffb627;
+  --gm-color-content-on-accent: #141005;
 }
 
 @tailwind base;
@@ -524,68 +550,12 @@
    */
 
   /*
-   * GLASS, MEASURED RATHER THAN REFUSED.
-   *
-   * Translucency is not unmeasurable, it is BOUNDED. Two rules come out of measuring rather than
-   * guessing, and both are counter-intuitive.
-   *
-   * ONE. Alpha does not add, it MULTIPLIES. A 62% scrim under a 66% panel is 87% black, not "a
-   * bit darker than 66%". Every alpha here is chosen against the whole stack at its thinnest
-   * point - the mistake that made the navigation opaque was measuring one layer correctly and
-   * forgetting the other one existed.
-   *
-   * TWO. GLASS CARRIES INK AND NEVER A TINT. Ink at 57% clears 4.5:1 over the worst frame with
-   * room to spare; the red accent manages 2.47:1 on the same panel. Anything that wants the brand
-   * colour on glass uses a brand-solid FILL instead, which is opaque and therefore a fixed
-   * pairing - that is why the trust icons sit in a red disc rather than being drawn in red.
-   *
-   * 58% is the thinnest tint at which `content-on-media` clears 4.5:1 over a blown highlight with
-   * NOTHING underneath, which is what the sticky header gets on the eighteen routes that have no
-   * hero. 60% is written, for two points of margin: the "Chalk & Iron" palette moved both the
-   * tint (#050505 -> #08090D) and the ink (#FAFAFA -> #F4F5F2) a little, and 57% quietly became
-   * 4.34:1 - a failure the suite caught and nobody would have seen.
-   */
-  .gm-glass {
-    background-color: color-mix(in srgb, var(--gm-color-surface-media) 60%, transparent);
-    /*
-     * 9px. A wide blur mixes a bright ceiling together with a black dumbbell rack and leaves the
-     * mean, so a highlight stops reading as a highlight - and a highlight surviving the pane is
-     * the cue the eye uses to decide it is looking THROUGH something rather than at it. Free,
-     * too: the bound composites the tint over a blown highlight and never counted on the blur.
-     *
-     * `saturate(190%)` for the same reason. A dark tint desaturates what is behind it, and
-     * desaturated-plus-blurred reads as SMOKE. Saturation moves colours away from the grey axis
-     * while luminance, which is what the ratio is computed from, stays where it was.
-     */
-    backdrop-filter: blur(9px) saturate(190%);
-    -webkit-backdrop-filter: blur(9px) saturate(190%);
-    /*
-     * TWO inset edges, not one. A bright top edge and a fainter bottom one read as a pane with
-     * thickness, because that is what light does to a real piece of glass.
-     */
-    box-shadow:
-      inset 0 1px 0 0 color-mix(in srgb, var(--gm-color-content-on-media) 28%, transparent),
-      inset 0 -1px 0 0 color-mix(in srgb, var(--gm-color-content-on-media) 10%, transparent),
-      0 10px 30px -4px color-mix(in srgb, var(--gm-color-surface-media) 55%, transparent);
-    /*
-     * The pane owns its edge. `border-subtle` is a PAGE role and flips with the theme, so on a
-     * light page it drew a pale line all the way round a dark pane and read as an outline
-     * somebody had put there on purpose. 8%, matching the reference exactly.
-     */
-    border: 1px solid color-mix(in srgb, var(--gm-color-content-on-media) 8%, transparent);
-  }
-
-  /*
    * No `color-mix` means the whole declaration is invalid and the browser drops it - which on the
    * VEIL means no scrim at all, and white copy straight onto a bright photograph. Failing open is
    * not acceptable for the one layer that carries every contrast guarantee in the hero, so both
    * fall back to the flat token: no translucency, no photograph, all of the legibility.
    */
   @supports not (background-color: color-mix(in srgb, red 50%, transparent)) {
-    .gm-glass {
-      background-color: var(--gm-color-surface-media);
-      box-shadow: var(--gm-shadow-lg);
-    }
   }
 
   /*
@@ -595,9 +565,6 @@
    * correct.
    */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .gm-glass {
-      background-color: var(--gm-color-surface-media);
-    }
   }
 
   /*
@@ -739,11 +706,6 @@
     margin: 14px 0 0;
   }
 
-  .gm-mono {
-    font-family: var(--gm-font-mono);
-    font-variant-numeric: tabular-nums;
-  }
-
   /* ── shell ─────────────────────────────────────────────────────────────── */
 
   .gm-wrap {
@@ -833,10 +795,38 @@
     color: var(--gm-color-content-on-accent);
   }
 
+  /*
+   * The amber button's hover fill is amber too.
+   *
+   * `.gm-btn::before` is a shared cobalt sheet that rises on hover, and `.gm-btn-amber` overrode
+   * only `background` and `color` - so every amber call to action on the page, including the
+   * hero's Search, turned COBALT under the cursor and then back to amber. It reads as a bug in
+   * the page rather than a hover state, and no screenshot catches it.
+   *
+   * A darker amber rather than the same one: the sheet has to be visible as a change, and
+   * `content-on-accent` stays legible on it at well over 4.5:1.
+   */
+  .gm-btn-amber::before {
+    background: color-mix(in srgb, var(--gm-color-accent-solid) 78%, #000000);
+  }
+
+  /*
+   * 36px painted, 44px reachable. `AX3` is about the POINTER target, not the ink, so the control
+   * keeps the design's height and grows an invisible hit area around it - the same trick the
+   * compact dashboards use. Eleven links on this page were 36px targets before this.
+   */
   .gm-btn-sm {
     height: 36px;
     padding-inline: 16px;
     font-size: 13.5px;
+    position: relative;
+  }
+
+  .gm-btn-sm::after {
+    content: '';
+    position: absolute;
+    inset: -4px 0;
+    min-height: 44px;
   }
 
   .gm-btn-lg {
@@ -975,36 +965,29 @@
     backdrop-filter: blur(8px);
   }
 
-  .gm-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--gm-color-success-solid);
+  /*
+   * The hero tag's mark. A 6px amber square, still.
+   *
+   * It was a pulsing green circle in `success-solid`, which is the colour and the shape and the
+   * motion that together mean "live". Nothing behind it was live: the figure beside it is derived
+   * from a fixture at build time. Square, amber and static, it is punctuation rather than a claim.
+   */
+  .gm-tag-mark {
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: var(--gm-color-accent-solid);
     flex: none;
   }
 
   /*
-   * The pulse says "live". `RM1` collapses the duration token to 1ms under reduced motion, which
-   * would leave this looping at 1ms - a strobe. An infinite loop has to stop, not hurry, so the
-   * whole animation is inside the no-preference query.
+   * The `gm-pulse` keyframes went with the dot they drove.
+   *
+   * They were correctly built - the whole loop lived inside a no-preference query so `RM1` could
+   * not turn it into a strobe - and correctly built is not the same as correct to have. A pulse
+   * is the signal for "this is updating now", and nothing behind that tag updates. The mark it
+   * animated is a still square now, so the animation has nothing to say.
    */
-  @media (prefers-reduced-motion: no-preference) {
-    .gm-dot {
-      animation: gm-pulse 2.6s infinite;
-    }
-  }
-
-  @keyframes gm-pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgb(111 227 174 / 0.55);
-    }
-    70% {
-      box-shadow: 0 0 0 11px rgb(111 227 174 / 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgb(111 227 174 / 0);
-    }
-  }
 
   .gm-display-hero {
     font-size: clamp(46px, 10.4vw, 142px);
@@ -1113,11 +1096,36 @@
     border: 0;
     background: none;
     color: var(--gm-color-content-primary);
-    font-size: 15.5px;
+    /*
+     * 16px, not the design's 15.5px. Below 16px iOS Safari zooms the viewport on focus and does
+     * not zoom back out, which leaves the reader on a horizontally scrolled page they have to
+     * pinch their way out of - on the site's primary call to action. `TS2` fixes this as a floor
+     * for exactly that reason. Half a pixel of the reference is not worth it.
+     */
+    font-size: 16px;
     font-weight: 500;
     padding-top: 16px;
-    outline: none;
     appearance: none;
+  }
+
+  /*
+   * The focus ring. `outline: none` sat here with nothing replacing it, which took the visible
+   * keyboard state off all three controls of the page's main form - `AX2` end to end, and
+   * invisible to anybody testing with a mouse.
+   *
+   * On the field rather than a bare outline on the control: the input is a transparent box inside
+   * a rounded pill, so an outline traced round the input itself draws a rectangle through the
+   * middle of the console. `:focus-within` puts the ring on the shape a reader actually sees.
+   */
+  .gm-field:focus-within {
+    outline: 2px solid var(--gm-color-accent-solid);
+    outline-offset: 2px;
+    border-radius: 999px;
+  }
+
+  .gm-field input:focus-visible,
+  .gm-field select:focus-visible {
+    outline: none;
   }
 
   .gm-field select option {
@@ -1304,10 +1312,6 @@
   .gm-card-badge b {
     color: var(--gm-color-success-solid);
     font-weight: 500;
-  }
-
-  .gm-card-badge-new {
-    color: var(--gm-color-accent-solid);
   }
 
   .gm-card-price {
@@ -1786,6 +1790,27 @@
    */
   .gm-best {
     color: var(--gm-color-success-solid);
+    font-weight: 700;
+  }
+
+  /*
+   * `AX8` properly: a mark whose PRESENCE is the signal, not its hue.
+   *
+   * The rule above was mint and a visually hidden word, and the comment claimed that satisfied
+   * `AX8`. It does not - the hidden word reaches a screen reader and nobody else, so a reader who
+   * cannot separate the mint from the surrounding ink had no signal at all. A 5px block before
+   * the value is either there or it is not, which is a distinction that survives any colour
+   * vision, and the heavier weight is a second one.
+   */
+  .gm-best::before {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    margin-right: 7px;
+    border-radius: 1px;
+    vertical-align: 0.15em;
+    background: currentcolor;
   }
 
   /* ── reviews ───────────────────────────────────────────────────────────── */
@@ -1825,19 +1850,28 @@
       left: 0;
       right: 0;
       height: 2px;
+      top: 0;
       background: var(--gm-color-brand-solid);
-      box-shadow: 0 0 16px var(--gm-color-brand-solid);
       animation: gm-scan 2.6s var(--gm-motion-ease-standard) infinite;
     }
   }
 
+  /*
+   * `translateY`, not `top`. `MO4` allows `transform` and `opacity` and nothing else, and this is
+   * why: animating `top` puts a layout and paint on every frame of a 2.6s loop that never ends,
+   * on a decorative 74px square. A transform runs on the compositor.
+   *
+   * The `box-shadow: 0 0 16px` that used to sit on the line went with it - a neon glow is the
+   * `ai-tells.md` staple this identity is specifically not, and it was also the most expensive
+   * property in the loop.
+   */
   @keyframes gm-scan {
     0%,
     100% {
-      top: 12%;
+      transform: translateY(9px);
     }
     50% {
-      top: 86%;
+      transform: translateY(63px);
     }
   }
 
@@ -1914,10 +1948,24 @@
 
   /* ── owners ────────────────────────────────────────────────────────────── */
 
+  /*
+   * The one band that really is dark in both themes, so it redefines its own tokens for its own
+   * subtree rather than being pinned globally.
+   *
+   * It set `color` and stopped, and every descendant kept taking the PAGE theme's roles: under
+   * the light theme `--gm-color-content-muted` is `#565d6b`, which landed dark grey on dark navy
+   * at about 2:1, and `content-on-media-accent` was the light `#9a6600` on the same ground. A
+   * scoped override is the honest shape for this - the band declares the ground it paints, so
+   * everything inside it resolves against that ground in either theme.
+   */
   .gm-owners {
     background: linear-gradient(150deg, #0a0c11, #131a2e 55%, #0a0c11);
     border-block: 1px solid var(--gm-color-border-subtle);
-    color: #f4f5f2;
+    --gm-color-content-primary: #f4f5f2;
+    --gm-color-content-muted: #c3cad6;
+    --gm-color-content-on-media-accent: #ffb627;
+    --gm-color-border-subtle: rgb(255 255 255 / 0.14);
+    color: var(--gm-color-content-primary);
   }
 
   :root[data-theme='light'] .gm-owners {
@@ -2141,6 +2189,220 @@
     user-select: none;
   }
 
+  /* ── the compare rail, and the scroll progress ─────────────────────────── */
+
+  /*
+   * The document makes room for the rail, and so does the scroll.
+   *
+   * `:has()` rather than a class threaded down from the page: the rail renders only when a gym is
+   * selected, and the alternative is `page.tsx` putting a modifier on `<body>` through the layout
+   * - one fact in two files, which is the arrangement that ends up disagreeing.
+   *
+   * `scroll-padding-bottom` matters as much as the padding. Every link in the rail carries
+   * `#gyms`, and without it the browser parks the anchor exactly where the rail is sitting: the
+   * control works, and the row it acted on lands underneath it. That is the failure this pattern
+   * always has.
+   *
+   * Where `:has()` is unsupported the rail simply overlaps the last few pixels of the footer,
+   * which is a cosmetic cost on a browser two major versions behind - not a broken page.
+   */
+  body:has(.gm-rail) {
+    padding-bottom: 96px;
+  }
+
+  html:has(.gm-rail) {
+    scroll-padding-bottom: 112px;
+  }
+
+  /* `position: fixed` at the foot, over everything except a dialog. */
+  .gm-rail {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    padding: 12px clamp(14px, 4vw, 40px) calc(12px + env(safe-area-inset-bottom));
+    background-color: color-mix(in srgb, var(--gm-color-surface-default) 82%, transparent);
+    backdrop-filter: blur(16px) saturate(160%);
+    border-top: 1px solid color-mix(in srgb, var(--gm-color-content-primary) 12%, transparent);
+    color: var(--gm-color-content-primary);
+  }
+
+  .gm-rail-in {
+    max-width: 1150px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .gm-rail-count {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    margin: 0;
+    flex-shrink: 0;
+    font-family: var(--gm-font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gm-color-content-muted);
+  }
+
+  .gm-rail-count b {
+    font-family: var(--gm-font-display);
+    font-variation-settings:
+      'wdth' 100,
+      'wght' 800;
+    font-size: 22px;
+    color: var(--gm-color-content-on-media-accent);
+  }
+
+  .gm-rail-set {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    /* `relative`, so a chip's own absolutely positioned descendant cannot escape this scroller
+     * and widen the document. That bug shipped once on `/compare` and cost 214px of sideways
+     * scroll on a phone, visible to nobody who was not looking for it. */
+    position: relative;
+  }
+
+  .gm-rail-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 190px;
+    padding: 7px 7px 7px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--gm-color-border-subtle);
+    background: var(--gm-color-surface-raised);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .gm-rail-x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    color: var(--gm-color-content-muted);
+    background: color-mix(in srgb, var(--gm-color-content-primary) 8%, transparent);
+    transition: color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard);
+  }
+
+  .gm-rail-x:hover {
+    color: var(--gm-color-content-primary);
+  }
+
+  /* An empty slot. Dashed rather than solid, so it reads as a space rather than a disabled chip. */
+  .gm-rail-slot {
+    flex: 0 0 46px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px dashed var(--gm-color-border-subtle);
+    opacity: 0.55;
+  }
+
+  .gm-rail-act {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .gm-rail-clear {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gm-color-content-muted);
+    transition: color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard);
+  }
+
+  .gm-rail-clear:hover {
+    color: var(--gm-color-content-primary);
+  }
+
+  .gm-rail-note {
+    max-width: 1150px;
+    margin: 8px auto 0;
+    font-family: var(--gm-font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--gm-color-content-muted);
+  }
+
+  /*
+   * The chosen card, marked on the card itself.
+   *
+   * `AX8`: never colour alone. The link inside also changes its WORD from "Add to compare" to
+   * "Remove from compare", so the state is readable without seeing the outline at all.
+   */
+  .gm-card-k[data-compared='true'] {
+    border-color: var(--gm-color-content-on-media-accent);
+  }
+
+  .gm-card-add {
+    color: var(--gm-color-content-muted);
+  }
+
+  .gm-card-add:hover {
+    color: var(--gm-color-content-primary);
+  }
+
+  .gm-card-k[data-compared='true'] .gm-card-add {
+    color: var(--gm-color-content-on-media-accent);
+  }
+
+  /*
+   * The scroll progress bar.
+   *
+   * Two lines of CSS and no listener - `§4.5` bans `addEventListener('scroll')` outright, and an
+   * IntersectionObserver cannot express "how far down the document am I" at all.
+   *
+   * Unlike `.gm-step-bar`, the EMPTY state is the correct fallback here: a browser that cannot
+   * drive this shows no bar, whereas showing a full one would be a statement about scroll position
+   * that is false at the top of the page. It is `display: none` outside the supporting branch
+   * rather than a transparent 3px strip, so nothing is laid out for it either.
+   */
+  .gm-progress {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      .gm-progress {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        z-index: 70;
+        transform-origin: 0 50%;
+        transform: scaleX(0);
+        background: linear-gradient(
+          90deg,
+          var(--gm-color-brand-solid),
+          var(--gm-color-accent-solid)
+        );
+        animation: gm-fill linear both;
+        animation-timeline: scroll();
+      }
+    }
+  }
+
   /* ── responsive, at the design's own breakpoints ───────────────────────── */
 
   @media (max-width: 1080px) {
@@ -2189,6 +2451,21 @@
     .gm-steps,
     .gm-promises {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* The rail stacks: the count and the actions on one line, the chips scrolling under them. */
+    .gm-rail-in {
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .gm-rail-set {
+      order: 3;
+      flex-basis: 100%;
+    }
+
+    .gm-rail-act {
+      margin-left: auto;
     }
 
     /* Stacked, the vertical rules become horizontal ones and the first keeps the band's own top. */
@@ -2272,71 +2549,6 @@
     transform: translateY(-6px);
     border-color: var(--gm-color-border-brand);
     box-shadow: var(--gm-shadow-xl);
-  }
-
-  /*
-   * ┌─ TWO GRADIENTS THAT LIVE HERE RATHER THAN IN AN ARBITRARY TAILWIND VALUE ──────────────────┐
-   * │ Both were first written inline as `bg-[linear-gradient(to_top,var(--gm-color-surface-…),…)]`,│
-   * │ and the tile scrim rendered `background-image: none` while its rule sat correctly in the     │
-   * │ stylesheet. The cause was not Tailwind: the class attribute had picked up a trailing         │
-   * │ BACKSLASH, so the DOM token was `…)]\` and matched no selector. JSX does not process escapes │
-   * │ in attribute values, so the backslash was simply part of the class name, and nothing         │
-   * │ anywhere — build, lint, or types — has an opinion about a class that matches nothing.        │
-   * │                                                                                            │
-   * │ Named utilities remove the whole failure mode, which is why every gradient here is one.      │
-   * │ for the hero scrim. That matters most here: the tile scrim is not decoration, it is the only │
-   * │ thing making a city name legible over an arbitrary photograph, so it must not be able to     │
-   * │ evaporate quietly. `shell.spec.ts` now also fails any className containing a backslash.      │
-   * │                                                                                            │
-   * │ It also reads. Nobody reviews `transparent_62%` inside a bracket and notices a wrong stop.   │
-   * └────────────────────────────────────────────────────────────────────────────────────────────┘
-   *
-   * The scrim under a city tile's label. Opaque at the foot where the text sits, clear by 62% so
-   * the photograph is still a photograph. Both stops resolve to the TOKEN — a hex here would opt
-   * the tile out of the palette and look identical while doing it.
-   */
-  .gm-tile-scrim {
-    background-image: linear-gradient(
-      to top,
-      var(--gm-color-surface-media) 0%,
-      color-mix(in srgb, var(--gm-color-surface-media) 62%, transparent) 38%,
-      transparent 62%
-    );
-  }
-
-  /*
-   * The corner glow on the gym-owner band — the reference's blurred brand disc.
-   *
-   * A radial gradient rather than `filter: blur(120px)` on a large div: that filter forces a
-   * full-size offscreen buffer and repaints it on every scroll frame over a tall band, which is the
-   * cost `MO4` exists to avoid. A gradient composites once.
-   */
-  .gm-brand-glow {
-    background-image: radial-gradient(
-      circle,
-      color-mix(in srgb, var(--gm-color-brand-solid) 22%, transparent) 0%,
-      transparent 62%
-    );
-  }
-
-  /*
-   * The dashed rail between the "how it works" steps — the reference's segmented connector.
-   *
-   * A `repeating-linear-gradient` rather than a dashed BORDER: `border-style: dashed` lets the
-   * browser choose the dash length, which changes with the element's width, so a 24px gap renders
-   * two fat dashes on one engine and five thin ones on another. The gradient fixes the period at
-   * 4px-on / 5px-off, which is what the reference specifies and what stays identical everywhere.
-   *
-   * `border-strong` rather than the brand: four brand-red dashes across the section would compete
-   * with the four brand-red numerals they connect, and the rail is the quietest thing here.
-   */
-  .gm-step-rail {
-    height: 1px;
-    background: repeating-linear-gradient(
-      90deg,
-      var(--gm-color-border-strong) 0 4px,
-      transparent 4px 9px
-    );
   }
 
   /* The section eyebrow the reference puts above every heading: small, spaced, brand-coloured. */
@@ -2489,28 +2701,6 @@
    * │ the one element that earns it, and `hero.spec.ts` pins that it appears only on the `h1`.   │
    * └────────────────────────────────────────────────────────────────────────────────────────────┘
    */
-  /* Retained for the accent phrase in the closing band, which is still display type on a flat
-   * ground. The hero's accent is `.gm-display-hero em` and takes the same token. */
-  .gm-display-accent {
-    /*
-     * ┌─ THE ON-MEDIA ACCENT, NOT `brand-solid` ───────────────────────────────────────────────────┐
-     * │ This said `var(--gm-color-brand-solid)` and called it "the brand fill, reused as ink",     │
-     * │ which is the exact confusion the token set has separate roles to prevent. `brand-solid` is │
-     * │ a FILL: it is proved by putting `content-on-brand` ON it, and nothing about that proof     │
-     * │ says anything about using it AS ink over a photograph.                                     │
-     * │                                                                                            │
-     * │ It then said `content-on-media-accent` `#FF4757`, which was right while the headline sat   │
-     * │ on a scrimmed photograph: 3.24:1 there, against 2.28:1 for `#E21B2D`.                       │
-     * │                                                                                            │
-     * │ The headline is on the light page now, and the ranking inverts. `#FF4757` is 3.34:1 on     │
-     * │ white - legal for large text and visibly washed out. `#E21B2D` is 4.74:1, which clears the │
-     * │ 3:1 `WCAG 1.4.3` asks of 72px bold and clears the body bar as well.                         │
-     * │                                                                                            │
-     * │ Same lesson twice: an accent is not a colour, it is a colour PLUS the ground it is on.      │
-     * └────────────────────────────────────────────────────────────────────────────────────────────┘
-     */
-    color: var(--gm-color-content-on-media-accent);
-  }
 
   /*
    * ┌─ THE CHROME CONDENSES ON SCROLL, FROM THE STYLESHEET ──────────────────────────────────────┐
@@ -2585,9 +2775,6 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    .gm-hero-push {
-      animation: gm-hero-push 24s var(--gm-motion-ease-standard) infinite alternate;
-    }
   }
 
   /*
