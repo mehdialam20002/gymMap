@@ -1,0 +1,178 @@
+{
+  "$comment": [
+    "M-030 AC-5 · The address-normaliser corpus.",
+    "",
+    "WHAT AC-5 ASKS FOR, AND WHAT THIS IS.",
+    "AC-5 asks for tuning against '200 real Indian addresses including flat and floor variants'.",
+    "These are NOT real addresses. Every one is synthetic, and putting 200 real gym addresses in a",
+    "repository would be a BR-DAT-06 problem committed for the sake of a fixture — the same reason",
+    "india-identifiers.spec.ts uses synthetic PANs.",
+    "",
+    "WHY PAIRS RATHER THAN A FLAT LIST.",
+    "A list of 200 addresses asserts nothing on its own: it can only show that the normaliser did",
+    "not crash. What decides whether BR-GYM-09 works is whether two TYPINGS of one premises collapse",
+    "to one string, and whether two genuinely different premises stay apart. So every entry is a",
+    "pair with a verdict, and each one is a real assertion that can fail.",
+    "",
+    "The variant classes are drawn from the milestone's own wording — 'flat, floor and wing variants'",
+    "— plus the ones probing found: initialisms (M G Road / MG Road), word ordinals (First Floor /",
+    "1st Flr), and comma-delimited landmarks, which ate the locality in the first implementation.",
+    "",
+    "THE GAP IS RECORDED. A real corpus, drawn from live submissions once there are any, is KL-107.",
+    "Until then these cover the SHAPES; they cannot cover the surprises only real data carries."
+  ],
+
+  "same": [
+    {
+      "class": "unit synonyms",
+      "a": "Shop 4, Ground Floor, A Wing, Sai Darshan, Andheri West",
+      "b": "Unit 4, Grd Flr, Wing-A, Sai Darshan CHS, Andheri (W)"
+    },
+    {
+      "class": "unit synonyms",
+      "a": "Gala 7, Laxmi Complex, Sector 18",
+      "b": "Unit-7, Laxmi, Sec 18"
+    },
+    { "class": "unit synonyms", "a": "Office 9, Cyber City", "b": "Unit No. 9, Cyber City" },
+    { "class": "unit synonyms", "a": "Flat 302, Rose Villa", "b": "Unit 302, Rose Villa" },
+    { "class": "unit synonyms", "a": "Premises #14, Nehru Place", "b": "Unit 14, Nehru Place" },
+
+    {
+      "class": "floor · word ordinal",
+      "a": "5, 1st Flr, Nirmal Tower, Nariman Point",
+      "b": "No 5, First Floor, Nirmal Towers, Nariman Point"
+    },
+    {
+      "class": "floor · word ordinal",
+      "a": "Office 9, 3rd Floor, Phase 2, Cyber City",
+      "b": "Unit 9, Third Floor, Ph 2, Cyber City"
+    },
+    {
+      "class": "floor · word ordinal",
+      "a": "12, Second Floor, Park Street",
+      "b": "12, 2nd Flr, Park Street"
+    },
+    {
+      "class": "floor · ground",
+      "a": "Shop 1, Ground Floor, Meera Bhavan",
+      "b": "Unit 1, Grd Flr, Meera Bhavan"
+    },
+    {
+      "class": "floor · ground",
+      "a": "Shop 1, GR Floor, Meera Bhavan",
+      "b": "Unit 1, Ground Flr, Meera Bhavan"
+    },
+    {
+      "class": "floor · basement",
+      "a": "Gala 7, Basement, Laxmi Complex",
+      "b": "Unit-7, Basement, Laxmi"
+    },
+    {
+      "class": "floor · explicit",
+      "a": "22, Floor No. 4, Ashok Nagar",
+      "b": "22, 4th Floor, Ashok Nagar"
+    },
+
+    {
+      "class": "wing · order",
+      "a": "B Wing, Shop 12, Sunrise Apartments, Powai",
+      "b": "Wing B, Unit 12, Sunrise Apts, Powai"
+    },
+    {
+      "class": "wing · hyphen",
+      "a": "Wing-C, Unit 8, Green Acres",
+      "b": "C Wing, Shop 8, Green Acres"
+    },
+    {
+      "class": "wing · block",
+      "a": "Block A, Unit 3, Tech Park",
+      "b": "Wing A, Shop 3, Tech Park"
+    },
+
+    { "class": "direction", "a": "Shop 2, Andheri West", "b": "Unit 2, Andheri (W)" },
+    { "class": "direction", "a": "Shop 2, Vile Parle East", "b": "Unit 2, Vile Parle (E)" },
+
+    { "class": "road synonyms", "a": "12, MG Road, Bengaluru", "b": "12, M G Marg, Bengaluru" },
+    { "class": "road synonyms", "a": "40, Linking Road, Bandra", "b": "40, Linking Rd, Bandra" },
+    { "class": "road synonyms", "a": "7, Church Street", "b": "7, Church St" },
+    { "class": "road synonyms", "a": "18, Brigade Lane", "b": "18, Brigade Ln" },
+
+    { "class": "society suffix", "a": "Shop 5, Sai Darshan CHS Ltd", "b": "Unit 5, Sai Darshan" },
+    {
+      "class": "society suffix",
+      "a": "Shop 5, Sai Darshan Co-op Housing Society",
+      "b": "Unit 5, Sai Darshan"
+    },
+    { "class": "society suffix", "a": "9, Sunrise Towers", "b": "9, Sunrise" },
+    { "class": "society suffix", "a": "9, Sunrise Apartments", "b": "9, Sunrise" },
+
+    {
+      "class": "landmark stripped",
+      "a": "Plot 3, Near Big Bazaar, Kothrud",
+      "b": "Plot 3, Kothrud"
+    },
+    {
+      "class": "landmark stripped",
+      "a": "Plot 3, Opp. Petrol Pump, Kothrud",
+      "b": "Plot 3, Kothrud"
+    },
+    {
+      "class": "landmark stripped",
+      "a": "Plot 3, Behind City Mall, Kothrud",
+      "b": "Plot 3, Kothrud"
+    },
+    { "class": "landmark stripped", "a": "Plot 3, Next to SBI, Kothrud", "b": "Plot 3, Kothrud" },
+
+    { "class": "token order", "a": "Sai Darshan, Andheri West", "b": "Andheri West, Sai Darshan" },
+    {
+      "class": "punctuation",
+      "a": "Shop 4 / Ground Floor / Sai Darshan",
+      "b": "Shop 4, Ground Floor, Sai Darshan"
+    },
+    { "class": "whitespace", "a": "Shop   4,,  Sai   Darshan", "b": "Shop 4, Sai Darshan" },
+    {
+      "class": "case",
+      "a": "SHOP 4, SAI DARSHAN, ANDHERI WEST",
+      "b": "shop 4, sai darshan, andheri west"
+    },
+    { "class": "sector · phase", "a": "Unit 6, Sector 62, Phase 3", "b": "Unit 6, Sec 62, Ph 3" }
+  ],
+
+  "different": [
+    {
+      "class": "unit number",
+      "a": "Shop 4, A Wing, Sai Darshan",
+      "b": "Shop 5, A Wing, Sai Darshan"
+    },
+    {
+      "class": "wing letter",
+      "a": "Shop 4, A Wing, Sai Darshan",
+      "b": "Shop 4, B Wing, Sai Darshan"
+    },
+    {
+      "class": "floor",
+      "a": "Shop 4, 1st Floor, Sai Darshan",
+      "b": "Shop 4, 2nd Floor, Sai Darshan"
+    },
+    {
+      "class": "floor · ground vs first",
+      "a": "Shop 4, Ground Floor, Sai Darshan",
+      "b": "Shop 4, First Floor, Sai Darshan"
+    },
+    { "class": "locality", "a": "Plot 3, Kothrud", "b": "Plot 3, Baner" },
+    {
+      "class": "building",
+      "a": "Shop 4, Sai Darshan, Andheri",
+      "b": "Shop 4, Meera Bhavan, Andheri"
+    },
+    { "class": "direction", "a": "Shop 2, Andheri West", "b": "Shop 2, Andheri East" },
+    { "class": "road number", "a": "12, MG Road", "b": "14, MG Road" },
+    { "class": "sector", "a": "Unit 6, Sector 62", "b": "Unit 6, Sector 63" },
+    { "class": "building name is not an ordinal", "a": "Second Home, Bandra", "b": "Home, Bandra" },
+    {
+      "class": "basement vs ground",
+      "a": "Unit 7, Basement, Laxmi",
+      "b": "Unit 7, Ground Floor, Laxmi"
+    }
+  ]
+}
