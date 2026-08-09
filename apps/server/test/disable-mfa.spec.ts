@@ -136,7 +136,7 @@ test('BR-DAT-01 — the audit row records that the factor WAS on', async () => {
   await h.useCase.execute(command());
 
   const row = h.audited[0] as Record<string, unknown>;
-  assert.equal(row['entityType'], 'user_mfa');
+  assert.equal(row['entityType'], 'USER');
   assert.deepEqual(row['before'], { mfaEnabled: true });
   assert.deepEqual(row['after'], { mfaEnabled: false });
   assert.ok(!JSON.stringify(row).includes(PASSWORD));

@@ -205,7 +205,7 @@ export class VerifyMfaUseCase {
       tenantId: null, // an identity event — `users` has no tenant
       actorId: command.userId,
       actorType: 'USER',
-      entityType: 'user_mfa',
+      entityType: 'USER',
       entityId: command.userId,
       action: 'UPDATE',
       // The code itself is NEVER in the audit row. It is a live credential until this moment and

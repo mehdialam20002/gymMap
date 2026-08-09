@@ -69,7 +69,7 @@ export class EndImpersonationUseCase {
        * records the end of an impersonation must not be the one row missing the impersonator.
        */
       impersonatedBy: command.impersonatorId,
-      entityType: 'user_session',
+      entityType: 'AUTH_SESSION',
       entityId: command.subjectUserId,
       action: 'DELETE',
       before: { impersonated: true },

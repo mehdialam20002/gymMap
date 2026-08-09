@@ -188,7 +188,7 @@ export class EnrolMfaUseCase {
       tenantId: null, // an identity event — `users` has no tenant
       actorId: command.userId,
       actorType: 'USER',
-      entityType: 'user_mfa',
+      entityType: 'USER',
       entityId: command.userId,
       action: 'UPDATE',
       // Neither the secret nor the codes appear. Both are live credentials, and the audit estate

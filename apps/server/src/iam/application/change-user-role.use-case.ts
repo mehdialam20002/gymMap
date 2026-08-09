@@ -109,7 +109,7 @@ export class ChangeUserRoleUseCase {
       tenantId: context.kind === 'TENANT' ? context.tenantId : null,
       actorId: command.actorId,
       actorType: 'USER',
-      entityType: 'user_role',
+      entityType: 'USER_ROLE',
       entityId: command.targetUserId,
       action: 'UPDATE',
       // `BR-DAT-01` wants before and after, and CHANGED FIELDS ONLY — never the whole row. The role

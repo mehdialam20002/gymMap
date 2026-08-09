@@ -25,6 +25,14 @@ export interface AuditRow {
   readonly entityId: string;
   readonly action: string;
   readonly reason: string | null;
+  /**
+   * The changed fields, as stored.
+   *
+   * Needed because `AC-8` asks the account-activity view to show a DURATION, and the duration is
+   * in this object rather than in a column. Projecting it away would have left the use case
+   * returning `durationMinutes: null` forever while its type promised otherwise.
+   */
+  readonly after: unknown;
   readonly correlationId: string;
 }
 

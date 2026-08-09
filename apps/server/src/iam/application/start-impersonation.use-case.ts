@@ -1,14 +1,18 @@
 /**
  * `M-025` · Starting an impersonation — `FR-AUTH-12`, `BR-DAT-01`, `AC-1`…`AC-3`, `AC-5`, `AC-8`.
  *
- * ┌─ TWO AUDIT ROWS, AND THEY ARE NOT REDUNDANT ────────────────────────────────────────────────┐
- * │ One is the platform's record that an agent started a session (`AC-7`). The other is the entry │
- * │ in the SUBJECT's own account activity, which `FR-USER-05` and `AC-8` require them to be able  │
- * │ to see — with the reason and the duration.                                                    │
+ * ┌─ ONE ROW, READ BY TWO AUDIENCES — AND THIS PARAGRAPH USED TO CLAIM TWO ─────────────────────┐
+ * │ It said "two audit rows, and they are not redundant": the platform's record and a separate     │
+ * │ entry in the subject's own activity. The code wrote one. Another confident comment ahead of    │
+ * │ the code, corrected here rather than left to be believed.                                      │
  * │                                                                                              │
- * │ They look like the same event and they answer to different people. Writing one and deriving   │
- * │ the other later would mean the user's view is filtered from an operational log, which is how  │
- * │ "we only show the ones we think you need to know about" happens by accident.                  │
+ * │ One row is also the right answer, and not only because `Schema.md` §4's register is closed at  │
+ * │ seventy-nine so `account_activity` would need a §24 amendment. Two tables recording the same   │
+ * │ event drift, and the first bug is the pair disagreeing about an event the user is disputing.   │
+ * │                                                                                              │
+ * │ `AccountActivityUseCase` projects this row for the subject — with an EXPLICIT entity-type      │
+ * │ allowlist, because filtering an operational log into a user-facing view is how "we only show   │
+ * │ the ones we think you need to know about" happens by accident.                                 │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ THE AUDIT ROW IS WRITTEN BEFORE THE TOKEN IS RETURNED ─────────────────────────────────────┐
@@ -106,7 +110,7 @@ export class StartImpersonationUseCase {
       actorType: 'SUPPORT_IMPERSONATION',
       // Explicit, because the ALS frame does not exist yet — this row is what BEGINS it.
       impersonatedBy: command.impersonatorId,
-      entityType: 'user_session',
+      entityType: 'AUTH_SESSION',
       entityId: command.subjectUserId,
       action: 'CREATE',
       before: { impersonated: false },

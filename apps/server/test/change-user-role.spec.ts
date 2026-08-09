@@ -132,7 +132,7 @@ test('AC-9 — the audit row carries actor, before, after and reason', () => {
       const row = audited[0] as Record<string, unknown>;
 
       assert.equal(row['actorId'], ACTOR);
-      assert.equal(row['entityType'], 'user_role');
+      assert.equal(row['entityType'], 'USER_ROLE');
       assert.equal(row['entityId'], ANA);
       assert.equal(row['action'], 'UPDATE');
       assert.equal(row['reason'], REASON);

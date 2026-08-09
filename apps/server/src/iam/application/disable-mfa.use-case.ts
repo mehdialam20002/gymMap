@@ -79,7 +79,7 @@ export class DisableMfaUseCase {
       tenantId: null,
       actorId: command.userId,
       actorType: 'USER',
-      entityType: 'user_mfa',
+      entityType: 'USER',
       entityId: command.userId,
       action: 'UPDATE',
       // Removing a second factor is one of the highest-signal events in the estate — it is what an

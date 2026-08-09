@@ -13,6 +13,8 @@
 import { Global, Module } from '@nestjs/common';
 
 import { AuditPrismaService } from '../tenancy/prisma/audit-prisma.service.js';
+import { AuditReadPrismaRepository } from './infrastructure/audit-read.prisma-repository.js';
+import { AUDIT_READ_PORT } from './ports/audit-read.port.js';
 import { AuditPrismaRepository } from './infrastructure/audit.prisma-repository.js';
 import { AUDIT_WRITE_PORT } from './ports/audit-write.port.js';
 
@@ -29,7 +31,11 @@ import { AUDIT_WRITE_PORT } from './ports/audit-write.port.js';
     // The port, not the class, is what consumers inject. The interceptor depends on the
     // INTERFACE, so an integration test can substitute a recording double without a database.
     { provide: AUDIT_WRITE_PORT, useExisting: AuditPrismaRepository },
+    // The reader is a DIFFERENT class on a DIFFERENT database role — `app_rw` holds SELECT,
+    // `app_append` holds INSERT, and neither holds the other.
+    AuditReadPrismaRepository,
+    { provide: AUDIT_READ_PORT, useExisting: AuditReadPrismaRepository },
   ],
-  exports: [AUDIT_WRITE_PORT],
+  exports: [AUDIT_WRITE_PORT, AUDIT_READ_PORT],
 })
 export class AuditModule {}

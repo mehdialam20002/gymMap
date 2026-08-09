@@ -63,6 +63,7 @@ import { VerifyMfaUseCase } from './application/verify-mfa.use-case.js';
 import { DisableMfaUseCase } from './application/disable-mfa.use-case.js';
 import { StartImpersonationUseCase } from './application/start-impersonation.use-case.js';
 import { EndImpersonationUseCase } from './application/end-impersonation.use-case.js';
+import { AccountActivityUseCase } from './application/account-activity.use-case.js';
 import { FamilyDenylist } from '../common/auth/family-denylist.redis.js';
 import { RedisLockoutCounter } from './infrastructure/redis-lockout-counter.adapter.js';
 import { UserPrismaRepository } from './infrastructure/user.prisma-repository.js';
@@ -164,6 +165,8 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
     FamilyDenylist,
     StartImpersonationUseCase,
     EndImpersonationUseCase,
+    // `FR-USER-05`. Reads through `AUDIT_READ_PORT`, which `AuditModule` is @Global() and exports.
+    AccountActivityUseCase,
   ],
   // Only the session repository leaves the module, and only because M-023's session-management
   // endpoints will need it. Nothing that can hash, mint a token or verify a password is
