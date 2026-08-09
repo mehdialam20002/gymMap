@@ -237,6 +237,42 @@ export const ERROR_REGISTRY = {
     detailsShape: '{ tenant_id: string; owner_count: number; }',
   },
 
+  // --- onboarding · M-028, the application lifecycle -----------------------
+
+  APPLICATION_ILLEGAL_TRANSITION: {
+    module: 'onboarding',
+    class: 'Business',
+    // 422: the caller may hold every permission the route needs. What they asked for is a state
+    // the `§C4.4` machine does not offer from where the application currently is.
+    httpStatus: 422,
+    messageKey: 'error.onboarding.application_illegal_transition',
+    enforces: ['FR-ONB-09', 'BR-GYM-01'],
+    retryable: false,
+  },
+
+  APPLICATION_ALREADY_SUBMITTED: {
+    module: 'onboarding',
+    class: 'Business',
+    // 409, not 422. This one IS about a race: the caller's request was valid when they formed it
+    // and another submission landed first, which is precisely what a conflict means.
+    httpStatus: 409,
+    messageKey: 'error.onboarding.application_already_submitted',
+    enforces: ['BR-GYM-05', 'FR-ONB-08'],
+    retryable: false,
+  },
+
+  APPLICATION_SNAPSHOT_IMMUTABLE: {
+    module: 'onboarding',
+    class: 'Business',
+    // The application-layer twin of the D-03 grant. The GRANT is the real control — it refuses the
+    // statement for every connection — and this exists so a caller that tries gets an explanation
+    // rather than a raw `permission denied` surfacing as a 500.
+    httpStatus: 422,
+    messageKey: 'error.onboarding.application_snapshot_immutable',
+    enforces: ['FR-ONB-08', 'BR-GYM-05'],
+    retryable: false,
+  },
+
   // --- iam · M-025, impersonation ------------------------------------------
 
   IMPERSONATION_FINANCIAL_MUTATION_REFUSED: {

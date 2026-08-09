@@ -77,6 +77,19 @@ export const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
   LAST_OWNER_PROTECTED:
     'This is the only owner of this gym. Add a second owner before removing or demoting this one.',
 
+  // --- M-028, the application lifecycle ------------------------------------
+
+  // Names the state rather than the rule. An owner reading "illegal transition" learns nothing;
+  // "already submitted" tells them where they are and what to do about it.
+  APPLICATION_ILLEGAL_TRANSITION:
+    'This application cannot move to that state from where it is now.',
+
+  APPLICATION_ALREADY_SUBMITTED:
+    'This application has already been submitted. Wait for the review, or start a new version.',
+
+  APPLICATION_SNAPSHOT_IMMUTABLE:
+    'A submitted application cannot be edited. Submit a new version instead.',
+
   // --- M-025, impersonation -------------------------------------------------
 
   // Names the remedy, because there is one and it takes a single click. A bare "forbidden"
