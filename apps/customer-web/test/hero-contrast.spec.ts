@@ -259,13 +259,22 @@ test('the resolver reads the same block the browser paints from', () => {
    * └────────────────────────────────────────────────────────────────────────────────────────────┘
    */
   const bare = CSS.replace(/\/\*[\s\S]*?\*\//g, '');
-  const blocks = [...bare.matchAll(/([^{}]*)\{([^{}]*)\}/g)].filter(([, , body]) =>
-    /color-scheme:\s*dark/.test(body!),
+  /*
+   * ROOT-level blocks only, which is what "the default theme is decided once" actually means.
+   *
+   * This counted every block declaring `color-scheme: dark` anywhere, and a COMPONENT is entitled
+   * to one: `.gm-field select` sets it because `appearance: none` stops an element inheriting the
+   * widget scheme, and without it the native option popup renders in the system's light chrome on
+   * a dark page. That is a control fixing itself, not a second theme policy, and the assertion was
+   * reading it as one.
+   */
+  const blocks = [...bare.matchAll(/([^{}]*)\{([^{}]*)\}/g)].filter(
+    ([, selector, body]) => /color-scheme:\s*dark/.test(body!) && /^\s*:root/.test(selector!),
   );
   assert.equal(
     blocks.length,
     1,
-    `${String(blocks.length)} blocks declare color-scheme: dark; the default theme must be decided in exactly one`,
+    `${String(blocks.length)} root blocks declare color-scheme: dark; the default theme must be decided in exactly one`,
   );
 
   const [, selector, body] = blocks[0]!;

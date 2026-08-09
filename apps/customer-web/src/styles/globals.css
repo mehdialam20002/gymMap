@@ -1144,12 +1144,25 @@
     max-width: 960px;
   }
 
+  /*
+   * `stretch`, not `center`, and 62px rather than 56.
+   *
+   * Centred, the input's box floated in the field and its text landed at whatever y the box
+   * happened to sit at - measured with a value typed in, the label's bottom edge and the text's
+   * top edge were both at 638px. Exactly flush, no gap at all, which reads as the text hiding
+   * under the label the moment you type. The old `padding-top: 16px` was tuned against a
+   * position that moved.
+   *
+   * Stretched, the input fills the field and its own padding decides where the text sits: a
+   * fixed 30px from the top, with the label ending at 24. Six pixels, at every size, and nothing
+   * depends on the input's intrinsic height any more.
+   */
   .gm-field {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: 10px;
     padding-inline: 18px;
-    height: 56px;
+    height: 62px;
     border-radius: 999px;
     position: relative;
     min-width: 0;
@@ -1157,6 +1170,12 @@
 
   .gm-field + .gm-field {
     box-shadow: inset 1px 0 0 var(--gm-color-border-subtle);
+  }
+
+  /* The glyph aligns to the TEXT, not to the field, now that the row stretches. */
+  .gm-field > svg {
+    align-self: center;
+    margin-top: 9px;
   }
 
   .gm-field label {
@@ -1185,7 +1204,8 @@
      */
     font-size: 16px;
     font-weight: 500;
-    padding-top: 16px;
+    /* 30 above the text, 8 below: the label ends at 24, so the gap is a deliberate 6px. */
+    padding: 30px 0 8px;
     appearance: none;
   }
 
@@ -1209,12 +1229,60 @@
     outline: none;
   }
 
+  /*
+   * ┌─ THE POPUP IS DRAWN BY THE OS, AND `color-scheme` IS THE ONLY HANDLE ON IT ────────────────┐
+   * │ An open `<select>` list is not part of the page - it is a native menu, and `background` on  │
+   * │ `option` is honoured by almost nothing. It was rendering as the system default: white       │
+   * │ ground, blue highlight, system font, on a page that is none of those.                        │
+   * │                                                                                             │
+   * │ `color-scheme: dark` is what actually reaches it. The root already declares it, and an       │
+   * │ element with `appearance: none` stops inheriting the widget scheme - so the control that     │
+   * │ most needs it is the one that had lost it.                                                   │
+   * │                                                                                             │
+   * │ The alternative is a `<details>` and a set of radios, which can be styled completely and     │
+   * │ gives up arrow-key paging, type-ahead, Escape, and the wheel picker a phone shows for a      │
+   * │ real select. That is a worse control that looks better, and this page is a form.             │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  .gm-field select {
+    color-scheme: dark;
+  }
+
+  :root[data-theme='light'] .gm-field select {
+    color-scheme: light;
+  }
+
   .gm-field select option {
     background: var(--gm-color-surface-subtle);
+    color: var(--gm-color-content-primary);
+  }
+
+  /*
+   * The caret. `appearance: none` removes the native one, and a select with no affordance reads as
+   * a label - the reference draws its own for the same reason. Painted on the FIELD rather than
+   * the control, because a background-image on a select sits under its text in some engines.
+   */
+  .gm-field:has(select)::after {
+    content: '';
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    margin-top: 2px;
+    border-right: 1.5px solid var(--gm-color-content-muted);
+    border-bottom: 1.5px solid var(--gm-color-content-muted);
+    transform: translateY(-50%) rotate(45deg);
+    pointer-events: none;
+  }
+
+  /* Room for it, so a long option does not run under the caret. */
+  .gm-field select {
+    padding-right: 22px;
   }
 
   .gm-console .gm-btn {
-    height: 56px;
+    height: 62px;
   }
 
   /* ── the marquee ───────────────────────────────────────────────────────── */
