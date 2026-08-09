@@ -67,6 +67,21 @@ export const GENERATED_INVENTORY: Inventory = {
       "audience": "PUBLIC"
     },
     {
+      "method": "DELETE",
+      "path": "/v1/auth/mfa",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/auth/mfa/enrol",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/auth/mfa/verify",
+      "audience": "PUBLIC"
+    },
+    {
       "method": "POST",
       "path": "/v1/auth/otp/request",
       "audience": "PUBLIC"
