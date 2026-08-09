@@ -45,6 +45,19 @@ test('no-float-money', () => {
       { code: 'function f() { let amount = 0.1 + 0.2; return amount; }' },
       // Names that match the money pattern but are demonstrably not money.
       { code: 'interface Tier { commissionRateBps: number; }' },
+
+      /*
+       * M-030 · the physical quantities. Each matches MONEY_NAME — `maxTotalPixels` on "total",
+       * `netBytes` on "net", `discountedSeconds` on "discount" — and none of them can hold a
+       * monetary amount. `maxTotalPixels` is the ceiling that stops a decompression bomb.
+       */
+      { code: 'interface Limits { maxTotalPixels: number; }' },
+      { code: 'interface Limits { maxEdgePixels: number; }' },
+      { code: 'interface Probe { totalMetres: number; }' },
+      { code: 'interface Probe { toleranceMeters: number; }' },
+      { code: 'interface Cap { maxBytes: number; }' },
+      { code: 'interface Job { totalSeconds: number; }' },
+      { code: 'interface Job { expectedDurationMs: number; }' },
       { code: 'interface Page { totalCount: number; }' },
       { code: 'interface Batch { reserveBps: number; }' },
       // Untyped is someone else's rule.
@@ -74,6 +87,27 @@ test('no-float-money', () => {
       },
       {
         code: 'interface O { discount: number | null; }',
+        errors: [{ messageId: 'floatMoney' }],
+      },
+      /*
+       * M-030 · the new physical-unit exemptions are SUFFIX-ANCHORED, and these prove it. Each
+       * contains one of the added words somewhere other than the end, and each is money.
+       *
+       * Without the anchor `pixelPricing` would be exempt because it contains "pixel" — the same
+       * mistake as the `discount`/"count" bug the exemption comment above records, re-made with a
+       * different word. A widened exemption that quietly stops catching money is worse than the
+       * false positive it was widening to fix.
+       */
+      {
+        code: 'interface Ad { pixelPriceMinor: number; }',
+        errors: [{ messageId: 'floatMoney' }],
+      },
+      {
+        code: 'interface Bill { bytesTransferredFee: number; }',
+        errors: [{ messageId: 'floatMoney' }],
+      },
+      {
+        code: 'interface Plan { msPerRupeeTotal: number; }',
         errors: [{ messageId: 'floatMoney' }],
       },
     ],
@@ -244,12 +278,16 @@ test('no-surface-currency-format', () => {
   ruleTester.run('no-surface-currency-format', noSurfaceCurrencyFormat, {
     valid: [
       // The point of the rule: the ONE formatter is imported, not reimplemented.
-      { code: "import { formatIndianRupees } from '@gymmap/utils'; const s = formatIndianRupees(100n);" },
+      {
+        code: "import { formatIndianRupees } from '@gymmap/utils'; const s = formatIndianRupees(100n);",
+      },
 
       // A formatter with no currency intent. Grouping a row count is not the problem, and a rule
       // that flagged it would be switched off within a week.
       { code: "const n = new Intl.NumberFormat('en-IN').format(1234);" },
-      { code: "const n = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 }).format(1.25);" },
+      {
+        code: "const n = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 }).format(1.25);",
+      },
       { code: "const p = new Intl.NumberFormat('en-IN', { style: 'percent' }).format(0.18);" },
       { code: 'const s = value.toLocaleString();' },
       { code: "const s = date.toLocaleString('en-IN', { dateStyle: 'medium' });" },

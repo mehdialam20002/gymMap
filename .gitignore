@@ -21,6 +21,9 @@ playwright-report/
 test-results/
 blob-report/
 .playwright/
+# Console logs and page snapshots the Playwright MCP browser tool drops when a page is driven
+# by hand. Debris from looking at the site, never an input to anything.
+.playwright-mcp/
 dependency-graph.svg
 dependency-graph.json
 

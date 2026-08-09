@@ -36,9 +36,24 @@ const MONEY_NAME =
  * DIGITS, exactly as much not-money as `commissionRateBps`. Caught the first time the rule was
  * actually run against the codebase, which was M-016: until then there was no ESLint config to
  * register it in, so all four custom rules had passing unit tests and had never seen a file.
+ *
+ * ┌─ M-030 ADDED THE PHYSICAL QUANTITIES, FOR THE SAME REASON AS EVERY ROW ABOVE ────────────────┐
+ * │ `maxTotalPixels` — the ceiling that stops a decompression bomb — matches MONEY_NAME on       │
+ * │ "total" and is a count of pixels. So are `distanceMetres`, `maxBytes` and `expectedDurationMs`│
+ * │ in their own units.                                                                            │
+ * │                                                                                              │
+ * │ The alternative was an `eslint-disable` on the line, and that is the worse outcome: a         │
+ * │ disable is invisible to the next person and CI only demands a reference beside it, not that   │
+ * │ the reference be a good one. A false positive left standing is also how a rule stops being    │
+ * │ read — the same failure this repository already hit with `dependency-approval` reporting an   │
+ * │ approved package.                                                                              │
+ * │                                                                                              │
+ * │ The rule is not weakened: none of these units can hold a monetary amount, and `amountMinor`,  │
+ * │ `grossMinor` and every real money field still fail on `number`.                                │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 const NOT_MONEY =
-  /(?:^|_)(count|rate|bps|pct|percent|ratio|days?|version|index|priority|exponent|precision|scale|digits)$|[a-z0-9](Count|Rate|Bps|Pct|Percent|Ratio|Days?|Version|Index|Priority|Exponent|Precision|Scale|Digits)$/;
+  /(?:^|_)(count|rate|bps|pct|percent|ratio|days?|version|index|priority|exponent|precision|scale|digits|pixels?|metres?|meters?|bytes?|seconds?|ms)$|[a-z0-9](Count|Rate|Bps|Pct|Percent|Ratio|Days?|Version|Index|Priority|Exponent|Precision|Scale|Digits|Pixels?|Metres?|Meters?|Bytes?|Seconds?|Ms)$/;
 
 /** Types that may legitimately carry a monetary quantity. */
 const ALLOWED_TYPES = new Set(['bigint', 'Money', 'MoneyMinor', 'AmountMinor']);
