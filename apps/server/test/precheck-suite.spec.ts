@@ -22,6 +22,7 @@ import {
   readDimensions,
   runImageQualityCheck,
 } from '../dist/onboarding/application/prechecks/image-quality.check.js';
+import { runDuplicateBankAccountCheck } from '../dist/onboarding/application/prechecks/duplicate-bank-account.check.js';
 import { RunPrechecksProcessor } from '../dist/onboarding/jobs/run-prechecks.processor.js';
 import { JobRunner } from '../dist/common/queue/job-runner.js';
 
@@ -166,6 +167,81 @@ test('a failed elevated lookup is ERROR', async () => {
   );
   assert.equal(r.outcome, 'ERROR');
   assert.match(String(r.evidence['reason']), /elevation refused/);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Duplicate bank account — the check whose table does not exist (AC-6, AC-8)
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('no payout account supplied PASSES — nothing was claimed, so nothing is claimed twice', async () => {
+  const r = await runDuplicateBankAccountCheck({ fingerprint: null }, AT);
+  assert.equal(r.outcome, 'PASS');
+  assert.equal(r.evidence['supplied'], false);
+});
+
+test('AC-8 — an account WITH no store behind it is ERROR, never PASS', async () => {
+  /*
+   * ┌─ THIS IS THE ASSERTION THAT MATTERS, AND IT COVERS A BRANCH NOTHING REACHES TODAY ─────────┐
+   * │ `payout_accounts` is EP-05 and no wizard step collects an account, so at M-030 the          │
+   * │ fingerprint is always null and the check always takes the PASS above.                        │
+   * │                                                                                              │
+   * │ The day step 5 ships, the input starts arriving and the probe still will not be bound. Every │
+   * │ application would then be told its payout account is unique by a check that never looked —   │
+   * │ the exact AC-8 coercion, arriving without a single line of this file being edited. This test │
+   * │ is what turns that into a visible ERROR instead.                                              │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const r = await runDuplicateBankAccountCheck({ fingerprint: 'sha256:abc123' }, AT);
+  assert.equal(r.outcome, 'ERROR');
+  assert.match(String(r.evidence['reason']), /payout_accounts does not exist yet/);
+  assert.match(String(r.evidence['reason']), /KL-109/);
+});
+
+test('another tenant using the same account FLAGS, and names them', async () => {
+  const r = await runDuplicateBankAccountCheck(
+    {
+      fingerprint: 'sha256:abc123',
+      probe: {
+        findOtherTenantsUsing: () =>
+          Promise.resolve({ ok: true, matches: [{ tenantId: 't-9', status: 'SUSPENDED' }] }),
+      } as never,
+    },
+    AT,
+  );
+  assert.equal(r.outcome, 'FLAG');
+  assert.deepEqual(r.evidence['otherTenants'], [{ tenantId: 't-9', status: 'SUSPENDED' }]);
+});
+
+test('BR-PAY-08 — the fingerprint never reaches the persisted evidence', async () => {
+  // The evidence is written to `precheck_results` and rendered in the review console. A stable
+  // per-account identifier sitting there correlates accounts across tenants for anyone with read
+  // access — rebuilding, out of the control's own audit trail, the linkage BR-PAY-08 forbids.
+  const r = await runDuplicateBankAccountCheck(
+    {
+      fingerprint: 'sha256:abc123',
+      probe: {
+        findOtherTenantsUsing: () =>
+          Promise.resolve({ ok: true, matches: [{ tenantId: 't-9', status: 'APPROVED' }] }),
+      } as never,
+    },
+    AT,
+  );
+  assert.doesNotMatch(JSON.stringify(r.evidence), /abc123/);
+});
+
+test('a probe that reports UNAVAILABLE is ERROR', async () => {
+  const r = await runDuplicateBankAccountCheck(
+    {
+      fingerprint: 'sha256:abc123',
+      probe: {
+        findOtherTenantsUsing: () =>
+          Promise.resolve({ ok: false, failure: 'UNAVAILABLE', detail: 'replica lagging' }),
+      } as never,
+    },
+    AT,
+  );
+  assert.equal(r.outcome, 'ERROR');
+  assert.match(String(r.evidence['reason']), /replica lagging/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

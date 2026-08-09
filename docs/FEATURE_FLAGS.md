@@ -654,12 +654,12 @@ stakeholders):
 
 | Type | Count | Section |
 | :--- | :-: | :--- |
-| Release (`rel`) | 43 | [§7.3](#73-release-flags) |
+| Release (`rel`) | 44 | [§7.3](#73-release-flags) |
 | Experiment (`exp`) | 5 | [§7.4](#74-experiment-flags) |
 | Operational kill-switch (`ops`) | 10 | [§7.5](#75-operational-kill-switches--permanent) |
 | Permission / entitlement (`ent`) | 8 | [§7.6](#76-permission--entitlement-flags) |
 | Migration (`mig`) | 5 | [§7.7](#77-migration-flags) |
-| **Total** | **71** | |
+| **Total** | **72** | |
 
 > **The counts above were recounted from the sections themselves on 2026-08-09**, when `M-029` added
 > `rel.onboarding.kyc-upload`. They read 39 / 5 / 9 / 8 / 5 = 66 against actual sections holding
@@ -715,6 +715,7 @@ stakeholders):
 | `rel.support.help-centre` | Release | **Off:** `/help/articles` and the help-centre search box are hidden, and every support entry point routes straight to ticket creation. The cost is measured directly in tickets per tenant per month — the number that `OBJ-10` exists to hold down and that `A6.5` identifies as the variable most likely to break unit economics. | OFF | percentage | Support | 2027-03-01 | 2027-05-30 | `FR-SUP-06`, `OBJ-10`, `A6.5`, `SCR-WEB-017` | PROPOSED |
 | `rel.support.satisfaction-rating` | Release | **Off:** no rating prompt is shown when a ticket resolves, and the CSAT column disappears from the support-load report. SLA timing and breach alerting (`FR-SUP-05`, `KPI-25`) are entirely unaffected, so response performance stays measurable even when satisfaction is not. | OFF | percentage | Support | 2027-03-01 | 2027-05-30 | `FR-SUP-07`, `FR-SUP-05`, `KPI-25`, `SCR-ADM-013` | PROPOSED |
 | `rel.onboarding.kyc-upload` | Release | **Off:** the KYC step of the onboarding wizard accepts no new uploads and shows an explicit maintenance state naming what is unavailable — never a silent failure and never a generic error, because an applicant who cannot tell whether their document was received uploads it four more times. Documents already stored **remain readable to reviewers**, so a queue already in progress is not stalled by pulling this. Two things are deliberately **not** behind it: the bucket segregation (`BR-DAT-07`, `NFR-SEC-02`) and the access-audit rule (`AC-8`) — a security control that can be switched off is not a control, and `CLAUDE.md` §9.7 forbids flagging exactly this class of rule. **Not yet operable — see `KL-105`:** no flag evaluator exists before `M-116`, so the real lever today is a deployment revert. | OFF | percentage | Backend | 2026-08-09 | 2026-11-07 | `FR-ONB-03`, `BR-DAT-07`, `NFR-SEC-02`, `NFR-SEC-10`, `SCR-DASH-002`, `M-029` | PROPOSED |
+| `rel.onboarding.precheck-suite` | Release | **Off:** the six automated pre-checks do not run, and the reviewer console shows *"pre-checks not run"* against the application — an explicit, visible absence rather than a silent pass. That is the whole point of the off-state: an application with no pre-check panel must never be indistinguishable from one whose panel came back clean, because `AC-8` turns on exactly that distinction. Submission is **not** blocked (`DEP-02`) and a reviewer may still approve, since `BR-GYM-03` makes approval a human act and the pre-checks only inform it. **Not flagged, and never flaggable:** the `BR-GYM-09` detection obligation itself — pulling this removes an automated signal, never the reviewer's duty under `BR-GYM-02`; and `PrecheckOutcome`'s absent `REJECT` member, which is a type rather than a behaviour and cannot be switched on. **Not yet operable — see `KL-105`:** no flag evaluator exists before `M-116`, so the real lever today is a deployment revert. | OFF | percentage | Backend | 2026-08-10 | 2026-11-08 | `FR-ONB-12`, `BR-GYM-08`, `BR-GYM-09`, `DEP-02`, `AC-ONB-02.3`, `SCR-ADM-002`, `M-030` | PROPOSED |
 
 ### 7.4 Experiment flags
 
