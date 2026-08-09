@@ -99,6 +99,9 @@ model Tenant {
 
   @@index([status, createdAt(sort: Desc)], map: "idx_tenants__status_created_at")
   @@map("tenants")
+
+  applications Application[]
+  kycDocuments KycDocument[]
 }
 
 // The enums below are a SUBSET of the 81 created by 0_init — only those `tenants` references.
@@ -520,4 +523,134 @@ enum AuthSessionStatusEnum {
   EXPIRED
 
   @@map("auth_session_status_enum")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// M-026 · the verification dossier — `Schema.md` §4.2, §4.3
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+/// One submitted dossier per (tenant, version). TENANT-OWNED: RLS enabled and forced, so the
+/// Prisma tenant extension scopes every read and write and no repository filters by hand.
+model Application {
+  /// `dbgenerated`, not `@default(uuid())`. The migration gives the column a real DEFAULT so raw
+  /// SQL (the seed, an int-spec) need not supply one — and a client-side default here would report
+  /// as drift forever while both were right.
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  tenantId String @map("tenant_id") @db.Uuid
+
+  /// `BR-GYM-05` — a rejected application is superseded by a new version, never edited.
+  version Int
+
+  /// `ERD.md` §9.6 — the claim AND the checklist version it was made against, frozen together.
+  /// Immutable at the GRANT level (D-03): `app_rw` holds no UPDATE on this column.
+  snapshot Json
+
+  status      ApplicationStatusEnum @default(SUBMITTED)
+  assignedTo  String?               @map("assigned_to") @db.Uuid
+
+  decidedBy     String?                  @map("decided_by") @db.Uuid
+  decidedAt     DateTime?                @map("decided_at") @db.Timestamptz(6)
+  decision      ApplicationDecisionEnum?
+  reasonCodes   String[]                 @default([]) @map("reason_codes")
+  reviewerNotes String?                  @map("reviewer_notes")
+
+  precheckResults Json     @default("{}") @map("precheck_results")
+  submittedAt     DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+
+  tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  documents KycDocument[]
+
+  /// The queue index deliberately does NOT lead with tenant_id — it is a platform read under
+  /// runElevated (SC-R06). Declared in the migration; Prisma cannot express the exception, so it
+  /// is named here rather than silently absent.
+  @@unique([tenantId, version], map: "uq_applications__tenant_version")
+  @@index([tenantId, submittedAt(sort: Desc)], map: "idx_applications__tenant_submitted_at")
+  @@map("applications")
+}
+
+/// Retention class `R-KYC` — the row outlives the tenant. There is deliberately NO `deletedAt`:
+/// `tombstonedAt` records that the OBJECT was destroyed while the evidence that it existed stays.
+model KycDocument {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  tenantId      String @map("tenant_id") @db.Uuid
+  applicationId String @map("application_id") @db.Uuid
+
+  documentType KycDocumentTypeEnum @map("document_type")
+
+  /// Globally unique. Object storage has one namespace, so two rows sharing a key would point at
+  /// one object and tombstoning either would destroy the other tenant's evidence.
+  storageKey  String @unique(map: "uq_kyc_documents__storage_key") @map("storage_key")
+  contentHash String @map("content_hash")
+
+  status KycDocumentStatusEnum @default(PENDING)
+
+  reviewedBy      String?   @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  rejectionReason String?   @map("rejection_reason")
+
+  /// NOT a soft delete. A reader filtering this out would hide the evidence.
+  tombstonedAt DateTime? @map("tombstoned_at") @db.Timestamptz(6)
+  expiresAt    DateTime? @map("expires_at") @db.Timestamptz(6)
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, documentType, status], map: "idx_kyc_documents__tenant_type_status")
+  @@index([applicationId], map: "idx_kyc_documents__application")
+  @@map("kyc_documents")
+}
+
+enum ApplicationStatusEnum {
+  SUBMITTED
+  UNDER_REVIEW
+  INFO_REQUESTED
+  APPROVED
+  REJECTED
+
+  @@map("application_status_enum")
+}
+
+enum ApplicationDecisionEnum {
+  APPROVED
+  REJECTED
+  INFO_REQUESTED
+
+  @@map("application_decision_enum")
+}
+
+enum KycDocumentTypeEnum {
+  PAN
+  GSTIN
+  BUSINESS_REGISTRATION
+  SHOP_ESTABLISHMENT
+  BANK_PROOF
+  OWNER_IDENTITY
+  PREMISES_ADDRESS_PROOF
+  TRADE_LICENCE
+  FIRE_SAFETY_NOC
+  MUSIC_LICENCE
+  OTHER
+
+  @@map("kyc_document_type_enum")
+}
+
+enum KycDocumentStatusEnum {
+  PENDING
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  SUPERSEDED
+
+  @@map("kyc_document_status_enum")
 }
