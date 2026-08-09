@@ -68,12 +68,16 @@ test('AC-5 — every distinction pair stays apart', () => {
 test('the corpus covers the variant classes the milestone names', () => {
   // AC-5 says "including flat and floor variants". Asserting the coverage keeps a future edit from
   // deleting the awkward cases and leaving a corpus that passes because it stopped asking.
+  // `?? c.class` rather than `?? ''`: under `noUncheckedIndexedAccess` a split's first element is
+  // `string | undefined`, and defaulting to the empty string would make a class with no ' · ' vanish
+  // from the set — silently shrinking the very coverage this test asserts.
   const classes = new Set(
-    [...CORPUS.same, ...CORPUS.different].map((c) => c.class.split(' · ')[0]),
+    [...CORPUS.same, ...CORPUS.different].map((c) => c.class.split(' · ')[0] ?? c.class),
   );
   for (const required of ['unit synonyms', 'floor', 'wing', 'landmark stripped', 'token order']) {
+    const firstWord = required.split(' ')[0] ?? required;
     assert.ok(
-      [...classes].some((c) => c.startsWith(required.split(' ')[0] ?? '')),
+      [...classes].some((c) => c.startsWith(firstWord)),
       `no corpus case covers "${required}"`,
     );
   }

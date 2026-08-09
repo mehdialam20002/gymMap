@@ -25,7 +25,18 @@ import assert from 'node:assert/strict';
 
 import { applyTestEnv } from '../harness/test-env.ts';
 
-let moduleRef: { get: (token: unknown) => unknown; close: () => Promise<void> } | undefined;
+/*
+ * `TestingModule` by its real type, via an INLINE TYPE IMPORT.
+ *
+ * The hand-written shape that stood here — `{ get: (token: unknown) => unknown; ... }` — did not
+ * typecheck: `TestingModule.get` is an overload set taking `string | symbol | Function | Type<T>`,
+ * and under `strictFunctionTypes` a parameter of `unknown` is not assignable to that (contravariance
+ * runs the other way). It was written to keep `@nestjs/testing` out of the module scope, because
+ * every Nest import in this file is deliberately dynamic — the env must be applied before Nest
+ * loads. `import('...')` in TYPE POSITION is erased at compile time, so it keeps that property and
+ * gets the real type.
+ */
+let moduleRef: import('@nestjs/testing').TestingModule | undefined;
 let bootError: Error | undefined;
 
 before(async () => {

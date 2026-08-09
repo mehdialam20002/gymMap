@@ -59,7 +59,18 @@ function throughMiddleware(header?: string): Captured {
   middleware.use(req as never, res as never, () => {
     const context = currentCorrelation();
     assert.ok(context, 'the middleware did not open a correlation context');
-    captured = { correlationId: context.correlationId, clientTraceId: context.clientTraceId };
+    /*
+     * Spread rather than assign, because `exactOptionalPropertyTypes` is on.
+     *
+     * `{ clientTraceId: undefined }` and `{}` are different types under that flag, and only the
+     * second one satisfies `clientTraceId?: string`. That is not pedantry here: this spec exists to
+     * tell "no trace id was sent" apart from "a trace id was sent and rejected", and writing an
+     * explicit `undefined` erases exactly that distinction at the type level.
+     */
+    captured = {
+      correlationId: context.correlationId,
+      ...(context.clientTraceId === undefined ? {} : { clientTraceId: context.clientTraceId }),
+    };
   });
 
   assert.ok(captured, 'next() was never called');

@@ -133,7 +133,10 @@ after(async () => {
   await service.onModuleDestroy();
 });
 
-const it = (name: string, fn: () => Promise<void>) =>
+// `void | Promise<void>`: the BLK-18 canaries are synchronous — they call `asRole()`, which runs
+// psql through `execFileSync` — and the skip-if-no-database wrapper is the only reason they go
+// through this helper at all. `await` on a non-promise is a no-op, so both shapes work.
+const it = (name: string, fn: () => void | Promise<void>) =>
   test(name, async (t) => {
     if (!available) return t.skip('no database');
     await fn();
