@@ -208,7 +208,7 @@ it('AC-4 — kyc_documents has NO deleted_at, and has storage_purged_at instead'
   //
   // The column was `tombstoned_at` until M-029. `Schema.md` §4.3 names it `storage_purged_at`, the
   // meaning is identical, and the migration that created it cited §4.3 as its own source — see
-  // TD-036.
+  // TD-037.
   assert.equal(
     one(
       `SELECT count(*) FROM information_schema.columns
@@ -226,7 +226,7 @@ it('AC-4 — kyc_documents has NO deleted_at, and has storage_purged_at instead'
 });
 
 it('§4.3 — every column the schema specification requires is present', () => {
-  // ┌─ THE ASSERTION THAT WOULD HAVE CAUGHT TD-036 AT M-026 ─────────────────────────────────────┐
+  // ┌─ THE ASSERTION THAT WOULD HAVE CAUGHT TD-037 AT M-026 ─────────────────────────────────────┐
   // │ The original migration named `Schema.md` §4.3 as its requirement source and then omitted    │
   // │ four of its columns, renamed three and inverted one nullability — with nothing anywhere     │
   // │ recording it. Three of the omissions are exactly what the upload pipeline produces, so the  │

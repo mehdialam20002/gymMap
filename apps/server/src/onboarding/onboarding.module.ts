@@ -25,6 +25,11 @@ import {
   CHECKLIST_STORE,
   ResolveChecklistUseCase,
 } from './application/resolve-checklist.use-case.js';
+import { UploadKycDocumentUseCase } from './application/upload-kyc-document.use-case.js';
+import { OBJECT_STORAGE_PORT } from '../common/storage/object-storage.port.js';
+import { MALWARE_SCAN_PORT } from '../common/storage/malware-scan.port.js';
+import { UnavailableObjectStorageAdapter } from '../common/storage/unavailable-object-storage.adapter.js';
+import { UnavailableMalwareScanAdapter } from '../common/storage/unavailable-malware-scan.adapter.js';
 
 @Module({
   providers: [
@@ -32,6 +37,18 @@ import {
     KycDocumentPrismaRepository,
     KycChecklistPrismaRepository,
     ResolveChecklistUseCase,
+    UploadKycDocumentUseCase,
+
+    // ┌─ THE REFUSING ADAPTERS ARE BOUND, NOT LEFT UNBOUND ────────────────────────────────────┐
+    // │ An unbound token fails at DI resolution with "Nest can't resolve dependencies", which   │
+    // │ reads as a wiring mistake. A bound adapter that answers UNAVAILABLE (BLK-16) and         │
+    // │ UNSCANNED (KL-104) reads as what it is: the enclave is not built yet, the code that      │
+    // │ depends on it is, and the refusal is the current state rather than an accident.          │
+    // └─────────────────────────────────────────────────────────────────────────────────────────┘
+    UnavailableObjectStorageAdapter,
+    UnavailableMalwareScanAdapter,
+    { provide: OBJECT_STORAGE_PORT, useExisting: UnavailableObjectStorageAdapter },
+    { provide: MALWARE_SCAN_PORT, useExisting: UnavailableMalwareScanAdapter },
     // The use case depends on the PORT, never on the Prisma class. Binding here rather than
     // injecting the repository directly is what lets the unit tests drive it with an in-memory
     // store and no database — and what keeps `application/` free of a Prisma import.

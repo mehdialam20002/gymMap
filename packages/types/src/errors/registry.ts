@@ -293,6 +293,37 @@ export const ERROR_REGISTRY = {
     retryable: false,
   },
 
+  KYC_DOCUMENT_REJECTED: {
+    module: 'onboarding',
+    class: 'Validation',
+    // 422, not 400. The request was well formed — a multipart body with a file in it. What failed
+    // is the CONTENT, which 400 would misdescribe as a malformed request and send a developer
+    // looking at their client code rather than at the file.
+    httpStatus: 422,
+    messageKey: 'error.onboarding.kyc_document_rejected',
+    enforces: ['NFR-SEC-10', 'FR-ONB-03'],
+    // The identical bytes will be refused identically, forever. A retry is only useful after the
+    // applicant changes the FILE, which makes it a different request.
+    retryable: false,
+  },
+
+  KYC_STORAGE_UNAVAILABLE: {
+    module: 'onboarding',
+    // ┌─ `System`, AND IT COVERS TWO VERY DIFFERENT CAUSES ON PURPOSE ────────────────────────────┐
+    // │ "the enclave could not be verified" and "the bucket is not private" are one code because  │
+    // │ the applicant can act on neither, and the distinction is exactly what should NOT be on the │
+    // │ wire: telling an anonymous caller that a KYC bucket is publicly readable is telling them   │
+    // │ where to look. The two are separated in the log, against the correlation id.               │
+    // └────────────────────────────────────────────────────────────────────────────────────────────┘
+    class: 'System',
+    httpStatus: 503,
+    messageKey: 'error.onboarding.kyc_storage_unavailable',
+    enforces: ['BR-DAT-07', 'NFR-SEC-02'],
+    // Deliberately false while BLK-16 is open. An automatic retry cannot bind an adapter, and a
+    // client spinning against a permanent refusal is how a rollout becomes an outage.
+    retryable: false,
+  },
+
   // --- iam · M-025, impersonation ------------------------------------------
 
   IMPERSONATION_FINANCIAL_MUTATION_REFUSED: {

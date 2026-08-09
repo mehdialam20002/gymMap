@@ -95,23 +95,47 @@ test('ZIP is refused, and it is the one people argue about', () => {
   assert.equal(verdict.reason, 'EXECUTABLE_CONTENT');
 });
 
-test('the executable check runs BEFORE the whitelist, so a polyglot cannot slip past', () => {
-  // ┌─ WHY THE ORDER IS LOAD-BEARING ────────────────────────────────────────────────────────────┐
-  // │ JPEG's signature is two bytes — `FF D8` — and there is nothing longer that every JPEG       │
-  // │ shares. Two bytes is weak. If the whitelist ran first, a file crafted to satisfy it would   │
-  // │ be classified `image/jpeg` and never reach the executable check at all.                      │
+test('A POLYGLOT IS ACCEPTED. This test pins a real gap — see KL-106.', () => {
+  // ┌─ THIS ASSERTION IS DELIBERATELY THE WRONG WAY ROUND, AND IT REPLACES ONE THAT LIED ────────┐
+  // │ An earlier test here claimed "the executable check runs BEFORE the whitelist, so a polyglot │
+  // │ cannot slip past". It used a buffer beginning `4D 5A` — an executable marker at offset 0 —  │
+  // │ which the executable pass catches whichever loop runs first. So the test passed with the    │
+  // │ implementation INVERTED, and it proved nothing about ordering or about polyglots.            │
+  // │                                                                                            │
+  // │ The truth: `startsWith` compares from offset 0 only. A JPEG with a ZIP appended after the   │
+  // │ image data is a valid JPEG, its first two bytes are `FF D8`, and it IS accepted. Scanning   │
+  // │ the whole body is not the fix — a two-byte marker occurs by chance ~70 times in 5 MiB of    │
+  // │ entropy-coded image data, so a body scan would refuse real photographs.                      │
+  // │                                                                                            │
+  // │ The control is re-encoding (`KY4`'s raster rendition), which is unbuilt for want of an      │
+  // │ approved rasteriser. Until then this records the true behaviour instead of a comforting     │
+  // │ falsehood. When the rendition lands, this test should go red and be rewritten.               │
   // └───────────────────────────────────────────────────────────────────────────────────────────┘
-  //
-  // This buffer is NOT a real polyglot — it is the shape of the failure: something that would pass
-  // a naive prefix check while carrying an executable marker at offset 0.
-  const marker = file([0x4d, 0x5a]);
-  marker[2] = 0xff;
-  marker[3] = 0xd8;
+  const jpegThenZip = Buffer.concat([
+    Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]),
+    Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00]), // a ZIP local file header, appended
+    Buffer.alloc(256),
+  ]);
 
-  const verdict = inspectContent(marker, MAX);
+  const verdict = inspectContent(jpegThenZip, MAX);
+  assert.equal(
+    verdict.ok,
+    true,
+    'a polyglot is now refused — KL-106 may be closed. Rewrite this test as a positive assertion.',
+  );
+  if (!verdict.ok) return;
+  assert.equal(verdict.contentType, 'image/jpeg');
+});
+
+test('the executable list changes the MESSAGE, which is the whole of what it buys', () => {
+  // Replaces the ordering claim with the property that is actually true and actually useful: a
+  // bare executable is reported as one, rather than as an unrecognised format that sends somebody
+  // looking for a corrupt scan.
+  const verdict = inspectContent(file([0x4d, 0x5a, 0x90, 0x00]), MAX);
   assert.equal(verdict.ok, false);
   if (verdict.ok) return;
   assert.equal(verdict.reason, 'EXECUTABLE_CONTENT');
+  assert.notEqual(verdict.reason, 'UNRECOGNISED_FORMAT');
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -95,6 +95,34 @@ export class AuditPrismaRepository implements AuditWritePort {
      * │ correlation id that reaches here in the wrong shape is a bug somewhere upstream.           │
      * └──────────────────────────────────────────────────────────────────────────────────────────┘
      */
+    /*
+     * ┌─ THE SAME DEFECT AS THE CORRELATION ID, ON THE OTHER CLIENT-INFLUENCED FIELD ─────────────┐
+     * │ `ip` is `inet` and reaches `${entry.ip ?? null}::inet` inside the same `try` whose `catch` │
+     * │ only logs. `SELECT 'not-an-ip'::inet` raises, so ANY unparseable address deletes the whole │
+     * │ audit row rather than the one field — the identical failure the correlation guard above    │
+     * │ exists for, found by an adversarial review of that fix.                                     │
+     * │                                                                                            │
+     * │ `Security.md` `RL-5` says the edge strips any client-supplied `X-Forwarded-For` before      │
+     * │ rewriting it, so in a correct deployment this value is trustworthy. That edge (`TB-1`) does │
+     * │ not exist yet, and "the infrastructure will make this safe" is not a thing to rely on in    │
+     * │ the writer of an evidence table.                                                            │
+     * │                                                                                            │
+     * │ Substituted with NULL rather than a placeholder address. The column is nullable and NULL    │
+     * │ means "not known", which is true; a fabricated `0.0.0.0` would be a recorded fact that is   │
+     * │ false, in a table whose whole worth is that its contents happened.                          │
+     * └────────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    let ip = entry.ip ?? null;
+    if (ip !== null && !isStorableInet(ip)) {
+      this.logger.error({
+        message:
+          'AUDIT ip is not an address — recorded as NULL so the row survives. Fix the caller.',
+        entityType: entry.entityType,
+        action: entry.action,
+      });
+      ip = null;
+    }
+
     let correlationId = entry.correlationId;
     if (!isStorableCorrelationId(correlationId)) {
       this.logger.error({
@@ -123,7 +151,7 @@ export class AuditPrismaRepository implements AuditWritePort {
           ${redact(entry.before)}::jsonb, ${redact(entry.after)}::jsonb,
           ${entry.reason ?? null}, ${entry.reasonCode ?? null},
           ${entry.permission ?? null}, ${entry.elevationScope ?? null},
-          ${entry.ip ?? null}::inet, ${truncate(entry.userAgent)},
+          ${ip}::inet, ${truncate(entry.userAgent)},
           ${correlationId}::uuid, ${entry.requestId ?? null}::uuid
         )`;
     } catch (error) {
@@ -167,4 +195,26 @@ function redactDeep(value: unknown, depth = 0): unknown {
 function truncate(userAgent: string | null | undefined): string | null {
   if (!userAgent) return null;
   return userAgent.length > 512 ? userAgent.slice(0, 512) : userAgent;
+}
+
+/**
+ * Whether PostgreSQL's `inet` will accept this text.
+ *
+ * Deliberately conservative and hand-written rather than a dependency: `inet` accepts IPv4, IPv6,
+ * and either with a CIDR suffix, and the only thing that matters here is that a value this returns
+ * `true` for will always cast. A value it rejects is recorded as NULL, which costs one field; a
+ * value that reaches the cast and fails costs the entire row.
+ */
+function isStorableInet(value: string): boolean {
+  const [address, prefix] = value.split('/');
+  if (address === undefined || address.length === 0) return false;
+  if (prefix !== undefined && !/^\d{1,3}$/.test(prefix)) return false;
+
+  const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(address);
+  if (ipv4 !== null) {
+    return ipv4.slice(1).every((octet) => Number(octet) <= 255 && !/^0\d/.test(octet));
+  }
+
+  // IPv6, including the `::` compressed forms and the IPv4-mapped `::ffff:1.2.3.4`.
+  return /^[0-9a-f:]+$/i.test(address) && address.includes(':') && !address.includes(':::');
 }

@@ -10,8 +10,24 @@
  *
  * So the format is decided by the first bytes, and the decision is a WHITELIST: a file whose magic
  * number matches nothing here is refused. A blacklist of dangerous formats is the tempting shape and
- * it is wrong in the usual way — it is a list of the attacks somebody thought of, and the polyglot
- * that is a valid PNG and a valid ZIP simultaneously is not on it.
+ * it is wrong in the usual way — it is a list of the attacks somebody thought of.
+ *
+ * ┌─ WHAT THIS FILE DOES NOT DO, STATED BECAUSE AN EARLIER VERSION CLAIMED OTHERWISE ─────────────┐
+ * │ **It does not stop polyglots, and it cannot.** A JPEG with a ZIP appended after the image data │
+ * │ is a VALID JPEG — every decoder reads it, and its first two bytes are `FF D8` like any other.  │
+ * │ An earlier revision of this comment claimed the executable pass "reads the whole prefix rather │
+ * │ than only offset 0". That was false: `startsWith` compares from offset 0 and nothing here      │
+ * │ scans further.                                                                                  │
+ * │                                                                                                │
+ * │ Scanning the whole body is not the fix either. A two-byte marker like `MZ` occurs by chance    │
+ * │ roughly seventy times in five megabytes of entropy-coded image data, so a body scan would      │
+ * │ refuse essentially every real photograph.                                                       │
+ * │                                                                                                │
+ * │ The defence that actually works is **re-encoding**: `KY4` already requires the reviewer to see │
+ * │ a server-side raster rendition rather than the uploaded bytes, and rasterising a JPEG discards │
+ * │ everything that is not pixels — appended archives, EXIF, embedded scripts, all of it. That     │
+ * │ step is not built (no rasteriser has an `A-NN` row) and the gap is `KL-106`.                    │
+ * └────────────────────────────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ HAND-ROLLED, AND THAT IS THE APPROVED PATH RATHER THAN A SHORTCUT ───────────────────────────┐
  * │ `file-type` and `magic-bytes.js` have no `A-NN` row in `STACK_ADDITIONS.md`, and CLAUDE.md §5 │
@@ -52,8 +68,10 @@ interface Signature {
  *
  * ┌─ JPEG IS TWO BYTES, AND THAT IS AS STRONG AS IT GETS ─────────────────────────────────────────┐
  * │ `FF D8` is the SOI marker and there is nothing longer that every JPEG shares — JFIF, Exif and │
- * │ raw-SOF variants diverge at byte 2. Two bytes is weak, so `EXECUTABLE_MARKERS` below is       │
- * │ checked FIRST as a second, independent pass rather than relying on the whitelist alone.        │
+ * │ raw-SOF variants diverge at byte 2. Two bytes is weak, and nothing in this file makes it       │
+ * │ stronger: `EXECUTABLE_MARKERS` is checked first, but it also matches only at offset 0, so a    │
+ * │ file whose first two bytes are `FF D8` is classified `image/jpeg` whatever follows. See the    │
+ * │ header — re-encoding is the control, not inspection.                                            │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 const SIGNATURES: readonly Signature[] = [
@@ -66,12 +84,18 @@ const SIGNATURES: readonly Signature[] = [
 ];
 
 /**
- * Formats that must never be stored, checked INDEPENDENTLY of the whitelist.
+ * Formats that must never be stored, matched at offset 0.
  *
- * Redundant on paper — nothing here matches a signature above — and kept because the redundancy is
- * where a polyglot dies. A file crafted to satisfy a two-byte JPEG check while being a PE binary is
- * exactly the case the whitelist alone is weakest against, and the check below reads the whole
- * prefix rather than only offset 0.
+ * ┌─ WHAT THIS LIST IS WORTH, AND WHAT IT IS NOT ─────────────────────────────────────────────────┐
+ * │ Worth having: it names the refusal. A `.pdf` that is a bare Windows executable is reported as │
+ * │ `EXECUTABLE_CONTENT — the bytes are DOS/PE, whatever the file was called`, which tells whoever │
+ * │ sent it what actually happened. Without it the same file would be `UNRECOGNISED_FORMAT`, and   │
+ * │ a support conversation would go looking for a corrupt scan.                                     │
+ * │                                                                                                │
+ * │ NOT worth mistaking for defence in depth: every entry here fails the whitelist at offset 0     │
+ * │ anyway, so the security outcome is identical either way. It changes the MESSAGE, not the        │
+ * │ verdict — and an earlier version of this comment claimed otherwise.                             │
+ * └────────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 const EXECUTABLE_MARKERS: readonly { readonly label: string; readonly bytes: readonly number[] }[] =
   [

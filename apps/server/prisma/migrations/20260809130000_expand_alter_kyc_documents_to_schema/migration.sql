@@ -31,7 +31,7 @@
 -- │ So there is no conflict here to halt on. `CLAUDE.md` §2 puts `docs/database/` above code and  │
 -- │ says *"code is evidence of intent, never a statement of intent"*. A migration that disagrees  │
 -- │ with the schema specification is simply wrong, and the remedy is to correct the code.          │
--- │ Recorded as `TD-036` because the DEVIATION going unrecorded was itself the rule violation.     │
+-- │ Recorded as `TD-037` because the DEVIATION going unrecorded was itself the rule violation.     │
 -- └──────────────────────────────────────────────────────────────────────────────────────────────┘
 --
 -- ┌─ WHY M-029 IS WHERE THIS SURFACES ───────────────────────────────────────────────────────────┐

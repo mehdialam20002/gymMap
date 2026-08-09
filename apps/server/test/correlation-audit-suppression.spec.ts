@@ -202,6 +202,59 @@ test('the writer replaces an unstorable correlation id rather than losing the wh
   assert.notEqual(written[0], SUPPRESSOR);
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// The same defect on the other client-influenced field, found by reviewing the
+// fix above rather than by reviewing the original code
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Captures the `ip` at position 14 of the INSERT's value list. */
+function repositoryCapturingIp(): { repo: AuditPrismaRepository; written: unknown[] } {
+  const written: unknown[] = [];
+  const db = {
+    executeRaw: (_strings: TemplateStringsArray, ...values: unknown[]) => {
+      written.push(values[14]);
+      return Promise.resolve();
+    },
+  };
+  return { repo: new AuditPrismaRepository(db as never), written };
+}
+
+const withIp = (ip: string | null) => ({ ...entry(newCorrelationId()), ip });
+
+test('an unparseable ip is recorded as NULL rather than taking the whole row with it', async () => {
+  // `SELECT 'not-an-ip'::inet` raises, and that cast is inside the same swallowing `try`. So the
+  // failure mode is identical to the correlation one: the row does not fail, it disappears.
+  const { repo, written } = repositoryCapturingIp();
+  await repo.append(withIp('not-an-ip') as never);
+
+  assert.equal(written.length, 1, 'no INSERT was attempted');
+  assert.equal(written[0], null, 'an unparseable address reached a `inet` column');
+});
+
+test('NULL rather than a placeholder address, because a fabricated fact is worse than none', async () => {
+  // `0.0.0.0` would be a recorded claim that is false, in a table whose entire worth is that its
+  // contents happened. NULL says "not known", which is true.
+  const { repo, written } = repositoryCapturingIp();
+  await repo.append(withIp('10.0.0.999') as never);
+  assert.equal(written[0], null);
+});
+
+test('real addresses pass through untouched — v4, v6 and CIDR', async () => {
+  // The positive control. A guard that nulled everything would satisfy the two tests above while
+  // erasing the field from every audit row in the platform.
+  for (const address of ['203.0.113.7', '::1', '2001:db8::8a2e:370:7334', '203.0.113.0/24']) {
+    const { repo, written } = repositoryCapturingIp();
+    await repo.append(withIp(address) as never);
+    assert.equal(written[0], address, `${address} was rejected`);
+  }
+});
+
+test('an absent ip stays absent', async () => {
+  const { repo, written } = repositoryCapturingIp();
+  await repo.append(withIp(null) as never);
+  assert.equal(written[0], null);
+});
+
 test('a storable correlation id passes through the writer untouched', async () => {
   // The positive control again. A writer that minted a fresh id unconditionally would satisfy the
   // test above while making every audit row unjoinable to the request that caused it.

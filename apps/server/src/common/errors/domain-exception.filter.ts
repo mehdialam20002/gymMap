@@ -98,6 +98,21 @@ export const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
     'We are not yet accepting gym registrations for your country and business type. This is on ' +
     'our side, not yours — nothing is wrong with your application.',
 
+  // Names the constraints rather than the verdict. "Rejected" alone makes somebody re-upload the
+  // same file; the accepted formats and the ceiling are what let them fix it in one attempt.
+  KYC_DOCUMENT_REJECTED:
+    'That file was not accepted. Documents must be a PDF, JPEG or PNG, under 10 MB, and readable.',
+
+  // ┌─ SAYS NOTHING ABOUT THE BUCKET, AND THAT IS THE REQUIREMENT ─────────────────────────────┐
+  // │ The two causes behind this code are "the enclave could not be verified" and "the bucket   │
+  // │ is not private". Naming the second on the wire would tell an anonymous caller that a KYC  │
+  // │ bucket is publicly readable, which is a map. Both go to the log against the correlation   │
+  // │ id, where an engineer can tell them apart and an attacker cannot see them.                 │
+  // └───────────────────────────────────────────────────────────────────────────────────────────┘
+  KYC_STORAGE_UNAVAILABLE:
+    'Document uploads are temporarily unavailable. Nothing was stored, so please try again later ' +
+    'with the same file.',
+
   // --- M-025, impersonation -------------------------------------------------
 
   // Names the remedy, because there is one and it takes a single click. A bare "forbidden"
