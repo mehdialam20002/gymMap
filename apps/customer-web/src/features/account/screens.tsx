@@ -43,7 +43,7 @@ export function AccountOverview() {
             </p>
             <Link
               href="/search"
-              className="gm-hit-target mt-stack-md inline-block text-base font-medium text-content-link hover:underline"
+              className="gm-hit-target mt-stack-md inline-block gm-card-add text-base font-semibold"
             >
               {t('web.account.overview.findGym')}
             </Link>
@@ -60,10 +60,7 @@ export function AccountOverview() {
           <h2 className="text-xl font-semibold text-content">
             {t('web.account.overview.recentVisits')}
           </h2>
-          <Link
-            href="/account/attendance"
-            className="text-base font-medium text-content-link hover:underline"
-          >
+          <Link href="/account/attendance" className="gm-card-add text-base font-semibold">
             {t('web.account.nav.attendance')}
           </Link>
         </div>
@@ -101,7 +98,7 @@ function MembershipCard({ membership }: { readonly membership: Membership }) {
           <h3 className="text-lg font-semibold text-content">
             <Link
               href={`/gyms/${membership.gymCitySlug}/${membership.gymSlug}`}
-              className="rounded-control hover:underline"
+              className="gm-h3 rounded-control"
             >
               {membership.gymName}
             </Link>
@@ -217,7 +214,7 @@ export function CheckInScreen({ membershipId }: { readonly membershipId: string 
 
             <Link
               href="/account/attendance"
-              className="gm-hit-target mt-stack-lg inline-block text-base font-medium text-content-link hover:underline"
+              className="gm-hit-target mt-stack-lg inline-block gm-card-add text-base font-semibold"
             >
               {t('web.account.nav.attendance')}
             </Link>

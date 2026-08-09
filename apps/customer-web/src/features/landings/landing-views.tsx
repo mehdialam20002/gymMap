@@ -38,7 +38,7 @@ export function CityLandingView({ landing }: { readonly landing: CityLanding }) 
   const others = cityIndex().filter((city) => city.slug !== landing.slug);
 
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-sm">
+    <div className="gm-wrap gm-sec gm-sec-tight">
       <FixtureNotice />
 
       <nav aria-label="Breadcrumb" className="mt-stack-lg text-sm text-content-secondary">
@@ -51,7 +51,7 @@ export function CityLandingView({ landing }: { readonly landing: CityLanding }) 
         </span>
       </nav>
 
-      <h1 className="mt-stack-sm text-4xl font-bold tracking-tight text-content">
+      <h1 className="mt-stack-sm gm-h2">
         {t('web.landing.city.title').replace('{city}', landing.name)}
       </h1>
       <p className="mt-stack-sm max-w-prose text-base text-content-secondary">
@@ -64,7 +64,7 @@ export function CityLandingView({ landing }: { readonly landing: CityLanding }) 
         <p className="mt-stack-lg">
           <Link
             href={toSearchParams({ ...EMPTY_QUERY, city: landing.slug })}
-            className="text-base font-medium text-content-link hover:underline"
+            className="gm-card-add text-base font-semibold"
           >
             {t('web.landing.city.seeAll').replace('{count}', String(landing.gyms.length))}
           </Link>
@@ -107,7 +107,7 @@ export function ActivityLandingView({ landing }: { readonly landing: ActivityLan
   const others = activityIndex().filter((activity) => activity.slug !== landing.slug);
 
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-sm">
+    <div className="gm-wrap gm-sec gm-sec-tight">
       <FixtureNotice />
 
       <nav aria-label="Breadcrumb" className="mt-stack-lg text-sm text-content-secondary">
@@ -120,7 +120,7 @@ export function ActivityLandingView({ landing }: { readonly landing: ActivityLan
         </span>
       </nav>
 
-      <h1 className="mt-stack-sm text-4xl font-bold tracking-tight text-content">
+      <h1 className="mt-stack-sm gm-h2">
         {t('web.landing.activity.title').replace('{activity}', landing.name)}
       </h1>
       <p className="mt-stack-sm max-w-prose text-base text-content-secondary">
@@ -213,10 +213,10 @@ function HubPage({
   const Next = icon.next;
 
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-sm">
+    <div className="gm-wrap gm-sec gm-sec-tight">
       <FixtureNotice />
 
-      <h1 className="mt-stack-lg text-4xl font-bold tracking-tight text-content">{title}</h1>
+      <h1 className="mt-stack-lg gm-h2">{title}</h1>
       <p className="mt-stack-sm max-w-prose text-base text-content-secondary">{intro}</p>
 
       <ul className="mt-stack-xl grid gap-stack-md sm:grid-cols-2 lg:grid-cols-3">
@@ -226,10 +226,10 @@ function HubPage({
               href={entry.href}
               className="gm-card gm-card-interactive group flex items-center gap-inline-md rounded-card p-inset-lg"
             >
-              <span className="flex h-[2.75rem] w-[2.75rem] shrink-0 items-center justify-center rounded-full bg-surface-brand-subtle">
+              <span className="flex h-[2.75rem] w-[2.75rem] shrink-0 items-center justify-center rounded-full gm-glyph-ring">
                 <entry.Glyph
                   aria-hidden="true"
-                  className="h-[1.5rem] w-[1.5rem] text-content-brand"
+                  className="h-[1.5rem] w-[1.5rem] text-content-on-media-accent"
                 />
               </span>
               <span className="min-w-0">
@@ -240,7 +240,7 @@ function HubPage({
               </span>
               <Next
                 aria-hidden="true"
-                className="ml-auto h-[1.25rem] w-[1.25rem] shrink-0 text-content-muted transition-colors duration-fast ease-standard group-hover:text-content-brand"
+                className="ml-auto h-[1.25rem] w-[1.25rem] shrink-0 text-content-muted transition-colors duration-fast ease-standard group-hover:text-content-on-media-accent"
               />
             </Link>
           </li>
@@ -289,7 +289,7 @@ function ChipSection({
 
   return (
     <section className="mt-region-sm border-t border-subtle pt-stack-lg">
-      <h2 className="text-2xl font-bold tracking-tight text-content">{title}</h2>
+      <h2 className="gm-h2">{title}</h2>
       <ul className="mt-stack-md flex flex-wrap gap-inline-xs">
         {chips.map((chip) => (
           <li key={chip.key}>

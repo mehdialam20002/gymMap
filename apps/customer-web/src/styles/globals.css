@@ -2439,6 +2439,18 @@
     gap: 6px;
   }
 
+  /*
+   * The circle a feature glyph sits in, across the landings and the marketing pages.
+   *
+   * It was `bg-surface-brand-subtle` with `content-brand` ink - the design system's cobalt tint,
+   * which is the default "this is ours" and reads, on this identity, as the palette these pages
+   * were built in before it. A hairline ring and the amber ink match the promise band's marks.
+   */
+  .gm-glyph-ring {
+    background: transparent;
+    border: 1px solid var(--gm-color-border-subtle);
+  }
+
   /* ── discovery: the two "chosen" states ────────────────────────────────── */
 
   /*

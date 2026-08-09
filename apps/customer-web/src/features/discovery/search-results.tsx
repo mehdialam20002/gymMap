@@ -268,7 +268,7 @@ function ActiveFilters({ query }: { query: SearchQuery }) {
             would undo a choice the member did not ask to undo. */}
         <Link
           href={toSearchParams({ ...EMPTY_QUERY, sort: query.sort })}
-          className="gm-hit-target inline-block rounded-control px-inset-sm py-inset-2xs text-sm font-medium text-content-link hover:underline"
+          className="gm-hit-target inline-block rounded-control px-inset-sm py-inset-2xs gm-card-add text-sm font-semibold"
         >
           {t('web.search.filters.clearAll')}
         </Link>

@@ -35,17 +35,15 @@ export function Confirmation() {
   const Has = icon.has;
 
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-md">
-      <h1 className="text-4xl font-bold tracking-tight text-content">
-        {t('web.confirmation.title')}
-      </h1>
+    <div className="gm-wrap gm-sec gm-sec-tight">
+      <h1 className="gm-h2">{t('web.confirmation.title')}</h1>
 
       <div className="mt-stack-xl grid gap-inline-xl lg:grid-cols-2">
         <section className="gm-card rounded-card p-inset-lg">
           <h2 className="flex items-start gap-inline-sm text-lg font-semibold text-content">
             <Secure
               aria-hidden="true"
-              className="mt-px h-[1.25rem] w-[1.25rem] shrink-0 text-content-brand"
+              className="mt-px h-[1.25rem] w-[1.25rem] shrink-0 text-content-on-media-accent"
             />
             {t('web.confirmation.webhook.title')}
           </h2>
@@ -80,7 +78,7 @@ export function Confirmation() {
       </section>
 
       <p className="mt-stack-xl">
-        <Link href="/search" className="text-base font-medium text-content-link hover:underline">
+        <Link href="/search" className="gm-card-add text-base font-semibold">
           {t('web.search.heading.any')}
         </Link>
       </p>

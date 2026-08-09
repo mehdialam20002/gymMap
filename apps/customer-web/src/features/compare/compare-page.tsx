@@ -62,7 +62,7 @@ export function ComparePage({ selection }: { readonly selection: CompareSelectio
       <Picker selection={selection} full={full} />
 
       <p className="mt-stack-lg">
-        <Link href="/search" className="text-base font-medium text-content-link hover:underline">
+        <Link href="/search" className="gm-card-add text-base font-semibold">
           {t('web.search.heading.any')}
         </Link>
       </p>
@@ -91,9 +91,7 @@ function Picker({
 
   return (
     <section className="mt-region-sm border-t border-subtle pt-stack-xl">
-      <h2 className="text-2xl font-bold tracking-tight text-content">
-        {t('web.compare.pick.title')}
-      </h2>
+      <h2 className="gm-h2">{t('web.compare.pick.title')}</h2>
 
       {full && (
         <p className="mt-stack-xs max-w-prose text-base text-content-secondary">
@@ -113,7 +111,7 @@ function Picker({
             const isChosen = chosen.has(key);
             return (
               <li key={gym.id}>
-                <label className="gm-card gm-hit-target flex cursor-pointer items-start gap-inline-sm rounded-card p-inset-md has-[:checked]:border-brand has-[:checked]:bg-surface-brand-subtle">
+                <label className="gm-card gm-hit-target flex cursor-pointer items-start gap-inline-sm rounded-card p-inset-md has-[:checked]:border-brand has-[:checked]:gm-glyph-ring">
                   <input
                     type="checkbox"
                     name="gym"

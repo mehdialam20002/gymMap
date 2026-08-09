@@ -35,12 +35,10 @@ export function Checkout({ selection }: { readonly selection: CheckoutSelection 
   const Verified = icon.verified;
 
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-sm">
+    <div className="gm-wrap gm-sec gm-sec-tight">
       <FixtureNotice />
 
-      <h1 className="mt-stack-lg text-4xl font-bold tracking-tight text-content">
-        {t('web.checkout.title')}
-      </h1>
+      <h1 className="gm-h2 mt-stack-lg">{t('web.checkout.title')}</h1>
 
       <div className="mt-stack-xl grid gap-inline-xl lg:grid-cols-[minmax(0,1fr)_24rem]">
         <section className="min-w-0">
@@ -66,7 +64,7 @@ export function Checkout({ selection }: { readonly selection: CheckoutSelection 
               <p className="mt-stack-2xs text-base text-content-secondary">
                 {gym.locality}, {gym.city}
               </p>
-              <p className="mt-stack-xs inline-flex items-center gap-inline-2xs rounded-control bg-surface-success-subtle px-inset-xs py-inset-2xs text-sm font-medium text-content-success">
+              <p className="gm-card-badge gm-card-badge-inline mt-stack-xs">
                 <Verified aria-hidden="true" className="h-[0.875rem] w-[0.875rem]" weight="fill" />
                 {t('web.gym.verifiedByPlatform')}
               </p>
@@ -87,7 +85,7 @@ export function Checkout({ selection }: { readonly selection: CheckoutSelection 
               <p className="mt-stack-md">
                 <Link
                   href={`/gyms/${gym.citySlug}/${gym.slug}`}
-                  className="text-sm font-medium text-content-link hover:underline"
+                  className="gm-card-add text-sm font-semibold"
                 >
                   {t('web.checkout.changePlan')}
                 </Link>
@@ -162,10 +160,7 @@ export function Checkout({ selection }: { readonly selection: CheckoutSelection 
             <p className="mt-stack-xs text-sm text-content-muted">{t('web.checkout.payNotice')}</p>
 
             <p className="mt-stack-md">
-              <Link
-                href="/checkout/confirmation"
-                className="text-sm font-medium text-content-link hover:underline"
-              >
+              <Link href="/checkout/confirmation" className="gm-card-add text-sm font-semibold">
                 {t('web.confirmation.title')}
               </Link>
             </p>
@@ -195,7 +190,7 @@ function Line({ term, value }: { readonly term: string; readonly value: string }
  */
 function NotAvailable() {
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-md">
+    <div className="gm-wrap gm-sec gm-sec-tight">
       <h1 className="text-2xl font-semibold text-content">{t('web.checkout.notFound.title')}</h1>
       <p className="mt-stack-sm max-w-prose text-base text-content-secondary">
         {t('web.checkout.notFound.body')}

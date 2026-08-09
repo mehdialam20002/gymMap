@@ -81,7 +81,9 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
               </span>
             </span>
           )}
-          <span className="inline-flex items-center gap-inline-2xs rounded-control bg-surface-success-subtle px-inset-xs py-inset-2xs text-sm font-medium text-content-success">
+          {/* `BR-GYM-01` is a fact about the listing, not a success state - same reasoning as the
+              results card's badge, which is why they now share a treatment. */}
+          <span className="gm-card-badge gm-card-badge-inline">
             <Verified aria-hidden="true" className="h-[0.875rem] w-[0.875rem]" weight="fill" />
             {t('web.gym.verifiedByPlatform')}
           </span>
@@ -101,10 +103,7 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
           <Section title={t('web.gym.section.amenities')}>
             <ul className="flex flex-wrap gap-inline-xs">
               {gym.amenities.map((amenity) => (
-                <li
-                  key={amenity}
-                  className="rounded-control bg-surface-sunken px-inset-sm py-inset-2xs text-base text-content-secondary"
-                >
+                <li key={amenity} className="gm-tag">
                   {amenity}
                 </li>
               ))}
@@ -239,7 +238,7 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-stack-xl first:mt-0">
-      <h2 className="text-2xl font-bold tracking-tight text-content">{title}</h2>
+      <h2 className="gm-h3">{title}</h2>
       <div className="mt-stack-sm">{children}</div>
     </section>
   );

@@ -34,14 +34,14 @@ export function AccountShell({
   readonly children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-sm">
+    <div className="gm-wrap gm-sec gm-sec-tight">
       <p className="rounded-card border border-warning bg-surface-warning-subtle px-inset-md py-inset-sm text-base text-content-warning">
         {t('web.account.demoNotice')}
       </p>
 
       <header className="mt-stack-lg flex flex-wrap items-baseline justify-between gap-inline-md">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-content">{t(title)}</h1>
+          <h1 className="gm-h2">{t(title)}</h1>
           <p className="mt-stack-2xs text-base text-content-secondary">
             {DEMO_MEMBER.name} · {t('web.account.memberSince')}{' '}
             <time dateTime={machineDate(DEMO_MEMBER.memberSince)}>
@@ -63,7 +63,7 @@ export function AccountShell({
                      the page you are on is a control that does nothing. */
                   <span
                     aria-current="page"
-                    className="gm-hit-target block rounded-control bg-surface-brand-subtle px-inset-sm py-inset-2xs text-base font-semibold text-content-brand"
+                    className="gm-hit-target gm-pick-on block rounded-control px-inset-sm py-inset-2xs text-base font-semibold"
                   >
                     {t(item.label)}
                   </span>
@@ -102,6 +102,14 @@ export function StatusBadge({ status }: { readonly status: keyof typeof STATUS_T
   );
 }
 
+/*
+ * The success role STAYS here, and that is a distinction rather than an oversight.
+ *
+ * The identity pass moved several green pills to amber - the "Verified" badge, the compare
+ * table's marked cell - because those are FACTS the page computed, and `success` means "the thing
+ * you did worked". A membership that is ACTIVE and an order that is PAID are exactly that. Green
+ * is right in both, and the next person tidying green pills should stop at these two.
+ */
 const STATUS_TONE = {
   ACTIVE: 'bg-surface-success-subtle text-content-success',
   PENDING: 'bg-surface-info-subtle text-content-info',

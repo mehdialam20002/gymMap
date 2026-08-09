@@ -53,10 +53,8 @@ const STEPS = [
 
 export function HowItWorksPage() {
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-md">
-      <h1 className="text-4xl font-bold tracking-tight text-content sm:text-5xl">
-        {t('web.howItWorks.title')}
-      </h1>
+    <div className="gm-wrap gm-sec gm-sec-tight">
+      <h1 className="gm-h2 sm:text-5xl">{t('web.howItWorks.title')}</h1>
       <p className="mt-stack-sm max-w-prose text-lg text-content-secondary">
         {t('web.howItWorks.intro')}
       </p>
@@ -71,14 +69,17 @@ export function HowItWorksPage() {
               key={step.title}
               className="gm-card grid gap-inline-lg rounded-card p-inset-lg sm:grid-cols-[auto_minmax(0,1fr)]"
             >
-              <span className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full bg-surface-brand-subtle">
-                <Glyph aria-hidden="true" className="h-[1.5rem] w-[1.5rem] text-content-brand" />
+              <span className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full gm-glyph-ring">
+                <Glyph
+                  aria-hidden="true"
+                  className="h-[1.5rem] w-[1.5rem] text-content-on-media-accent"
+                />
               </span>
 
               <div className="min-w-0">
                 <span
                   aria-hidden="true"
-                  className="block text-sm font-semibold tabular-nums text-content-brand"
+                  className="block text-sm font-semibold tabular-nums text-content-on-media-accent"
                 >
                   {String(index + 1).padStart(2, '0')}
                 </span>

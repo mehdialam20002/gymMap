@@ -58,13 +58,11 @@ export function ForGymsPage() {
        * theme-invariant and opaque, so the pairing is one `contrast.proof.ts` can measure.
        */}
       <section className="border-b border-subtle bg-surface-media">
-        <div className="mx-auto max-w-container px-inset-md py-region-md">
+        <div className="gm-wrap gm-sec gm-sec-tight">
           <p className="text-xs font-medium uppercase tracking-wide text-content-on-media-accent">
             {t('web.forGyms.hero.eyebrow')}
           </p>
-          <h1 className="mt-stack-sm max-w-prose text-4xl font-bold tracking-tight text-content-on-media sm:text-5xl">
-            {t('web.forGyms.title')}
-          </h1>
+          <h1 className="mt-stack-sm max-w-prose gm-h2">{t('web.forGyms.title')}</h1>
           <p className="mt-stack-md max-w-prose text-lg text-content-on-media">
             {t('web.forGyms.hero.body')}
           </p>
@@ -93,17 +91,18 @@ export function ForGymsPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-container px-inset-md py-region-md">
-        <h2 className="text-3xl font-bold tracking-tight text-content sm:text-4xl">
-          {t('web.forGyms.value.title')}
-        </h2>
+      <section className="gm-wrap gm-sec gm-sec-tight">
+        <h2 className="gm-h2">{t('web.forGyms.value.title')}</h2>
         <ul className="mt-stack-xl grid gap-stack-lg sm:grid-cols-2">
           {VALUE.map((item) => {
             const Glyph = icon[item.glyph];
             return (
               <li key={item.title} className="gm-card gm-card-interactive rounded-card p-inset-lg">
-                <span className="flex h-[2.75rem] w-[2.75rem] items-center justify-center rounded-full bg-surface-brand-subtle">
-                  <Glyph aria-hidden="true" className="h-[1.5rem] w-[1.5rem] text-content-brand" />
+                <span className="flex h-[2.75rem] w-[2.75rem] items-center justify-center rounded-full gm-glyph-ring">
+                  <Glyph
+                    aria-hidden="true"
+                    className="h-[1.5rem] w-[1.5rem] text-content-on-media-accent"
+                  />
                 </span>
                 <h3 className="mt-stack-md text-lg font-semibold text-content">{t(item.title)}</h3>
                 <p className="mt-stack-xs text-base text-content-secondary">{t(item.body)}</p>
@@ -114,16 +113,14 @@ export function ForGymsPage() {
       </section>
 
       <section id="how" className="border-y border-subtle bg-surface-subtle">
-        <div className="mx-auto max-w-container px-inset-md py-region-md">
-          <h2 className="text-3xl font-bold tracking-tight text-content sm:text-4xl">
-            {t('web.forGyms.steps.title')}
-          </h2>
+        <div className="gm-wrap gm-sec gm-sec-tight">
+          <h2 className="gm-h2">{t('web.forGyms.steps.title')}</h2>
           <ol className="mt-stack-xl grid gap-stack-lg sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((step, index) => (
               <li key={step.title} className="border-t border-strong pt-stack-md">
                 <span
                   aria-hidden="true"
-                  className="block text-sm font-semibold tabular-nums text-content-brand"
+                  className="block text-sm font-semibold tabular-nums text-content-on-media-accent"
                 >
                   {String(index + 1).padStart(2, '0')}
                 </span>
@@ -135,11 +132,9 @@ export function ForGymsPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-container px-inset-md py-region-md">
+      <section className="gm-wrap gm-sec gm-sec-tight">
         <div className="max-w-prose">
-          <h2 className="text-3xl font-bold tracking-tight text-content sm:text-4xl">
-            {t('web.forGyms.commission.title')}
-          </h2>
+          <h2 className="gm-h2">{t('web.forGyms.commission.title')}</h2>
           <p className="mt-stack-md text-base text-content-secondary">
             {t('web.forGyms.commission.body')}
           </p>
@@ -168,7 +163,7 @@ export function ForGymsPage() {
       </section>
 
       <section className="border-t border-subtle bg-surface-subtle">
-        <div className="mx-auto max-w-container px-inset-md py-region-md text-center">
+        <div className="gm-wrap gm-sec gm-sec-tight text-center">
           <h2 className="mx-auto max-w-prose text-2xl font-semibold tracking-tight text-content sm:text-3xl">
             {t('web.forGyms.signup.title')}
           </h2>
@@ -225,7 +220,7 @@ export function ForGymsSignup() {
   }[];
 
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-md">
+    <div className="gm-wrap gm-sec gm-sec-tight">
       <h1 className="text-3xl font-bold tracking-tight text-content">
         {t('web.forGyms.signup.title')}
       </h1>
