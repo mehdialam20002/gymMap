@@ -52,8 +52,8 @@ interface Signature {
  *
  * ┌─ JPEG IS TWO BYTES, AND THAT IS AS STRONG AS IT GETS ─────────────────────────────────────────┐
  * │ `FF D8` is the SOI marker and there is nothing longer that every JPEG shares — JFIF, Exif and │
- * │ raw-SOF variants diverge at byte 2. Two bytes is weak, so `looksLikeExecutable` below runs as │
- * │ a second, independent check rather than relying on the whitelist alone.                        │
+ * │ raw-SOF variants diverge at byte 2. Two bytes is weak, so `EXECUTABLE_MARKERS` below is       │
+ * │ checked FIRST as a second, independent pass rather than relying on the whitelist alone.        │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 const SIGNATURES: readonly Signature[] = [

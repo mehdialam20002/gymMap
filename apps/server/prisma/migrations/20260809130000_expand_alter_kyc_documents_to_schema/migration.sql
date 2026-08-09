@@ -149,15 +149,37 @@ ALTER TABLE kyc_documents ALTER COLUMN content_type      SET NOT NULL;
 ALTER TABLE kyc_documents ALTER COLUMN byte_size         SET NOT NULL;
 ALTER TABLE kyc_documents ALTER COLUMN checksum_sha256   SET NOT NULL;
 
--- `Schema.md` §4.3 states the constraint as `> 0`. A zero-byte upload is not a document, and it is
--- what an aborted multipart write leaves behind.
-ALTER TABLE kyc_documents
-    ADD CONSTRAINT ck_kyc_documents__byte_size_positive CHECK (byte_size > 0);
+/*
+ * ┌─ GUARDED, BECAUSE `ADD CONSTRAINT` HAS NO `IF NOT EXISTS` ────────────────────────────────────┐
+ * │ PostgreSQL offers `IF NOT EXISTS` for columns and indexes and NOT for table constraints, so   │
+ * │ the guard has to be written out. `PM-9` states the rule this satisfies: a migration re-applied │
+ * │ after a partial failure must be a no-op, or recovering from the first failure means            │
+ * │ hand-editing production.                                                                        │
+ * │                                                                                                │
+ * │ This was found by re-applying the migration rather than by reading it — `migration-lint`       │
+ * │ checks `DROP COLUMN` for the same property and does not yet check `ADD CONSTRAINT`.            │
+ * └────────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+DO $$
+BEGIN
+    -- `Schema.md` §4.3 states the constraint as `> 0`. A zero-byte upload is not a document, and it
+    -- is what an aborted multipart write leaves behind.
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                   WHERE conname = 'ck_kyc_documents__byte_size_positive') THEN
+        ALTER TABLE kyc_documents
+            ADD CONSTRAINT ck_kyc_documents__byte_size_positive CHECK (byte_size > 0);
+    END IF;
 
--- The digest is lower-case hex, fixed width. `char(64)` already fixes the width and pads anything
--- shorter with spaces, which is how a truncated digest becomes a silently valid-looking value.
-ALTER TABLE kyc_documents
-    ADD CONSTRAINT ck_kyc_documents__checksum_is_hex CHECK (checksum_sha256 ~ '^[0-9a-f]{64}$');
+    -- The digest is lower-case hex, fixed width. `char(64)` already fixes the width and pads
+    -- anything shorter with spaces, which is how a truncated digest becomes a valid-looking value.
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                   WHERE conname = 'ck_kyc_documents__checksum_is_hex') THEN
+        ALTER TABLE kyc_documents
+            ADD CONSTRAINT ck_kyc_documents__checksum_is_hex
+            CHECK (checksum_sha256 ~ '^[0-9a-f]{64}$');
+    END IF;
+END
+$$;
 
 COMMENT ON COLUMN kyc_documents.content_type IS
     'NFR-SEC-10 — determined by inspecting the bytes, never by the client''s declared header.';

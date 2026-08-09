@@ -70,15 +70,36 @@ ALTER TABLE tenants
 -- catches a percentage written as a rate — someone entering `10` meaning 10% when the column
 -- wants 1000 — rather than trying to encode a business limit. The business floor and ceiling
 -- belong to the commission resolver (M-114), which also enforces the 0 bps floor.
-ALTER TABLE tenants
-    ADD CONSTRAINT ck_tenants__commission_rate_bps_range
-        CHECK (commission_rate_bps IS NULL
-               OR (commission_rate_bps >= 0 AND commission_rate_bps <= 1000000)),
-    ADD CONSTRAINT ck_tenants__renewal_commission_rate_bps_range
-        CHECK (renewal_commission_rate_bps IS NULL
-               OR (renewal_commission_rate_bps >= 0 AND renewal_commission_rate_bps <= 1000000)),
-    ADD CONSTRAINT ck_tenants__reserve_bps_range
-        CHECK (reserve_bps >= 0 AND reserve_bps <= 1000000);
+-- Guarded per PM-9: PostgreSQL has no `IF NOT EXISTS` for a table constraint, so re-applying this
+-- migration after a partial failure would fail with "constraint already exists" — which is exactly
+-- the recovery case the rule exists for. Caught by `migration-lint` once the rule was written.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                   WHERE conname = 'ck_tenants__commission_rate_bps_range') THEN
+        ALTER TABLE tenants
+            ADD CONSTRAINT ck_tenants__commission_rate_bps_range
+                CHECK (commission_rate_bps IS NULL
+                       OR (commission_rate_bps >= 0 AND commission_rate_bps <= 1000000));
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                   WHERE conname = 'ck_tenants__renewal_commission_rate_bps_range') THEN
+        ALTER TABLE tenants
+            ADD CONSTRAINT ck_tenants__renewal_commission_rate_bps_range
+                CHECK (renewal_commission_rate_bps IS NULL
+                       OR (renewal_commission_rate_bps >= 0
+                           AND renewal_commission_rate_bps <= 1000000));
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                   WHERE conname = 'ck_tenants__reserve_bps_range') THEN
+        ALTER TABLE tenants
+            ADD CONSTRAINT ck_tenants__reserve_bps_range
+                CHECK (reserve_bps >= 0 AND reserve_bps <= 1000000);
+    END IF;
+END
+$$;
 
 -- Dropped rather than left defined. An unused domain is dead code that the next person will
 -- reasonably assume is safe to use — and using it would reintroduce BLK-06 on a table nobody

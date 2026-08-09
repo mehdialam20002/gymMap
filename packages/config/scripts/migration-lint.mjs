@@ -272,6 +272,44 @@ export function lintMigration(name, sql) {
     }
   }
 
+  /*
+   * ┌─ PM-9, THE CASE POSTGRESQL GIVES NO SYNTAX FOR ────────────────────────────────────────────┐
+   * │ Every rule above has an `IF [NOT] EXISTS` form. `ALTER TABLE … ADD CONSTRAINT` does not —  │
+   * │ PostgreSQL offers it for columns and indexes and not for table constraints — so the guard  │
+   * │ must be written by hand as a `pg_constraint` lookup, and the linter cannot ask for a        │
+   * │ keyword that does not exist.                                                                 │
+   * │                                                                                             │
+   * │ Found by re-applying a migration rather than by reading it: M-029's                         │
+   * │ `expand_alter_kyc_documents_to_schema` passed every rule above and then failed on its       │
+   * │ second run with "constraint already exists", which is precisely the recovery-from-partial-  │
+   * │ failure case PM-9 exists to prevent. The rule that catches `DROP COLUMN` was silent because │
+   * │ nobody had written this one.                                                                 │
+   * │                                                                                             │
+   * │ Matched as `ALTER TABLE <name> ADD CONSTRAINT` rather than bare `ADD CONSTRAINT`, and the   │
+   * │ table name is what makes it precise: a constraint declared INSIDE `CREATE TABLE` reads      │
+   * │ `CONSTRAINT pk_x PRIMARY KEY (…)` with no `ADD`, and needs no guard because the table       │
+   * │ itself carries `IF NOT EXISTS`. Prose in a comment cannot match either.                      │
+   * │                                                                                             │
+   * │ `ADD CONSTRAINT` inside a `DO $$` block is accepted, because that is where the lookup goes. │
+   * │ Deliberately coarse — it does not verify the block guards the RIGHT constraint — since the  │
+   * │ alternative is parsing PL/pgSQL, and making somebody look at the block is most of the value.│
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const unguarded = code
+    // `executableOnly` strips `--` lines only; a `/* */` block would otherwise match as prose.
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/DO\s+\$\$[\s\S]*?\$\$\s*;?/gi, '');
+
+  if (/ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?[\w".]+\s+ADD\s+CONSTRAINT/i.test(unguarded)) {
+    fail(
+      'PM-9',
+      `ALTER TABLE … ADD CONSTRAINT outside a DO block. PostgreSQL has no IF NOT EXISTS for a ` +
+        `table constraint, so re-applying this migration after a partial failure fails with ` +
+        `"constraint already exists". Wrap it: ` +
+        `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = '…') THEN … END IF; END $$;`,
+    );
+  }
+
   // --- PM-10: a @@map rename needs the three-release plan ---------------------------------
   if (/ALTER\s+TABLE\s+\S+\s+RENAME\s+TO/i.test(code) && !/three[- ]release|PM-10/i.test(sql)) {
     fail(

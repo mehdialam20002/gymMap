@@ -122,11 +122,22 @@ COMMENT ON COLUMN users.mfa_last_step IS
 -- │ they already satisfy it — but VALIDATE is a separate, lock-light statement, and running it      │
 -- │ immediately keeps the constraint honest without holding ACCESS EXCLUSIVE over a full scan.      │
 -- └────────────────────────────────────────────────────────────────────────────────────────────────┘
-ALTER TABLE users
-    ADD CONSTRAINT ck_users__mfa_enabled_has_timestamp
-    CHECK (mfa_enabled = (mfa_enrolled_at IS NOT NULL)) NOT VALID;
+-- Guarded per PM-9: PostgreSQL has no `IF NOT EXISTS` for a table constraint, so re-applying this
+-- migration after a partial failure would fail with "constraint already exists". `VALIDATE` is
+-- inside the same guard because validating a constraint that was not just added is a no-op at best
+-- and an error if the constraint is absent.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                   WHERE conname = 'ck_users__mfa_enabled_has_timestamp') THEN
+        ALTER TABLE users
+            ADD CONSTRAINT ck_users__mfa_enabled_has_timestamp
+            CHECK (mfa_enabled = (mfa_enrolled_at IS NOT NULL)) NOT VALID;
 
-ALTER TABLE users VALIDATE CONSTRAINT ck_users__mfa_enabled_has_timestamp;
+        ALTER TABLE users VALIDATE CONSTRAINT ck_users__mfa_enabled_has_timestamp;
+    END IF;
+END
+$$;
 
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════
 -- GRANTS — the part that is invisible until it fails at runtime.
