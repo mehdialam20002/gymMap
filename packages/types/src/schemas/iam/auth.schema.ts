@@ -157,6 +157,50 @@ export const otpVerifyBody = z
   })
   .strict();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// M-024 · the second factor — `FR-AUTH-07`, `Security.md` §2.8
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Beginning enrolment. Re-authentication only — the secret is minted server-side.
+ *
+ * The client never proposes a secret. Accepting one would let a caller enrol a key an attacker
+ * already holds, which is the whole attack the two-step flow exists to make visible.
+ */
+export const mfaEnrolBody = z
+  .object({
+    password: z.string().min(1).max(512),
+  })
+  .strict();
+
+/**
+ * Confirming enrolment, and presenting the factor at sign-in. One shape for both.
+ *
+ * `code` is deliberately loose — six digits OR a recovery code. The server decides which by shape,
+ * and a schema that split them would push that decision to the client and split the rate limit
+ * with it: an attacker who exhausts the TOTP budget would simply switch fields.
+ *
+ * `.max(64)` rather than an exact pattern: a submission that cannot be either form must reach the
+ * use case and be answered with the same refusal as a wrong code. A 400 here would distinguish
+ * "malformed" from "wrong", which is the oracle §2.8's single failure code exists to prevent.
+ */
+export const mfaVerifyBody = z
+  .object({
+    code: z.string().min(1).max(64),
+  })
+  .strict();
+
+/** Removing the factor. Re-authentication, for the same reason as enrolment and more sharply. */
+export const mfaDisableBody = z
+  .object({
+    password: z.string().min(1).max(512),
+  })
+  .strict();
+
+export type MfaEnrolBody = z.infer<typeof mfaEnrolBody>;
+export type MfaVerifyBody = z.infer<typeof mfaVerifyBody>;
+export type MfaDisableBody = z.infer<typeof mfaDisableBody>;
+
 export type OtpPurposeValue = z.infer<typeof otpPurpose>;
 export type OtpRequestBody = z.infer<typeof otpRequestBody>;
 export type OtpVerifyBody = z.infer<typeof otpVerifyBody>;

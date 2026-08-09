@@ -1026,6 +1026,19 @@ export const IAM_PERMISSIONS = {
   OWN_SESSION_READ: 'iam.own_session.read',
   /** `FR-AUTH-10`. Sign one of your own devices out. */
   OWN_SESSION_REVOKE: 'iam.own_session.revoke',
+  /**
+   * `FR-AUTH-07`. Manage your OWN second factor — enrol, confirm, present, remove.
+   *
+   * Same category as the two above and outside `§B3.2` for the same reason: every authenticated
+   * principal manages their own account security, including a `USER` with no memberships. Adding a
+   * matrix row would put twelve cells into a grid verified against the PRD, and that verification
+   * would fail, correctly.
+   *
+   * One key for all four operations rather than read/write. What separates them is not authority —
+   * it is the same person acting on the same row — but the POLICY (`mfaRequirementForPrincipal`)
+   * and re-authentication, both of which a permission cannot express.
+   */
+  OWN_MFA_MANAGE: 'iam.own_mfa.manage',
 } as const;
 
 export type IamPermission = (typeof IAM_PERMISSIONS)[keyof typeof IAM_PERMISSIONS];

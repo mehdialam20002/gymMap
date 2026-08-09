@@ -24,7 +24,17 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { Body, Controller, HttpCode, HttpStatus, Ip, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Ip,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import {
   ApiAcceptedResponse,
@@ -40,17 +50,26 @@ import {
   otpRequestBody,
   otpVerifyBody,
   registerBody,
+  mfaDisableBody,
+  mfaEnrolBody,
+  mfaVerifyBody,
   resetPasswordBody,
   type ForgotPasswordBody,
   type LoginBody,
   type OtpRequestBody,
   type OtpVerifyBody,
   type RegisterBody,
+  type MfaDisableBody,
+  type MfaEnrolBody,
+  type MfaVerifyBody,
   type ResetPasswordBody,
 } from '@gymmap/types';
 
+import { UnauthenticatedException } from '../../common/errors/domain-exception.js';
 import { EmitsErrors } from '../../common/decorators/emits-errors.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
+import { RequiredPermission } from '../../common/decorators/required-permission.decorator.js';
+import { MfaExempt } from '../../common/guards/mfa.guard.js';
 import { RateLimit } from '../../common/decorators/rate-limit.decorator.js';
 import { zodPipe } from '../../common/validation/zod-validation.pipe.js';
 import { OTP_TTL_SECONDS } from '../domain/otp.policy.js';
@@ -60,8 +79,15 @@ import { ResetPasswordUseCase } from '../application/reset-password.use-case.js'
 import { RequestOtpUseCase } from '../application/request-otp.use-case.js';
 import { VerifyOtpUseCase } from '../application/verify-otp.use-case.js';
 import { SessionUseCases } from '../application/session.use-cases.js';
+import { EnrolMfaUseCase } from '../application/enrol-mfa.use-case.js';
+import { VerifyMfaUseCase } from '../application/verify-mfa.use-case.js';
+import { DisableMfaUseCase } from '../application/disable-mfa.use-case.js';
+import { UserPrismaRepository } from '../infrastructure/user.prisma-repository.js';
+import { IAM_PERMISSIONS } from '../permissions.js';
+import { parseRoleGrants } from '../domain/effective-permissions.js';
 import { setRefreshCookie } from './refresh-cookie.js';
 import { requestFacts } from './request-facts.js';
+import { currentCorrelationId } from '../../common/logging/correlation.als.js';
 
 /** `Authentication.md` §8.7 — one message for both branches, so the two are indistinguishable. */
 const FORGOT_ACKNOWLEDGEMENT =
@@ -78,6 +104,10 @@ export class AuthController {
     private readonly requestOtp: RequestOtpUseCase,
     private readonly verifyOtp: VerifyOtpUseCase,
     private readonly sessions: SessionUseCases,
+    private readonly enrolMfa: EnrolMfaUseCase,
+    private readonly verifyMfa: VerifyMfaUseCase,
+    private readonly disableMfa: DisableMfaUseCase,
+    private readonly users: UserPrismaRepository,
   ) {}
 
   @Post('register')
@@ -379,4 +409,153 @@ export class AuthController {
       expires_in_seconds: this.sessions.secondsUntil(issued.accessExpiresAt),
     };
   }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // M-024 · the second factor — `FR-AUTH-07`, `NFR-SEC-11`, `Security.md` §2.8
+  //
+  // ┌─ NOT `@Public()`, AND `@MfaExempt()` ON EVERY ONE ────────────────────────────────────────┐
+  // │ Authenticated: you cannot enrol a factor for an account you have not signed into. But also  │
+  // │ exempt from `MfaGuard`, because a staff account with no enrolment must be able to REACH     │
+  // │ these — §2.8: it "can reach ONLY `/auth/mfa/enrol`". Without the exemption the mandate       │
+  // │ locks every unenrolled staff member out of the only route that could fix it.                 │
+  // │                                                                                            │
+  // │ The exemption is per-route rather than on the class, so a future `/auth/*` route does not    │
+  // │ inherit it by sitting in the same file.                                                      │
+  // └────────────────────────────────────────────────────────────────────────────────────────────┘
+  // ═════════════════════════════════════════════════════════════════════════
+
+  @Post('mfa/enrol')
+  @MfaExempt()
+  @RequiredPermission(IAM_PERMISSIONS.OWN_MFA_MANAGE)
+  @RateLimit('RL-AUTH')
+  @HttpCode(HttpStatus.OK)
+  @EmitsErrors('MFA_NOT_AVAILABLE_FOR_ROLE', 'MFA_VERIFICATION_FAILED')
+  @ApiOperation({
+    summary: 'Begin TOTP enrolment',
+    description:
+      'Re-authenticates with the password, mints a secret and returns a provisioning URI. The ' +
+      'factor is NOT active until POST /auth/mfa/verify confirms it with a live code.',
+  })
+  async beginMfaEnrolment(
+    @Req() request: Request,
+    @Body(zodPipe(mfaEnrolBody)) body: MfaEnrolBody,
+  ): Promise<{ provisioning_uri: string }> {
+    const principal = mfaPrincipalOf(request);
+
+    const result = await this.enrolMfa.begin({
+      userId: principal.sub,
+      // The label an authenticator shows. `sub` would be a uuid, which tells the account holder
+      // nothing when they have three entries in their app.
+      accountLabel: principal.email ?? principal.sub,
+      roles: parseRoleGrants(principal.roles).map((grant) => grant.role),
+      password: body.password,
+      storedPasswordHash: await this.users.passwordHashFor(principal.sub),
+      correlationId: currentCorrelationId(),
+    });
+
+    // The secret is INSIDE this URI. Returned once, never logged, never persisted client-side —
+    // `Security.md` classifies it C5 and Pino's redaction list does not know this shape.
+    return { provisioning_uri: result.provisioningUri };
+  }
+
+  @Post('mfa/verify')
+  @MfaExempt()
+  @RequiredPermission(IAM_PERMISSIONS.OWN_MFA_MANAGE)
+  @RateLimit('RL-AUTH')
+  @HttpCode(HttpStatus.OK)
+  @EmitsErrors('MFA_VERIFICATION_FAILED')
+  @ApiOperation({
+    summary: 'Confirm enrolment, or present the second factor',
+    description:
+      'One endpoint for both, and for both a TOTP code and a recovery code. Splitting them would ' +
+      'split the lockout budget, so an attacker who exhausts one could simply move to the other.',
+  })
+  async verifyMfaCode(
+    @Req() request: Request,
+    @Body(zodPipe(mfaVerifyBody)) body: MfaVerifyBody,
+  ): Promise<Record<string, unknown>> {
+    const principal = mfaPrincipalOf(request);
+    const correlationId = currentCorrelationId();
+
+    /*
+     * Confirmation FIRST, and only when there is a pending enrolment to confirm.
+     *
+     * The two paths are told apart by state rather than by a flag in the body: a client that could
+     * choose would be able to send `mode: "login"` during enrolment and skip the confirmation step
+     * entirely, which is the step that stops people locking themselves out.
+     */
+    const state = await this.verifyMfa.stateFor(principal.sub);
+    if (state !== null && !state.enabled && state.secretEnvelope !== null) {
+      const confirmed = await this.enrolMfa.confirm({
+        userId: principal.sub,
+        code: body.code,
+        correlationId,
+      });
+
+      // The ONLY time these are ever returned. There is no endpoint that re-reads them, because
+      // only the Argon2id hashes are stored.
+      return { enrolled: true, recovery_codes: confirmed.recoveryCodes };
+    }
+
+    const result = await this.verifyMfa.execute({
+      userId: principal.sub,
+      submitted: body.code,
+      correlationId,
+    });
+
+    return {
+      verified: true,
+      method: result.method,
+      recovery_codes_remaining: result.recoveryCodesRemaining,
+      should_regenerate_recovery_codes: result.shouldRegenerateRecoveryCodes,
+    };
+  }
+
+  @Delete('mfa')
+  @MfaExempt()
+  @RequiredPermission(IAM_PERMISSIONS.OWN_MFA_MANAGE)
+  @RateLimit('RL-AUTH')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @EmitsErrors('MFA_MANDATORY_FOR_ROLE', 'MFA_VERIFICATION_FAILED')
+  @ApiOperation({
+    summary: 'Remove the second factor',
+    description:
+      'Refused with 422 MFA_MANDATORY_FOR_ROLE for platform staff — the factor is mandatory, so ' +
+      'this is not an operation the domain offers, which is a different thing from a 403.',
+  })
+  async removeMfa(
+    @Req() request: Request,
+    @Body(zodPipe(mfaDisableBody)) body: MfaDisableBody,
+  ): Promise<void> {
+    const principal = mfaPrincipalOf(request);
+
+    await this.disableMfa.execute({
+      userId: principal.sub,
+      roles: parseRoleGrants(principal.roles).map((grant) => grant.role),
+      password: body.password,
+      storedPasswordHash: await this.users.passwordHashFor(principal.sub),
+      correlationId: currentCorrelationId(),
+    });
+  }
+}
+
+/**
+ * The principal, or a 401.
+ *
+ * A local helper rather than a shared one: `session.controller.ts` has its own for the same reason,
+ * and the duplication is two lines against a `common/` export that would let any module reach into
+ * the request shape.
+ */
+function mfaPrincipalOf(request: Request): {
+  readonly sub: string;
+  readonly email?: string;
+  readonly roles?: readonly string[];
+} {
+  const principal = (
+    request as unknown as {
+      principal?: { sub: string; email?: string; roles?: readonly string[] };
+    }
+  ).principal;
+  if (principal === undefined) throw new UnauthenticatedException('No principal on request.');
+  return principal;
 }

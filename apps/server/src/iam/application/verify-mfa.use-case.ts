@@ -77,6 +77,18 @@ export class VerifyMfaUseCase {
     @Inject(AUDIT_WRITE_PORT) private readonly audit: AuditWritePort,
   ) {}
 
+  /**
+   * The account's MFA state, for a caller deciding whether this submission CONFIRMS an enrolment or
+   * PRESENTS an existing factor.
+   *
+   * A read-only passthrough, and deliberately not a flag in the request body. A client that could
+   * choose would be able to claim "this is a login" during enrolment and skip the confirmation step
+   * — the step that exists so a QR which never scanned does not lock the account.
+   */
+  async stateFor(userId: string): Promise<MfaState | null> {
+    return this.store.read(userId);
+  }
+
   async execute(command: VerifyMfaCommand): Promise<VerifyMfaResult> {
     /*
      * Consulted first, and against the SAME counters the password path reads.

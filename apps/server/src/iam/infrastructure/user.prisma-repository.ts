@@ -188,6 +188,26 @@ export class UserPrismaRepository {
    * rendering navigation from these is doing presentation, and the server still refuses
    * independently (`AZ5`, `FR-RBAC-02`).
    */
+  /**
+   * The stored password hash for one account, by id — `M-024`, `Security.md` §2.8.
+   *
+   * `findForAuthentication` cannot serve this: it looks up by email or phone, which is what the
+   * LOGIN path has. Re-authentication happens inside an existing session, where the only identifier
+   * is the principal's `sub`.
+   *
+   * `null` for an OTP-only account, and callers must refuse rather than skip the check — an account
+   * with no password is precisely the one that cannot fall back on one.
+   */
+  async passwordHashFor(userId: string): Promise<string | null> {
+    const row = await this.db.client.user.findUnique({
+      where: { id: userId },
+      // The hash and nothing else. A wider projection here would put an email address into a code
+      // path that has no use for one, on a request that is about to log an audit row.
+      select: { passwordHash: true },
+    });
+    return row?.passwordHash ?? null;
+  }
+
   async roleScopesFor(userId: string): Promise<string[]> {
     const grants = await this.db.client.userRole.findMany({
       // `revokedAt: null` is the whole point — see above.

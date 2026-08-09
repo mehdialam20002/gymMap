@@ -187,6 +187,71 @@
         "x-gymmap-rate-limit": "RL-AUTH"
       }
     },
+    "/v1/auth/mfa": {
+      "delete": {
+        "description": "Refused with 422 MFA_MANDATORY_FOR_ROLE for platform staff — the factor is mandatory, so this is not an operation the domain offers, which is a different thing from a 403.",
+        "operationId": "removeMfa",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Remove the second factor",
+        "tags": [
+          "iam"
+        ],
+        "x-gymmap-error-codes": [
+          "MFA_MANDATORY_FOR_ROLE",
+          "MFA_VERIFICATION_FAILED"
+        ],
+        "x-gymmap-permission": "iam.own_mfa.manage",
+        "x-gymmap-rate-limit": "RL-AUTH"
+      }
+    },
+    "/v1/auth/mfa/enrol": {
+      "post": {
+        "description": "Re-authenticates with the password, mints a secret and returns a provisioning URI. The factor is NOT active until POST /auth/mfa/verify confirms it with a live code.",
+        "operationId": "beginMfaEnrolment",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Begin TOTP enrolment",
+        "tags": [
+          "iam"
+        ],
+        "x-gymmap-error-codes": [
+          "MFA_NOT_AVAILABLE_FOR_ROLE",
+          "MFA_VERIFICATION_FAILED"
+        ],
+        "x-gymmap-permission": "iam.own_mfa.manage",
+        "x-gymmap-rate-limit": "RL-AUTH"
+      }
+    },
+    "/v1/auth/mfa/verify": {
+      "post": {
+        "description": "One endpoint for both, and for both a TOTP code and a recovery code. Splitting them would split the lockout budget, so an attacker who exhausts one could simply move to the other.",
+        "operationId": "verifyMfaCode",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Confirm enrolment, or present the second factor",
+        "tags": [
+          "iam"
+        ],
+        "x-gymmap-error-codes": [
+          "MFA_VERIFICATION_FAILED"
+        ],
+        "x-gymmap-permission": "iam.own_mfa.manage",
+        "x-gymmap-rate-limit": "RL-AUTH"
+      }
+    },
     "/v1/auth/otp/request": {
       "post": {
         "description": "ALWAYS 202 for a well-formed number, whether or not it has an account — the same status, body and latency. §8.1 calls a 404 here forbidden rather than merely breaking: it would be an existence oracle over every mobile number in India. Five limits apply: 6 digits, 300s validity, 5 verify attempts, 3 sends per 30 minutes per number with a 30s cool-down, and 20 operations per hour per IP with a captcha demanded from the 11th. The per-number and per-IP ceilings are INDEPENDENT — one protects the member from being SMS-bombed, the other protects the platform from a ₹0.15-a-message bill (CON-02).",
