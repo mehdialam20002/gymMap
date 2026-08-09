@@ -29,7 +29,12 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { AUDIT_WRITE_PORT, type AuditWritePort } from '../../audit/ports/audit-write.port.js';
 import { PlatformPrismaService } from '../prisma/platform-prisma.service.js';
-import { reason, runElevated, type HumanActor } from '../prisma/platform-elevation.js';
+import {
+  reason,
+  runElevated,
+  type ElevationActor,
+  type HumanActor,
+} from '../prisma/platform-elevation.js';
 
 /** One row of the platform's tenant list. A projection, not the row. */
 export interface TenantSummary {
@@ -133,6 +138,66 @@ export class ElevatedTenantReader {
         return Object.fromEntries(
           grouped.map((group) => [String(group.status), group._count._all]),
         );
+      },
+    );
+  }
+
+  /**
+   * `M-030` `AC-6` · Which OTHER tenants already claim this registration number.
+   *
+   * ═══════════════════════════════════════════════════════════════════════════════════════════
+   * WHY THIS LIVES IN `tenancy/` AND NOT IN THE MODULE THAT ASKS THE QUESTION
+   *
+   * `onboarding/`'s duplicate pre-check needs a cross-tenant read, and M-030 `AC-6` requires it to
+   * go through `runElevated` with a stated reason. The first attempt put the `runElevated` call in
+   * `onboarding/infrastructure/`, and `ci:elevation-inventory` refused it — correctly.
+   *
+   * The allow-list is `admin`, `audit`, `reporting`, `settlements`, `tenancy`, and two rank-3
+   * documents close it explicitly. `BusinessRules.md` `BR-TEN-01`, in the AUTHORITATIVE
+   * enforcement row: *"`dependency-cruiser` forbids injecting `PlatformPrismaService` outside
+   * `admin/`, `reporting/`, `settlements/` and `audit/`"*. `Scalability.md` §6 repeats the four and
+   * adds the words *"— nothing else"*.
+   *
+   * `AC-6` says the check must run ONLY through `runElevated`. It says nothing about which module
+   * holds the call, so both documents are satisfiable at once: the elevation moves here, beside
+   * `listTenants` and `countByStatus`, which is where `admin/` already reaches for the same
+   * authority. `onboarding/` gets a port and never sees `PlatformPrismaService`.
+   *
+   * ┌─ THE ACTOR IS A `SystemActor`, WHICH THE OTHER TWO METHODS DO NOT ACCEPT ──────────────────┐
+   * │ `ElevatedRead.actor` is a `HumanActor`, because a console screen is always somebody. This   │
+   * │ read is performed by `onboarding.run-prechecks`, and recording a job as a person would put  │
+   * │ a machine's cross-tenant reads into a reviewer's audit history — leaving them to answer for │
+   * │ a query they never made. `BR-GYM-03` turns on the same distinction from the other side.     │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   * ═══════════════════════════════════════════════════════════════════════════════════════════
+   */
+  async findTenantsClaimingRegistration(
+    actor: ElevationActor,
+    why: string,
+    normalisedRegistrationNumber: string,
+  ): Promise<readonly { id: string; status: string }[]> {
+    return runElevated(
+      this.audit,
+      { reason: reason(why), actor, scope: 'READ_ALL_TENANTS' },
+      async () => {
+        const rows = await this.platform.client.tenant.findMany({
+          where: { registrationNumber: normalisedRegistrationNumber, deletedAt: null },
+          // Two columns, and neither is the registration number. `BR-DAT-06` keeps a business
+          // identifier out of a record that is persisted and rendered; the reviewer already has
+          // the number on the application in front of them.
+          select: { id: true, status: true },
+          /*
+           * Bounded, and the bound is a tripwire rather than pagination.
+           *
+           * A normaliser regression that collapsed every registration number to the same string
+           * would otherwise pull the entire tenant table into a jsonb column on one application.
+           * Twenty-five is far above any legitimate answer — a second tenant claiming the number
+           * is already the finding.
+           */
+          take: 25,
+        });
+
+        return rows.map((row) => ({ id: row.id, status: String(row.status) }));
       },
     );
   }

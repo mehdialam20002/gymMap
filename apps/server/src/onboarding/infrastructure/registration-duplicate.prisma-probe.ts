@@ -1,35 +1,32 @@
 /**
- * `M-030` `AC-6` · The cross-tenant registration-number lookup, through `runElevated`.
+ * `M-030` `AC-6` · The cross-tenant registration-number lookup, delegated to `tenancy/`.
  *
  * ═══════════════════════════════════════════════════════════════════════════════════════════
- * THE ONE PRE-CHECK ADAPTER THAT CAN REALLY QUERY, AND THE ONLY LEGITIMATE WAY TO DO IT
+ * THIS FILE CONTAINS NO `runElevated` CALL, AND THAT IS THE WHOLE POINT OF IT
  *
- * `AC-6`: the two cross-tenant checks run **only** through `runElevated` with a stated reason, each
- * execution writes its audit row, and *"a direct cross-tenant query fails the isolation suite"*.
+ * The first version put the elevation here, three lines lower, and `ci:elevation-inventory` failed
+ * the build: *"runElevated() in module 'onboarding', which is not on the allow-list (admin, audit,
+ * reporting, settlements, tenancy)"*. The gate was right, and it caught something two rank-3
+ * documents say in as many words —
  *
- * `platform-elevation.ts` states the hazard this defends: *"a cross-tenant read is a bug that looks
- * like a feature — it returns MORE rows than expected, so it never fails a test and never throws."*
- * A duplicate probe is the shape of query most likely to be written as a plain `findMany`, because
- * the plain version returns exactly what the author wanted. The elevation is what makes it visible.
+ *   `BusinessRules.md` `BR-TEN-01`, AUTHORITATIVE enforcement row: *"`dependency-cruiser` forbids
+ *   injecting `PlatformPrismaService` outside `admin/`, `reporting/`, `settlements/` and `audit/`"*
+ *   `Scalability.md` §6, the same four modules, followed by *"— nothing else"*
  *
- * ┌─ IT USES THE PLATFORM CLIENT, NOT THE TENANT-EXTENDED ONE ───────────────────────────────────┐
- * │ `A-01`: every tenant-scoped access goes through the extension that sets `app.tenant_id` first. │
- * │ This query is deliberately NOT tenant-scoped — the question spans tenants — so the extension   │
- * │ would filter away the only rows worth finding. `runElevated` hands the callback a              │
- * │ `PlatformContext` for exactly this, and `PE-T5` refuses to open one from inside a tenant scope. │
- * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ * — while `M-030` `AC-6` requires the check to run **only** through `runElevated` with a stated
+ * reason. Both hold at once, because `AC-6` constrains HOW the read happens and not WHERE: the
+ * elevation lives in `ElevatedTenantReader`, beside the two reads `admin/` already makes through
+ * it, and `onboarding/` never sees `PlatformPrismaService`.
+ *
+ * What is left here is the adapter's real job — turning a domain question into a port answer, and
+ * turning a failure into `UNAVAILABLE` rather than into an empty list.
  * ═══════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-import { AUDIT_WRITE_PORT, type AuditWritePort } from '../../audit/ports/audit-write.port.js';
-import {
-  reason,
-  runElevated,
-  type ElevationActor,
-} from '../../tenancy/prisma/platform-elevation.js';
-import { PlatformPrismaService } from '../../tenancy/prisma/platform-prisma.service.js';
+import { ElevatedTenantReader } from '../../tenancy/application/elevated-tenant-reader.js';
+import type { ElevationActor } from '../../tenancy/prisma/platform-elevation.js';
 import type {
   RegistrationDuplicateProbe,
   RegistrationProbeOutcome,
@@ -38,54 +35,36 @@ import type {
 /**
  * The actor for an automated run.
  *
- * A job is not a person, and recording it as one would put a machine's reads into a human's audit
- * history — which is how a reviewer ends up answering for a query they never made. `BR-GYM-03`
- * turns on the same distinction from the other side: approval must be a human act, so the system
- * has to be able to tell the two kinds of actor apart everywhere, not only at the decision.
+ * A job is not a person. Recording it as one would put a machine's cross-tenant reads into a
+ * reviewer's audit history, leaving them to answer for a query they never made — and `BR-GYM-03`
+ * turns on the system being able to tell the two kinds of actor apart everywhere, not only at the
+ * approval decision.
  */
 const PRECHECK_ACTOR: ElevationActor = { kind: 'SYSTEM', label: 'onboarding.run-prechecks' };
 
+const WHY = 'onboarding duplicate pre-check: is this registration number claimed by another tenant';
+
 @Injectable()
 export class RegistrationDuplicatePrismaProbe implements RegistrationDuplicateProbe {
-  constructor(
-    private readonly platform: PlatformPrismaService,
-    @Inject(AUDIT_WRITE_PORT) private readonly audit: AuditWritePort,
-  ) {}
+  constructor(private readonly tenants: ElevatedTenantReader) {}
 
   async findOtherTenantsClaiming(normalised: string): Promise<RegistrationProbeOutcome> {
     try {
-      const matches = await runElevated(
-        this.audit,
-        {
-          actor: PRECHECK_ACTOR,
-          scope: 'READ_ALL_TENANTS',
-          // `reason()` and not a bare string: `NonEmptyReason` is a brand with a validating
-          // constructor, so an empty or whitespace reason cannot reach the audit row at all.
-          reason: reason(
-            'onboarding duplicate pre-check: is this registration number claimed elsewhere',
-          ),
-        },
-        async () =>
-          this.platform.client.tenant.findMany({
-            where: { registrationNumber: normalised },
-            select: { id: true, status: true },
-            // Bounded. A normaliser regression that collapses every number to the same string
-            // would otherwise pull the whole tenant table into a jsonb column on one application.
-            take: 25,
-          }),
+      const matches = await this.tenants.findTenantsClaimingRegistration(
+        PRECHECK_ACTOR,
+        WHY,
+        normalised,
       );
 
-      return {
-        ok: true,
-        matches: matches.map((t) => ({ tenantId: t.id, status: String(t.status) })),
-      };
+      return { ok: true, matches: matches.map((t) => ({ tenantId: t.id, status: t.status })) };
     } catch (error) {
       /*
        * `UNAVAILABLE`, which the check turns into `ERROR` — never an empty match list.
        *
-       * An empty list is indistinguishable from "checked, nothing found", and `AC-8` is that those
-       * two must never collapse into one another. A refused elevation in particular is a security
-       * event, and reporting it as "no duplicates" would hide it behind a green tick.
+       * An empty list is indistinguishable from "checked, nothing found", and `AC-8` is precisely
+       * that those two must never collapse into one another. A REFUSED elevation is the sharpest
+       * case: it is a security event, and reporting it as "no duplicates" would file it behind a
+       * green tick where nobody looks.
        */
       return {
         ok: false,
