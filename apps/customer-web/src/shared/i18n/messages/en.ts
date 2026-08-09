@@ -291,6 +291,7 @@ export const en = {
     'Sample listings. These gyms are illustrative — real listings appear once gym onboarding and verification are live.',
 
   // --- SCR-WEB-002 · results, facets, empty state ---------------------------
+  'web.search.eyebrow': 'Search results',
   'web.search.heading.any': 'Gyms near you',
   'web.search.heading.query': 'Results for',
   'web.search.count.none': 'No gyms match these filters.',
@@ -362,7 +363,16 @@ export const en = {
     'No reviews yet. On GymMap a review can only be written by a member who has checked in at this gym — so a new listing starts empty rather than starting with reviews nobody earned.',
   'web.gym.reviews.earned':
     'members have reviewed this gym, and every one of them checked in first. Individual reviews appear here once the reviews module is live.',
-  'web.gym.gallery.label': 'Photos of this gym',
+  /*
+   * NOT "Photos of this gym", which is what this said and is what the caption two lines below
+   * spends a sentence denying. The label is the figure's accessible name, so a screen-reader user
+   * got the claim and a sighted one got the correction.
+   *
+   * The gallery KEEPS its photographs where the cards lost theirs, and the difference is the
+   * disclosure: here it is directly under the mosaic, specific and unavoidable. On a card it was
+   * a banner at the top of a list of eight, which does not travel with the screenshot of one card.
+   */
+  'web.gym.gallery.label': 'Sample photos, not this gym',
   // Stated on the page rather than only in a code comment: a member looking at four photos of a
   // gym they are about to pay for is entitled to know whose photos they are.
   'web.gym.gallery.provenance':

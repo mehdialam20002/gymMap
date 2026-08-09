@@ -57,15 +57,28 @@ export function SearchResults({ query }: { readonly query: SearchQuery }) {
   const groups = facets(query);
 
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-sm">
+    /*
+     * `gm-wrap` and the display face, so the results page and the page that sent you here are the
+     * same product. The heading was `text-4xl` in the body face - correct before "Chalk & Iron",
+     * and after it the one screen a member reaches from the hero looked like a different site.
+     *
+     * `gm-sec-tight` rather than `gm-sec`: a results page opens with its own controls, and 132px
+     * of air above a search field reads as a page still loading.
+     */
+    <div className="gm-wrap gm-sec gm-sec-tight">
       <FixtureNotice />
 
-      <h1 className="mt-stack-lg text-4xl font-bold tracking-tight text-content">
+      <p className="gm-eyebrow-k mt-[26px]">{t('web.search.eyebrow')}</p>
+      <h1 className="gm-h2">
         {query.q === ''
           ? t('web.search.heading.any')
           : `${t('web.search.heading.query')} “${query.q}”`}
       </h1>
-      <p className="mt-stack-2xs text-base text-content-secondary" aria-live="polite">
+      {/*
+       * `aria-live` on the COUNT and not on the list. A member changing a filter wants "6 gyms",
+       * not six cards read out; the region is the smallest thing that answers "did that work".
+       */}
+      <p className="gm-lede" aria-live="polite">
         {results.length === 0
           ? t('web.search.count.none')
           : `${String(results.length)} ${
@@ -146,7 +159,7 @@ function SearchForm({ query }: { query: SearchQuery }) {
         type="search"
         defaultValue={query.q}
         placeholder={t('web.search.field.placeholder')}
-        className="gm-search-slab min-w-0 flex-1 rounded-control border border-input bg-surface-raised px-inset-md py-inset-sm text-md text-content placeholder:text-content-muted"
+        className="gm-search-slab min-w-0 flex-1 rounded-full border border-input bg-surface-raised px-inset-lg py-inset-sm text-md text-content placeholder:text-content-muted"
       />
       {/*
        * Every OTHER filter rides along as a hidden field. Without these, typing a new term
@@ -163,11 +176,7 @@ function SearchForm({ query }: { query: SearchQuery }) {
         <input type="hidden" name="rating" value={String(query.minRating)} />
       )}
       {query.sort !== 'relevance' && <input type="hidden" name="sort" value={query.sort} />}
-      <button
-        type="submit"
-        data-on-solid="true"
-        className="gm-hit-target inline-flex items-center gap-inline-2xs rounded-control bg-brand-solid px-inset-lg py-inset-sm text-md font-semibold text-content-on-brand transition-colors duration-fast ease-standard hover:bg-brand-solid-hover"
-      >
+      <button type="submit" className="gm-btn gm-btn-amber">
         <Search aria-hidden="true" className="h-[1.125rem] w-[1.125rem]" />
         {t('web.search.action')}
       </button>
@@ -241,7 +250,7 @@ function ActiveFilters({ query }: { query: SearchQuery }) {
         <li key={chip.key}>
           <Link
             href={chip.href}
-            className="gm-hit-target inline-flex items-center gap-inline-2xs rounded-control bg-surface-brand-subtle px-inset-sm py-inset-2xs text-sm font-medium text-content-brand transition-colors duration-fast ease-standard hover:bg-surface-sunken"
+            className="gm-hit-target gm-tag gm-tag-on inline-flex items-center gap-inline-2xs"
           >
             {/*
              * The × is decorative and the accessible name says what the link does. "Bengaluru ×"
@@ -403,7 +412,7 @@ function Facet({
       {...(active ? { 'aria-current': 'true' as const } : {})}
       className={`${shared} transition-colors duration-fast ease-standard ${
         active
-          ? 'bg-surface-brand-subtle font-semibold text-content-brand'
+          ? 'gm-pick-on font-semibold'
           : 'text-content-secondary hover:bg-surface-sunken hover:text-content'
       }`}
     >
@@ -446,7 +455,7 @@ function SortBar({ query }: { query: SearchQuery }) {
           {...(query.sort === sort ? { 'aria-current': 'true' as const } : {})}
           className={`gm-hit-target shrink-0 rounded-control px-inset-sm py-inset-2xs text-sm transition-colors duration-fast ease-standard ${
             query.sort === sort
-              ? 'bg-surface-brand-subtle font-semibold text-content-brand'
+              ? 'gm-pick-on font-semibold'
               : 'text-content-secondary hover:text-content'
           }`}
         >

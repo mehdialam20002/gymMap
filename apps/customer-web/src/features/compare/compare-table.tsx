@@ -19,11 +19,11 @@
  */
 
 import Link from 'next/link';
-import Image from 'next/image';
 
 import { t } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
 import { formatMinor } from '../discovery/search.ts';
+import { artFor } from '../discovery/gym-art.ts';
 import type { GymDetail } from '../discovery/fixtures/catalogue.ts';
 import { amenityMatrix, compareKey, toCompareParams } from './compare.ts';
 
@@ -70,17 +70,11 @@ export function CompareTable({ gyms }: { readonly gyms: readonly GymDetail[] }) 
                     href={`/gyms/${gym.citySlug}/${gym.slug}`}
                     className="block overflow-hidden rounded-card"
                   >
-                    <span className="relative block aspect-video bg-surface-sunken">
-                      <Image
-                        src={gym.photo}
-                        alt={gym.photoAlt}
-                        width={1200}
-                        height={675}
-                        sizes="(min-width: 1024px) 22vw, 45vw"
-                        className="h-full w-full object-cover text-transparent"
-                        data-photo="true"
-                      />
-                    </span>
+                    {/*
+                     * Drawn, not photographed. The fixtures' covers are stock, and this column
+                     * header carries the gym's name - `gym-art.ts` has the argument in full.
+                     */}
+                    <span aria-hidden="true" className={`block aspect-video ${artFor(gym)}`} />
                     <span className="mt-stack-xs block text-base font-semibold text-content hover:underline">
                       {gym.name}
                     </span>

@@ -440,18 +440,40 @@ test('no component sets an inline style, because the CSP would silently drop it'
   );
 });
 
-test('the gym card sizes its photo with classes, not with next/image `fill`', () => {
-  // `fill` is ENTIRELY an inline style. Intrinsic width/height plus `h-full w-full object-cover`
-  // is the same layout from the stylesheet, and it behaves identically in Safari, which does not
-  // implement the `style-src-attr` escape hatch the alternative would have needed.
-  const card = code('src/features/discovery/gym-card.tsx');
-  assert.ok(card.includes('<Image'), 'the card no longer renders next/image at all');
-  assert.ok(!/^\s*fill$/m.test(card), 'next/image `fill` is back — its positioning is inline');
-  assert.match(card, /width=\{1200\}/);
-  assert.match(card, /height=\{675\}/);
-  assert.match(card, /h-full w-full object-cover/);
-  // `sizes` is what stops Next serving the largest candidate to a phone (NFR-PERF-02).
-  assert.match(card, /sizes="/);
+test('every next/image on the site sizes itself from the stylesheet, never with `fill`', () => {
+  /*
+   * ┌─ THIS NAMED THE GYM CARD, AND THE GYM CARD NO LONGER HAS A PHOTO ──────────────────────────┐
+   * │ `fill` is ENTIRELY an inline style, and `style-src` carries a nonce - which by CSP-3        │
+   * │ §6.7.3.2 blocks every inline style including attributes, because nonces never apply to      │
+   * │ attributes. The browser drops the positioning, keeps the markup, and the photo renders      │
+   * │ clipped at its natural size instead of covering its box. It looks nearly right.             │
+   * │                                                                                             │
+   * │ `BR-GYM-01` took the photographs off the cards, the compare columns and the checkout        │
+   * │ summary - the fixtures' covers are stock, and a stock photo under a "Verified" badge is the │
+   * │ claim the badge exists to prevent. The gallery keeps its four, because its disclosure sits  │
+   * │ directly under them.                                                                         │
+   * │                                                                                             │
+   * │ So the assertion follows the images rather than naming a file that used to hold one. It     │
+   * │ would have gone permanently green the moment the card's photo was removed, and the CSP      │
+   * │ hazard it guards is still live everywhere an image remains.                                  │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const withImages = [...tsxFiles('app'), ...tsxFiles('src')]
+    .map((rel) => ({ rel, text: code(rel) }))
+    .filter((file) => file.text.includes('<Image'));
+
+  assert.ok(withImages.length > 0, 'no component renders next/image; this guard is now vacuous');
+
+  for (const { rel, text } of withImages) {
+    assert.ok(
+      !/^\s*fill$/m.test(text),
+      `${rel} uses next/image \`fill\`, whose positioning is inline`,
+    );
+    assert.match(text, /width=\{\d+\}/, `${rel} renders an image with no intrinsic width`);
+    assert.match(text, /height=\{\d+\}/, `${rel} renders an image with no intrinsic height`);
+    // `sizes` is what stops Next serving the largest candidate to a phone (NFR-PERF-02).
+    assert.match(text, /sizes="/, `${rel} renders an image with no sizes`);
+  }
 });
 
 test('no token colour carries an opacity modifier, because Tailwind emits nothing for it', () => {

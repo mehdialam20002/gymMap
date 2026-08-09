@@ -2265,6 +2265,71 @@
     user-select: none;
   }
 
+  /* ── discovery: the card, away from the home rail ──────────────────────── */
+
+  /*
+   * The results card carries its price and badge in the body rather than over the artwork, so it
+   * needs the same treatment in a different position. Same tokens, same voice - the point is that
+   * a member who saw a gym on the home page recognises it here.
+   */
+  .gm-card-amount {
+    font-family: var(--gm-font-display);
+    font-variation-settings:
+      'wdth' 100,
+      'wght' 800;
+    font-size: 20px;
+    font-variant-numeric: tabular-nums;
+    color: var(--gm-color-content-primary);
+    margin: 0;
+  }
+
+  .gm-card-per {
+    font-family: var(--gm-font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gm-color-content-muted);
+    margin: 2px 0 0;
+  }
+
+  /*
+   * The badge, inline in the body rather than floated on the media.
+   *
+   * It was `surface-success-subtle` with `content-success` ink - the design system's GREEN, which
+   * is the role for "this operation succeeded". `BR-GYM-01` is not a success state, it is a fact
+   * about the listing, and a green pill next to a price reads as a discount or an availability
+   * flag. It keeps its icon and its word, so the signal is never colour alone (`AX8`).
+   */
+  .gm-card-badge-inline {
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── discovery: the two "chosen" states ────────────────────────────────── */
+
+  /*
+   * A filter that is ON, and a chip that removes one.
+   *
+   * Both were `surface-brand-subtle` with `content-brand` ink - a cobalt tint that is the design
+   * system's default "selected" and reads, next to this identity, as a leftover from the previous
+   * one. Amber is what this page uses for the thing the reader chose.
+   *
+   * `aria-current` is still the signal that matters and is set in the component; this is the paint
+   * beside it, never instead of it (`AX8`).
+   */
+  .gm-pick-on {
+    background: color-mix(in srgb, var(--gm-color-accent-solid) 15%, transparent);
+    color: var(--gm-color-content-on-media-accent);
+    box-shadow: inset 2px 0 0 var(--gm-color-accent-solid);
+  }
+
+  .gm-tag-on {
+    border-color: color-mix(in srgb, var(--gm-color-accent-solid) 45%, transparent);
+    color: var(--gm-color-content-on-media-accent);
+  }
+
   /* ── the footer ────────────────────────────────────────────────────────── */
 
   /*
