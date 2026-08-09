@@ -273,6 +273,26 @@ export const ERROR_REGISTRY = {
     retryable: false,
   },
 
+  // --- onboarding · M-029, the KYC checklist --------------------------------
+
+  KYC_CHECKLIST_NOT_PUBLISHED: {
+    module: 'onboarding',
+    // ┌─ `System`, NOT `Business` — the applicant did nothing wrong ──────────────────────────────┐
+    // │ Every other onboarding refusal here is something the caller can fix by changing their     │
+    // │ request. This one cannot be: no checklist is published for their country and entity form, │
+    // │ which is a gap in PLATFORM CONFIGURATION. Classing it `Business` would put a 4xx on the   │
+    // │ wire and tell a gym owner in an unlaunched market that they had made a mistake.            │
+    // └────────────────────────────────────────────────────────────────────────────────────────────┘
+    class: 'System',
+    httpStatus: 503,
+    messageKey: 'error.onboarding.kyc_checklist_not_published',
+    enforces: ['FR-ONB-03', 'BR-GYM-01'],
+    // 503 usually invites a retry, and this one must not. Publishing a checklist is an admin
+    // action (FR-ADMN-06); an automatic retry of the identical request cannot make one appear, so
+    // the shared fetch wrapper would only spin against a condition it can never clear.
+    retryable: false,
+  },
+
   // --- iam · M-025, impersonation ------------------------------------------
 
   IMPERSONATION_FINANCIAL_MUTATION_REFUSED: {

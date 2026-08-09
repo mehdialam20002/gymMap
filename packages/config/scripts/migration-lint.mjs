@@ -89,6 +89,12 @@ export const MG10_NO_RLS_BY_CLASS = {
   roles: 'GLOBAL · Schema.md §4.7 — platform reference, G-REF',
   permissions: 'GLOBAL · Schema.md §4.7 — platform reference, G-REF',
   role_permissions: 'GLOBAL · Schema.md §4.7 — platform reference, G-REF',
+  kyc_checklists:
+    'GLOBAL · Schema.md §12.3, §C2.3 — the per-country document checklist (M-029). Scoped by ' +
+    'country_code and entity_type, neither of which is a tenant: the Indian checklist is the ' +
+    "same Indian checklist for every gym, because it derives from that market's document law. " +
+    'A tenant_id would raise the unanswerable question "whose copy of the law is this?". ' +
+    'app_rw holds SELECT and nothing else, so no request can write one either.',
 };
 
 /**

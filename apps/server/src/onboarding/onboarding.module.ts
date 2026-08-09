@@ -20,8 +20,22 @@ import { Module } from '@nestjs/common';
 
 import { ApplicationPrismaRepository } from './infrastructure/application.prisma-repository.js';
 import { KycDocumentPrismaRepository } from './infrastructure/kyc-document.prisma-repository.js';
+import { KycChecklistPrismaRepository } from './infrastructure/kyc-checklist.prisma-repository.js';
+import {
+  CHECKLIST_STORE,
+  ResolveChecklistUseCase,
+} from './application/resolve-checklist.use-case.js';
 
 @Module({
-  providers: [ApplicationPrismaRepository, KycDocumentPrismaRepository],
+  providers: [
+    ApplicationPrismaRepository,
+    KycDocumentPrismaRepository,
+    KycChecklistPrismaRepository,
+    ResolveChecklistUseCase,
+    // The use case depends on the PORT, never on the Prisma class. Binding here rather than
+    // injecting the repository directly is what lets the unit tests drive it with an in-memory
+    // store and no database — and what keeps `application/` free of a Prisma import.
+    { provide: CHECKLIST_STORE, useExisting: KycChecklistPrismaRepository },
+  ],
 })
 export class OnboardingModule {}

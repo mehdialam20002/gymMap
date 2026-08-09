@@ -25,6 +25,7 @@ import { SEED_VERSION } from './version.ts';
 import { seedTenantsSql } from './tenants.ts';
 import { SEED_ROLE_COUNTS, seedRolesSql } from './roles.ts';
 import { SEED_USER_COUNTS, seedUsersSql } from './users.ts';
+import { SEED_CHECKLIST_COUNTS, seedKycChecklistsSql } from './kyc-checklists.ts';
 
 const CONTAINER = 'gymmap-postgres';
 const DATABASE = 'gymmap';
@@ -45,6 +46,10 @@ export function seedSql(): string {
     seedRolesSql(),
     '',
     seedUsersSql(),
+    '',
+    // Last, and orderable anywhere: kyc_checklists is GLOBAL reference with no foreign key to
+    // anything above it. Placed at the end so the dependency-ordered block stays readable as one.
+    seedKycChecklistsSql(),
     '',
   ].join('\n');
 }
@@ -73,7 +78,9 @@ function main(): void {
     `seed ${SEED_VERSION} applied: ${SEED_ROLE_COUNTS.roles} roles · ` +
       `${SEED_ROLE_COUNTS.permissions} permissions · ${SEED_ROLE_COUNTS.rolePermissions} ` +
       `role_permissions · ${SEED_USER_COUNTS.users} principals ` +
-      `(${SEED_USER_COUNTS.platformGrants} platform, ${SEED_USER_COUNTS.tenantGrants} tenant).\n`,
+      `(${SEED_USER_COUNTS.platformGrants} platform, ${SEED_USER_COUNTS.tenantGrants} tenant) · ` +
+      `${SEED_CHECKLIST_COUNTS.checklists} KYC checklists ` +
+      `(${SEED_CHECKLIST_COUNTS.items} items).\n`,
   );
 }
 

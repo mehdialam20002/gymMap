@@ -1,0 +1,428 @@
+{
+  "$comment": [
+    "M-029 · The India ten-document KYC checklist — LAUNCH_MARKET_INDIA.md §6, SeedStrategy.md §3.5.",
+    "",
+    "FOUR CHECKLISTS, ONE PER entity_type_enum VALUE. SeedStrategy.md §3.5: 'seeded as four rows —",
+    "one per entity_type_enum value — because the required documents differ by entity type'. The",
+    "difference is real and narrow: only BUSINESS_REGISTRATION's accepted documents change. The other",
+    "nine items are identical, and they are written out per checklist rather than inherited, because a",
+    "reviewer checking this file against §6 must be able to read one checklist top to bottom.",
+    "",
+    "IDEMPOTENT (P11). The natural key is (countryCode, entityType, version). Re-applying this file",
+    "changes nothing; publishing an edit means writing kyc_checklists.in.v2.json and superseding v1,",
+    "never editing this file — an application that snapshotted v1 must keep reading the v1 it was",
+    "actually judged against (ERD.md §9.6).",
+    "",
+    "NO THRESHOLD IS STATED ANYWHERE IN THIS FILE, AND THAT IS DELIBERATE.",
+    "Gym.md O-TEN-4 records the GSTIN registration threshold as a tax fact awaiting an Indian tax",
+    "advisor, and says §10.1 'states the structure and refuses to state the threshold'.",
+    "LAUNCH_MARKET_INDIA.md §13 says the same of every rate and threshold in it. So the conditional",
+    "items key off facts the APPLICANT declares — their GST registration status, whether their",
+    "municipality requires a trade licence — rather than off a number this repository would be",
+    "inventing. A wrong threshold in seed data is a wrong checklist shown to every gym in India, and",
+    "it would look exactly like a right one."
+  ],
+
+  "countryCode": "IN",
+  "version": 1,
+  "source": "LAUNCH_MARKET_INDIA.md §6 · SeedStrategy.md §3.5",
+
+  "$conditionVocabulary": {
+    "$comment": [
+      "Exactly two operators. Kept this small on purpose: a condition language is a program, and a",
+      "program in reference data is one nobody reviews. resolve-checklist.use-case.ts refuses any",
+      "operator not named here rather than ignoring it — an unknown operator that silently evaluated",
+      "false would drop a required document from the checklist without a word."
+    ],
+    "taxRegistrationStatusIn": "true when tenants.tax_registration_status is one of the listed values",
+    "declaredByApplicant": "true when the applicant answered yes to the named declaration. Used where the fact is legal or municipal and the platform cannot know it"
+  },
+
+  "checklists": [
+    {
+      "entityType": "SOLE_PROPRIETOR",
+      "items": [
+        {
+          "documentType": "PAN",
+          "obligation": "ALWAYS",
+          "displayOrder": 1,
+          "label": "PAN card",
+          "helpText": "The proprietor's own PAN. A sole proprietorship has no PAN of its own — it trades on the proprietor's personal PAN, so the fourth character is P.",
+          "validates": "Tax identity"
+        },
+        {
+          "documentType": "GSTIN",
+          "obligation": "CONDITIONAL",
+          "displayOrder": 2,
+          "condition": { "taxRegistrationStatusIn": ["REGISTERED", "COMPOSITION", "PENDING"] },
+          "label": "GST registration certificate",
+          "helpText": "Required if you are registered for GST. The GSTIN embeds your state code and your PAN, and both must match what you have entered.",
+          "validates": "Tax registration"
+        },
+        {
+          "documentType": "BUSINESS_REGISTRATION",
+          "obligation": "ALWAYS",
+          "displayOrder": 3,
+          "label": "Udyam / MSME registration certificate",
+          "helpText": "Proof that the business legally exists.",
+          "acceptedDocuments": ["Udyam registration certificate", "MSME registration certificate"],
+          "validates": "Legal existence"
+        },
+        {
+          "documentType": "SHOP_ESTABLISHMENT",
+          "obligation": "ALWAYS",
+          "displayOrder": 4,
+          "label": "Shop & Establishment registration",
+          "helpText": "Issued by your municipality and specific to your state.",
+          "validates": "Right to trade"
+        },
+        {
+          "documentType": "BANK_PROOF",
+          "obligation": "ALWAYS",
+          "displayOrder": 5,
+          "label": "Bank account proof",
+          "helpText": "A cancelled cheque or a bank statement showing the account name. Payouts go to this account and nowhere else.",
+          "acceptedDocuments": ["Cancelled cheque", "Bank statement showing the account name"],
+          "validates": "Payout destination"
+        },
+        {
+          "documentType": "OWNER_IDENTITY",
+          "obligation": "ALWAYS",
+          "displayOrder": 6,
+          "label": "Owner identity document",
+          "helpText": "One government photo ID for the person behind the business, in addition to PAN.",
+          "acceptedDocuments": ["Passport", "Driving licence", "Voter ID"],
+          "$comment": "AADHAAR IS DELIBERATELY ABSENT. LAUNCH_MARKET_INDIA.md §6 and §13.6: Aadhaar carries statutory handling restrictions, so the platform asks for PAN plus a non-Aadhaar ID and avoids those obligations entirely. Adding it is a successor version after legal sign-off, never an edit to this file.",
+          "validates": "The person behind the business"
+        },
+        {
+          "documentType": "PREMISES_ADDRESS_PROOF",
+          "obligation": "ALWAYS",
+          "displayOrder": 7,
+          "label": "Address proof for the premises",
+          "helpText": "A utility bill or rent agreement for the gym address. It is checked against the pin you place on the map.",
+          "acceptedDocuments": ["Utility bill", "Rent agreement"],
+          "validates": "BR-GYM-08 geo-match"
+        },
+        {
+          "documentType": "TRADE_LICENCE",
+          "obligation": "CONDITIONAL",
+          "displayOrder": 8,
+          "condition": { "declaredByApplicant": "municipality_requires_trade_licence" },
+          "label": "Municipal trade licence",
+          "helpText": "Required in some cities and not others. Tell us whether yours requires one.",
+          "validates": "Local permission"
+        },
+        {
+          "documentType": "FIRE_SAFETY_NOC",
+          "obligation": "CONDITIONAL",
+          "displayOrder": 9,
+          "condition": { "declaredByApplicant": "premises_above_fire_noc_threshold" },
+          "label": "Fire safety NOC",
+          "helpText": "Commonly required above a floor-area threshold set by your state. Tell us whether your premises is above it.",
+          "validates": "Premises safety"
+        },
+        {
+          "documentType": "MUSIC_LICENCE",
+          "obligation": "ADVISORY",
+          "displayOrder": 10,
+          "label": "Music licence (PPL / IPRS)",
+          "helpText": "Playing recorded music in a commercial space generally needs a copyright licence. We flag this for you — it does not hold up your approval.",
+          "validates": "PPL / IPRS copyright"
+        }
+      ]
+    },
+
+    {
+      "entityType": "PARTNERSHIP",
+      "items": [
+        {
+          "documentType": "PAN",
+          "obligation": "ALWAYS",
+          "displayOrder": 1,
+          "label": "PAN card",
+          "helpText": "The firm's PAN. The fourth character is F for a partnership firm.",
+          "validates": "Tax identity"
+        },
+        {
+          "documentType": "GSTIN",
+          "obligation": "CONDITIONAL",
+          "displayOrder": 2,
+          "condition": { "taxRegistrationStatusIn": ["REGISTERED", "COMPOSITION", "PENDING"] },
+          "label": "GST registration certificate",
+          "helpText": "Required if you are registered for GST. The GSTIN embeds your state code and your PAN, and both must match what you have entered.",
+          "validates": "Tax registration"
+        },
+        {
+          "documentType": "BUSINESS_REGISTRATION",
+          "obligation": "ALWAYS",
+          "displayOrder": 3,
+          "label": "Partnership deed",
+          "helpText": "Proof that the firm legally exists.",
+          "acceptedDocuments": ["Partnership deed", "Certificate of registration of firm"],
+          "validates": "Legal existence"
+        },
+        {
+          "documentType": "SHOP_ESTABLISHMENT",
+          "obligation": "ALWAYS",
+          "displayOrder": 4,
+          "label": "Shop & Establishment registration",
+          "helpText": "Issued by your municipality and specific to your state.",
+          "validates": "Right to trade"
+        },
+        {
+          "documentType": "BANK_PROOF",
+          "obligation": "ALWAYS",
+          "displayOrder": 5,
+          "label": "Bank account proof",
+          "helpText": "A cancelled cheque or a bank statement showing the account name. Payouts go to this account and nowhere else.",
+          "acceptedDocuments": ["Cancelled cheque", "Bank statement showing the account name"],
+          "validates": "Payout destination"
+        },
+        {
+          "documentType": "OWNER_IDENTITY",
+          "obligation": "ALWAYS",
+          "displayOrder": 6,
+          "label": "Identity document for the managing partner",
+          "helpText": "One government photo ID for the partner who will manage this account, in addition to PAN.",
+          "acceptedDocuments": ["Passport", "Driving licence", "Voter ID"],
+          "validates": "The person behind the business"
+        },
+        {
+          "documentType": "PREMISES_ADDRESS_PROOF",
+          "obligation": "ALWAYS",
+          "displayOrder": 7,
+          "label": "Address proof for the premises",
+          "helpText": "A utility bill or rent agreement for the gym address. It is checked against the pin you place on the map.",
+          "acceptedDocuments": ["Utility bill", "Rent agreement"],
+          "validates": "BR-GYM-08 geo-match"
+        },
+        {
+          "documentType": "TRADE_LICENCE",
+          "obligation": "CONDITIONAL",
+          "displayOrder": 8,
+          "condition": { "declaredByApplicant": "municipality_requires_trade_licence" },
+          "label": "Municipal trade licence",
+          "helpText": "Required in some cities and not others. Tell us whether yours requires one.",
+          "validates": "Local permission"
+        },
+        {
+          "documentType": "FIRE_SAFETY_NOC",
+          "obligation": "CONDITIONAL",
+          "displayOrder": 9,
+          "condition": { "declaredByApplicant": "premises_above_fire_noc_threshold" },
+          "label": "Fire safety NOC",
+          "helpText": "Commonly required above a floor-area threshold set by your state. Tell us whether your premises is above it.",
+          "validates": "Premises safety"
+        },
+        {
+          "documentType": "MUSIC_LICENCE",
+          "obligation": "ADVISORY",
+          "displayOrder": 10,
+          "label": "Music licence (PPL / IPRS)",
+          "helpText": "Playing recorded music in a commercial space generally needs a copyright licence. We flag this for you — it does not hold up your approval.",
+          "validates": "PPL / IPRS copyright"
+        }
+      ]
+    },
+
+    {
+      "entityType": "COMPANY",
+      "items": [
+        {
+          "documentType": "PAN",
+          "obligation": "ALWAYS",
+          "displayOrder": 1,
+          "label": "PAN card",
+          "helpText": "The company's PAN. The fourth character is C for a company — a director's personal PAN is not accepted here.",
+          "validates": "Tax identity"
+        },
+        {
+          "documentType": "GSTIN",
+          "obligation": "CONDITIONAL",
+          "displayOrder": 2,
+          "condition": { "taxRegistrationStatusIn": ["REGISTERED", "COMPOSITION", "PENDING"] },
+          "label": "GST registration certificate",
+          "helpText": "Required if you are registered for GST. The GSTIN embeds your state code and your PAN, and both must match what you have entered.",
+          "validates": "Tax registration"
+        },
+        {
+          "documentType": "BUSINESS_REGISTRATION",
+          "obligation": "ALWAYS",
+          "displayOrder": 3,
+          "label": "Certificate of Incorporation",
+          "helpText": "Proof that the company legally exists.",
+          "acceptedDocuments": ["Certificate of Incorporation", "MCA master data extract"],
+          "validates": "Legal existence"
+        },
+        {
+          "documentType": "SHOP_ESTABLISHMENT",
+          "obligation": "ALWAYS",
+          "displayOrder": 4,
+          "label": "Shop & Establishment registration",
+          "helpText": "Issued by your municipality and specific to your state.",
+          "validates": "Right to trade"
+        },
+        {
+          "documentType": "BANK_PROOF",
+          "obligation": "ALWAYS",
+          "displayOrder": 5,
+          "label": "Bank account proof",
+          "helpText": "A cancelled cheque or a bank statement showing the account name. Payouts go to this account and nowhere else.",
+          "acceptedDocuments": ["Cancelled cheque", "Bank statement showing the account name"],
+          "validates": "Payout destination"
+        },
+        {
+          "documentType": "OWNER_IDENTITY",
+          "obligation": "ALWAYS",
+          "displayOrder": 6,
+          "label": "Identity document for the authorised signatory",
+          "helpText": "One government photo ID for the director or signatory who will manage this account, in addition to PAN.",
+          "acceptedDocuments": ["Passport", "Driving licence", "Voter ID"],
+          "validates": "The person behind the business"
+        },
+        {
+          "documentType": "PREMISES_ADDRESS_PROOF",
+          "obligation": "ALWAYS",
+          "displayOrder": 7,
+          "label": "Address proof for the premises",
+          "helpText": "A utility bill or rent agreement for the gym address. It is checked against the pin you place on the map.",
+          "acceptedDocuments": ["Utility bill", "Rent agreement"],
+          "validates": "BR-GYM-08 geo-match"
+        },
+        {
+          "documentType": "TRADE_LICENCE",
+          "obligation": "CONDITIONAL",
+          "displayOrder": 8,
+          "condition": { "declaredByApplicant": "municipality_requires_trade_licence" },
+          "label": "Municipal trade licence",
+          "helpText": "Required in some cities and not others. Tell us whether yours requires one.",
+          "validates": "Local permission"
+        },
+        {
+          "documentType": "FIRE_SAFETY_NOC",
+          "obligation": "CONDITIONAL",
+          "displayOrder": 9,
+          "condition": { "declaredByApplicant": "premises_above_fire_noc_threshold" },
+          "label": "Fire safety NOC",
+          "helpText": "Commonly required above a floor-area threshold set by your state. Tell us whether your premises is above it.",
+          "validates": "Premises safety"
+        },
+        {
+          "documentType": "MUSIC_LICENCE",
+          "obligation": "ADVISORY",
+          "displayOrder": 10,
+          "label": "Music licence (PPL / IPRS)",
+          "helpText": "Playing recorded music in a commercial space generally needs a copyright licence. We flag this for you — it does not hold up your approval.",
+          "validates": "PPL / IPRS copyright"
+        }
+      ]
+    },
+
+    {
+      "entityType": "OTHER",
+      "$comment": [
+        "Trusts, societies, HUFs and section-8 companies all arrive here, because entity_type_enum",
+        "has four values and Indian entity law has more. BUSINESS_REGISTRATION therefore lists",
+        "several accepted documents rather than naming one — the reviewer reads which was supplied.",
+        "This is NOT a lighter checklist: every other item is identical to the other three, and",
+        "pan.vo.ts refuses OTHER just as strictly, accepting only the entity characters that",
+        "genuinely belong to these forms."
+      ],
+      "items": [
+        {
+          "documentType": "PAN",
+          "obligation": "ALWAYS",
+          "displayOrder": 1,
+          "label": "PAN card",
+          "helpText": "The entity's PAN. The fourth character must match the kind of entity you have registered — T for a trust, H for a HUF, A for an association of persons.",
+          "validates": "Tax identity"
+        },
+        {
+          "documentType": "GSTIN",
+          "obligation": "CONDITIONAL",
+          "displayOrder": 2,
+          "condition": { "taxRegistrationStatusIn": ["REGISTERED", "COMPOSITION", "PENDING"] },
+          "label": "GST registration certificate",
+          "helpText": "Required if you are registered for GST. The GSTIN embeds your state code and your PAN, and both must match what you have entered.",
+          "validates": "Tax registration"
+        },
+        {
+          "documentType": "BUSINESS_REGISTRATION",
+          "obligation": "ALWAYS",
+          "displayOrder": 3,
+          "label": "Registration certificate for the entity",
+          "helpText": "Whichever document establishes that your entity legally exists.",
+          "acceptedDocuments": [
+            "Trust deed",
+            "Society registration certificate",
+            "Certificate of Incorporation (section 8)",
+            "HUF deed"
+          ],
+          "validates": "Legal existence"
+        },
+        {
+          "documentType": "SHOP_ESTABLISHMENT",
+          "obligation": "ALWAYS",
+          "displayOrder": 4,
+          "label": "Shop & Establishment registration",
+          "helpText": "Issued by your municipality and specific to your state.",
+          "validates": "Right to trade"
+        },
+        {
+          "documentType": "BANK_PROOF",
+          "obligation": "ALWAYS",
+          "displayOrder": 5,
+          "label": "Bank account proof",
+          "helpText": "A cancelled cheque or a bank statement showing the account name. Payouts go to this account and nowhere else.",
+          "acceptedDocuments": ["Cancelled cheque", "Bank statement showing the account name"],
+          "validates": "Payout destination"
+        },
+        {
+          "documentType": "OWNER_IDENTITY",
+          "obligation": "ALWAYS",
+          "displayOrder": 6,
+          "label": "Identity document for the authorised signatory",
+          "helpText": "One government photo ID for the trustee, office bearer or signatory who will manage this account, in addition to PAN.",
+          "acceptedDocuments": ["Passport", "Driving licence", "Voter ID"],
+          "validates": "The person behind the business"
+        },
+        {
+          "documentType": "PREMISES_ADDRESS_PROOF",
+          "obligation": "ALWAYS",
+          "displayOrder": 7,
+          "label": "Address proof for the premises",
+          "helpText": "A utility bill or rent agreement for the gym address. It is checked against the pin you place on the map.",
+          "acceptedDocuments": ["Utility bill", "Rent agreement"],
+          "validates": "BR-GYM-08 geo-match"
+        },
+        {
+          "documentType": "TRADE_LICENCE",
+          "obligation": "CONDITIONAL",
+          "displayOrder": 8,
+          "condition": { "declaredByApplicant": "municipality_requires_trade_licence" },
+          "label": "Municipal trade licence",
+          "helpText": "Required in some cities and not others. Tell us whether yours requires one.",
+          "validates": "Local permission"
+        },
+        {
+          "documentType": "FIRE_SAFETY_NOC",
+          "obligation": "CONDITIONAL",
+          "displayOrder": 9,
+          "condition": { "declaredByApplicant": "premises_above_fire_noc_threshold" },
+          "label": "Fire safety NOC",
+          "helpText": "Commonly required above a floor-area threshold set by your state. Tell us whether your premises is above it.",
+          "validates": "Premises safety"
+        },
+        {
+          "documentType": "MUSIC_LICENCE",
+          "obligation": "ADVISORY",
+          "displayOrder": 10,
+          "label": "Music licence (PPL / IPRS)",
+          "helpText": "Playing recorded music in a commercial space generally needs a copyright licence. We flag this for you — it does not hold up your approval.",
+          "validates": "PPL / IPRS copyright"
+        }
+      ]
+    }
+  ]
+}

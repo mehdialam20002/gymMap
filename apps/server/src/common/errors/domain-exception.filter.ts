@@ -90,6 +90,14 @@ export const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
   APPLICATION_SNAPSHOT_IMMUTABLE:
     'A submitted application cannot be edited. Submit a new version instead.',
 
+  // --- M-029, the KYC checklist --------------------------------------------
+
+  // Says plainly that it is not their fault, because the 503 alone will read as one. There is no
+  // action for them to take and pretending otherwise sends somebody to re-check their own form.
+  KYC_CHECKLIST_NOT_PUBLISHED:
+    'We are not yet accepting gym registrations for your country and business type. This is on ' +
+    'our side, not yours — nothing is wrong with your application.',
+
   // --- M-025, impersonation -------------------------------------------------
 
   // Names the remedy, because there is one and it takes a single click. A bare "forbidden"

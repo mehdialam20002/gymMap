@@ -160,6 +160,17 @@ const EXEMPT: readonly Exemption[] = [
       'GLOBAL platform reference, G-REF. The §B3.2 matrix is platform-wide. Tenant-specific ' +
       'authority comes from user_roles.tenant_id, not from a per-tenant copy of the matrix.',
   },
+
+  // ── M-029 · GLOBAL platform reference, grant class G-REF ─────────────────────────────────
+  {
+    table: 'kyc_checklists',
+    reason:
+      'GLOBAL platform reference (Schema.md §C2.3), G-REF. The Indian KYC checklist is the ' +
+      "same Indian checklist for every gym — it is derived from that market's document law, " +
+      'not from anything a tenant owns, and a tenant_id would raise the unanswerable question ' +
+      '"whose copy of the law is this?". Scoped by country_code, which is not a tenant. ' +
+      'app_rw holds SELECT only, so the applicant cannot edit away the document they lack.',
+  },
 ];
 
 const EXEMPT_TABLES = new Set(EXEMPT.map((e) => e.table));

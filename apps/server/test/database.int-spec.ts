@@ -168,6 +168,10 @@ const EXPECTED_APPLICATION_TABLES = [
   // policy halves and the D-03 column-scoped grant.
   'applications',
   'kyc_documents',
+  // M-029 · the per-country document checklist. GLOBAL reference (§C2.3), the fourth table on the
+  // committed RLS exemption list after roles/permissions/role_permissions — and exempt for the
+  // same reason: it has no tenant_id because the Indian checklist is the same for every gym.
+  'kyc_checklists',
 ];
 
 /**

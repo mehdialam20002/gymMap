@@ -9,6 +9,7 @@
  * | :------ | :-------- | :------------------------------------------------------------------- |
  * | `0.1`   | M-006     | Empty — `0_init` creates no tables. Three tenants added by M-009.    |
  * | `0.2`   | M-019     | + 12 roles, the §B3.2 permission catalogue, 11 §6.6 principals.      |
+ * | `0.3`   | M-029     | + the India KYC checklist, 4 rows (one per entity type), 40 items.   |
  *
  * `TestingStrategy.md` §6.7 specifies a richer artefact than this — `seed.manifest.json` with
  * `epoch`, `prngSeed`, `namespace`, per-table `checksums` and `counts`, enforced by `SD-2`.
@@ -20,4 +21,4 @@
  * asserted today by `roles-seed.int-spec.ts`, which also resolves every `role_permissions` row
  * back to its key — weaker than a checksum, and considerably better than nothing.
  */
-export const SEED_VERSION = '0.2' as const;
+export const SEED_VERSION = '0.3' as const;

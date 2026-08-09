@@ -602,12 +602,53 @@ model KycDocument {
   tombstonedAt DateTime? @map("tombstoned_at") @db.Timestamptz(6)
   expiresAt    DateTime? @map("expires_at") @db.Timestamptz(6)
 
-  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  application Application @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  /// `ERD.md` §2176 `fk_kyc_documents__kyc_checklists` — which checklist version asked for this
+  /// document. Nullable because it is additive over rows that predate M-029.
+  kycChecklistId String? @map("kyc_checklist_id") @db.Uuid
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  application  Application   @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  kycChecklist KycChecklist? @relation(fields: [kycChecklistId], references: [id], onDelete: Restrict)
 
   @@index([tenantId, documentType, status], map: "idx_kyc_documents__tenant_type_status")
   @@index([applicationId], map: "idx_kyc_documents__application")
+  @@index([kycChecklistId], map: "idx_kyc_documents__kyc_checklist_id")
   @@map("kyc_documents")
+}
+
+/// `M-029` · The per-country, per-entity-type document checklist — `Schema.md` §12.3, `FR-ONB-03`.
+///
+/// GLOBAL reference: no `tenantId`, no RLS, and on the committed exemption list. `app_rw` holds
+/// SELECT and nothing else, so no Prisma write is reachable from a request even if one were written
+/// — the seed runs as the migration role and the `FR-ADMN-06` write path arrives at M-116.
+///
+/// Versioned as a WHOLE checklist rather than per document, because an application snapshots the
+/// version it was judged against (`ERD.md` §9.6) and a version is only meaningful if it names a
+/// complete set.
+model KycChecklist {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  countryCode String         @map("country_code") @db.Char(2)
+  entityType  EntityTypeEnum @map("entity_type")
+  version     Int
+
+  /// Ordered items. Shape held by the `ck_kyc_checklists__items_*` jsonpath constraints, not by
+  /// convention — `Schema.md` §11 lists this column among the thirty-one sanctioned JSONB columns
+  /// and closes with "a JSONB column used to avoid designing a schema is a review rejection".
+  items Json
+
+  /// NULL is the live version. A superseded version is never deleted: an application that cited it
+  /// must stay readable.
+  supersededAt DateTime? @map("superseded_at") @db.Timestamptz(6)
+
+  kycDocuments KycDocument[]
+
+  @@unique([countryCode, entityType, version], map: "uq_kyc_checklists__country_entity_version")
+  @@map("kyc_checklists")
 }
 
 enum ApplicationStatusEnum {
