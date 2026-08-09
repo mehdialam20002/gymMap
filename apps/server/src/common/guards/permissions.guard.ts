@@ -50,6 +50,7 @@ import { IS_PUBLIC } from '../decorators/public.decorator.js';
 import { REQUIRED_PERMISSION } from '../decorators/required-permission.decorator.js';
 import { PermissionDeniedException } from '../errors/domain-exception.js';
 import {
+  effectiveGrants,
   parseRoleGrants,
   permits,
   type ResourceContext,
@@ -66,7 +67,13 @@ import {
 export const RESOURCE_CONTEXT = 'gymmap:resource-context';
 
 interface GuardedRequest {
-  readonly principal?: { readonly sub: string; readonly roles?: readonly string[] };
+  readonly principal?: {
+    readonly sub: string;
+    readonly roles?: readonly string[];
+    /** `M-025`. Present only on an impersonation token; `effectiveGrants` reads both. */
+    readonly typ?: string;
+    readonly imp_roles?: readonly string[];
+  };
   readonly [RESOURCE_CONTEXT]?: ResourceContext;
 }
 
@@ -122,7 +129,14 @@ export class PermissionsGuard implements CanActivate {
       throw new PermissionDeniedException('This endpoint is not available.');
     }
 
-    const grants = parseRoleGrants(principal.roles);
+    /*
+     * `effectiveGrants`, not `parseRoleGrants` — `M-025` `AC-5`.
+     *
+     * Identical for an ordinary token. Under an impersonation it removes anything the AGENT does
+     * not themselves hold, which is the only place that narrowing can happen: the intersection is
+     * not expressible as a role claim, so the token could not have carried it.
+     */
+    const grants = effectiveGrants(principal);
     // An absent resource context is the collection case. `tenantId: null` there would make every
     // TENANT-scoped grant fail, so the session's tenant is the resource — see the note on the
     // constant.

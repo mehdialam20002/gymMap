@@ -191,6 +191,46 @@ export function permits(
 }
 
 /**
+ * The grants a request is authorised with — `M-025` `AC-5`, `FR-AUTH-12`.
+ *
+ * ┌─ THE ONE PLACE THE INTERSECTION IS APPLIED ─────────────────────────────────────────────────┐
+ * │ Under an ordinary token this is just the principal's grants. Under an impersonation it is the │
+ * │ subject's grants MINUS anything the agent does not themselves hold.                            │
+ * │                                                                                              │
+ * │ It has to happen here rather than at mint time, because the intersection is not expressible   │
+ * │ as a role claim: against the real matrix it is strictly narrower than the subject's set in     │
+ * │ every combination, and no `§B3.2` role carries exactly those permissions. A token narrowed by  │
+ * │ roles would grant more than the intersection every single time.                                │
+ * │                                                                                              │
+ * │ A grant survives only if the agent holds AT LEAST ONE permission it confers. That is the       │
+ * │ coarsest correct filter at role granularity; `permits()` then does the per-permission check,   │
+ * │ so a grant that survives here still cannot exercise a permission the agent lacks.              │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export function effectiveGrants(principal: {
+  readonly typ?: string;
+  readonly roles?: readonly string[];
+  readonly imp_roles?: readonly string[];
+}): readonly RoleGrant[] {
+  const subject = parseRoleGrants(principal.roles);
+  if (principal.typ !== 'IMPERSONATION') return subject;
+
+  /*
+   * No agent roles on an impersonation token is a forged or truncated one. Answering with the
+   * subject's full grants would be the union by omission — the exact escalation `AC-5` forbids —
+   * so the safe answer is NOTHING, and the request is refused as unauthorised.
+   */
+  const agent = parseRoleGrants(principal.imp_roles);
+  if (agent.length === 0) return [];
+
+  const agentPermissions = new Set(agent.flatMap((grant) => permissionsFor(grant.role)));
+
+  return subject.filter((grant) =>
+    permissionsFor(grant.role).some((permission) => agentPermissions.has(permission)),
+  );
+}
+
+/**
  * Every permission a principal effectively holds, with the scope each came from — `FR-RBAC-05`.
  *
  * For the effective-permission inspector, and for the console to decide which controls to SHOW.

@@ -20,7 +20,9 @@ import {
   ImpersonationRestrictionGuard,
 } from '../dist/common/guards/impersonation-restriction.guard.js';
 import { permissionsFor } from '../dist/iam/permissions.js';
+import { effectiveGrants, parseRoleGrants } from '../dist/iam/domain/effective-permissions.js';
 
+const TENANT = '0192de00-0000-7000-8000-00000000000a';
 const REASON = 'Investigating a duplicate charge reported in ticket 4821.';
 
 const start = (overrides: Record<string, unknown> = {}) =>
@@ -212,4 +214,77 @@ test('an unmarked route under an impersonation token passes, and that is the api
 
 test('the decorator key is a symbol, so it cannot collide with a string metadata key', () => {
   assert.equal(typeof FINANCIAL_MUTATION, 'symbol');
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AC-5 at the DECISION POINT — `effectiveGrants`
+//
+// ┌─ THE MINT-TIME VERSION WAS WRONG AND MEASURABLY SO ────────────────────────────────────────┐
+// │ The first attempt narrowed the subject's roles when signing. Against the real matrix the    │
+// │ intersection is strictly smaller than the subject's permission set in EVERY combination —   │
+// │ SUPPORT_AGENT × GYM_OWNER is 9 of 34, SUPER_ADMIN × GYM_OWNER is 23 of 34 — and no §B3.2    │
+// │ role carries exactly those permissions. Any token narrowed by roles grants more than the    │
+// │ intersection, every single time. So both sets travel and the narrowing happens here.        │
+// └───────────────────────────────────────────────────────────────────────────────────────────┘
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('effectiveGrants is a passthrough for an ORDINARY token', () => {
+  const principal = { typ: 'ACCESS', roles: [`GYM_OWNER@t:${TENANT}`] };
+  assert.deepEqual(effectiveGrants(principal), parseRoleGrants(principal.roles));
+});
+
+test('AC-5 — under an impersonation, a grant the AGENT cannot use is dropped', () => {
+  // A MEMBER grant survives only if the support agent holds at least one of its permissions.
+  const withAgent = effectiveGrants({
+    typ: 'IMPERSONATION',
+    roles: [`GYM_OWNER@t:${TENANT}`],
+    imp_roles: ['SUPPORT_AGENT@platform'],
+  });
+
+  const asSubject = parseRoleGrants([`GYM_OWNER@t:${TENANT}`]);
+  assert.ok(
+    withAgent.length <= asSubject.length,
+    'the impersonated session held at least as much as the subject alone',
+  );
+});
+
+test('AC-5 — a token with NO agent roles authorises NOTHING', () => {
+  // ┌─ THE UNION BY OMISSION ────────────────────────────────────────────────────────────────────┐
+  // │ A forged or truncated impersonation token has `typ` and no `imp_roles`. Falling back to the │
+  // │ subject's full grants would be exactly the escalation AC-5 forbids, arrived at by an        │
+  // │ optional field being absent. The safe answer is nothing, and the request is refused.        │
+  // └───────────────────────────────────────────────────────────────────────────────────────────┘
+  assert.deepEqual(
+    effectiveGrants({ typ: 'IMPERSONATION', roles: [`GYM_OWNER@t:${TENANT}`] }),
+    [],
+  );
+  assert.deepEqual(
+    effectiveGrants({ typ: 'IMPERSONATION', roles: [`GYM_OWNER@t:${TENANT}`], imp_roles: [] }),
+    [],
+  );
+});
+
+test('a MALFORMED agent claim is the same as none — it does not widen the session', () => {
+  assert.deepEqual(
+    effectiveGrants({
+      typ: 'IMPERSONATION',
+      roles: [`GYM_OWNER@t:${TENANT}`],
+      imp_roles: ['SUPPORT_AGENT@', 'garbage', 'GYM_OWNER@platform'],
+    }),
+    [],
+  );
+});
+
+test('the intersection is strictly narrower than the subject, for every real pairing', () => {
+  // Stated as a property rather than a fixture, because it is the fact that made mint-time
+  // narrowing impossible — and if it ever stops being true, the simpler design becomes available.
+  for (const agent of ['SUPPORT_AGENT', 'SUPER_ADMIN'] as const) {
+    for (const subject of ['MEMBER', 'GYM_OWNER', 'USER'] as const) {
+      const intersection = impersonatedPermissions([agent], [subject]);
+      assert.ok(
+        intersection.length < permissionsFor(subject).length,
+        `${agent} × ${subject} is not narrower — mint-time narrowing may now be expressible`,
+      );
+    }
+  }
 });

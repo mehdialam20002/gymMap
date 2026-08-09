@@ -74,6 +74,77 @@ export class JwtSignerAdapter {
   }
 
   /**
+   * Mints an impersonation token — `M-025`, `FR-AUTH-12`, `AC-1`, `AC-3`.
+   *
+   * ┌─ A DISTINCT `typ`, NOT A CLAIM ON AN ACCESS TOKEN ─────────────────────────────────────────┐
+   * │ `AC-1` is specific: *"a distinct type, not a normal access token with a claim, so a          │
+   * │ mis-scoped verifier cannot confuse the two"*. A boolean claim fails OPEN — any verifier that │
+   * │ does not read it treats the token as ordinary access, and not reading it is the default      │
+   * │ state of every verifier written before the claim existed. `typ: 'IMPERSONATION'` fails       │
+   * │ CLOSED: a verifier expecting `ACCESS` rejects it outright, which is the same mechanism       │
+   * │ `TK1` already uses to keep a refresh token off an API route.                                 │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   *
+   * `roles` is the SUBJECT's and `imp_roles` is the AGENT's. Both travel because the intersection
+   * cannot be written as a role claim — see `imp_roles` below — so it is computed by
+   * `effectiveGrants()` at the point of decision, which keeps it derived from the matrix.
+   *
+   * `exp` is the cap, and it is not the only enforcement: `imp_at` carries the start so the server
+   * can re-check independently. A token is evidence of what the signer believed, and `AC-3` asks
+   * for a server-side check precisely because a signer bug or a moved clock is not self-reporting.
+   */
+  signImpersonationToken(input: {
+    readonly subjectUserId: string;
+    readonly impersonatorId: string;
+    readonly tenantId: string | null;
+    /** The SUBJECT's role claims. */
+    readonly roles: readonly string[];
+    /** The AGENT's role claims. The intersection is computed at the decision point. */
+    readonly impersonatorRoles: readonly string[];
+    readonly minutes: number;
+    readonly familyId: string;
+  }): { token: string; expiresAt: Date; startedAt: Date } {
+    const startedAt = this.clock.now();
+    const issuedAt = Math.floor(startedAt.getTime() / 1000);
+    const expiresAt = issuedAt + input.minutes * 60;
+
+    const payload = {
+      // The SUBJECT, deliberately. Everything the request does is done as them, which is what
+      // makes `impersonated_by` the interesting column rather than a duplicate of `sub`.
+      sub: input.subjectUserId,
+      ...(input.tenantId === null ? {} : { tenant_id: input.tenantId }),
+      roles: [...input.roles],
+      typ: 'IMPERSONATION',
+      /** The agent. `audit_log.impersonated_by`, and the reason this token is attributable at all. */
+      imp: input.impersonatorId,
+      /**
+       * The AGENT's roles, alongside the subject's in `roles`.
+       *
+       * Both are needed because `AC-5`'s intersection is not expressible as a role claim: measured
+       * against the real matrix it is strictly narrower than the subject's permission set in every
+       * combination, and no `§B3.2` role has exactly those permissions. Narrowing at mint time
+       * would therefore have granted MORE than the intersection on every impersonation.
+       */
+      imp_roles: [...input.impersonatorRoles],
+      /** The start, in seconds. `AC-3`'s server-side re-check reads this, never `exp`. */
+      imp_at: issuedAt,
+      fam: input.familyId,
+      iss: TOKEN_ISSUER,
+      aud: TOKEN_AUDIENCE,
+      iat: issuedAt,
+      exp: expiresAt,
+    };
+
+    return {
+      // Signed with the ACCESS secret, because it is presented on API routes exactly like one and
+      // the verifier that reads it is the same. `typ` is what separates them, per TK1.
+      token: this.sign(payload, this.config.JWT_ACCESS_SECRET),
+      expiresAt: new Date(expiresAt * 1000),
+      startedAt,
+    };
+  }
+
+  /**
    * Constant-time HMAC comparison, for anything that must compare two signatures in process.
    *
    * `===` on a MAC leaks its prefix through the comparison's early exit — enough to forge a
