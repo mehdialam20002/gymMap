@@ -19,6 +19,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 
+import { currentImpersonatorId } from '../../common/auth/impersonation.als.js';
 import { REDACTED_FIELD_NAMES } from '../../common/logging/redaction.js';
 // A VALUE import, not `import type`. TD-030: a type-only import is erased, so
 // emitDecoratorMetadata emits `undefined` and Nest fails at RUNTIME with an error that
@@ -53,6 +54,30 @@ export class AuditPrismaRepository implements AuditWritePort {
    * └───────────────────────────────────────────────────────────────────────────────────────────┘
    */
   async append(entry: AuditEntry): Promise<void> {
+    /*
+     * ┌─ `AC-7` · READ HERE, NOT PASSED BY EVERY CALLER ────────────────────────────────────────┐
+     * │ "Every write under the token carries `impersonated_by`" — not only the start event. A     │
+     * │ field each call site must remember is one most call sites will not, and the omission is   │
+     * │ invisible: the row is written and the actions taken under a borrowed identity are exactly  │
+     * │ the ones missing the borrower. This repository is the single point every write already     │
+     * │ passes through, including the use cases that bypass the `@Audited()` interceptor.          │
+     * │                                                                                          │
+     * │ An explicit value still wins, for the ONE row that records the impersonation ending —      │
+     * │ written after the frame is gone and needing to name the agent anyway.                      │
+     * └──────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    const impersonatedBy = entry.impersonatedBy ?? currentImpersonatorId();
+
+    /*
+     * The actor TYPE follows the same fact, and must: a row saying `USER` while `impersonated_by`
+     * is set contradicts itself, and a report filtering on `SUPPORT_IMPERSONATION` would miss it.
+     * Only widened when the caller has not already said something more specific than `USER`.
+     */
+    const actorType =
+      impersonatedBy !== null && entry.actorType === 'USER'
+        ? 'SUPPORT_IMPERSONATION'
+        : entry.actorType;
+
     try {
       await this.db.executeRaw`
         INSERT INTO audit_log (
@@ -62,8 +87,8 @@ export class AuditPrismaRepository implements AuditWritePort {
           ip, user_agent, correlation_id, request_id
         ) VALUES (
           gen_random_uuid(), now(),
-          ${entry.tenantId}::uuid, ${entry.actorId}::uuid, ${entry.actorType}::actor_type_enum,
-          ${entry.actorLabel ?? null}, ${entry.impersonatedBy ?? null}::uuid,
+          ${entry.tenantId}::uuid, ${entry.actorId}::uuid, ${actorType}::actor_type_enum,
+          ${entry.actorLabel ?? null}, ${impersonatedBy}::uuid,
           ${entry.entityType}::audit_entity_type_enum, ${entry.entityId}::uuid,
           ${entry.action}::audit_action_enum,
           ${redact(entry.before)}::jsonb, ${redact(entry.after)}::jsonb,

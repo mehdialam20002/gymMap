@@ -78,10 +78,13 @@ export class AuditInterceptor implements NestInterceptor {
     await this.audit.append({
       tenantId: isTenantScope(scope) ? scope.tenantId : null,
       actorId: request.principal?.sub ?? null,
-      // SUPPORT_IMPERSONATION is set by M-025 once impersonation exists; PLATFORM_ADMIN
-      // whenever the request runs under an elevation.
+      // PLATFORM_ADMIN whenever the request runs under an elevation. SUPPORT_IMPERSONATION is
+      // NOT decided here — the repository widens `USER` to it when an impersonation is in scope,
+      // so the two can never disagree.
       actorType: isPlatformScope(scope) ? 'PLATFORM_ADMIN' : 'USER',
-      impersonatedBy: null,
+      // Deliberately ABSENT rather than `null`. `null` is an explicit "no impersonator" and would
+      // override the ambient one the repository reads — turning M-025's whole point off for every
+      // route this interceptor covers, which is most of them.
       entityType: options.entityType,
       // The route's own id, or whatever the use case attached. Falling back to the tenant is
       // wrong — it would silently attribute the change to the wrong entity — so an unresolvable
