@@ -163,6 +163,11 @@ const EXPECTED_APPLICATION_TABLES = [
   // and the milestone that owned them (rank 4) had a cycle in it. Both IDENTITY class.
   'auth_sessions',
   'refresh_tokens',
+  // M-026 · the verification dossier. Both TENANT-OWNED with RLS enabled and forced, so unlike the
+  // identity tables above they need no exemption — `onboarding-tables.int-spec.ts` proves both
+  // policy halves and the D-03 column-scoped grant.
+  'applications',
+  'kyc_documents',
 ];
 
 /**
