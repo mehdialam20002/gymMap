@@ -127,6 +127,9 @@ test('PG-3 · the colon-and-scope form from §12.2.1 is rejected', () => {
       'x-gymmap-permission': 'order:create.self',
       'x-gymmap-rate-limit': 'RL-PAYMENT',
       'x-gymmap-idempotent': 'required',
+      // `/v1/orders` is in §14.2.1's money row, so PG-6 wants the marker. Supplied here so this
+      // fixture still breaks exactly one thing — the permission grammar.
+      'x-gymmap-financial-mutation': true,
     }),
   );
   assert.deepEqual(codes(problems), ['PG-3']);
@@ -182,7 +185,13 @@ for (const [path, method] of MONEY_ROUTES) {
 
 test('PG-2 · the same route WITH @Idempotent() passes', () => {
   const { problems } = gates(
-    doc('/v1/orders', 'post', { ...GUARDED, 'x-gymmap-idempotent': 'required' }),
+    doc('/v1/orders', 'post', {
+      ...GUARDED,
+      'x-gymmap-idempotent': 'required',
+      // PG-6 also applies to `/v1/orders`. "Passes" means passes EVERY gate, so a clean fixture
+      // has to satisfy the one added after it was written.
+      'x-gymmap-financial-mutation': true,
+    }),
   );
   assert.deepEqual(problems, []);
 });
@@ -443,5 +452,81 @@ test('AC-5 — the probes are unversioned and everything else is under /v1', () 
       `${path} is neither a probe nor versioned. An unversioned public route cannot be changed ` +
         'without breaking every client at once.',
     );
+  }
+});
+
+// ---------------------------------------------------------------------------
+// PG-6 · M-025 — every §14.2.1 money route is marked, and only those are.
+//
+// ┌─ THIS GATE PASSES VACUOUSLY TODAY, WHICH IS WHY THE FIXTURES EXIST ────────────────────────┐
+// │ Not one money-affecting route is built yet, so running it against the real contract proves │
+// │ nothing at all. These fixtures are the only evidence that it will fail when the first       │
+// │ refund endpoint lands without the marker — which is the single moment it has to work.       │
+// └───────────────────────────────────────────────────────────────────────────────────────────┘
+// ---------------------------------------------------------------------------
+
+/** §14.2.1's money-affecting row, transcribed from the constitution. */
+const MONEY_AFFECTING = [
+  '/v1/orders',
+  '/v1/orders/abc123/payment-intent',
+  '/v1/payments/pay_1/retry',
+  '/v1/tenant/orders/offline',
+  '/v1/tenant/orders/ord_1/collect-balance',
+  '/v1/me/memberships/mem_1/refund-request',
+  '/v1/tenant/refunds',
+  '/v1/admin/refunds/ref_1/decide',
+  '/v1/admin/settlements/set_1/approve',
+  '/v1/admin/disputes/dis_1/evidence',
+];
+
+const MONEY_GUARDED = { ...GUARDED, 'x-gymmap-idempotent': 'required' };
+
+for (const path of MONEY_AFFECTING) {
+  test(`PG-6 · POST ${path} without @FinancialMutation() fails`, () => {
+    const { problems } = gates(doc(path, 'post', MONEY_GUARDED));
+    assert.ok(
+      codes(problems).includes('PG-6'),
+      `${path} moves money and must be marked, or an impersonated session can spend it`,
+    );
+    assert.match(problems.find((p) => p.gate === 'PG-6').message, /BR-DAT-02|borrowed identity/);
+  });
+}
+
+for (const path of MONEY_AFFECTING) {
+  test(`PG-6 · POST ${path} WITH @FinancialMutation() passes`, () => {
+    const { problems } = gates(
+      doc(path, 'post', { ...MONEY_GUARDED, 'x-gymmap-financial-mutation': true }),
+    );
+    assert.deepEqual(problems, [], `${path} should be clean once marked`);
+  });
+}
+
+test('PG-6 · the marker on a route §14.2.1 does not list ALSO fails', () => {
+  // The quieter mistake. Either it is a money route the constitution has not enumerated — a §24
+  // amendment, not a decorator — or the marker is on the wrong handler, silently blocking support
+  // from doing something they are entitled to do.
+  const { problems } = gates(
+    doc('/v1/tenant/members', 'post', { ...GUARDED, 'x-gymmap-financial-mutation': true }),
+  );
+  assert.ok(codes(problems).includes('PG-6'));
+  assert.match(problems.find((p) => p.gate === 'PG-6').message, /§24|wrong handler/);
+});
+
+test('PG-6 · a GET on a money path is never asked for the marker', () => {
+  // Reading an order moves nothing. Marking it would refuse an impersonated support agent the one
+  // thing impersonation is FOR — looking at what the user is looking at.
+  const { problems } = gates(doc('/v1/orders', 'get', GUARDED));
+  assert.deepEqual(problems, []);
+});
+
+test('PG-6 · membership and attendance routes are NOT financial mutations', () => {
+  // ┌─ THE SUBSET THAT MAKES THE FEATURE USABLE ────────────────────────────────────────────────┐
+  // │ §14.2.1 requires idempotency on freezes, renewals and check-ins too — but those are not    │
+  // │ money. Reusing the idempotency list for this gate would forbid impersonating a user to      │
+  // │ record a check-in or freeze a membership, which is most of what support does.               │
+  // └───────────────────────────────────────────────────────────────────────────────────────────┘
+  for (const path of ['/v1/me/memberships/m_1/freeze', '/v1/checkin/manual']) {
+    const { problems } = gates(doc(path, 'post', MONEY_GUARDED));
+    assert.deepEqual(codes(problems), [], `${path} should not require the financial marker`);
   }
 });

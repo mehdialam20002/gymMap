@@ -18,7 +18,14 @@
  * ═══════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { CanActivate, ExecutionContext, Injectable, SetMetadata } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  SetMetadata,
+  applyDecorators,
+} from '@nestjs/common';
+import { ApiExtension } from '@nestjs/swagger';
 import { Reflector } from '@nestjs/core';
 
 import { BusinessRuleException } from '../errors/domain-exception.js';
@@ -32,7 +39,18 @@ export const FINANCIAL_MUTATION = Symbol('FinancialMutation');
  * change what somebody is owed or has paid, it carries this.
  */
 export const FinancialMutation = (): MethodDecorator & ClassDecorator =>
-  SetMetadata(FINANCIAL_MUTATION, true);
+  applyDecorators(
+    SetMetadata(FINANCIAL_MUTATION, true),
+    /*
+     * Emitted into the contract as well as into Nest's metadata, and that is the load-bearing half.
+     *
+     * The guard reads the metadata at RUNTIME, which only helps for routes somebody remembered to
+     * decorate. The extension puts the same fact in `openapi.json`, where `api-gates` PG-6 can
+     * cross-reference it against `§14.2.1`'s money-affecting list and fail the BUILD on a money
+     * route that has no marker — the gap the guard cannot close on its own.
+     */
+    ApiExtension('x-gymmap-financial-mutation', true),
+  );
 
 interface GuardedRequest {
   readonly principal?: { readonly sub: string; readonly typ?: string };

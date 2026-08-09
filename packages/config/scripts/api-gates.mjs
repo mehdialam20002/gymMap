@@ -4,6 +4,7 @@
  *   PG-1  Every route declares a permission, or is `@Public()` AND on the reviewed allowlist.
  *   PG-2  Idempotency is declared wherever §14.2.1 says REQ.
  *   PG-3  Permission strings are `<module>.<resource>.<action>`, first segment a real module.
+ *   PG-6  Every §14.2.1 money-affecting route carries `@FinancialMutation()`, and only those do.
  *   PG-5  Every route carries a rate-limit class, and every emitted error code is registered.
  *
  * Plus AC-5: the five closed audience prefixes, and the two unversioned probes.
@@ -75,6 +76,32 @@ export const IDEMPOTENCY_REQUIRED_PATTERNS = [
   /\/disputes\/[^/]+\/evidence$/,
 ];
 
+/**
+ * `§14.2.1`'s MONEY-AFFECTING row, and only that row — `M-025` `AC-4`, `BR-DAT-02`, `E1.8`.
+ *
+ * ┌─ A STRICT SUBSET OF `IDEMPOTENCY_REQUIRED_PATTERNS`, AND SEPARATE ON PURPOSE ────────────────┐
+ * │ That list is the whole table: money, membership state, attendance, webhooks, bulk, coupons.   │
+ * │ Reusing it here would forbid impersonating a user to record a check-in or freeze a membership │
+ * │ — which is most of what support DOES, and refusing it would make the feature useless while    │
+ * │ looking rigorous.                                                                             │
+ * │                                                                                              │
+ * │ What impersonation must never do is move money. Ten endpoints, transcribed from the           │
+ * │ constitution's first row rather than inferred from the word "financial".                       │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export const MONEY_AFFECTING_PATTERNS = [
+  /\/orders$/,
+  /\/orders\/[^/]+\/payment-intent$/,
+  /\/payments\/[^/]+\/retry$/,
+  /\/tenant\/orders\/offline$/,
+  /\/tenant\/orders\/[^/]+\/collect-balance$/,
+  /\/memberships\/[^/]+\/refund-request$/,
+  /\/tenant\/refunds$/,
+  /\/admin\/refunds\/[^/]+\/decide$/,
+  /\/admin\/settlements\/[^/]+\/approve$/,
+  /\/admin\/disputes\/[^/]+\/evidence$/,
+];
+
 const PERMISSION = /^([a-z]+)\.([a-z0-9_]+)\.([a-z0-9_]+)$/;
 
 export function runApiGates({ document, publicAllowlist, errorCodes, rateLimitClasses }) {
@@ -100,6 +127,7 @@ export function runApiGates({ document, publicAllowlist, errorCodes, rateLimitCl
       idempotent: operation['x-gymmap-idempotent'],
       rateLimit: operation['x-gymmap-rate-limit'],
       tenantScoped: operation['x-gymmap-tenant-scoped'] === true,
+      financialMutation: operation['x-gymmap-financial-mutation'] === true,
       errorCodes: operation['x-gymmap-error-codes'] ?? [],
     };
 
@@ -201,6 +229,43 @@ export function runApiGates({ document, publicAllowlist, errorCodes, rateLimitCl
           `§14.2.1. A checkout POST retried by a flaky mobile connection charges twice; the user ` +
           `sees one confirmation and two debits, and it surfaces days later as a refund request ` +
           `rather than a bug report.`,
+      );
+    }
+
+    // --- PG-6: every money route is marked as a financial mutation ----------
+    //
+    // ┌─ THE GATE THAT MAKES THE RUNTIME GUARD HONEST ────────────────────────────────────────┐
+    // │ `ImpersonationRestrictionGuard` can only refuse a handler it can SEE is financial, and  │
+    // │ an undecorated one looks ordinary. The person adding the eleventh refund endpoint is    │
+    // │ not thinking about impersonation, so the marker will be missed — and missing it is      │
+    // │ silent: the route works, the tests pass, and a borrowed identity can move money.        │
+    // │                                                                                        │
+    // │ Cross-referencing the contract against `§14.2.1` moves that failure to the build.       │
+    // └────────────────────────────────────────────────────────────────────────────────────────┘
+    const movesMoney = mutating && MONEY_AFFECTING_PATTERNS.some((p) => p.test(path));
+
+    if (movesMoney && !ext.financialMutation) {
+      fail(
+        'PG-6',
+        route,
+        `is in §14.2.1's money-affecting class but carries no @FinancialMutation(). ` +
+          `Without it, ImpersonationRestrictionGuard cannot tell this route from an ordinary one, ` +
+          `and a support agent acting under a borrowed identity can move money that will be ` +
+          `attributed to the user they are impersonating (BR-DAT-02, E1.8).`,
+      );
+    }
+
+    // The inverse is a mistake too, and a quieter one: a route marked financial that §14.2.1 does
+    // not list is either a money route the constitution has not enumerated — a §24 amendment, not
+    // a decorator — or a marker pasted onto the wrong handler, which silently blocks support from
+    // doing something they are entitled to do.
+    if (ext.financialMutation && !movesMoney) {
+      fail(
+        'PG-6',
+        route,
+        `carries @FinancialMutation() but is not in §14.2.1's money-affecting list. Either the ` +
+          `constitution needs the route added under §24, or the decorator is on the wrong handler ` +
+          `and is blocking support work for no reason.`,
       );
     }
 
@@ -314,7 +379,7 @@ if (isMain) {
       operationCount === 0
         ? 'api-gates: 0 operations in openapi.json — nothing to check yet, and that is reported ' +
             'rather than passed over. PG-1/2/3/5 are wired and will bite on the first endpoint.'
-        : `api-gates: OK — ${operationCount} operation(s) pass PG-1, PG-2, PG-3, PG-5 and AC-5.`,
+        : `api-gates: OK — ${operationCount} operation(s) pass PG-1, PG-2, PG-3, PG-5, PG-6 and AC-5.`,
     );
     console.log(
       `  registry: ${errorCodes.size} error codes · ${rateLimitClasses.size} rate-limit classes · ` +

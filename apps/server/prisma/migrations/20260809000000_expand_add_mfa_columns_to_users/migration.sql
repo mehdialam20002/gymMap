@@ -60,6 +60,14 @@
 -- │ secret.                                                                                          │
 -- └────────────────────────────────────────────────────────────────────────────────────────────────┘
 
+SET LOCAL lock_timeout       = '5s';    -- PM-8. first statement, always
+SET LOCAL statement_timeout  = '300s';  -- PM-8. second statement, always
+
+-- Missing from the first version of this file, and `migration-lint` PM-8 caught it. The rule
+-- is not ceremony: without a lock_timeout this ALTER waits indefinitely behind a long
+-- transaction while a queue of blocked queries builds behind IT, and a catalogue-only change
+-- that should take 50ms becomes an outage. `5s` fails fast instead, and the deploy retries.
+
 ALTER TABLE users
     -- WHEN `mfa_enabled` became true. Not a second flag — the CHECK below binds them.
     ADD COLUMN IF NOT EXISTS mfa_enrolled_at timestamptz NULL,
