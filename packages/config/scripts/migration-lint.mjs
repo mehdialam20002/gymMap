@@ -95,6 +95,27 @@ export const MG10_NO_RLS_BY_CLASS = {
     "same Indian checklist for every gym, because it derives from that market's document law. " +
     'A tenant_id would raise the unanswerable question "whose copy of the law is this?". ' +
     'app_rw holds SELECT and nothing else, so no request can write one either.',
+
+  // M-031 · the five reference tables the catalogue's foreign keys point at. All five appear by
+  // NAME on the CLOSED exemption list of Schema.md §1.3, which `RS4` says takes "the same
+  // scrutiny as a new elevation" to extend — so this block is a transcription of a reviewed
+  // artefact, not five fresh judgement calls.
+  countries:
+    'GLOBAL · Schema.md §12.1, §1.3 exemption list — ISO-3166 countries. No tenant owns India.',
+  cities:
+    'GLOBAL · Schema.md §12.1, §1.3 exemption list — the C9.4 city-gating table. Bengaluru is ' +
+    'not owned by a gym, and every tenant in it reads the same row.',
+  localities:
+    'GLOBAL · Schema.md §12.1, §1.3 exemption list — SEO landing pages and filter chips. Scoped ' +
+    'by city_id, which is reference data itself.',
+  gym_categories:
+    'GLOBAL · Schema.md §12.2, §1.3 exemption list — the browse and filter taxonomy. NFR-DQ-06 ' +
+    'requires one platform-managed vocabulary precisely so that filtering works across tenants; ' +
+    'a per-tenant category list would make "show me all yoga studios" unanswerable.',
+  amenities:
+    'GLOBAL · Schema.md §12.2, §1.3 exemption list — same reasoning as gym_categories. A gym ' +
+    'DECLARES an amenity through gym_amenities, which IS tenant-owned and does carry RLS; the ' +
+    'vocabulary it declares from is not.',
 };
 
 /**
