@@ -28,7 +28,20 @@ export function AnnouncementBar() {
   const Verified = icon.verified;
 
   return (
-    <div className="border-b border-subtle bg-surface-media">
+    /*
+     * `relative` for the stacking order, not for position.
+     *
+     * The hero's background now reaches the top of the document so it can run behind the floating
+     * navigation. It is absolutely positioned and this bar is not, so without a layer of its own
+     * the gradient paints straight over the bar's ground AND its text.
+     *
+     * `z-app-chrome`, NOT `z-10`. The preset replaces Tailwind's numeric `zIndex` scale with the
+     * token scale, exactly as it does `theme.spacing` - so `z-10` generates no rule at all and
+     * the computed value stays `auto`. It was written that way first and measured at `auto` in
+     * the browser, with the gradient still over the strip. Same silent nothing as `mb-1`, and
+     * `ci:tailwind-tokens` does not cover z-index, so nothing said so.
+     */
+    <div className="relative z-app-chrome border-b border-subtle bg-surface-media">
       <div className="mx-auto flex max-w-container items-center justify-center gap-inline-sm px-inset-md py-inset-2xs">
         <Verified
           aria-hidden="true"

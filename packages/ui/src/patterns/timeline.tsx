@@ -134,7 +134,7 @@ export function BulkBar({
     <div
       role="region"
       aria-label={labels.region}
-      className="sticky bottom-0 z-sticky mt-stack-sm flex flex-wrap items-center justify-between gap-inline-sm rounded-card border border-brand bg-surface-raised px-inset-md py-inset-sm shadow-lg"
+      className="sticky bottom-0 z-sticky-section mt-stack-sm flex flex-wrap items-center justify-between gap-inline-sm rounded-card border border-brand bg-surface-raised px-inset-md py-inset-sm shadow-lg"
     >
       <p className="text-sm font-medium text-content">
         {labels.selected.replace('{n}', count.toLocaleString('en-IN'))}
@@ -195,7 +195,7 @@ export function DecisionBar({
     <div
       role="region"
       aria-label={labels.region}
-      className="sticky bottom-0 z-sticky mt-stack-md flex flex-wrap items-center justify-between gap-inline-sm rounded-card border border-subtle bg-surface-raised px-inset-md py-inset-sm shadow-lg"
+      className="sticky bottom-0 z-sticky-section mt-stack-md flex flex-wrap items-center justify-between gap-inline-sm rounded-card border border-subtle bg-surface-raised px-inset-md py-inset-sm shadow-lg"
     >
       <div className="min-w-0">
         {note !== undefined && <p className="text-xs text-content-muted">{note}</p>}

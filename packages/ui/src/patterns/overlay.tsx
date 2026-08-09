@@ -528,7 +528,7 @@ export function Dropdown({
             onClick={() => {
               setOpen(false);
             }}
-            className="fixed inset-0 z-sticky cursor-default"
+            className="fixed inset-0 z-sticky-section cursor-default"
           />
           <div
             ref={container}
@@ -574,13 +574,12 @@ export function Dropdown({
               </div>
             ))}
 
-            {enabled.length === 0 && (
+            {enabled.length === 0 &&
               // Not an empty box. A menu whose every item is disabled has already said so per item;
               // this is the case where there are no items at all.
               items.length === 0 && (
                 <p className="px-inset-sm py-inset-2xs text-xs text-content-muted">{label}</p>
-              )
-            )}
+              )}
           </div>
         </>
       )}

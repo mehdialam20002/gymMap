@@ -883,13 +883,30 @@
      * than from the header box.
      */
     padding-top: clamp(24px, 3.4vh, 46px);
-    overflow: hidden;
   }
 
+  /*
+   * ┌─ THE CLIP MOVED HERE, AND THAT IS THE WHOLE "MARGIN ABOVE THE HERO" ───────────────────────┐
+   * │ This box was already pulled ABOVE the hero so the gradient would run behind the floating   │
+   * │ navigation - and `.gm-hero` carried `overflow: hidden`, which clipped every pixel of that  │
+   * │ extension away. So the reader saw the flat `<html>` ground in the 92px strip the header    │
+   * │ sits in, then the gradient starting abruptly below it. A seam, reading as a margin above    │
+   * │ the hero, which is what it was reported as twice.                                           │
+   * │                                                                                            │
+   * │ Nothing needed the hero's clip: the plates and the grid are children of THIS element, and  │
+   * │ the marquee clips itself. Moving it here contains them exactly as before and lets the      │
+   * │ background reach the top of the page.                                                       │
+   * │                                                                                            │
+   * │ `-160px` rather than `-10%`: a percentage of the hero's own height is not related to the   │
+   * │ height of the chrome it has to reach past, and at a short hero it fell 34px short. Any     │
+   * │ excess is harmless - the announcement bar lifts itself above this layer.                    │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   .gm-hero-bg {
     position: absolute;
-    inset: -10% 0 0;
+    inset: -160px 0 0;
     z-index: 0;
+    overflow: hidden;
   }
 
   /*

@@ -263,15 +263,61 @@ function sourceFiles(dir, out = []) {
   return out;
 }
 
+/**
+ * Reads the `zIndex` keys straight out of the preset.
+ *
+ * +- THE FOURTH FAMILY, AND THE ONE THAT REORDERS THE PAGE SILENTLY ---------------------------+
+ * | The preset REPLACES `theme.zIndex` the way it replaces `theme.spacing`, so Tailwind's        |
+ * | numeric ladder - `z-0`, `z-10`, `z-50` - does not exist, and neither does `z-auto` unless    |
+ * | the block below names it.                                                                    |
+ * |                                                                                             |
+ * | `z-10` was written on the announcement bar to hold it above the hero background, and the     |
+ * | computed value measured `auto` in the browser: the hero's gradient painted over the strip    |
+ * | AND its text. Nothing errored and nothing looked broken - the bar simply had a different     |
+ * | ground from the one its contrast is proved against.                                          |
+ * |                                                                                             |
+ * | A missing spacing collapses a gap. A missing weight inherits. A missing border colour goes   |
+ * | to currentColor. A missing z-index hands the layer order back to DOM position, which is the  |
+ * | only one of the four that can hide content behind other content.                             |
+ * +-------------------------------------------------------------------------------------------+
+ */
+export function zIndexScale(repoRoot = process.cwd()) {
+  const preset = resolve(repoRoot, 'packages/ui/tailwind-preset.ts');
+  const source = readFileSync(preset, 'utf8');
+  const block = /zIndex: \{([\s\S]*?)\n {4}\},/.exec(source);
+  if (block === null) {
+    throw new Error(
+      'could not find `zIndex: { … }` in the preset. Without it a missing `z-` utility silently ' +
+        'leaves the element at `auto` and the layer order falls back to DOM position — see the ' +
+        'note above. Update the pattern here in the same change that reshapes the preset.',
+    );
+  }
+
+  const keys = new Set();
+  for (const match of block[1].matchAll(/^\s*'?([a-zA-Z0-9-]+)'?:/gm)) keys.add(match[1]);
+  return keys;
+}
+
 export function checkTailwindTokens(repoRoot = process.cwd()) {
   const scale = spacingScale(repoRoot);
   const weights = fontWeightScale(repoRoot);
   const borders = borderColorScale(repoRoot);
+  const layers = zIndexScale(repoRoot);
   /** Role groups the preset spreads in from `colors`; `border-surface-sunken` is legitimate. */
-  const ROLE_PREFIXES = new Set(['surface', 'content', 'border', 'viz', 'brand', 'success', 'warning', 'danger', 'info']);
+  const ROLE_PREFIXES = new Set([
+    'surface',
+    'content',
+    'border',
+    'viz',
+    'brand',
+    'success',
+    'warning',
+    'danger',
+    'info',
+  ]);
   const problems = [];
 
-    /**
+  /**
    * `font-semibold`, with any responsive or state prefix. Built FRESH per region.
    *
    * +- NOT SUPERSTITION - THE HOISTED VERSION SILENTLY MATCHED NOTHING -------------------------+
@@ -290,6 +336,9 @@ export function checkTailwindTokens(repoRoot = process.cwd()) {
 
   const weightPatternFor = () =>
     /\b(?:(?:sm|md|lg|xl|2xl|hover|focus|active|disabled|dark|group-hover):)*font-([a-z]+)\b/g;
+
+  const layerPatternFor = () =>
+    /\b(?:(?:sm|md|lg|xl|2xl|hover|focus|active|disabled|dark|group-hover):)*z-([a-zA-Z0-9[\]-]+)/g;
 
   const pattern = new RegExp(
     String.raw`\b(?:(?:sm|md|lg|xl|2xl|hover|focus|active|disabled|dark|group-hover):)*(` +
@@ -369,6 +418,21 @@ export function checkTailwindTokens(repoRoot = process.cwd()) {
           });
         }
 
+        for (const [, layer] of region.matchAll(layerPatternFor())) {
+          // `z-[60]` is a deliberate arbitrary value, the same escape hatch spacing has.
+          if (layer.startsWith('[')) continue;
+          if (layers.has(layer)) continue;
+          problems.push({
+            file: relative(repoRoot, file).split('\\').join('/'),
+            class: `z-${layer}`,
+            message:
+              `\`z-${layer}\` is not in the zIndex scale, so Tailwind emits NOTHING and the ` +
+              'element stays at `auto` — its layer order falls back to DOM position, which is how ' +
+              'a background ends up painted over the content it sits behind. Available: ' +
+              `${[...layers].join(', ')}.`,
+          });
+        }
+
         for (const [, weight] of region.matchAll(weightPatternFor())) {
           // `font-mono`, `font-sans` and `font-serif` are FAMILIES and share the prefix.
           if (weight === 'mono' || weight === 'sans' || weight === 'serif') continue;
@@ -397,7 +461,9 @@ if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.a
   const problems = checkTailwindTokens();
 
   if (problems.length === 0) {
-    process.stdout.write('tailwind-tokens: OK — every spacing, font-weight and border-colour utility resolves.\n');
+    process.stdout.write(
+      'tailwind-tokens: OK — every spacing, font-weight, border-colour and z-index utility resolves.\n',
+    );
   } else {
     process.stdout.write(`tailwind-tokens: ${problems.length} dead utility class(es)\n`);
     for (const problem of problems) {

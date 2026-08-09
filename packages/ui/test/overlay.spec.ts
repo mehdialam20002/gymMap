@@ -183,7 +183,8 @@ test('aria-hidden appears only on the scrim and on decorative glyphs', () => {
     // The only two non-span cases: the scrim, and the dropdown's outside-click layer. Both are
     // `tabIndex={-1}` buttons that exist to catch a click.
     const clickCatcher =
-      /bg-surface-scrim/.test(window) || /fixed inset-0 z-sticky cursor-default/.test(window);
+      /bg-surface-scrim/.test(window) ||
+      /fixed inset-0 z-sticky-section cursor-default/.test(window);
     assert.ok(
       clickCatcher,
       `aria-hidden was added to a <${tag}> that is neither a decorative span nor a click ` +
@@ -319,7 +320,17 @@ test('the menu closes via an overlay layer, not a document mousedown listener', 
     !/addEventListener\('mousedown'/.test(dropdown),
     'a document mousedown listener has appeared; see the note on Dropdown',
   );
-  assert.match(dropdown, /fixed inset-0 z-sticky cursor-default/);
+  /*
+   * `z-sticky-section`, and the rename is the point rather than a tidy-up.
+   *
+   * This pinned `z-sticky`, which is not in the preset's `zIndex` scale - Tailwind emitted no rule
+   * for it, so the click-catcher sat at `z-index: auto` and its layer order came from DOM position
+   * alone. The assertion did not just miss that, it FROZE it: the exact dead string was the thing
+   * being asserted, so correcting the class broke the test.
+   *
+   * `ci:tailwind-tokens` covers `z-` utilities now and fails the build on the next one.
+   */
+  assert.match(dropdown, /fixed inset-0 z-sticky-section cursor-default/);
 });
 
 test('the trigger declares that it opens a menu, and whether it is open', () => {
@@ -359,7 +370,10 @@ test('no overlay names a raw colour or a numeric Tailwind spacing step', () => {
   // `theme.spacing` REPLACES Tailwind's numeric scale in this design system, so `p-4` and `mt-2`
   // emit NOTHING and the element renders with no spacing at all — silently.
   const numericSpacing = [...OVERLAY.matchAll(/\b(?:[pm][xytrbl]?|gap|space-[xy])-\d+\b/g)];
-  assert.deepEqual(numericSpacing.map((m) => m[0]), []);
+  assert.deepEqual(
+    numericSpacing.map((m) => m[0]),
+    [],
+  );
 
   // HTML entity references go first. `&#215;` is the close glyph and `&#8943;` the overflow
   // ellipsis, and `#215` inside one is not a colour — the first run of this test reported three of

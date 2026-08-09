@@ -152,7 +152,7 @@ function AdminHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-sticky border-b border-subtle bg-surface">
+      <header className="sticky top-0 z-app-chrome border-b border-subtle bg-surface">
         <div className="flex h-[4rem] items-center gap-inline-md px-inset-lg">
           {/* The trigger LOOKS like a search field and opens the palette, because that is what a
               person pressing it wants. It is a button rather than an input: an input that steals
