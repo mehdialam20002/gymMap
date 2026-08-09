@@ -67,17 +67,23 @@ export default function HomePage({ searchParams }: { readonly searchParams: RawP
        * "join now — actually, none of this works". Same sentence, same honesty, and it no longer
        * argues with the button directly above it.
        */}
-      {/* `subtle`, because the closing call to action above it is the plain band. */}
-      <section className="border-t border-subtle bg-surface-subtle">
-        <div className="gm-reveal mx-auto max-w-container px-inset-md py-region-sm">
-          <div className="rounded-card border border-info bg-surface-info-subtle p-inset-lg">
-            <h2 className="text-base font-semibold text-content-info">
-              {t('web.home.status.title')}
-            </h2>
-            <p className="mt-stack-2xs max-w-ui text-sm text-content-info">
-              {t('web.home.status.body')}
-            </p>
-          </div>
+      {/*
+       * In the page's own voice, not a system alert.
+       *
+       * It was `border-info` on `surface-info-subtle` with `content-info` ink - the last element
+       * on the page still wearing the palette everything else was rebuilt out of. A bright blue
+       * notice bolted to the bottom of an ink-and-amber page reads as a browser warning about the
+       * site rather than the site telling you where it is up to, and honest copy delivered in the
+       * wrong voice gets skipped.
+       *
+       * `gm-note` is the same treatment the gym rail's sample notice already uses, which is the
+       * right relationship: two statements of the same fact, in one voice.
+       */}
+      <section className="gm-sec gm-sec-paper">
+        <div className="gm-wrap">
+          <p className="gm-note">
+            <b>{t('web.home.status.title')}</b> {t('web.home.status.body')}
+          </p>
         </div>
       </section>
 

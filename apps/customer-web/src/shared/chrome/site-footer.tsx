@@ -48,13 +48,28 @@ export function SiteFooter() {
               <h2 className="text-xs font-semibold uppercase tracking-wide text-content-muted">
                 {t(column.heading)}
               </h2>
-              <ul className="mt-stack-sm flex flex-col gap-stack-xs">
+              {/*
+               * 44px ROWS, not `gm-hit-target` on a 16px link.
+               *
+               * `AX3` wants a 44px pointer target and `gm-hit-target` gets there with a `::after`
+               * that grows outwards from the middle. On a stacked list of 16px links spaced 8px
+               * apart that expansion runs 14px into the link above and the link below, and
+               * overlapping targets are worse than small ones: the tap lands on a neighbour and
+               * the reader has no way to tell why. Measured at 390px, every one of these was
+               * 16px tall.
+               *
+               * So the ROW is the target. `min-h` from the size token, the gap removed because
+               * the padding now provides the rhythm, and nothing invisible reaching into anything
+               * else. The disabled items match, or the list would step unevenly where a milestone
+               * has not shipped.
+               */}
+              <ul className="mt-stack-sm flex flex-col">
                 {column.items.map((item) => (
-                  <li key={item.href}>
+                  <li key={item.href} className="flex min-h-[2.75rem] items-center">
                     {item.built ? (
                       <Link
                         href={item.href}
-                        className="text-sm text-content-secondary transition-colors duration-fast ease-standard hover:text-content"
+                        className="flex min-h-[2.75rem] w-full items-center text-sm text-content-secondary transition-colors duration-fast ease-standard hover:text-content"
                       >
                         {t(item.label)}
                       </Link>

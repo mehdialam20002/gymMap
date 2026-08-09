@@ -96,7 +96,15 @@ export function CompareRail({ selected }: { readonly selected: readonly GymDetai
         </ul>
 
         <p className="gm-rail-act">
-          <Link href={toCompareParams([], RAIL_BASE, RAIL_FRAGMENT)} className="gm-rail-clear">
+          {/*
+           * `gm-hit-target` here and NOT in the footer's link list: this one sits in a horizontal
+           * row with a 14px gap to the Compare button, so a 44px target has room to grow into.
+           * Stacked 16px links do not, which is why the footer uses real row height instead.
+           */}
+          <Link
+            href={toCompareParams([], RAIL_BASE, RAIL_FRAGMENT)}
+            className="gm-hit-target gm-rail-clear"
+          >
             {t('web.compare.rail.clear')}
           </Link>
           {/*

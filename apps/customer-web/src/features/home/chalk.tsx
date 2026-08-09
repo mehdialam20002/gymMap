@@ -16,6 +16,20 @@
  * ═══════════════════════════════════════════════════════════════════════════════════════════
  */
 
+/*
+ * ┌─ `gm-reveal` ON EVERY SECTION WRAP, WHICH IS WHERE IT BELONGS ──────────────────────────────┐
+ * │ Each band rises 1.25rem as it enters, driven by `animation-timeline: view()` - no listener,  │
+ * │ no observer, no state, and `§4.5` bans a scroll handler outright. The rule was already in    │
+ * │ the stylesheet and correctly built: an ENTRY-relative range so the last band before the      │
+ * │ footer finishes rather than sitting half-faded, an `@supports` guard so Safari and Firefox   │
+ * │ get the finished page immediately, and a print block so paper does not come out blank.       │
+ * │                                                                                             │
+ * │ It had gone dead. The identity rebuild replaced its last user and the guard in               │
+ * │ `hero-contrast.spec.ts` failed the build on the same run - which is the whole reason that    │
+ * │ guard exists, and it is a better outcome than deleting a correct rule to make a lint quiet.  │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+
 import Link from 'next/link';
 
 import { t, type MessageKey } from '../../shared/i18n/index.ts';
@@ -73,7 +87,7 @@ export function GymRail({ selected = [] }: { readonly selected?: readonly GymDet
 
   return (
     <section className="gm-sec" id="gyms">
-      <div className="gm-wrap">
+      <div className="gm-wrap gm-reveal">
         <SectionHead
           eyebrow="web.home.eyebrow.featured"
           title="web.home.featured.title"
@@ -211,7 +225,7 @@ const PROMISES = [
 export function Promises() {
   return (
     <section className="gm-sec gm-sec-paper" id="promises">
-      <div className="gm-wrap">
+      <div className="gm-wrap gm-reveal">
         <SectionHead
           eyebrow="web.home.eyebrow.promises"
           title="web.home.promises.title"
@@ -251,7 +265,7 @@ export function PlanRow() {
 
   return (
     <section className="gm-sec gm-sec-paper" id="plans">
-      <div className="gm-wrap">
+      <div className="gm-wrap gm-reveal">
         <SectionHead
           eyebrow="web.home.eyebrow.plans"
           title="web.home.plans.title"
@@ -371,7 +385,7 @@ export function CompareBand() {
 
   return (
     <section className="gm-sec" id="compare">
-      <div className="gm-wrap gm-cmp">
+      <div className="gm-wrap gm-cmp gm-reveal">
         <div>
           <p className="gm-eyebrow-k">{t('web.home.eyebrow.compare')}</p>
           <h2 className="gm-h2">{t('web.home.compareTeaser.title')}</h2>
@@ -441,7 +455,7 @@ export function CityGrid() {
 
   return (
     <section className="gm-sec" id="cities">
-      <div className="gm-wrap">
+      <div className="gm-wrap gm-reveal">
         <SectionHead
           eyebrow="web.home.eyebrow.cities"
           title="web.home.cities.title"
@@ -485,7 +499,7 @@ const FAQ = [
 export function Faq() {
   return (
     <section className="gm-sec" id="faq">
-      <div className="gm-wrap">
+      <div className="gm-wrap gm-reveal">
         <SectionHead
           eyebrow="web.home.eyebrow.faq"
           title="web.home.faq.title"
@@ -526,7 +540,7 @@ export function ClosingBand() {
 
   return (
     <section className="gm-close">
-      <div className="gm-wrap">
+      <div className="gm-wrap gm-reveal">
         <h2 className="gm-display">
           {t('web.home.closing.titleLead')} <em>{t('web.home.closing.titleAccent')}</em>
         </h2>
@@ -567,7 +581,7 @@ const GOALS = [
 export function Goals() {
   return (
     <section className="gm-sec" id="goals">
-      <div className="gm-wrap">
+      <div className="gm-wrap gm-reveal">
         <SectionHead
           eyebrow="web.home.eyebrow.goals"
           title="web.home.goals.title"
@@ -614,7 +628,7 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <section className="gm-sec gm-sec-paper" id="how">
-      <div className="gm-wrap">
+      <div className="gm-wrap gm-reveal">
         <SectionHead eyebrow="web.home.eyebrow.how" title="web.home.how.title" />
 
         {/*
@@ -662,7 +676,7 @@ export function Reviews() {
 
   return (
     <section className="gm-sec" id="reviews">
-      <div className="gm-wrap">
+      <div className="gm-wrap gm-reveal">
         <SectionHead
           eyebrow="web.home.eyebrow.reviews"
           title="web.home.reviews.title"
@@ -740,7 +754,7 @@ const MEMBER_FEATURES = [
 export function MemberExperience() {
   return (
     <section className="gm-sec gm-sec-paper" id="member">
-      <div className="gm-wrap">
+      <div className="gm-wrap gm-reveal">
         <SectionHead
           eyebrow="web.home.eyebrow.member"
           title="web.home.member.title"
@@ -794,7 +808,7 @@ export function ForOwners() {
 
   return (
     <section className="gm-sec gm-owners" id="owners">
-      <div className="gm-wrap gm-owners-in">
+      <div className="gm-wrap gm-owners-in gm-reveal">
         <div>
           <p className="gm-eyebrow-k">{t('web.home.owners.eyebrow')}</p>
           <h2 className="gm-h2">{t('web.home.owners.title')}</h2>
