@@ -77,6 +77,29 @@ export const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
   LAST_OWNER_PROTECTED:
     'This is the only owner of this gym. Add a second owner before removing or demoting this one.',
 
+  // --- M-024, the second factor -------------------------------------------
+
+  // ┌─ DELIBERATELY UNINFORMATIVE, AND THAT IS THE REQUIREMENT ────────────────────────────────┐
+  // │ Wrong code, replayed code, wrong recovery code, no enrolment at all — one sentence for all │
+  // │ of them. Any hint of which turns the endpoint into an oracle for whether an account holds  │
+  // │ a second factor, and a staff account is exactly what an attacker wants to identify.        │
+  // └────────────────────────────────────────────────────────────────────────────────────────────┘
+  MFA_VERIFICATION_FAILED: 'That code was not accepted. Check your authenticator and try again.',
+
+  // The opposite: as informative as possible, because the client is meant to ACT on it —
+  // `Security.md` §2.8 has the console start enrolment from this exact code.
+  MFA_ENROLMENT_REQUIRED:
+    'Your account needs a second factor before you can continue. Set one up to carry on.',
+
+  // Says what to do INSTEAD, because the person reading it has almost certainly lost their phone
+  // and is looking for the exit rather than an explanation of policy.
+  MFA_MANDATORY_FOR_ROLE:
+    'Two-factor authentication cannot be switched off for this account. If you have lost your ' +
+    'device, sign in with a recovery code and set up a new authenticator.',
+
+  MFA_NOT_AVAILABLE_FOR_ROLE:
+    'Two-factor authentication is not available for this kind of account yet.',
+
   // --- M-020, the password path -------------------------------------------
   //
   // `ACCOUNT_LOCKED`'s real message is assembled per request and arrives on the exception's

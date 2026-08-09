@@ -237,6 +237,65 @@ export const ERROR_REGISTRY = {
     detailsShape: '{ tenant_id: string; owner_count: number; }',
   },
 
+  // --- iam · M-024, the second factor -------------------------------------
+
+  MFA_VERIFICATION_FAILED: {
+    module: 'iam',
+    class: 'Business',
+    // ┌─ ONE CODE FOR EVERY WAY THE FACTOR CAN FAIL ───────────────────────────────────────────┐
+    // │ Wrong TOTP, replayed TOTP, wrong recovery code, no enrolment at all — all of them answer │
+    // │ with this. Separating them would build an enrolment oracle: submit anything for a user   │
+    // │ id and the error tells you whether that account has MFA, which is to say whether it is   │
+    // │ a staff account worth attacking. Same shape as M-020's deliberate lack of an             │
+    // │ INVALID_CREDENTIALS/USER_NOT_FOUND split, for exactly the same reason.                    │
+    // └─────────────────────────────────────────────────────────────────────────────────────────┘
+    httpStatus: 401,
+    messageKey: 'error.iam.mfa_verification_failed',
+    enforces: ['FR-AUTH-07', 'NFR-SEC-11'],
+    // NOT retryable, and the registry's own invariant is what corrected this — a retryable 4xx may
+    // only be a 429. It is right: replaying the SAME rejected code is never going to work, and a
+    // client that treats "wrong code" as retryable hammers the endpoint straight into the lockout
+    // it is trying to avoid. The user typing a fresh code is a new request, not a retry.
+    retryable: false,
+  },
+
+  MFA_ENROLMENT_REQUIRED: {
+    module: 'iam',
+    class: 'Business',
+    // 403, and the code is the point: `Security.md` §2.8 says an account holding a platform role
+    // with no enrolment "can reach ONLY /auth/mfa/enrol; every other route returns 403
+    // MFA_ENROLMENT_REQUIRED with a code the client uses to start enrolment". A bare 403 would
+    // leave the client with nothing to act on but a dead end.
+    httpStatus: 403,
+    messageKey: 'error.iam.mfa_enrolment_required',
+    enforces: ['FR-AUTH-07', 'NFR-SEC-11', 'E1.3'],
+    retryable: false,
+  },
+
+  MFA_MANDATORY_FOR_ROLE: {
+    module: 'iam',
+    class: 'Business',
+    // 422, not 403 — the same distinction as LAST_OWNER_PROTECTED. A SUPER_ADMIN holds every
+    // permission there is, so 403 would be a lie about authorisation. The truth is that the
+    // domain offers this operation to nobody. M-024 acceptance criterion 6 requires it.
+    httpStatus: 422,
+    messageKey: 'error.iam.mfa_mandatory_for_role',
+    enforces: ['FR-AUTH-07', 'NFR-SEC-11'],
+    retryable: false,
+  },
+
+  MFA_NOT_AVAILABLE_FOR_ROLE: {
+    module: 'iam',
+    class: 'Business',
+    // The NOT_OFFERED third case. A receptionist asking to enrol is refused because a shared
+    // front-desk device makes per-staff TOTP an operational problem NFR-USE-09 does not budget
+    // for (Security.md §2.8) — not because they lack a permission.
+    httpStatus: 422,
+    messageKey: 'error.iam.mfa_not_available_for_role',
+    enforces: ['FR-AUTH-07'],
+    retryable: false,
+  },
+
   // --- iam · M-020, the password path -------------------------------------
   //
   // Note what is ABSENT: there is no INVALID_CREDENTIALS, no USER_NOT_FOUND and no
