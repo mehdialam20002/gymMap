@@ -197,6 +197,27 @@ export const mfaDisableBody = z
   })
   .strict();
 
+/**
+ * `M-025` · starting an impersonation — `FR-AUTH-12`, `AC-2`, `AC-3`.
+ *
+ * The reason is `.min(10)` at the TYPE level as well as in the policy, because `AC-2` asks for it
+ * "at the type level and at runtime". Two checks of the same rule is not duplication here: the
+ * schema gives a 400 that names the field, and the policy gives the domain refusal that a caller
+ * bypassing the schema would still meet.
+ */
+export const impersonateBody = z
+  .object({
+    user_id: z.string().uuid(),
+    reason: z.string().trim().min(10).max(500),
+    // The CAP is 30, and the default is deliberately lower. Most support work is a two-minute
+    // look, and a session that outlives the question it was opened for is the one somebody
+    // forgets to close.
+    minutes: z.number().int().min(1).max(30).default(10),
+  })
+  .strict();
+
+export type ImpersonateBody = z.infer<typeof impersonateBody>;
+
 export type MfaEnrolBody = z.infer<typeof mfaEnrolBody>;
 export type MfaVerifyBody = z.infer<typeof mfaVerifyBody>;
 export type MfaDisableBody = z.infer<typeof mfaDisableBody>;

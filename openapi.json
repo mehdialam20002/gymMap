@@ -121,6 +121,45 @@
         "x-gymmap-rate-limit": "RL-READ"
       }
     },
+    "/v1/auth/impersonate": {
+      "post": {
+        "description": "Returns a token of a DISTINCT type that carries the intersection of the agent's and the subject's permissions, expires within 30 minutes, and can execute no financial mutation.",
+        "operationId": "impersonate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Act as another user, briefly and with a reason",
+        "tags": [
+          "iam"
+        ],
+        "x-gymmap-error-codes": [
+          "IMPERSONATION_REFUSED"
+        ],
+        "x-gymmap-permission": "iam.impersonation.manage",
+        "x-gymmap-rate-limit": "RL-AUTH"
+      }
+    },
+    "/v1/auth/impersonate/end": {
+      "post": {
+        "description": "Revokes the token family, so the credential stops working immediately rather than running to its 30-minute expiry, and records the duration.",
+        "operationId": "endImpersonationSession",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "End an impersonation",
+        "tags": [
+          "iam"
+        ],
+        "x-gymmap-permission": "iam.impersonation.manage",
+        "x-gymmap-rate-limit": "RL-AUTH"
+      }
+    },
     "/v1/auth/login": {
       "post": {
         "description": "Returns 401 UNAUTHENTICATED for an unknown identifier AND for a wrong password — the same status, the same code, the same message and the same latency (Security.md §1.6). A locked account is 403 ACCOUNT_LOCKED, never 429: a lockout is about this account and clears with an unlock, while a 429 tells the victim of credential stuffing to try again in a minute. On success a session is opened (M-022): the ACCESS token is returned here because the SPA must place it in an Authorization header, while the 30-day REFRESH token is set as an httpOnly cookie and never appears in this body (SE1, TK7, ADR-0011).",

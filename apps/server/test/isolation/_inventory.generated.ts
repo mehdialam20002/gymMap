@@ -58,6 +58,16 @@ export const GENERATED_INVENTORY: Inventory = {
     },
     {
       "method": "POST",
+      "path": "/v1/auth/impersonate",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/auth/impersonate/end",
+      "audience": "PUBLIC"
+    },
+    {
+      "method": "POST",
       "path": "/v1/auth/login",
       "audience": "PUBLIC"
     },

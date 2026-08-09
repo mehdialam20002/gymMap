@@ -1039,6 +1039,19 @@ export const IAM_PERMISSIONS = {
    * and re-authentication, both of which a permission cannot express.
    */
   OWN_MFA_MANAGE: 'iam.own_mfa.manage',
+
+  /**
+   * `FR-AUTH-12`. Start and end an impersonation.
+   *
+   * Outside `§B3.2` like the two above, and for a sharper reason than "every principal has it":
+   * NOT every principal has it. Who may impersonate is `MAY_IMPERSONATE` in the policy — a
+   * deliberate two-role list — because "may borrow an identity" is not a capability the matrix
+   * expresses, and inferring it from permissions is how a broad-read role like `FINANCE` would
+   * acquire it by accident.
+   *
+   * The key exists so the route can declare one (`FR-RBAC-01`, `PG-1`); the POLICY is the control.
+   */
+  IMPERSONATION_MANAGE: 'iam.impersonation.manage',
 } as const;
 
 export type IamPermission = (typeof IAM_PERMISSIONS)[keyof typeof IAM_PERMISSIONS];

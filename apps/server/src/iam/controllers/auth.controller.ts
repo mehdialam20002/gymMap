@@ -50,6 +50,7 @@ import {
   otpRequestBody,
   otpVerifyBody,
   registerBody,
+  impersonateBody,
   mfaDisableBody,
   mfaEnrolBody,
   mfaVerifyBody,
@@ -59,6 +60,7 @@ import {
   type OtpRequestBody,
   type OtpVerifyBody,
   type RegisterBody,
+  type ImpersonateBody,
   type MfaDisableBody,
   type MfaEnrolBody,
   type MfaVerifyBody,
@@ -82,6 +84,8 @@ import { SessionUseCases } from '../application/session.use-cases.js';
 import { EnrolMfaUseCase } from '../application/enrol-mfa.use-case.js';
 import { VerifyMfaUseCase } from '../application/verify-mfa.use-case.js';
 import { DisableMfaUseCase } from '../application/disable-mfa.use-case.js';
+import { StartImpersonationUseCase } from '../application/start-impersonation.use-case.js';
+import { EndImpersonationUseCase } from '../application/end-impersonation.use-case.js';
 import { UserPrismaRepository } from '../infrastructure/user.prisma-repository.js';
 import { IAM_PERMISSIONS } from '../permissions.js';
 import { parseRoleGrants } from '../domain/effective-permissions.js';
@@ -108,6 +112,8 @@ export class AuthController {
     private readonly verifyMfa: VerifyMfaUseCase,
     private readonly disableMfa: DisableMfaUseCase,
     private readonly users: UserPrismaRepository,
+    private readonly startImpersonation: StartImpersonationUseCase,
+    private readonly endImpersonation: EndImpersonationUseCase,
   ) {}
 
   @Post('register')
@@ -537,6 +543,86 @@ export class AuthController {
       correlationId: currentCorrelationId(),
     });
   }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // M-025 · impersonation — `FR-AUTH-12`, `Authentication.md` §8.14, §8.15
+  // ═════════════════════════════════════════════════════════════════════════
+
+  @Post('impersonate')
+  @MfaExempt()
+  @RequiredPermission(IAM_PERMISSIONS.IMPERSONATION_MANAGE)
+  @RateLimit('RL-AUTH')
+  @HttpCode(HttpStatus.OK)
+  @EmitsErrors('IMPERSONATION_REFUSED')
+  @ApiOperation({
+    summary: 'Act as another user, briefly and with a reason',
+    description:
+      'Returns a token of a DISTINCT type that carries the intersection of the agent\'s and the ' +
+      'subject\'s permissions, expires within 30 minutes, and can execute no financial mutation.',
+  })
+  async impersonate(
+    @Req() request: Request,
+    @Body(zodPipe(impersonateBody)) body: ImpersonateBody,
+  ): Promise<{ token: string; expires_at: string; effective_permissions: readonly string[] }> {
+    const principal = mfaPrincipalOf(request);
+
+    /*
+     * `@MfaExempt()` and that is NOT a hole worth closing here.
+     *
+     * Only `SUPPORT_AGENT` and `SUPER_ADMIN` may impersonate, and both are platform-staff roles for
+     * which MFA is MANDATORY — so `MfaGuard` would refuse an unenrolled agent at every other route
+     * anyway, and the enrolment they need is one endpoint away. Adding the gate here too would be a
+     * second copy of a rule the policy already enforces more precisely.
+     */
+    const result = await this.startImpersonation.execute({
+      impersonatorId: principal.sub,
+      impersonatorRoles: parseRoleGrants(principal.roles).map((grant) => grant.role),
+      subjectUserId: body.user_id,
+      reason: body.reason,
+      minutes: body.minutes,
+      correlationId: currentCorrelationId(),
+    });
+
+    return {
+      token: result.token,
+      expires_at: result.expiresAt.toISOString(),
+      // So the console can render honestly rather than showing the subject's full menu and
+      // discovering the refusals one click at a time.
+      effective_permissions: result.effectivePermissions,
+    };
+  }
+
+  @Post('impersonate/end')
+  @MfaExempt()
+  @RequiredPermission(IAM_PERMISSIONS.IMPERSONATION_MANAGE)
+  @RateLimit('RL-AUTH')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'End an impersonation',
+    description:
+      'Revokes the token family, so the credential stops working immediately rather than running ' +
+      'to its 30-minute expiry, and records the duration.',
+  })
+  async endImpersonationSession(@Req() request: Request): Promise<void> {
+    const principal = mfaPrincipalOf(request);
+
+    /*
+     * Called UNDER the impersonation token, so everything needed is on the principal — and taking
+     * any of it from a body would let an agent close somebody else's session, or name a family that
+     * is not theirs.
+     */
+    if (principal.typ !== 'IMPERSONATION' || principal.imp === undefined) {
+      throw new UnauthenticatedException('This is not an impersonation session.');
+    }
+
+    await this.endImpersonation.execute({
+      impersonatorId: principal.imp,
+      subjectUserId: principal.sub,
+      familyId: principal.fam ?? currentCorrelationId(),
+      startedAt: new Date((principal.imp_at ?? 0) * 1000),
+      correlationId: currentCorrelationId(),
+    });
+  }
 }
 
 /**
@@ -550,10 +636,23 @@ function mfaPrincipalOf(request: Request): {
   readonly sub: string;
   readonly email?: string;
   readonly roles?: readonly string[];
+  /** `M-025`. Present only on an impersonation token. */
+  readonly typ?: string;
+  readonly imp?: string;
+  readonly imp_at?: number;
+  readonly fam?: string;
 } {
   const principal = (
     request as unknown as {
-      principal?: { sub: string; email?: string; roles?: readonly string[] };
+      principal?: {
+        sub: string;
+        email?: string;
+        roles?: readonly string[];
+        typ?: string;
+        imp?: string;
+        imp_at?: number;
+        fam?: string;
+      };
     }
   ).principal;
   if (principal === undefined) throw new UnauthenticatedException('No principal on request.');

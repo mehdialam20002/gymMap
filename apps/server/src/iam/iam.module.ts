@@ -61,6 +61,9 @@ import { AesGcmSecretCipher, SECRET_CIPHER } from './infrastructure/secret-ciphe
 import { EnrolMfaUseCase } from './application/enrol-mfa.use-case.js';
 import { VerifyMfaUseCase } from './application/verify-mfa.use-case.js';
 import { DisableMfaUseCase } from './application/disable-mfa.use-case.js';
+import { StartImpersonationUseCase } from './application/start-impersonation.use-case.js';
+import { EndImpersonationUseCase } from './application/end-impersonation.use-case.js';
+import { FamilyDenylist } from '../common/auth/family-denylist.redis.js';
 import { RedisLockoutCounter } from './infrastructure/redis-lockout-counter.adapter.js';
 import { UserPrismaRepository } from './infrastructure/user.prisma-repository.js';
 import { OtpRedisStore } from './infrastructure/otp.redis-store.js';
@@ -154,6 +157,13 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
     EnrolMfaUseCase,
     VerifyMfaUseCase,
     DisableMfaUseCase,
+
+    // M-025 · impersonation. `FamilyDenylist` is `common/`'s class rather than a port — the
+    // kernel owns it so the guard can reach it on every request, and ending a session must use
+    // the SAME denylist the verifier reads or the revocation would be invisible to it.
+    FamilyDenylist,
+    StartImpersonationUseCase,
+    EndImpersonationUseCase,
   ],
   // Only the session repository leaves the module, and only because M-023's session-management
   // endpoints will need it. Nothing that can hash, mint a token or verify a password is
