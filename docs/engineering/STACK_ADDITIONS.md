@@ -193,6 +193,7 @@ mention it because it is the kind of detail that is cheap now and expensive in m
 | 2026-08-06 | Project owner | **A-08 — polling APPROVED for Phase 1; Socket.IO DEFERRED to Phase 2** behind `release.attendance.realtime_transport` | A-08 |
 | 2026-08-06 | Project owner | **Remaining 28 additions APPROVED as a block** — conventional tooling, no PRD conflict | A-02…A-07, A-09…A-30 |
 | 2026-08-08 | Project owner | **Icon set APPROVED** — asked for during the admin console work: *"jo chahiye install kar lo"*. Recorded as a row because approval without a row is still a review blocker (§Standing rule) | A-40 |
+| 2026-08-10 | Project owner | **A-41 reaffirmed** — *"motion to chahiye"*, in answer to the gate reporting it unapproved. The row was already `APPROVED`; the report was a **false positive**, because `dependency-approval.mjs` keeps its own `APPROVED_PREFIXES` array beside this register and `motion` had been added to one and not the other. No status changed. The gate now runs `stackAdditionsDrift()` FIRST and **exits 1** when the two lists disagree, so an approval this register grants can no longer be invisible to CI. Logged because "the gate was wrong" is the kind of thing that should be findable later | A-41 |
 
 ### Current status roll-up
 
