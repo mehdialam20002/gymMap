@@ -56,6 +56,16 @@ export function applyTestEnv(overrides: Record<string, string> = {}): void {
     QR_SIGNING_PRIVATE_KEY: 'q'.repeat(48),
     QR_SIGNING_KEY_ID: 'test-key-1',
 
+    // ┌─ NOT `'m'.repeat(44)` — THIS IS BASE64 AND `SecretCipher` DECODES IT ──────────────────┐
+    // │ The schema asks only for 32 CHARACTERS, so a repeated literal passes validation and    │
+    // │ then fails at cipher construction, which refuses a key that is not exactly 32 BYTES    │
+    // │ after decoding. `'d'.repeat(48)` decodes to 36 and was rejected in four environments    │
+    // │ at once during M-024. This is `Buffer.alloc(32, 0x6d).toString('base64')` — 44 base64   │
+    // │ characters, 32 bytes, written out rather than computed so the value is greppable.       │
+    // └────────────────────────────────────────────────────────────────────────────────────────┘
+    MFA_SECRET_KEY: 'bW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW0=',
+    MFA_SECRET_KEY_ID: 'test-key-1',
+
     // 'stub' rather than 'razorpay'. `.env.example` once shipped `razorpay` with empty keys, and
     // anyone who copied it got a server that would not boot — the schema refuses a named provider
     // with no credentials, correctly.

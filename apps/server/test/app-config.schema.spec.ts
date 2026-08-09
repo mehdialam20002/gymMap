@@ -225,3 +225,45 @@ function captureError(fn: () => unknown): Error | undefined {
     return thrown instanceof Error ? thrown : new Error(String(thrown));
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// The test harness must satisfy the schema it boots the application against
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('applyTestEnv() produces an environment this schema accepts', async () => {
+  // ┌─ THIS ASSERTION EXISTS BECAUSE THE FAILURE IT CATCHES ALREADY HAPPENED ────────────────────┐
+  // │ `test-env.ts` opens by naming its own failure mode: "one copy falls behind the moment      │
+  // │ `app-config.schema.ts` gains a required key". M-024 added `MFA_SECRET_KEY` and did not add │
+  // │ it there. Every isolation spec that boots the application then failed in a `before()` hook │
+  // │ with "Environment validation failed", and the reason took a probe to recover because the   │
+  // │ hook's own message pointed at `db:setup` instead.                                           │
+  // │                                                                                             │
+  // │ A unit test is the right place: it runs in every `test:unit` invocation, needs no database, │
+  // │ and fails in the same commit that adds the key rather than in whichever suite boots next.   │
+  // └────────────────────────────────────────────────────────────────────────────────────────────┘
+  const { applyTestEnv } = await import('./harness/test-env.ts');
+
+  const before = { ...process.env };
+  try {
+    applyTestEnv();
+    const error = captureError(() => loadAppConfig(process.env));
+    assert.equal(
+      error,
+      undefined,
+      `test-env.ts has fallen behind app-config.schema.ts:\n\n${error?.message ?? ''}`,
+    );
+  } finally {
+    // `applyTestEnv` mutates `process.env` by design, and a unit run must not leak that into the
+    // specs that follow it in the same process.
+    for (const key of Object.keys(process.env)) if (!(key in before)) delete process.env[key];
+    Object.assign(process.env, before);
+  }
+});
+
+test('the harness MFA key decodes to exactly 32 bytes, which the schema does not check', () => {
+  // The schema asks for 32 CHARACTERS; `SecretCipher` requires 32 BYTES after base64 decoding.
+  // A value satisfying the first and failing the second boots the config and then throws at
+  // cipher construction — which is how `'d'.repeat(48)` (36 bytes) got as far as four environments.
+  const key = 'bW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW0=';
+  assert.equal(Buffer.from(key, 'base64').length, 32);
+});
