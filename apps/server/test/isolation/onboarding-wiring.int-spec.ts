@@ -89,7 +89,11 @@ test('the refusing adapters are BOUND, not merely defined', async () => {
 test('the checklist store is bound to the PORT, so the use case never sees Prisma', async () => {
   if (bootError !== undefined) return;
 
-  const { CHECKLIST_STORE, ResolveChecklistUseCase } =
+  // The token comes from `application/ports/`, which is where §8.1 row 7 puts a dependency —
+  // importing it from the use case would be the very coupling this test claims to check against.
+  const { CHECKLIST_STORE } =
+    await import('../../dist/onboarding/application/ports/checklist-store.port.js');
+  const { ResolveChecklistUseCase } =
     await import('../../dist/onboarding/application/resolve-checklist.use-case.js');
 
   assert.ok(moduleRef?.get(CHECKLIST_STORE), 'CHECKLIST_STORE is not bound');
