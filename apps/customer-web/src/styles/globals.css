@@ -873,8 +873,16 @@
     min-height: min(100svh, 62rem);
     display: flex;
     align-items: stretch;
-    /* Clears the chrome and leaves a deliberate gap, tightening on a short screen. */
-    padding-top: clamp(56px, 7.5vh, 96px);
+    /*
+     * The ADDITIONAL gap, not the whole one.
+     *
+     * The header already carries `padding-bottom: 24px` under the navigation pill, so what a
+     * reader sees between the pill and the tag is that 24px plus this. The first pass set this to
+     * 56-96px and the visible gap was still 101px, because only half of it was ever here. Total
+     * now lands at 48-70px across every height, measured from the pill's own bottom edge rather
+     * than from the header box.
+     */
+    padding-top: clamp(24px, 3.4vh, 46px);
     overflow: hidden;
   }
 
