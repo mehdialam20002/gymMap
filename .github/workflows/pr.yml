@@ -271,13 +271,26 @@ jobs:
             curl -fsSL https://releases.hashicorp.com/terraform/1.10.3/terraform_1.10.3_linux_amd64.zip -o tf.zip
             unzip -q tf.zip && sudo mv terraform /usr/local/bin/
           fi
-          shopt -s nullglob
-          MODULES=(infra/terraform/**/)
+          # `globstar` as well as `nullglob`. Without it bash does not expand `**` recursively —
+          # `infra/terraform/**/` degrades to a single level, so `modules/object-storage/` would
+          # never be visited and the job would stay green over unvalidated HCL. Found while the
+          # directory was still empty, which is the only time a gate like this can be fixed
+          # without also discovering what it had been missing.
+          shopt -s nullglob globstar
+
+          # Directories holding at least one .tf file, rather than every directory. `terraform
+          # -chdir` on a directory with no configuration is an error, and the old `echo "$dir"*.tf`
+          # test was always non-empty — an unmatched glob echoes itself — so `continue` never fired.
+          MODULES=()
+          for tf in infra/terraform/**/*.tf; do
+            dir="${tf%/*}"
+            case " ${MODULES[*]} " in *" $dir "*) ;; *) MODULES+=("$dir") ;; esac
+          done
+
           if [ ${#MODULES[@]} -eq 0 ]; then
             echo "infra/terraform/ has no modules yet — nothing to validate, and that is a pass."
           else
             for dir in "${MODULES[@]}"; do
-              [ -n "$(echo "$dir"*.tf)" ] || continue
               echo "validating $dir"
               terraform -chdir="$dir" init -backend=false -input=false
               terraform -chdir="$dir" validate

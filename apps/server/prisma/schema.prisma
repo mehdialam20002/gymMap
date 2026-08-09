@@ -582,32 +582,47 @@ model KycDocument {
   createdBy String?  @map("created_by") @db.Uuid
   updatedBy String?  @map("updated_by") @db.Uuid
 
-  tenantId      String @map("tenant_id") @db.Uuid
-  applicationId String @map("application_id") @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+
+  /// `Schema.md` §4.3 — NULLABLE while the tenant is still assembling a draft. Evidence accumulates
+  /// before submission; submission freezes a snapshot over documents already present (`ERD.md` §9.6).
+  applicationId String? @map("application_id") @db.Uuid
 
   documentType KycDocumentTypeEnum @map("document_type")
 
   /// Globally unique. Object storage has one namespace, so two rows sharing a key would point at
-  /// one object and tombstoning either would destroy the other tenant's evidence.
-  storageKey  String @unique(map: "uq_kyc_documents__storage_key") @map("storage_key")
-  contentHash String @map("content_hash")
+  /// one object and purging either would destroy the other tenant's evidence.
+  storageKey String @unique(map: "uq_kyc_documents__storage_key") @map("storage_key")
+
+  /// As uploaded, sanitised for display. NEVER trusted for content type.
+  originalFilename String @map("original_filename")
+  /// `NFR-SEC-10` — determined by inspecting the bytes, never by the declared header.
+  contentType String @map("content_type")
+  /// `bigint`. Size limit enforced before write.
+  byteSize BigInt @map("byte_size")
+  /// `BR-DAT-07` — proves the stored object is the one the reviewer approved.
+  checksumSha256 String @map("checksum_sha256") @db.Char(64)
 
   status KycDocumentStatusEnum @default(PENDING)
 
-  reviewedBy      String?   @map("reviewed_by") @db.Uuid
-  reviewedAt      DateTime? @map("reviewed_at") @db.Timestamptz(6)
-  rejectionReason String?   @map("rejection_reason")
+  reviewedBy  String?   @map("reviewed_by") @db.Uuid
+  reviewedAt  DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewNotes String?   @map("review_notes")
 
-  /// NOT a soft delete. A reader filtering this out would hide the evidence.
-  tombstonedAt DateTime? @map("tombstoned_at") @db.Timestamptz(6)
-  expiresAt    DateTime? @map("expires_at") @db.Timestamptz(6)
+  /// `NFR-PRV-04` — the OBJECT was purged on retention expiry. NOT a soft delete: the ROW stays, so
+  /// the fact that a legally required check happened outlives the bytes it was performed on. A
+  /// reader filtering this out would hide exactly that evidence.
+  storagePurgedAt DateTime? @map("storage_purged_at") @db.Timestamptz(6)
+  /// A `date`, not an instant. Expiry is printed on the document as a date; storing an instant
+  /// invents a time of day and makes the same licence expire on different days for two readers.
+  validUntil DateTime? @map("valid_until") @db.Date
 
   /// `ERD.md` §2176 `fk_kyc_documents__kyc_checklists` — which checklist version asked for this
   /// document. Nullable because it is additive over rows that predate M-029.
   kycChecklistId String? @map("kyc_checklist_id") @db.Uuid
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  application  Application   @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  application  Application?  @relation(fields: [applicationId], references: [id], onDelete: Restrict)
   kycChecklist KycChecklist? @relation(fields: [kycChecklistId], references: [id], onDelete: Restrict)
 
   @@index([tenantId, documentType, status], map: "idx_kyc_documents__tenant_type_status")

@@ -206,6 +206,7 @@ Full detail for each entry is in §4. `PRD id` shows the primary identifier; eac
 | **TD-033** | Seed versioned by a string, not by `seed.manifest.json` checksums | Test | Medium | S | The first "works on my machine" traced to seed drift; sprint 6 at the latest | QA Lead | ACCEPTED | `§6.7`, `SD-2`, M-019 |
 | **TD-034** | `/v1/admin/*` gated on PLATFORM role membership, not the `§B3.2` matrix | Security | **High** | S | **M-023** — the matrix, `PermissionsGuard` and the generated per-cell test | Backend Lead | SCHEDULED | `FR-RBAC-01`, `PG-1`, M-022 |
 | **TD-035** | Verification SLA counted in WALL-CLOCK hours, not `Asia/Kolkata` business hours | Correctness | Low | S | A business-hours calendar exists anywhere in `docs/`, or the first officer complaint that an application was called late over a weekend | Technical Lead | **BLOCKED** | `Admin.md` §5.1.1, `FR-ADMN-11`, M-036 |
+| **TD-037** | `kyc_documents` diverged from `Schema.md` §4.3 in eight places, unrecorded | Correctness | **High** | S | **PAID at M-029** — corrected by `20260809130000_expand_alter_kyc_documents_to_schema` | Schema Owner | **PAID** | `Schema.md` §4.3, `NFR-SEC-10`, `BR-DAT-07`, M-026, M-029 |
 | **TD-036** | Two `customer-web` security headers relax `Security.md` §11 without the `DECISION_LOG.md` entry §11.7 requires | Security | Medium | S | Before `SEC-A05-002` is written, or the owner rules on either deviation | Project owner + Security | **OPEN** | `Security.md` §11.3, §11.7, `NFR-SEC-12`, `SCR-WEB-001` |
 
 ---
@@ -1065,6 +1066,63 @@ entry, and it is closed.
 | **Owner** | QA Lead with Backend Lead, payments |
 | **Status** | SCHEDULED — sprint 5 or 6 |
 | **Related PRD id** | `BR-PAY-05`, `BR-PAY-07`, `FR-PAY-04`, `FR-PAY-12`, `BR-FIN-06`, `FR-RFND-08`, `E2E-02`, `E2E-08`, `KPI-19`, `KPI-21`, `C7` |
+
+---
+
+### TD-037 — `kyc_documents` diverged from `Schema.md` §4.3 in eight places, and nothing recorded it
+
+**What was taken.** `20260809110000_expand_create_kyc_documents` names `Schema.md` §4.3 as its
+requirement source in its own header, and then departs from that section in eight places:
+
+| §4.3 requires | M-026 shipped | Consequence |
+| :--- | :--- | :--- |
+| `original_filename text NOT NULL` | absent | — |
+| `content_type text NOT NULL` — *"determined by content inspection, not by the client's claim"* | absent | **The upload pipeline has nowhere to record what the bytes actually were** |
+| `byte_size bigint NOT NULL > 0` | absent | No size recorded, and no zero-byte guard |
+| `checksum_sha256 char(64) NOT NULL` — *"proves the stored object is the reviewed one"* | `content_hash text` | A reviewer approves what they saw; nothing later could show the bytes are still those bytes |
+| `application_id` **nullable** — *"while the tenant is still assembling a draft"* | `NOT NULL` | **Inverted the onboarding order**: a document could not exist until an application did, so the wizard would have to submit before uploading anything |
+| `review_notes text` | `rejection_reason text` | A reviewer's note on an ACCEPTED document had nowhere to go |
+| `valid_until date` | `expires_at timestamptz` | An instant invents a time of day, so the same licence expires on different days for two readers |
+| `storage_purged_at timestamptz` | `tombstoned_at timestamptz` | Name only; the semantics were identical and well argued |
+
+**Why this is here rather than in `KNOWN_LIMITATIONS.md`.** It is not a limitation of behaviour, and
+it was never a decision — it is a migration that disagreed with the document it cited. `CLAUDE.md`
+§2: *"code is evidence of intent, never a statement of intent."* There was no conflict to halt on;
+`docs/database/` outranks a migration, so the migration was simply wrong.
+
+**The actual debt was the SILENCE.** A grep for `original_filename`, `byte_size`,
+`checksum_sha256`, `valid_until` or `storage_purged_at` across `KNOWN_LIMITATIONS.md`,
+`TECH_DEBT.md` and `DECISION_LOG.md` returned nothing before this entry. `CLAUDE.md` §9.6 says a
+requirement that cannot be honoured goes in one register and a knowing shortcut goes in the other,
+and that *"there is no third option"*. Eight unrecorded departures were the third option.
+
+**Interest rate.** **High while unpaid, and it compounded on a schedule.** Three of the four missing
+columns are precisely what the upload pipeline produces, so the gap was invisible for exactly as
+long as nothing wrote to the table — and would have surfaced as "the pipeline has nowhere to put its
+findings" at the moment somebody was mid-way through building it. The nullability inversion was
+worse: it would have been discovered as an onboarding-order problem, which reads as a design
+question rather than as a migration defect, and the tempting fix would have been to reorder the
+wizard.
+
+**How it was paid.** `20260809130000_expand_alter_kyc_documents_to_schema`, at M-029, while the
+table held **zero rows** — so every operation was catalogue-only and the renames were free. They
+were never going to be free again. `onboarding-tables.int-spec.ts` gained the assertion that would
+have caught this at M-026: every §4.3 column present by name, and `application_id` nullable.
+
+**What this says about the process.** The migration's header cites its source section. Nothing
+checked that the header was true. A migration linter that diffs a cited `Schema.md` section against
+the DDL it produces is the structural fix, and it does not exist — recorded here rather than built,
+because it is a `packages/config/scripts/` change with its own design questions.
+
+| Field | Value |
+| :--- | :--- |
+| **Category** | Correctness |
+| **Interest rate** | High — paid before it compounded |
+| **Estimated payoff effort** | **S** — one expand migration, one Prisma model, one repository, four assertions |
+| **Payoff trigger** | Met: the first code to write to the table (M-029's upload path) |
+| **Owner** | Schema Owner |
+| **Status** | **PAID** — 2026-08-09, M-029 |
+| **Related PRD id** | `Schema.md` §4.3, `NFR-SEC-10`, `BR-DAT-07`, `NFR-PRV-04`, `FR-ONB-03`, M-026, M-029 |
 
 ---
 

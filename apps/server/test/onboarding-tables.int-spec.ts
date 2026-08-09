@@ -169,10 +169,7 @@ it('the VERDICT columns ARE writable — the grant is narrow, not a lockout', ()
     `UPDATE applications SET status = 'UNDER_REVIEW', assigned_to = '${TENANT_A}'::uuid`,
   );
   assert.equal(error, '', `the verdict columns should be writable: ${error}`);
-  assert.equal(
-    one(`SELECT status FROM applications WHERE id = '${APP_A}'`),
-    'UNDER_REVIEW',
-  );
+  assert.equal(one(`SELECT status FROM applications WHERE id = '${APP_A}'`), 'UNDER_REVIEW');
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -204,10 +201,14 @@ it('the same version number in ANOTHER tenant is fine', () => {
 // AC-4 / AC-7 — kyc_documents
 // ═══════════════════════════════════════════════════════════════════════════
 
-it('AC-4 — kyc_documents has NO deleted_at, and has tombstoned_at instead', () => {
+it('AC-4 — kyc_documents has NO deleted_at, and has storage_purged_at instead', () => {
   // Adding `deleted_at` "for consistency" with every other tenant table would be the bug: R-KYC
   // means the row outlives the tenant, and "did this gym ever supply a PAN?" is a question a
   // hidden row cannot answer.
+  //
+  // The column was `tombstoned_at` until M-029. `Schema.md` §4.3 names it `storage_purged_at`, the
+  // meaning is identical, and the migration that created it cited §4.3 as its own source — see
+  // TD-036.
   assert.equal(
     one(
       `SELECT count(*) FROM information_schema.columns
@@ -218,10 +219,77 @@ it('AC-4 — kyc_documents has NO deleted_at, and has tombstoned_at instead', ()
   assert.equal(
     one(
       `SELECT count(*) FROM information_schema.columns
-        WHERE table_name='kyc_documents' AND column_name='tombstoned_at'`,
+        WHERE table_name='kyc_documents' AND column_name='storage_purged_at'`,
     ),
     '1',
   );
+});
+
+it('§4.3 — every column the schema specification requires is present', () => {
+  // ┌─ THE ASSERTION THAT WOULD HAVE CAUGHT TD-036 AT M-026 ─────────────────────────────────────┐
+  // │ The original migration named `Schema.md` §4.3 as its requirement source and then omitted    │
+  // │ four of its columns, renamed three and inverted one nullability — with nothing anywhere     │
+  // │ recording it. Three of the omissions are exactly what the upload pipeline produces, so the  │
+  // │ gap was invisible until something tried to write.                                            │
+  // └───────────────────────────────────────────────────────────────────────────────────────────┘
+  const columns = psql(
+    `SELECT column_name FROM information_schema.columns
+      WHERE table_name='kyc_documents' ORDER BY column_name`,
+  )
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  for (const required of [
+    'tenant_id',
+    'application_id',
+    'document_type',
+    'storage_key',
+    'original_filename',
+    'content_type',
+    'byte_size',
+    'checksum_sha256',
+    'status',
+    'reviewed_by',
+    'reviewed_at',
+    'review_notes',
+    'valid_until',
+    'storage_purged_at',
+  ]) {
+    assert.ok(columns.includes(required), `Schema.md §4.3 requires ${required} and it is absent`);
+  }
+});
+
+it('§4.3 — application_id is NULLABLE, because evidence accumulates before submission', () => {
+  // `Schema.md` §4.3: "Nullable while the tenant is still assembling a draft." M-026 made it NOT
+  // NULL, which inverted the onboarding order — a document could not exist until an application
+  // did, so the wizard would have to submit before uploading anything.
+  assert.equal(
+    one(
+      `SELECT is_nullable FROM information_schema.columns
+        WHERE table_name='kyc_documents' AND column_name='application_id'`,
+    ),
+    'YES',
+  );
+});
+
+it('a zero-byte upload and a malformed digest are both refused', () => {
+  // A zero-byte object is what an aborted multipart write leaves behind. `char(64)` pads a short
+  // digest with spaces, which is how a truncated checksum becomes a valid-looking value — so the
+  // hex shape is checked rather than the length alone.
+  const zeroBytes = failure(
+    `INSERT INTO kyc_documents (tenant_id, document_type, storage_key, original_filename,
+       content_type, byte_size, checksum_sha256)
+       VALUES ('${TENANT_A}', 'PAN', 'kyc/probe-zero', 'pan.pdf', 'application/pdf', 0, '${'a'.repeat(64)}')`,
+  );
+  assert.match(zeroBytes, /ck_kyc_documents__byte_size_positive/);
+
+  const shortDigest = failure(
+    `INSERT INTO kyc_documents (tenant_id, document_type, storage_key, original_filename,
+       content_type, byte_size, checksum_sha256)
+       VALUES ('${TENANT_A}', 'PAN', 'kyc/probe-digest', 'pan.pdf', 'application/pdf', 10, 'abc')`,
+  );
+  assert.match(shortDigest, /ck_kyc_documents__checksum_is_hex/);
 });
 
 it('AC-4 — nobody holds DELETE on kyc_documents', () => {
@@ -236,34 +304,42 @@ it('AC-4 — nobody holds DELETE on kyc_documents', () => {
   );
 });
 
+/** One document row, with every §4.3 NOT NULL column supplied. */
+function insertDocument(
+  tenant: string,
+  documentType: string,
+  storageKey: string,
+  digest: string,
+): string {
+  return `INSERT INTO kyc_documents (tenant_id, application_id, document_type, storage_key,
+            original_filename, content_type, byte_size, checksum_sha256)
+          VALUES ('${tenant}', '${APP_A}', '${documentType}', '${storageKey}',
+                  'evidence.pdf', 'application/pdf', 10240, '${digest.repeat(64).slice(0, 64)}')`;
+}
+
 it('AC-7 — storage_key is globally unique, not tenant-scoped', () => {
-  // Object storage has ONE namespace. Two rows sharing a key point at one object, so tombstoning
+  // Object storage has ONE namespace. Two rows sharing a key point at one object, so purging
   // either would destroy the other tenant's evidence — which is why the collision must be refused
   // across tenants rather than only within one.
-  psql(
-    `INSERT INTO kyc_documents (tenant_id, application_id, document_type, storage_key, content_hash)
-       VALUES ('${TENANT_A}', '${APP_A}', 'PAN', 'kyc/opaque-key-1', 'sha256:abc')`,
-  );
+  psql(insertDocument(TENANT_A, 'PAN', 'kyc/opaque-key-1', 'a'));
 
-  const sameTenant = failure(
-    `INSERT INTO kyc_documents (tenant_id, application_id, document_type, storage_key, content_hash)
-       VALUES ('${TENANT_A}', '${APP_A}', 'GSTIN', 'kyc/opaque-key-1', 'sha256:def')`,
-  );
+  const sameTenant = failure(insertDocument(TENANT_A, 'GSTIN', 'kyc/opaque-key-1', 'b'));
   assert.match(sameTenant, /uq_kyc_documents__storage_key/);
 
   // The one that matters: a DIFFERENT tenant is refused too.
-  const otherTenant = failure(
-    `INSERT INTO kyc_documents (tenant_id, application_id, document_type, storage_key, content_hash)
-       VALUES ('${TENANT_B}', '${APP_A}', 'PAN', 'kyc/opaque-key-1', 'sha256:ghi')`,
+  const otherTenant = failure(insertDocument(TENANT_B, 'PAN', 'kyc/opaque-key-1', 'c'));
+  assert.match(
+    otherTenant,
+    /uq_kyc_documents__storage_key/,
+    `cross-tenant collision allowed: ${otherTenant}`,
   );
-  assert.match(otherTenant, /uq_kyc_documents__storage_key/, `cross-tenant collision allowed: ${otherTenant}`);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
 // The isolation that everything else rests on
 // ═══════════════════════════════════════════════════════════════════════════
 
-it('BR-TEN-01 — app_rw in tenant B cannot see tenant A\'s application', () => {
+it("BR-TEN-01 — app_rw in tenant B cannot see tenant A's application", () => {
   const visible = psql(
     `BEGIN; SET LOCAL ROLE app_rw; SET LOCAL app.tenant_id = '${TENANT_B}';
      SELECT count(*) FROM applications WHERE id = '${APP_A}'; COMMIT;`,
@@ -288,8 +364,6 @@ it('BR-TEN-01 — a cross-tenant INSERT is refused by WITH CHECK', () => {
 it('a decision without a decider is unrepresentable', () => {
   // A row saying REJECTED with no `decided_by` is a rejection nobody made, and it is
   // indistinguishable from one somebody did.
-  const error = failure(
-    `UPDATE applications SET decision = 'REJECTED' WHERE id = '${APP_A}'`,
-  );
+  const error = failure(`UPDATE applications SET decision = 'REJECTED' WHERE id = '${APP_A}'`);
   assert.match(error, /ck_applications__verdict_is_complete/, `unexpected: ${error}`);
 });

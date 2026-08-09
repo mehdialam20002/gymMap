@@ -68,6 +68,18 @@ export const REDACTED_FIELD_NAMES = [
   'medicalNotes',
   'medical_notes', // health data — the most sensitive category under DPDP
 
+  // ┌─ KY9 · `Security.md` §8.3 · M-029 ────────────────────────────────────────────────────────┐
+  // │ *"`storage_key` for a KYC document is on the log-redaction list (`PII2`)"*.                │
+  // │                                                                                            │
+  // │ It is not obviously personal data, which is exactly why it needs naming. The key is the    │
+  // │ address of a passport scan inside the KYC enclave, and the enclave's whole protection is   │
+  // │ that reaching an object requires a freshly minted, audited, 300-second signed URL (KY1).   │
+  // │ A key sitting in a log line is a target that survives every one of those controls: it does │
+  // │ not expire, it is not audited, and it turns a log-store compromise into a shopping list.   │
+  // └────────────────────────────────────────────────────────────────────────────────────────────┘
+  'storageKey',
+  'storage_key',
+
   // --- OI-S1: location, redacted ahead of the PRD amendment ---
   'lat',
   'lng',
