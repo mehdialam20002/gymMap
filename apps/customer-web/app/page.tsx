@@ -79,7 +79,7 @@ export default function HomePage({ searchParams }: { readonly searchParams: RawP
        * `gm-note` is the same treatment the gym rail's sample notice already uses, which is the
        * right relationship: two statements of the same fact, in one voice.
        */}
-      <section className="gm-sec gm-sec-paper">
+      <section className="gm-sec gm-sec-tight gm-sec-paper">
         <div className="gm-wrap">
           <p className="gm-note">
             <b>{t('web.home.status.title')}</b> {t('web.home.status.body')}

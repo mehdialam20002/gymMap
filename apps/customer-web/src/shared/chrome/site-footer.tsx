@@ -16,11 +16,13 @@ import { FOOTER_NAV } from './nav-model.ts';
 
 export function SiteFooter() {
   return (
-    <footer
-      aria-label={t('web.chrome.footer.landmark')}
-      className="border-t border-subtle bg-surface-subtle"
-    >
-      <div className="mx-auto max-w-container px-inset-md py-region-md">
+    /*
+     * A ground one step BELOW the page, matching the reference. `surface-sunken` rather than
+     * `surface-subtle`: the closing band above it is already the page ground, and two adjacent
+     * bands at the same value read as one very tall section with a stray rule through it.
+     */
+    <footer aria-label={t('web.chrome.footer.landmark')} className="gm-foot">
+      <div className="gm-wrap gm-foot-in">
         {/*
          * Tracks sized from the CONTENT, not a round number of equal columns.
          *
@@ -35,19 +37,26 @@ export function SiteFooter() {
          */}
         <div className="grid gap-stack-xl sm:grid-cols-2 lg:grid-cols-[1.6fr_repeat(5,minmax(0,1fr))]">
           <div>
-            <p className="text-lg font-semibold tracking-tight text-content">
+            {/*
+             * The same mark the header wears, at 26px. It is the one place in the footer where the
+             * brand colour is a FILL, and `content-on-brand` is its proved foreground - the header's
+             * note says the same thing, and the two are deliberately identical so the page opens
+             * and closes on one mark rather than two treatments of it.
+             */}
+            <p className="gm-foot-brand">
+              <span aria-hidden="true" className="gm-foot-mark">
+                G
+              </span>
               {t('web.chrome.brand')}
             </p>
-            <p className="mt-stack-xs max-w-ui text-sm text-content-secondary">
+            <p className="mt-stack-xs max-w-ui text-sm text-content-muted">
               {t('web.chrome.footer.tagline')}
             </p>
           </div>
 
           {FOOTER_NAV.map((column) => (
             <nav key={column.heading} aria-label={t(column.heading)}>
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-content-muted">
-                {t(column.heading)}
-              </h2>
+              <h2 className="gm-foot-h">{t(column.heading)}</h2>
               {/*
                * 44px ROWS, not `gm-hit-target` on a 16px link.
                *
@@ -83,15 +92,16 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-stack-2xl flex flex-wrap items-center justify-between gap-inline-md border-t border-subtle pt-stack-md">
-          <p className="text-sm text-content-muted">{t('web.chrome.footer.rights')}</p>
+        <div className="gm-foot-bottom">
+          <p className="m-0">{t('web.chrome.footer.copyright')}</p>
           {/*
            * Region and language are STATED, not offered. `OQ-16` makes the India region mandatory
            * under RBI payment-data localisation rather than configurable, and `A4.2` defers
            * multi-language UI — so a country switcher here would be a control that cannot work.
            */}
-          <p className="text-sm text-content-muted">
-            {t('web.chrome.footer.region')} · {t('web.chrome.footer.language')}
+          <p className="m-0">
+            {t('web.chrome.footer.region')} · {t('web.chrome.footer.language')} ·{' '}
+            {t('web.chrome.footer.currency')}
           </p>
         </div>
       </div>

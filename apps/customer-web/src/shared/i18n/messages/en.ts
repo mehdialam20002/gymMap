@@ -51,6 +51,16 @@ export const en = {
   // --- footer ---------------------------------------------------------------
   'web.chrome.footer.landmark': 'Footer',
   'web.chrome.footer.tagline': 'Find a gym you can trust, at a price you can see.',
+  /*
+   * No YEAR. The reference reads "© 2026 GymMap", and a year written into a string is wrong from
+   * the first of January and wrong silently - nobody reviews a footer in the new year. The repo
+   * also bans reading the ambient clock (`no-bare-date`, `AC-FND-13.3`), so a computed year would
+   * need the `Clock` port injected into site chrome for a decoration. A notice with no year is
+   * complete on its own.
+   */
+  'web.chrome.footer.copyright': '© GymMap',
+  // Stated, not offered - see the note beside the region line in `site-footer.tsx`.
+  'web.chrome.footer.currency': '₹ INR',
   'web.chrome.footer.discover': 'Discover',
   'web.chrome.footer.members': 'Members',
   'web.chrome.footer.forGyms': 'For gyms',
