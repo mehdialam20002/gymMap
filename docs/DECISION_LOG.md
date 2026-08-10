@@ -6269,6 +6269,58 @@ header so `partitioned: no` does not read as an oversight.
 
 ---
 
+## ADR-0046 — the commission is what LISTING costs; the subscription is what the SOFTWARE costs
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-10 |
+| **Closes** | `KL-112` |
+| **Decided by** | Project owner, on a conflict raised by a copy audit of `SCR-WEB-030` |
+| **Amends** | Nothing. `MASTER_PRD.md` §A6.1 stands unchanged |
+
+**The conflict.** `/for-gyms` told gym owners: *"A commission per membership sold, and nothing
+else: no listing fee, no monthly charge and no fee for a month with no sales."* `MASTER_PRD.md`
+§A6.1 lists three Phase 1 revenue streams, and two of them are a **SaaS subscription** (monthly or
+annual, tiered) and a **featured listing / promotion** fee. The page denied two of the three.
+
+`CLAUDE.md` §9.3 forbids reconciling two documents in code, so neither the string nor the PRD was
+edited while this was open. It was registered as `KL-112` with both readings and their costs, and
+the owner ruled.
+
+**The ruling.** The two charges buy two different products, which is what this repository's own
+one-line description has said from the first commit: *"Gym Marketplace **&** Multi-Tenant Gym
+Management SaaS."*
+
+| Product | What the gym gets | What it pays |
+| :--- | :--- | :--- |
+| Marketplace | Members this platform sends it | **Commission** per membership sold |
+| Management software | The dashboard, check-in desk, attendance, settlements — used daily whether or not a member arrives | **Subscription**, monthly or annual |
+
+§A6.2's own tier table supports the reading rather than merely permitting it: the tiers are priced
+by **branches, active members and staff seats**, which are facts about the gym's own operations and
+not about anything the marketplace delivers. A gym with no marketplace sales still runs its
+business on the software, and still pays for it.
+
+**Therefore the page's sentence was not false, it was unscoped**, and one clause fixes it:
+
+> Listing on GymMap costs a commission per membership sold, and nothing else: no listing fee, no
+> monthly charge for your listing, and no fee for a month with no sales.
+
+The marketplace's strongest promise survives intact — a gym with no sales pays nothing to be
+listed, which is the only offer a marketplace with no members yet can honestly make — and the page
+no longer denies a product it is not selling. The subscription is sold on its own surface, to a gym
+that is already listed.
+
+**Still open, and deliberately not decided here.** §A6.1 row 3 is a **featured listing /
+promotion** fee, marked Phase 1 (S). That IS a charge attached to the listing, so the sentence above
+would deny it. It is not in scope for this ADR because nothing in the product sells promoted
+placement yet and no surface mentions it. When `FR-SRCH-10`'s ranking gains a paid tier, this
+sentence must be revisited in the same change — a marketplace that says "nothing else" and then
+sells placement is the trust failure `BR-GYM-*` exists to prevent.
+
+---
+
 **End of decision log.** Forty-five ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.

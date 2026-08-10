@@ -603,8 +603,28 @@ export const en = {
   // The rate itself is documented (LAUNCH_MARKET_INDIA.md) and publishing it is the owner's
   // decision, not a page author's — so this states the SHAPE of the charge honestly and leaves
   // the number to the signup conversation rather than inventing or leaking one.
+  /*
+   * ┌─ SCOPED TO LISTING, WHICH IS WHAT THIS PAGE SELLS ─────────────────────────────────────────┐
+   * │ This read "A commission per membership sold, and nothing else: no listing fee, no monthly   │
+   * │ charge..." - an absolute claim about every fee GymMap would ever charge, and                │
+   * │ `MASTER_PRD.md` §A6.1 lists a monthly SaaS subscription as Phase 1 revenue. Recorded as     │
+   * │ `KL-112`, and the owner has now ruled.                                                      │
+   * │                                                                                             │
+   * │ The ruling: the two charges are for two different products, which is what the repository's  │
+   * │ own one-line description has said all along - "Gym Marketplace AND Multi-Tenant Gym         │
+   * │ Management SaaS". A gym pays COMMISSION for members this marketplace sends it, and pays a   │
+   * │ SUBSCRIPTION for the management software it uses every day whether or not a member arrives. │
+   * │ §A6.2's tiers are priced by branches, active members and staff seats - the gym's own        │
+   * │ operations, not anything GymMap delivers.                                                    │
+   * │                                                                                             │
+   * │ So the sentence was not false, it was unscoped. One clause fixes it: the commission is what │
+   * │ LISTING costs. The marketplace's strongest promise survives intact - a gym with no sales    │
+   * │ pays nothing to be listed, which is the only offer a marketplace with no members yet can    │
+   * │ honestly make - and it no longer denies a product this page is not selling.                 │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   'web.forGyms.commission.body':
-    'A commission per membership sold, and nothing else: no listing fee, no monthly charge and no fee for a month with no sales. The rate is agreed before you list and is shown on every statement, and the rate that applied on the day of a sale is the rate that sale keeps. A later change never rewrites an old settlement.',
+    'Listing on GymMap costs a commission per membership sold, and nothing else: no listing fee, no monthly charge for your listing, and no fee for a month with no sales. The rate is agreed before you list and is shown on every statement, and the rate that applied on the day of a sale is the rate that sale keeps. A later change never rewrites an old settlement.',
 
   'web.forGyms.faq.title': 'Questions owners ask',
   'web.forGyms.faq.control.q': 'Do I lose control of my prices?',

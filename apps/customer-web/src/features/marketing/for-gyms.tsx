@@ -7,10 +7,16 @@
  * │ printed on a marketing page becomes a rate every negotiation starts from.                    │
  * │                                                                                             │
  * │ What IS stated is the shape of the charge, which is the part an owner actually needs before │
- * │ they apply: commission per sale and nothing else, no listing fee, no monthly charge, and     │
- * │ `BR-FIN-05` — the rate on the day of a sale is the rate that sale keeps, so a later change   │
- * │ never rewrites an old settlement. That last sentence is a real guarantee, enforced in the    │
- * │ ledger, and it is worth more to an owner than a headline percentage.                          │
+ * │ they apply: commission per sale and nothing else FOR THE LISTING, and `BR-FIN-05` — the rate │
+ * │ on the day of a sale is the rate that sale keeps, so a later change never rewrites an old    │
+ * │ settlement. That last sentence is a real guarantee, enforced in the ledger, and it is worth  │
+ * │ more to an owner than a headline percentage.                                                  │
+ * │                                                                                             │
+ * │ "For the listing" is load-bearing and was added after `KL-112`. The sentence used to make an │
+ * │ absolute claim — "no monthly charge" — while §A6.1 lists a monthly SaaS subscription as      │
+ * │ Phase 1 revenue. Owner's ruling, recorded in `DECISION_LOG.md`: the two charges buy two      │
+ * │ different products. Commission is what this marketplace charges for sending a gym members;   │
+ * │ the subscription is what the MANAGEMENT SOFTWARE costs, and that is not what this page sells.│
  * └─────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
