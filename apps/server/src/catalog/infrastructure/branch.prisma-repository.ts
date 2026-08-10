@@ -146,4 +146,52 @@ export class BranchPrismaRepository implements BranchQueryPort {
          AND deleted_at IS NULL
        ORDER BY is_primary DESC, created_at ASC`;
   }
+
+  /**
+   * Closes a branch and, when it was the primary, promotes its successor — in ONE transaction.
+   *
+   * ┌─ TWO STATEMENTS, ONE TRANSACTION, AND A PARTIAL UNIQUE INDEX IS WHY ───────────────────────┐
+   * │ `uq_branches__one_primary_per_gym` is `UNIQUE (gym_id) WHERE is_primary AND deleted_at IS   │
+   * │ NULL`. Run these apart and either order is wrong: promote first and there are momentarily   │
+   * │ two primaries, which the index refuses outright; demote first and a crash between the two   │
+   * │ leaves a gym with none, which nothing refuses and nothing notices until a city page cannot  │
+   * │ resolve its address.                                                                        │
+   * │                                                                                            │
+   * │ `Gym.md` §12.4 requires the promotion *"in the same transaction"* for exactly that reason.  │
+   * │ The demotion is implicit: the closing branch gets `deleted_at`, which takes it out of the   │
+   * │ index's partial predicate, so the successor can take the flag in the same statement pair.   │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   *
+   * `promoteTo` comes from `mayDeactivate()`, never from this file. The repository does not decide
+   * WHICH branch succeeds — that ordering is `Gym.md`'s and the policy's, and re-deriving it here
+   * would be a second answer to a question already answered.
+   */
+  async deactivate(branchId: string, promoteTo: string | null): Promise<void> {
+    await this.db.client.$transaction(async (tx) => {
+      /*
+       * `status` and `deleted_at` together, never one without the other.
+       *
+       * `Gym.md` §12.4 defines a deactivation as both. Setting only the status leaves a row the
+       * partial unique index still counts as primary; setting only `deleted_at` leaves a branch
+       * that reads as `ACTIVE` to anything filtering on status alone. Two columns, one statement.
+       */
+      await tx.$executeRaw`
+        UPDATE branches
+           SET status     = 'INACTIVE',
+               is_primary = false,
+               deleted_at = now(),
+               updated_at = now()
+         WHERE id = ${branchId}::uuid
+           AND deleted_at IS NULL`;
+
+      if (promoteTo === null) return;
+
+      await tx.$executeRaw`
+        UPDATE branches
+           SET is_primary = true,
+               updated_at = now()
+         WHERE id = ${promoteTo}::uuid
+           AND deleted_at IS NULL`;
+    });
+  }
 }
