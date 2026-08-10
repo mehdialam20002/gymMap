@@ -83,7 +83,25 @@ export function SiteFooter() {
                         {t(item.label)}
                       </Link>
                     ) : (
-                      <span className="text-sm text-content-disabled">{t(item.label)}</span>
+                      /*
+                       * ┌─ `content-muted`, AND A WORD ─────────────────────────────────────────┐
+                       * │ Measured on the rendered page: `content-disabled` came to 3.25:1 in    │
+                       * │ the dark theme and 2.45:1 in the light one, against `SC 1.4.3`'s 4.5.  │
+                       * │ WCAG exempts an INACTIVE CONTROL, and this is not one - it is static   │
+                       * │ text naming a route, which the note at the top of this file says is    │
+                       * │ here precisely so a reader can see the shape of the product. Text put  │
+                       * │ there to be read has to be readable.                                   │
+                       * │                                                                        │
+                       * │ And the "Soon" was carried by the dimming alone for a sighted reader:  │
+                       * │ the marker existed only in a `gm-visually-hidden` span, so colour was  │
+                       * │ the whole signal, which `AX8` refuses. The mobile navigation already   │
+                       * │ shows the word; the footer now does too, and the two agree.            │
+                       * └────────────────────────────────────────────────────────────────────────┘
+                       */
+                      <span className="text-sm text-content-muted">
+                        {t(item.label)}{' '}
+                        <span className="gm-tag text-xs">{t('web.chrome.nav.soon')}</span>
+                      </span>
                     )}
                   </li>
                 ))}

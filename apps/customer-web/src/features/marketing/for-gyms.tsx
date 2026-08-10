@@ -59,7 +59,19 @@ export function ForGymsPage() {
        */}
       <section className="border-b border-subtle bg-surface-media">
         <div className="gm-wrap gm-sec gm-sec-tight">
-          <p className="text-xs font-medium uppercase tracking-wide text-content-on-media-accent">
+          {/*
+           * `content-on-media`, not the accent.
+           *
+           * Measured two ways on the rendered page - by compositing the cascade and by reading the
+           * screenshot's pixels - the amber came to 3.94:1 and 3.98:1 on `surface-media`, against
+           * `SC 1.4.3`'s 4.5 for 12px at weight 500. Two independent methods agreeing within 0.04
+           * is what made this one worth acting on while the rest of the light-theme list stayed
+           * unsettled: the others sit on gradients and pseudo-element scrims that neither method
+           * can read honestly.
+           *
+           * The accent is for emphasis at a size that can carry it. This is an eyebrow.
+           */}
+          <p className="text-xs font-medium uppercase tracking-wide text-content-on-media">
             {t('web.forGyms.hero.eyebrow')}
           </p>
           <h1 className="mt-stack-sm max-w-prose gm-h2">{t('web.forGyms.title')}</h1>
