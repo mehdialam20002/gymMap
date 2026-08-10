@@ -54,11 +54,15 @@ const REAL = {
  */
 const DEFERRED = {
   // `build` DISCHARGED for both front-end apps by the shell milestones, which were pulled ahead
-  // of their roadmap positions at the owner's direction so something is visible early. The two
-  // shells build, serve and render; what is deferred is now only what genuinely has no subject:
-  // there is no journey to drive with Playwright and no page whose bundle is worth a budget.
+  // of their roadmap positions at the owner's direction so something is visible early.
+  //
+  // `customer-web`'s `test:e2e` is DISCHARGED too, and this test is how it was noticed: the entry
+  // read "a Playwright journey needs a rendered SEARCH result, not a shell", and that premise
+  // expired when `/search` started rendering real listings from the catalogue. The suite drives
+  // 24 routes at two viewports and gates the defects that only exist on a rendered page — a rule
+  // losing on specificity, a control whose click a decoration takes, a canonical Next rewrote on
+  // the way out. Which is exactly the expiry this map is built to force.
   'customer-web': {
-    'test:e2e': 'M-048 — a Playwright journey needs a rendered SEARCH result, not a shell',
     size: 'M-048 — the 200 KB NFR-PERF-10 budget is meaningless against a static home page',
   },
   'gym-dashboard': {

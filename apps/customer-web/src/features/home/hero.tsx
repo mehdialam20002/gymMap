@@ -238,7 +238,7 @@ export function Hero() {
         <form action="/search" method="get" className="gm-console" role="search">
           <div className="gm-field">
             <label htmlFor="city">{t('web.home.hero.cityLabel')}</label>
-            <Place aria-hidden="true" className="mt-[14px] h-[15px] w-[15px] shrink-0" />
+            <Place aria-hidden="true" className="h-[15px] w-[15px] shrink-0" />
             <select id="city" name="city" aria-label={t('web.home.hero.cityLabel')}>
               <option value="">{t('web.home.hero.cityAny')}</option>
               {CITIES.map((city) => (
@@ -256,7 +256,7 @@ export function Hero() {
            */}
           <div className="gm-field">
             <label htmlFor="radius">{t('web.home.hero.radiusLabel')}</label>
-            <Radius aria-hidden="true" className="mt-[14px] h-[15px] w-[15px] shrink-0" />
+            <Radius aria-hidden="true" className="h-[15px] w-[15px] shrink-0" />
             <select id="radius" name="radius" aria-label={t('web.home.hero.radiusLabel')}>
               <option value="">{t('web.home.hero.radiusAny')}</option>
               {RADII.map((km) => (
@@ -269,7 +269,7 @@ export function Hero() {
 
           <div className="gm-field">
             <label htmlFor="q">{t('web.home.hero.searchLabel')}</label>
-            <Search aria-hidden="true" className="mt-[14px] h-[15px] w-[15px] shrink-0" />
+            <Search aria-hidden="true" className="h-[15px] w-[15px] shrink-0" />
             <input
               id="q"
               name="q"

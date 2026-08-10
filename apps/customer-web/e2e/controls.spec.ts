@@ -123,4 +123,88 @@ test.describe('a control owns its own surface', () => {
     // Whatever reaches nothing must be the gap between cards, not the card itself.
     expect(reach.dead, 'part of the card reaches no link at all').toBeLessThan(20);
   });
+
+  /*
+   * ┌─ A LABEL AND ITS VALUE ON THE SAME LEFT EDGE ───────────────────────────────────────────────┐
+   * │ Reported as "the text does not look right when you type", and it was two numbers that had   │
+   * │ no reason to agree: the label was absolutely positioned at the FIELD's padding edge while   │
+   * │ the control began after the glyph and the gap, 25px further in. Empty, the field looked      │
+   * │ fine; typed, a real word appeared indented from its own heading.                             │
+   * │                                                                                              │
+   * │ Both edges are now one grid column, so this cannot drift - which is exactly why it is worth  │
+   * │ a test: the next person to reach for `position: absolute` on that label finds out here.      │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  test('every console field puts its label directly above the value it names', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    // Typed and chosen, because the empty state is the one where the defect was invisible.
+    await page.fill('#q', 'iron house');
+    await page.selectOption('#city', 'bengaluru');
+
+    const fields = await page.evaluate(() =>
+      [...document.querySelectorAll('.gm-field')].map((field) => {
+        const label = field.querySelector('label');
+        const control = field.querySelector('input, select');
+        if (!label || !control) return { id: '(incomplete field)', drift: 999, gap: 0 };
+        const l = label.getBoundingClientRect();
+        const c = control.getBoundingClientRect();
+        return {
+          id: control.id,
+          drift: Math.round(Math.abs(l.left - c.left)),
+          // Positive, or the value is painted over its own label.
+          gap: Math.round(c.top - l.bottom),
+        };
+      }),
+    );
+
+    expect(fields.length, 'the hero has no search fields').toBeGreaterThan(2);
+    for (const f of fields) {
+      expect(f.drift, `${f.id}: label and value are ${String(f.drift)}px apart`).toBe(0);
+      expect(f.gap, `${f.id}: the value overlaps its label`).toBeGreaterThan(0);
+    }
+  });
+
+  /*
+   * The open list must not cover the field it belongs to.
+   *
+   * `::picker(select)` anchors to the `<select>`, and the select here is the value row alone - so
+   * the default placement cleared the control by a correct 8px and sat on top of the label above
+   * it. Anchoring to the pill fixed it; this pins the pill as the anchor.
+   *
+   * Skipped where the engine has no customizable select: there the list is drawn by the OS, has no
+   * geometry in the page, and there is nothing to assert. That is a real difference between
+   * browsers, not a failure, and the fallback is checked by `a11y.spec.ts` like any other control.
+   */
+  test('an open city list clears the field it belongs to', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    const inPage = await page.evaluate(() => CSS.supports('appearance', 'base-select'));
+    test.skip(!inPage, 'this engine draws the list outside the page');
+
+    for (const id of ['city', 'radius']) {
+      await page.click(`#${id}`);
+      const geometry = await page.evaluate((sel) => {
+        const select = document.querySelector(sel);
+        const field = select?.closest('.gm-field');
+        if (!select || !field) return null;
+        const rows = [...select.querySelectorAll('option')].map((o) => o.getBoundingClientRect());
+        if (!rows.length || rows[0]!.height === 0) return null;
+        const f = field.getBoundingClientRect();
+        const top = Math.min(...rows.map((r) => r.top));
+        const bottom = Math.max(...rows.map((r) => r.bottom));
+        return {
+          overlaps: !(bottom <= f.top || top >= f.bottom),
+          // The list belongs to THIS field: its left edge is the field's, not another one's.
+          anchoredHere: Math.abs(rows[0]!.left - f.left) < 24,
+          shortestRow: Math.round(Math.min(...rows.map((r) => r.height))),
+        };
+      }, `#${id}`);
+
+      expect(geometry, `#${id} opened no in-page list`).not.toBeNull();
+      expect(geometry?.overlaps, `#${id}'s open list covers its own field`).toBe(false);
+      expect(geometry?.anchoredHere, `#${id}'s list is anchored to a different field`).toBe(true);
+      // `AX3`. A row in a list is a touch target like any other.
+      expect(geometry?.shortestRow, `#${id}'s rows are under 44px`).toBeGreaterThanOrEqual(44);
+      await page.keyboard.press('Escape');
+    }
+  });
 });

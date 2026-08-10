@@ -1194,22 +1194,33 @@
   }
 
   /*
-   * `stretch`, not `center`, and 62px rather than 56.
-   *
-   * Centred, the input's box floated in the field and its text landed at whatever y the box
-   * happened to sit at - measured with a value typed in, the label's bottom edge and the text's
-   * top edge were both at 638px. Exactly flush, no gap at all, which reads as the text hiding
-   * under the label the moment you type. The old `padding-top: 16px` was tuned against a
-   * position that moved.
-   *
-   * Stretched, the input fills the field and its own padding decides where the text sits: a
-   * fixed 30px from the top, with the label ending at 24. Six pixels, at every size, and nothing
-   * depends on the input's intrinsic height any more.
+   * ┌─ A TWO-ROW GRID, BECAUSE THE LABEL AND ITS VALUE WERE NOT ON THE SAME LEFT EDGE ────────────┐
+   * │ The field was a flex row of [glyph, control] with the label absolutely positioned at        │
+   * │ `left: 18px` - the FIELD's padding edge. The control is not there: it starts after the      │
+   * │ glyph and the gap, at 43px. So every label in the console sat 25px to the left of the value │
+   * │ it names, measured, at every width.                                                          │
+   * │                                                                                              │
+   * │ That is what "the text does not look right when you type" was. Empty, the value is a        │
+   * │ placeholder nobody reads closely; typed, a real word appears visibly indented from its own  │
+   * │ heading and the field looks broken. Two numbers tuned separately, and nothing in the CSS     │
+   * │ made them agree.                                                                             │
+   * │                                                                                              │
+   * │ A grid makes them agree by construction. The glyph takes column one on the value's row, the │
+   * │ label and the control both take column two, and they share a left edge because it is the    │
+   * │ same edge - not because two paddings were set to the same number by hand.                    │
+   * │                                                                                              │
+   * │ It also deletes the vertical magic. `padding: 30px 0 8px` inside a stretched 62px box was    │
+   * │ measured against a label at `top: 9px` and held only while both stayed put. `align-content:  │
+   * │ center` on auto rows puts the pair in the middle of the field whatever the type does.        │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
    */
   .gm-field {
-    display: flex;
-    align-items: stretch;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-content: center;
+    column-gap: 10px;
+    row-gap: 3px;
     padding-inline: 18px;
     height: 62px;
     border-radius: 999px;
@@ -1221,25 +1232,36 @@
     box-shadow: inset 1px 0 0 var(--gm-color-border-subtle);
   }
 
-  /* The glyph aligns to the TEXT, not to the field, now that the row stretches. */
+  /*
+   * The glyph pairs with the VALUE, not with the field: it describes what the value is, so it
+   * sits on the value's row and leaves row one to the label. Column one is empty above it, which
+   * is what lets the label start where the value starts.
+   */
   .gm-field > svg {
+    grid-column: 1;
+    grid-row: 2;
     align-self: center;
-    margin-top: 9px;
   }
 
   .gm-field label {
+    grid-column: 2;
+    grid-row: 1;
     font-family: var(--gm-font-mono);
     font-size: 10px;
+    line-height: 15px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--gm-color-content-muted);
-    position: absolute;
-    top: 9px;
-    left: 18px;
+    /* One line, always. A wrapped label would push the value out of the pill. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .gm-field input,
   .gm-field select {
+    grid-column: 2;
+    grid-row: 2;
     width: 100%;
     min-width: 0;
     border: 0;
@@ -1252,9 +1274,29 @@
      * for exactly that reason. Half a pixel of the reference is not worth it.
      */
     font-size: 16px;
+    line-height: 24px;
     font-weight: 500;
-    /* 30 above the text, 8 below: the label ends at 24, so the gap is a deliberate 6px. */
-    padding: 30px 0 8px;
+    padding: 0;
+    appearance: none;
+  }
+
+  /*
+   * ┌─ THE CLEAR BUTTON WAS THE OTHER HALF OF "IT LOOKS WRONG WHEN YOU TYPE" ─────────────────────┐
+   * │ `type="search"` is right for this control - it gives Escape-to-clear and the correct        │
+   * │ semantics - but Blink paints a `-webkit-search-cancel-button` inside it, and that glyph is  │
+   * │ drawn by the UA in the UA's colour. On this field it was a white cross on a near-black      │
+   * │ pill, appearing only once a value existed, in a console where every other mark is muted     │
+   * │ ink. It cannot be recoloured: `currentColor` does not reach a shadow pseudo-element and the │
+   * │ only honest handle on it is to remove it and let the page draw its own or draw none.        │
+   * │                                                                                              │
+   * │ None, here, and it costs less than it looks. Blink does not render this control on Android  │
+   * │ at all, so no phone ever had it; Escape still clears the field on a keyboard, which is the  │
+   * │ affordance `AX2` cares about; and the alternative is a hand-drawn cross, which `ai-tells`   │
+   * │ §5 bans until an icon set has an `A-NN` row.                                                 │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  .gm-field input[type='search']::-webkit-search-cancel-button,
+  .gm-field input[type='search']::-webkit-search-decoration {
     appearance: none;
   }
 
@@ -1300,6 +1342,8 @@
    */
   .gm-field select {
     color-scheme: dark;
+    /* Room for the caret below, so a long option does not run under it. */
+    padding-right: 22px;
   }
 
   :root[data-theme='light'] .gm-field select {
@@ -1330,13 +1374,155 @@
     pointer-events: none;
   }
 
-  /* Room for it, so a long option does not run under the caret. */
-  .gm-field select {
-    padding-right: 22px;
-  }
-
   .gm-console .gm-btn {
     height: 62px;
+  }
+
+  /*
+   * ┌─ AND WHERE THE ENGINE ALLOWS IT, THE POPUP STOPS BEING A NATIVE MENU ───────────────────────┐
+   * │ Everything above is the best that can be done to a list the OS draws. `appearance:           │
+   * │ base-select` is the standard that hands the list back to the page: the picker becomes real   │
+   * │ DOM, addressable as `::picker(select)`, and `option` styling is finally honoured.            │
+   * │                                                                                              │
+   * │ Taken here because it costs nothing to be wrong about. It is a CSS property, so there is no  │
+   * │ dependency and no `A-NN` row to ask for; it is still the same `<select>`, so type-ahead,     │
+   * │ arrow keys, Escape, the form's GET and every screen-reader semantic are untouched - which is │
+   * │ exactly what the `<details>`-and-radios rewrite would have thrown away; and an engine that   │
+   * │ does not support it never enters this block and keeps the `color-scheme` behaviour above.    │
+   * │ Progressive enhancement in the strict sense: the fallback is the current shipping design.    │
+   * │                                                                                              │
+   * │ The tick stays. It is `AX7` - selection is carried by a mark AND the ground, never by the    │
+   * │ ground alone - and it is the UA's own glyph, so it costs no icon and no `A-NN` row.          │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  @supports (appearance: base-select) {
+    .gm-field select {
+      appearance: base-select;
+      /* The button is the field's own row: no chrome of its own, and the caret is drawn above. */
+      border: 0;
+      background: none;
+      padding: 0 22px 0 0;
+      color: var(--gm-color-content-primary);
+      font: inherit;
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 500;
+      text-align: start;
+    }
+
+    /* One caret, not two. `.gm-field::after` already draws it, on both paths. */
+    .gm-field select::picker-icon {
+      display: none;
+    }
+
+    /*
+     * ┌─ THE PICKER'S DEFAULT ANCHOR IS THE CONTROL, AND THE CONTROL IS NOT THE OBJECT ─────────┐
+     * │ A `::picker(select)` anchors to its own `<select>`, which here is the VALUE row alone -  │
+     * │ 641.7 to 665.7 - while the thing a reader sees is the whole 62px pill from 613.7. So the │
+     * │ list opened a correct 8px clear of the select and landed squarely on top of the label of │
+     * │ the field it belongs to. Every number above was right; the anchor was the wrong element. │
+     * │                                                                                         │
+     * │ `anchor-name` on the field makes the pill the anchor. `anchor-scope` is what keeps that  │
+     * │ honest with three of them on one row: without it, one name declared three times resolves │
+     * │ to the LAST element carrying it in tree order, so all three pickers would open under the │
+     * │ query field. Scoping the name to each field's own subtree gives each select the anchor    │
+     * │ it is inside of, with no per-field names to keep in step.                                 │
+     * └─────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    .gm-field:has(select) {
+      anchor-name: --gm-field;
+      anchor-scope: --gm-field;
+    }
+
+    /*
+     * `appearance: base-select` on the PICKER as well, and it is not optional. Set on the select
+     * alone the control opts in but its list does not, so the button restyles and the popup stays
+     * the OS menu - measured, with `:open` true and every `option` reporting a 0x0 box because it
+     * was never in the page to begin with. Both halves, or neither.
+     */
+    .gm-field select::picker(select) {
+      appearance: base-select;
+      border: 1px solid var(--gm-color-border-subtle);
+      border-radius: var(--gm-radius-card);
+      background: var(--gm-color-surface-raised);
+      box-shadow: var(--gm-shadow-xl);
+      padding: 6px;
+      /*
+       * ┌─ WHERE THE LIST LANDS IS DECLARED, NOT INHERITED ────────────────────────────────────┐
+       * │ Left to the UA the picker overlapped its own field by 21px, hiding the label of the   │
+       * │ control it belongs to. The console sits low on a tall hero, so the list flips above    │
+       * │ the pill - and a `margin-block-start` written for the downward case then pushes it     │
+       * │ further DOWN, into the field. Both facts measured, in that order.                      │
+       * │                                                                                       │
+       * │ So the anchor position is stated: below the control, flipping above only when there is │
+       * │ no room, with the gap on `margin-block` so it applies to whichever edge ends up facing │
+       * │ the field. `MO1` in a static form - the list comes from the control it belongs to, and │
+       * │ never sits on top of it.                                                               │
+       * └───────────────────────────────────────────────────────────────────────────────────────┘
+       */
+      position-anchor: --gm-field;
+      position-area: block-end span-inline-end;
+      position-try-fallbacks: flip-block;
+      margin-block: 8px;
+      max-height: 320px;
+      overflow-y: auto;
+      min-width: anchor-size(width);
+    }
+
+    /*
+     * ┌─ `::picker(select) option` IS NOT A SELECTOR, AND IT FAILS SILENTLY ────────────────────┐
+     * │ These four rules were first written scoped inside the picker, on the reasoning that the │
+     * │ closed button renders the selected option and an unscoped `option` would pad the field  │
+     * │ too. The browser does not parse a descendant after `::picker()`: it dropped all four,   │
+     * │ the popup opened with UA defaults, and nothing anywhere reported an error. Caught by     │
+     * │ measuring a rendered option - 24px tall against the 44 asked for.                        │
+     * │                                                                                         │
+     * │ The reasoning was wrong as well as the syntax. The button does not contain the option;   │
+     * │ it contains a `<selectedcontent>` that clones the option's CHILDREN. The `<option>`      │
+     * │ elements only ever live in the picker, so a plain descendant reaches exactly the rows    │
+     * │ meant - which is checked below by measuring the closed field's height, not by assuming.  │
+     * └─────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    .gm-field select option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      /* `AX3`. A row in a list is a touch target like any other. */
+      min-height: 44px;
+      padding: 0 12px;
+      border-radius: calc(var(--gm-radius-card) - 4px);
+      background: none;
+      color: var(--gm-color-content-secondary);
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .gm-field select option:hover,
+    .gm-field select option:focus {
+      background: var(--gm-color-surface-subtle);
+      color: var(--gm-color-content-primary);
+    }
+
+    .gm-field select option:checked {
+      color: var(--gm-color-content-primary);
+    }
+
+    /*
+     * The tick sits at the end of its row, so choosing one does not shift the text of any other.
+     *
+     * `content-primary`, and it was `accent-solid` first. A tick is INK - it is read, not painted
+     * beside something - and this file's own rule is that amber stays `#ffb627` where it is a fill
+     * or a rule and changes where it is ink. Measured on the light picker it was `#ffb627` on
+     * `#ffffff` at 1.75:1, under even the large-text bar and under `SC 1.4.11`'s 3:1 for a mark
+     * that carries meaning. The same ink as the row it marks reads as one thing and is 17.8:1 in
+     * both themes, and the state is still carried by a SHAPE rather than by colour, which is what
+     * `AX7` is actually asking for.
+     */
+    .gm-field select option::checkmark {
+      order: 1;
+      margin-inline-start: auto;
+      color: var(--gm-color-content-primary);
+    }
   }
 
   /* ── the marquee ───────────────────────────────────────────────────────── */
