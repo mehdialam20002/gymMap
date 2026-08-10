@@ -5617,7 +5617,96 @@ that produces no CSS. Arbitrary values in brackets pass it, and always did.
   now a default that was reasoned about, not a mandate — and the reasoning is still in the code
   comments where a future change can weigh it.
 
-**End of decision log.** Thirty-seven ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
+---
+
+## ADR-0038 — `state_code` is the GST 2-digit numeric code, and was never genuinely contested
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-10 |
+| **Decided by** | Project owner, delegated to this session on the analysis below |
+| **Supersedes** | Nothing. Corrects `BLK-20`'s framing, which was mine and was wrong twice |
+| **Tracked as** | `BLK-20` in `PHASES.md` — now resolved |
+| **Related PRD ids** | `BR-PAY-01` · `FR-GYM-07` · `LAUNCH_MARKET_INDIA.md` §4 · `Constraints.md` §13.4 · `NamingConvention.md` §9 |
+
+**Decision.** `state_code` — on `tenants`, on `branches`, and as `invoices.place_of_supply_state_code`
+— is the **GST 2-digit numeric state code**: `27` is Maharashtra, `29` is Karnataka. ISO 3166-2:IN
+alpha codes enter no column. Where a human-readable region is needed, the adjacent free-text `state`
+column already carries it, and schema.org's `addressRegion` is a separate presentation field that may
+continue to use alpha.
+
+**Context.** `state_code` is the **place of supply**. It selects CGST+SGST versus IGST on every
+invoice a branch issues, and a wrong value is corrected only by a credit note per document. I raised
+`BLK-20` on 2026-08-10 as *"two rank-3 documents give two alphabets"* and shipped
+`ck_branches__state_code_shape` as `^[A-Z0-9]{2}$`, which accepts `27` **and** `MH` — the conflict
+procedure's step 1 violated (*"do not implement both"*) wearing a permissive constraint as a
+disguise.
+
+Re-reading found the blocker wrong in two independent ways.
+
+**First: it is not rule-versus-rule.** Every ISO-alpha occurrence in the corpus sits inside a fenced
+block whose banner reads `// illustrative — not committed code`:
+
+| Occurrence | Fence banner |
+| :--- | :--- |
+| `Marketplace.md` 662 | `Marketplace.md` 603 |
+| `Marketplace.md` 1694, 1699, 1704, 1709, 1731 | `Marketplace.md` 1690 |
+| `MigrationStrategy.md` 604 | `MigrationStrategy.md` 602 |
+
+Every numeric occurrence is a **rule**: `SeedStrategy.md` §3.6's 38-row table (which carries no alpha
+column at all) and its twelve city rows keyed `mumbai 27`, `bengaluru 29`, `pune 27`;
+`Constraints.md` line 638; `NamingConvention.md` line 340; `Schema.md` line 795 (*"derived from
+`gstin` when present"*); and `Gym.md` line 1387's Zod — `state_code: z.string().regex(/^\d{2}$/), //
+GST state code`. `Marketplace.md`'s own normative Zod at line 502 is alphabet-neutral: `.length(2)`.
+
+Rule beats example. The precedence question never arose, and `BLK-20` should not have been raised as
+a conflict at all.
+
+**Second, and worse, because it was an absence claim.** `BLK-20` also asserted that
+`ck_tenants__state_code_matches_gstin` *"was never created, so `tenants.state_code` is unvalidated
+too"*. That is **false**. The constraint has existed since `20260807000000_expand_create_tenants`
+under a **reversed name**:
+
+```sql
+ck_tenants__gstin_state_matches
+  CHECK (gstin IS NULL OR state_code IS NULL OR state_code = substring(gstin FROM 1 FOR 2))
+```
+
+I searched `pg_constraint` for the name the documents specify, found nothing, and concluded absence.
+One spelling is not a search. This repository has hit that shape before, and the skeptic prompts I
+write for exactly this reason say so.
+
+That constraint also settles the alphabet on its own, which is why option B below is not merely
+expensive. A GSTIN's first two characters are **digits**. Under the ISO reading the constraint
+becomes `'MH' = '27'`, and every GST-registered tenant is unsavable — the alpha option was already
+physically refused by a shipped constraint that nobody had to argue about.
+
+**Options considered.**
+
+| | Option | Verdict |
+| :-: | :--- | :--- |
+| **A** | GST 2-digit numeric everywhere | **Adopted.** Every rule in the corpus, plus committed code: the `gstin_in` domain's `^[0-9]{2}…`, `gstin.vo.ts`'s `GSTIN_FORMAT`, all 23 seeded demo gyms, `india-identifiers.spec.ts` |
+| **B** | ISO 3166-2:IN alpha | Rejected. Supported by zero rules — only by blocks marked *not committed code*. Makes a shipped constraint unsatisfiable, invalidates `SeedStrategy.md` §3.6 entirely, and requires an ISO↔GST mapping nobody has specified so GSTR-1 can still be filed |
+| **C** | Keep numeric for tax, add `state_iso_code` for display | Rejected as unnecessary. `branches.state` is already `text NOT NULL` holding *"Maharashtra"*, and JSON-LD's `addressRegion` is a separate field that can derive alpha at the edge. A new column on three tables plus a 38-row mapping plus a consistency constraint, for a value already covered |
+
+**Consequences accepted.**
+
+- Public API payloads carry `"state_code": "27"` where a human might expect `"MH"`. Mitigated in the
+  same object: `"state": "Maharashtra"` is already there.
+- Six illustrative payloads in two documents are now wrong and are corrected alongside this ADR.
+  `Marketplace.md` line 502's Zod tightens from `.length(2)` to `/^\d{2}$/`.
+- `ck_branches__state_code_shape` narrows to `^[0-9]{2}$` (migration
+  `20260810150000_expand_alter_state_code_to_gst_numeric`), and the `tenants` constraint is renamed
+  to the name both documents specify — catalogue-only, and it stops the next reader repeating my
+  mistake.
+
+**Revisit trigger.** A second launch market whose tax regime does not identify a region by a numeric
+code embedded in the tax identifier. India's does; `LAUNCH_MARKET_INDIA.md` §4 is the whole reason
+this column exists. Until then, nothing in a second market's onboarding touches this decision.
+
+
+**End of decision log.** Thirty-eight ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.
 

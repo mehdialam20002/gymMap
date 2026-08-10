@@ -499,7 +499,7 @@ const Address = z.object({
   line1: z.string(), line2: z.string().optional(),
   locality: z.object({ locality_id: z.string().uuid(), name: z.string(), slug: z.string() }).optional(),
   city:  z.object({ city_id: z.string().uuid(), name: z.string(), slug: z.string() }),
-  state: z.string(), state_code: z.string().length(2),
+  state: z.string(), state_code: z.string().regex(/^\d{2}$/),   // GST state code — ADR-0038
   postal_code: z.string().regex(/^[1-9]\d{5}$/),   // Indian PIN: six digits, never leading zero
   country_code: z.literal('IN'),
   location: z.object({ lat: z.number(), lng: z.number() }),   // WGS-84, 5 dp (~1 m)
@@ -659,7 +659,7 @@ export const GetGymDetailQuery = z.object({
                   "name": "Andheri West", "slug": "andheri-west" },
     "city": { "city_id": "01932a10-4d55-7000-8c10-7a3e1b5f6280", "name": "Mumbai", "slug": "mumbai" },
     "state": "Maharashtra",
-    "state_code": "MH",
+    "state_code": "27",
     "postal_code": "400053",
     "country_code": "IN",
     "location": { "lat": 19.13842, "lng": 72.82615 },
@@ -1691,22 +1691,22 @@ geolocation is denied. **Query:** `active_only` (boolean, default `true`), `coun
 { "count": 4, "country_code": "IN",
   "items": [
     { "city_id": "01932a10-4d55-7000-8c10-7a3e1b5f6280", "name": "Mumbai", "slug": "mumbai",
-      "state": "Maharashtra", "state_code": "MH", "is_launched": true,
+      "state": "Maharashtra", "state_code": "27", "is_launched": true,
       "listed_gym_count": 412, "locality_count": 74,
       "centroid": { "lat": 19.07600, "lng": 72.87770 },
       "canonical_url": "https://www.<domain>/gyms/mumbai" },
     { "city_id": "01932a10-6f77-7000-a132-9c5e3d7f8402", "name": "Bengaluru", "slug": "bengaluru",
-      "state": "Karnataka", "state_code": "KA", "is_launched": true,
+      "state": "Karnataka", "state_code": "29", "is_launched": true,
       "listed_gym_count": 337, "locality_count": 61,
       "centroid": { "lat": 12.97160, "lng": 77.59460 },
       "canonical_url": "https://www.<domain>/gyms/bengaluru" },
     { "city_id": "01932a10-7a88-7000-b243-ad6f4e809513", "name": "Pune", "slug": "pune",
-      "state": "Maharashtra", "state_code": "MH", "is_launched": true,
+      "state": "Maharashtra", "state_code": "27", "is_launched": true,
       "listed_gym_count": 198, "locality_count": 43,
       "centroid": { "lat": 18.52040, "lng": 73.85670 },
       "canonical_url": "https://www.<domain>/gyms/pune" },
     { "city_id": "01932a10-8b99-7000-c354-be705f91a624", "name": "Hyderabad", "slug": "hyderabad",
-      "state": "Telangana", "state_code": "TG", "is_launched": false,
+      "state": "Telangana", "state_code": "36", "is_launched": false,
       "listed_gym_count": 0, "locality_count": 38,
       "centroid": { "lat": 17.38500, "lng": 78.48670 },
       "canonical_url": "https://www.<domain>/gyms/hyderabad" } ] }
@@ -1728,7 +1728,7 @@ reference row, so there is no visibility subtlety and no `409`.
 ```json
 // illustrative — not committed code
 { "city": { "city_id": "01932a10-4d55-7000-8c10-7a3e1b5f6280", "name": "Mumbai", "slug": "mumbai",
-            "state": "Maharashtra", "state_code": "MH", "is_launched": true,
+            "state": "Maharashtra", "state_code": "27", "is_launched": true,
             "centroid": { "lat": 19.07600, "lng": 72.87770 } },
   "listed_gym_count": 412,
   "currency": "INR",

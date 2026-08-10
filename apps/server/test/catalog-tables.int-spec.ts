@@ -96,7 +96,14 @@ function branchInsert(over: Partial<Record<string, string>> = {}): string {
     lat: '12.9784',
     is_primary: 'false',
     capacity: 'NULL',
-    state_code: `'KA'`,
+    /*
+     * `29`, not `KA`. Karnataka's GST state code — `SeedStrategy.md` §3.6.
+     *
+     * This fixture said `'KA'` until ADR-0038 tightened the CHECK to `^[0-9]{2}$`, at which point
+     * five unrelated assertions went red at once. That is the constraint working: the alphabet is
+     * now enforced, and a test cannot quietly keep using the rejected form.
+     */
+    state_code: `'29'`,
     /*
      * Written explicitly, because the column DEFAULTS to 'IN' and these fixtures live in 'ZZ'.
      *
@@ -374,55 +381,62 @@ it('a gym cannot name a category that does not exist', () => {
 // BLK-20 · state_code accepts both alphabets, and that is a CANARY, not a control
 // ═══════════════════════════════════════════════════════════════════════════
 
-it('BLK-20 — state_code accepts BOTH "27" and "MH". This is a canary.', () => {
+it('BLK-20 RESOLVED — state_code is GST NUMERIC, and "MH" is refused', () => {
   /*
-   * ┌─ WHEN THIS TEST GOES RED, BLK-20 HAS BEEN DECIDED AND THIS FILE SHOULD BE UPDATED ─────────┐
-   * │ Two rank-3 documents specify two different alphabets for the same column:                   │
+   * ┌─ THIS WAS A CANARY, AND THE THING IT WATCHED FOR HAS HAPPENED — ADR-0038 ───────────────────┐
+   * │ I raised `BLK-20` as *"two rank-3 documents give two alphabets"*, and shipped                │
+   * │ `ck_branches__state_code_shape` as `^[A-Z0-9]{2}$`, which accepted `27` AND `MH`. Re-reading │
+   * │ found the framing wrong twice over:                                                           │
    * │                                                                                              │
-   * │   NUMERIC  SeedStrategy.md §3.6 seeds all 38 GST codes ("27" Maharashtra, "29" Karnataka)   │
-   * │            and calls them "the 2-digit prefix of every GSTIN". Schema.md derives            │
-   * │            tenants.state_code "from gstin when present". Gym.md:696 shows "27".              │
-   * │   ALPHA    Marketplace.md:662, 1694, 1699 show "MH", "KA", "TG".                             │
+   * │   1. It is not rule-versus-rule. EVERY alpha occurrence — `Marketplace.md` 662, 1694, 1699,  │
+   * │      1704, 1709, 1731 and `MigrationStrategy.md` 604 — sits inside a fence banner-marked     │
+   * │      `// illustrative — not committed code`. Every numeric occurrence is a RULE:              │
+   * │      `SeedStrategy.md` §3.6's 38-row table, `Constraints.md` 638, `Schema.md` 795, and        │
+   * │      `Gym.md` 1387's Zod `z.string().regex(/^\d{2}$/)  // GST state code`.                     │
    * │                                                                                              │
-   * │ `ck_branches__state_code_shape` is `^[A-Z0-9]{2}$` and admits both. That is the conflict     │
-   * │ procedure's step 1 violated — "do not implement both" — and it is recorded as BLK-20 rather  │
-   * │ than tightened, because tightening it would be picking a side in code.                       │
-   * │                                                                                              │
-   * │ So this assertion does NOT say the constraint is right. It says the constraint is not a      │
-   * │ control yet, and pins that fact where somebody will meet it. `state_code` is the place of    │
-   * │ supply: it selects CGST+SGST versus IGST on every invoice the branch issues, and a wrong     │
-   * │ value is corrected only by a credit note per document.                                        │
-   * │                                                                                              │
-   * │ WHEN BLK-20 RESOLVES: tighten the CHECK to the decided alphabet, turn the two `assert.equal` │
-   * │ lines below into one acceptance and one refusal, and close BLK-20 in docs/PHASES.md.          │
+   * │   2. `BLK-20` also claimed `ck_tenants__state_code_matches_gstin` "was never created". FALSE. │
+   * │      It shipped with `20260807000000` under a REVERSED name, `ck_tenants__gstin_state_matches`│
+   * │      — I searched one spelling and concluded absence. That constraint settles the alphabet on │
+   * │      its own: `state_code = substring(gstin, 1, 2)`, and a GSTIN starts with two DIGITS, so   │
+   * │      under the alpha reading every GST-registered tenant is unsavable.                         │
    * └──────────────────────────────────────────────────────────────────────────────────────────────┘
    */
   assert.equal(refusedBy(branchInsert({ state_code: `'27'` })), '', 'the GST numeric form');
-  assert.equal(refusedBy(branchInsert({ state_code: `'MH'` })), '', 'the ISO alpha form');
 
-  // What it DOES refuse, so the check is not simply inert.
+  // The assertion that flipped. `MH` was accepted before ADR-0038 and must not be now.
   assert.equal(
-    refusedBy(branchInsert({ state_code: `'m'` })),
+    refusedBy(branchInsert({ state_code: `'MH'` })),
     'ck_branches__state_code_shape',
-    'a one-character code must still be refused',
+    'ISO alpha must be refused — it would put the wrong tax on every invoice this branch issues',
   );
-  assert.equal(
-    refusedBy(branchInsert({ state_code: `'mh'` })),
-    'ck_branches__state_code_shape',
-    'lower case must still be refused — the shape check is doing something',
-  );
+
+  // Still refused, so the check has not become a one-trick regex.
+  for (const bad of [`'m'`, `'mh'`, `'2'`, `'2a'`]) {
+    assert.equal(
+      refusedBy(branchInsert({ state_code: bad })),
+      'ck_branches__state_code_shape',
+      `${bad} must be refused`,
+    );
+  }
 });
 
-it('BLK-20 — tenants.state_code has NO constraint at all, which Constraints.md specifies', () => {
-  // `ck_tenants__state_code_matches_gstin` is specified and was never created. Asserted so the
-  // gap is a failing expectation the day somebody adds it, rather than a thing nobody re-checks.
+it('ADR-0038 — the tenants constraint exists, under the name both documents specify', () => {
+  /*
+   * `Constraints.md` line 638 and `NamingConvention.md` line 340 both name it
+   * `ck_tenants__state_code_matches_gstin`. It shipped as `ck_tenants__gstin_state_matches` and was
+   * renamed by `20260810150000`.
+   *
+   * Asserted by NAME, because the name is what the next person greps for — and grepping for the
+   * specified name and finding nothing is exactly how I convinced myself the constraint was
+   * missing and wrote that into a blocker.
+   */
   const { out } = psql(`
     SELECT count(*) FROM pg_constraint WHERE conname = 'ck_tenants__state_code_matches_gstin';`);
-  assert.equal(
-    out,
-    '0',
-    'the constraint now exists — good. Update BLK-20, and give branches.state_code the same one.',
-  );
+  assert.equal(out, '1', 'the constraint Constraints.md line 638 specifies is missing');
+
+  const { out: old } = psql(`
+    SELECT count(*) FROM pg_constraint WHERE conname = 'ck_tenants__gstin_state_matches';`);
+  assert.equal(old, '0', 'the old reversed name is still present — the rename did not run');
 });
 
 it('the same gym cannot declare the same amenity twice', () => {

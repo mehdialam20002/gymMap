@@ -601,7 +601,7 @@ India requires **components**. `LAUNCH_MARKET_INDIA.md` §4: intra-state supply 
 ```json
 // illustrative — not committed code — schema_version 2, the required shape (Schema.md §7.5)
 { "schema_version": 2,
-  "place_of_supply_state_code": "MH",
+  "place_of_supply_state_code": "27",
   "components": [
     { "component": "CGST", "rate_bps": 900, "taxable_value_minor": "400000", "amount_minor": "36000" },
     { "component": "SGST", "rate_bps": 900, "taxable_value_minor": "400000", "amount_minor": "36000" }
