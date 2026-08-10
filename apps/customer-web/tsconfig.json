@@ -24,7 +24,6 @@
     ".next/types/**/*.ts",
     "src/**/*.d.ts",
     ".next-dev/types/**/*.ts",
-    ".next-preview/types/**/*.ts",
     ".next-build/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
