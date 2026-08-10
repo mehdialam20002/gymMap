@@ -60,7 +60,7 @@
     "rate-limiter-flexible": "^11.2.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "zod": "^3.25.76"
+    "zod": "^4.4.3"
   },
   "//test:isolation": "M-015 · ONE glob covering every *-spec.ts under test/isolation/. The previous form listed *.int-spec.ts and *.isolation-spec.ts explicitly, which silently excluded dropped-policy.negative-spec.ts — A7, the assertion that makes the other six falsifiable. A file that exists and is never run is the exact failure this milestone is about, and it was in the milestone's own script.",
   "//lint": "R1a keeps the ROOT devDependencies to seven packages, and eslint is not one of them — so each workspace that lints declares its own. The shared rule set still lives in one place (@gymmap/config/eslint); only the runner is per-package."
