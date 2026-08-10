@@ -17,10 +17,19 @@
  *   - a shared link opens with the same four gyms;
  *   - the homepage stays a Server Component, which `FR-SRCH-13` asks for.
  *
- * The cost is honest and worth naming: reading `searchParams` opts `/` out of static rendering.
- * The HTML is still produced on the server, so nothing about crawling or SEO changes - what is
- * lost is the full-page cache, which for a page whose catalogue is a fixture is not yet a cost at
- * all, and which a `revalidate` on the data layer will answer when it is.
+ * ┌─ A COST THIS WAS SAID TO HAVE, AND DOES NOT ───────────────────────────────────────────────┐
+ * │ The note here used to read "reading `searchParams` opts `/` out of static rendering", and    │
+ * │ the commit that added the rail said the same. It is wrong, and it was wrong when written.    │
+ * │                                                                                             │
+ * │ `app/layout.tsx` calls `headers()` to read the per-response CSP nonce, and `headers()` in a  │
+ * │ layout opts the WHOLE APPLICATION out of static rendering. `pnpm build` confirms it: every   │
+ * │ route in the manifest is `ƒ (Dynamic)`, including `/how-it-works` and the account pages,     │
+ * │ which read no search parameters at all. That has been true since long before this rail.      │
+ * │                                                                                             │
+ * │ So the rail costs nothing here, and it matters that this is recorded: somebody hunting for   │
+ * │ static rendering would otherwise remove a working feature and get none of it back. The nonce │
+ * │ is the thing to weigh, and `NFR-SEC-12` has already weighed it.                               │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
  * ═══════════════════════════════════════════════════════════════════════════════════════════
  */
 

@@ -32,12 +32,13 @@ import {
 /**
  * `searchParams`, because the compare selection lives in the URL (`FR-CMP-01`).
  *
- * This opts the route out of static rendering. The HTML is still produced on the server, so
- * `FR-SRCH-13` and everything about crawling is unchanged; what is given up is the full-page
- * cache. That is the price of a selection that survives being shared, works with JavaScript off,
- * and is undone by the back button - and it is a price this page can pay while its catalogue is a
- * fixture. The alternative was a client island holding the same list in React state, which is a
- * second copy of a fact the URL already carries.
+ * It does NOT opt the route out of static rendering, which is what this note used to claim.
+ * `app/layout.tsx` reads the per-response CSP nonce with `headers()`, and `headers()` in a layout
+ * makes the whole application dynamic - `pnpm build` marks every route `ƒ`, including ones that
+ * read no search parameters. The rail is free here; see the note in `compare-rail.tsx`.
+ *
+ * The alternative was a client island holding the same list in React state, which is a second
+ * copy of a fact the URL already carries.
  */
 export default function HomePage({ searchParams }: { readonly searchParams: RawParams }) {
   const { gyms: selected } = parseCompare(searchParams);
