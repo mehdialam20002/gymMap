@@ -276,7 +276,11 @@ test('AC-7 — lockout is read BEFORE anything is verified', async () => {
   const h = harness();
   await h.useCase.execute(command(totp(SECRET, NOW.getTime())));
 
-  assert.equal(h.calls[0], 'lockoutRead', `lockout was not consulted first: ${h.calls.join(' → ')}`);
+  assert.equal(
+    h.calls[0],
+    'lockoutRead',
+    `lockout was not consulted first: ${h.calls.join(' → ')}`,
+  );
 });
 
 test('AC-7 — a locked account is refused without the code being examined', async () => {

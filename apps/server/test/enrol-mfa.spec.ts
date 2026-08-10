@@ -191,7 +191,9 @@ test('AC-2 — confirm activates only with a LIVE code', async () => {
 test('AC-2 — a wrong code leaves the account UNCHANGED', async () => {
   const { h } = await begun();
 
-  await assert.rejects(() => h.useCase.confirm({ userId: USER, code: '000000', correlationId: 'c' }));
+  await assert.rejects(() =>
+    h.useCase.confirm({ userId: USER, code: '000000', correlationId: 'c' }),
+  );
   assert.equal(h.activated, null, 'an unconfirmed enrolment activated the factor');
 });
 
@@ -236,13 +238,17 @@ test('confirming TWICE does not reissue recovery codes', async () => {
   // └───────────────────────────────────────────────────────────────────────────────────────────┘
   const h = harness({ enabled: true, envelope: cipher.seal(randomBytes(20)) });
 
-  await assert.rejects(() => h.useCase.confirm({ userId: USER, code: '000000', correlationId: 'c' }));
+  await assert.rejects(() =>
+    h.useCase.confirm({ userId: USER, code: '000000', correlationId: 'c' }),
+  );
   assert.equal(h.activated, null);
 });
 
 test('confirming with no enrolment in progress is refused', async () => {
   const h = harness({ envelope: null });
-  await assert.rejects(() => h.useCase.confirm({ userId: USER, code: '000000', correlationId: 'c' }));
+  await assert.rejects(() =>
+    h.useCase.confirm({ userId: USER, code: '000000', correlationId: 'c' }),
+  );
 });
 
 test('BR-DAT-01 — the audit row records the change and neither credential', async () => {

@@ -67,7 +67,11 @@ function useCaseWith(rows: ReadonlyArray<{ status: string; createdAt: Date }>, t
   return new PlatformOverviewUseCase(port, clock, config);
 }
 
-const context = { userId: 'u-1', permission: 'onboarding.application.list_all', why: 'x'.repeat(24) };
+const context = {
+  userId: 'u-1',
+  permission: 'onboarding.application.list_all',
+  why: 'x'.repeat(24),
+};
 
 /** One row, submitted `hoursAgo` before `NOW`. */
 async function slaFor(status: string, hoursAgo: number, targetHours = 72) {

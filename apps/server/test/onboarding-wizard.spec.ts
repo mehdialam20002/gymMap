@@ -5,11 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
-  WIZARD_STEPS,
-  isWizardStep,
-  progressFrom,
-} from '../dist/onboarding/domain/wizard-step.js';
+import { WIZARD_STEPS, isWizardStep, progressFrom } from '../dist/onboarding/domain/wizard-step.js';
 import {
   isSameRegistration,
   normaliseRegistrationNumber,
@@ -136,11 +132,7 @@ test('every step complete gives a null nextStep, not a seventh step', () => {
 
 test('a duplicate or unknown entry does not corrupt the answer', () => {
   // The completion list arrives from storage, which outlives any one version of this code.
-  const progress = progressFrom([
-    'KYC',
-    'KYC',
-    'NOT_A_STEP' as never,
-  ]);
+  const progress = progressFrom(['KYC', 'KYC', 'NOT_A_STEP' as never]);
 
   assert.deepEqual(progress.completed, ['KYC']);
   assert.equal(progress.nextStep, 'BUSINESS_IDENTITY');

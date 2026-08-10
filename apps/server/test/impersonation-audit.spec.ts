@@ -176,4 +176,3 @@ test('the interceptor no longer hard-codes null over the ambient agent', () => {
     'the audit interceptor passes an explicit null, overriding the ambient impersonator',
   );
 });
-

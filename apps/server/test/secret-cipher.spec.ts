@@ -74,11 +74,15 @@ test('a tampered TAG throws, and so does a tampered IV', () => {
 
   const badTag = Buffer.from(tag ?? '', 'base64url');
   badTag[0] = (badTag[0] ?? 0) ^ 0x01;
-  assert.throws(() => cipher.open([version, keyId, iv, ciphertext, badTag.toString('base64url')].join('.')));
+  assert.throws(() =>
+    cipher.open([version, keyId, iv, ciphertext, badTag.toString('base64url')].join('.')),
+  );
 
   const badIv = Buffer.from(iv ?? '', 'base64url');
   badIv[0] = (badIv[0] ?? 0) ^ 0x01;
-  assert.throws(() => cipher.open([version, keyId, badIv.toString('base64url'), ciphertext, tag].join('.')));
+  assert.throws(() =>
+    cipher.open([version, keyId, badIv.toString('base64url'), ciphertext, tag].join('.')),
+  );
 });
 
 test('a DIFFERENT key cannot open the envelope', () => {
@@ -116,7 +120,10 @@ test('a key that is not 32 bytes is refused at construction, with instructions',
   // │ that way starts, serves traffic, and encrypts every secret at half the intended strength —  │
   // │ or throws on the first enrolment, hours later, in front of a user.                          │
   // └───────────────────────────────────────────────────────────────────────────────────────────┘
-  assert.throws(() => new AesGcmSecretCipher(randomBytes(16).toString('base64'), KEY_ID), /32 bytes/);
+  assert.throws(
+    () => new AesGcmSecretCipher(randomBytes(16).toString('base64'), KEY_ID),
+    /32 bytes/,
+  );
   assert.throws(() => new AesGcmSecretCipher('', KEY_ID), /32 bytes/);
   // The message tells the operator how to make one, because the next thing they do is search for it.
   assert.throws(() => new AesGcmSecretCipher('short', KEY_ID), /randomBytes\(32\)/);
@@ -129,7 +136,11 @@ test('hex and base64 key material are both accepted', () => {
   const fromHex = new AesGcmSecretCipher(raw.toString('hex'), KEY_ID);
   const fromB64 = new AesGcmSecretCipher(raw.toString('base64'), KEY_ID);
 
-  assert.deepEqual(fromB64.open(fromHex.seal(SECRET)), SECRET, 'hex and base64 decoded differently');
+  assert.deepEqual(
+    fromB64.open(fromHex.seal(SECRET)),
+    SECRET,
+    'hex and base64 decoded differently',
+  );
 });
 
 test('an empty key id is refused — rotation cannot tell two keys apart without one', () => {

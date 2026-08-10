@@ -143,8 +143,14 @@ test('a user who can themselves impersonate may NOT be impersonated', () => {
   // │ which every action is attributable to somebody else. That is not support, it is laundering  │
   // │ attribution.                                                                                │
   // └───────────────────────────────────────────────────────────────────────────────────────────┘
-  assert.equal(start({ agentRoles: ['SUPER_ADMIN'], targetRoles: ['SUPPORT_AGENT'] }).permitted, false);
-  assert.equal(start({ agentRoles: ['SUPER_ADMIN'], targetRoles: ['SUPER_ADMIN'] }).permitted, false);
+  assert.equal(
+    start({ agentRoles: ['SUPER_ADMIN'], targetRoles: ['SUPPORT_AGENT'] }).permitted,
+    false,
+  );
+  assert.equal(
+    start({ agentRoles: ['SUPER_ADMIN'], targetRoles: ['SUPER_ADMIN'] }).permitted,
+    false,
+  );
 
   // A target holding a staff role ALONGSIDE an ordinary one is still refused.
   assert.equal(
@@ -254,10 +260,7 @@ test('AC-5 — a token with NO agent roles authorises NOTHING', () => {
   // │ subject's full grants would be exactly the escalation AC-5 forbids, arrived at by an        │
   // │ optional field being absent. The safe answer is nothing, and the request is refused.        │
   // └───────────────────────────────────────────────────────────────────────────────────────────┘
-  assert.deepEqual(
-    effectiveGrants({ typ: 'IMPERSONATION', roles: [`GYM_OWNER@t:${TENANT}`] }),
-    [],
-  );
+  assert.deepEqual(effectiveGrants({ typ: 'IMPERSONATION', roles: [`GYM_OWNER@t:${TENANT}`] }), []);
   assert.deepEqual(
     effectiveGrants({ typ: 'IMPERSONATION', roles: [`GYM_OWNER@t:${TENANT}`], imp_roles: [] }),
     [],

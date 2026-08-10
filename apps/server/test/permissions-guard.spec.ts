@@ -69,7 +69,14 @@ test('a platform grant is only honoured for a role §B3.1 scopes to the platform
 test('a malformed claim yields null rather than throwing', () => {
   // Throwing would turn a malformed claim into a 500, which tells an attacker the string reached
   // the parser. Contributing nothing produces a clean 403 with no signal in it.
-  for (const bad of ['', 'SUPER_ADMIN', '@platform', 'NOT_A_ROLE@platform', 'GYM_OWNER@t:', 'GYM_OWNER@']) {
+  for (const bad of [
+    '',
+    'SUPER_ADMIN',
+    '@platform',
+    'NOT_A_ROLE@platform',
+    'GYM_OWNER@t:',
+    'GYM_OWNER@',
+  ]) {
     assert.equal(parseRoleGrant(bad), null, `"${bad}" should not parse`);
   }
 });
@@ -123,7 +130,9 @@ test('NEGATIVE: PLATFORM does not conjure a permission the role never held', () 
 // ═══════════════════════════════════════════════════════════════════════════
 
 test('TENANT reaches its own tenant', () => {
-  const grants: RoleGrant[] = [{ role: 'GYM_OWNER', scope: { kind: 'TENANT', tenantId: TENANT_A } }];
+  const grants: RoleGrant[] = [
+    { role: 'GYM_OWNER', scope: { kind: 'TENANT', tenantId: TENANT_A } },
+  ];
   const permission = permissionsFor('GYM_OWNER')[0]!;
   assert.equal(permits(permission, grants, inTenant(TENANT_A), ME).allowed, true);
 });
@@ -134,7 +143,9 @@ test('NEGATIVE: TENANT does not reach another tenant, even holding the permissio
   // │ scope answers YES here, passes every other test in this file, and is a total tenancy       │
   // │ failure the moment the platform has two customers.                                        │
   // └───────────────────────────────────────────────────────────────────────────────────────────┘
-  const grants: RoleGrant[] = [{ role: 'GYM_OWNER', scope: { kind: 'TENANT', tenantId: TENANT_A } }];
+  const grants: RoleGrant[] = [
+    { role: 'GYM_OWNER', scope: { kind: 'TENANT', tenantId: TENANT_A } },
+  ];
   const permission = permissionsFor('GYM_OWNER')[0]!;
 
   const decision = permits(permission, grants, inTenant(TENANT_B), ME);
@@ -148,7 +159,9 @@ test('NEGATIVE: TENANT does not reach another tenant, even holding the permissio
 
 test('NEGATIVE: TENANT does not reach a resource belonging to no tenant', () => {
   // A global reference table. A tenant-scoped role writing one would edit it for every gym.
-  const grants: RoleGrant[] = [{ role: 'GYM_OWNER', scope: { kind: 'TENANT', tenantId: TENANT_A } }];
+  const grants: RoleGrant[] = [
+    { role: 'GYM_OWNER', scope: { kind: 'TENANT', tenantId: TENANT_A } },
+  ];
   const permission = permissionsFor('GYM_OWNER')[0]!;
   assert.equal(permits(permission, grants, { tenantId: null }, ME).allowed, false);
 });
@@ -189,7 +202,10 @@ test('NEGATIVE: BRANCH does not reach a TENANT-level resource', () => {
   ];
   const permission = permissionsFor('RECEPTIONIST')[0]!;
 
-  assert.equal(permits(permission, grants, inTenant(TENANT_A, { branchId: null }), ME).allowed, false);
+  assert.equal(
+    permits(permission, grants, inTenant(TENANT_A, { branchId: null }), ME).allowed,
+    false,
+  );
   // And with the key absent entirely, which is how a route that never loads a branch presents.
   assert.equal(permits(permission, grants, inTenant(TENANT_A), ME).allowed, false);
 });
@@ -210,7 +226,12 @@ test('SELF reaches the principal own record', () => {
 test('NEGATIVE: SELF does not reach another user record', () => {
   const grants: RoleGrant[] = [{ role: 'MEMBER', scope: { kind: 'SELF' } }];
   const permission = permissionsFor('MEMBER')[0]!;
-  const decision = permits(permission, grants, { tenantId: null, subjectUserId: SOMEBODY_ELSE }, ME);
+  const decision = permits(
+    permission,
+    grants,
+    { tenantId: null, subjectUserId: SOMEBODY_ELSE },
+    ME,
+  );
   assert.equal(decision.allowed, false);
   assert.equal(decision.allowed === false && decision.reason, 'OUT_OF_SCOPE');
 });
@@ -252,7 +273,9 @@ test('FR-RBAC-02 — the SAME role and permission decide differently by scope al
   // │ the permission and the principal are identical in both calls and only the resource moves.   │
   // │ If both answers agree, scope is being ignored.                                              │
   // └───────────────────────────────────────────────────────────────────────────────────────────┘
-  const grants: RoleGrant[] = [{ role: 'GYM_OWNER', scope: { kind: 'TENANT', tenantId: TENANT_A } }];
+  const grants: RoleGrant[] = [
+    { role: 'GYM_OWNER', scope: { kind: 'TENANT', tenantId: TENANT_A } },
+  ];
   const permission = permissionsFor('GYM_OWNER')[0]!;
 
   const own = permits(permission, grants, inTenant(TENANT_A), ME);

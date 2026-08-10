@@ -68,7 +68,12 @@ test('AC-8 — the DURATION is read out of `after`, not left null', async () => 
 test('a non-numeric duration is narrowed away rather than cast', async () => {
   // `after` is jsonb and genuinely unknown. A cast would put a number-shaped lie on a screen the
   // user is reading to decide whether to complain.
-  for (const after of [{ durationMinutes: 'twelve' }, { durationMinutes: null }, 'nonsense', null]) {
+  for (const after of [
+    { durationMinutes: 'twelve' },
+    { durationMinutes: null },
+    'nonsense',
+    null,
+  ]) {
     const h = harness([row({ after })]);
     const [entry] = await h.useCase.forUser(ME);
     assert.equal(entry?.durationMinutes, null, `${JSON.stringify(after)} produced a duration`);

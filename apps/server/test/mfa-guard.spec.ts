@@ -10,14 +10,16 @@ import { IS_PUBLIC } from '../dist/common/decorators/public.decorator.js';
 
 const TENANT = '0192de00-0000-7000-8000-00000000000a';
 
-function harness(options: {
-  roles?: readonly string[];
-  enabled?: boolean;
-  missing?: boolean;
-  // `IS_PUBLIC` is a string key and `MFA_EXEMPT` a symbol — `PropertyKey` covers both.
-  metadata?: Record<PropertyKey, boolean>;
-  noPrincipal?: boolean;
-} = {}) {
+function harness(
+  options: {
+    roles?: readonly string[];
+    enabled?: boolean;
+    missing?: boolean;
+    // `IS_PUBLIC` is a string key and `MFA_EXEMPT` a symbol — `PropertyKey` covers both.
+    metadata?: Record<PropertyKey, boolean>;
+    noPrincipal?: boolean;
+  } = {},
+) {
   let reads = 0;
 
   const store = {
@@ -51,9 +53,7 @@ function harness(options: {
     getClass: () => ({ name: 'Controller' }),
     switchToHttp: () => ({
       getRequest: () =>
-        options.noPrincipal
-          ? {}
-          : { principal: { sub: 'user-ana', roles: options.roles ?? [] } },
+        options.noPrincipal ? {} : { principal: { sub: 'user-ana', roles: options.roles ?? [] } },
     }),
   };
 

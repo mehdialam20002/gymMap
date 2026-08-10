@@ -55,10 +55,16 @@ test('§C4.4 has EIGHT states, matching tenant_status_enum', () => {
   // The roadmap says seven. There are eight in the PRD diagram and eight in the enum; asserted so
   // the discrepancy is a failing test if anybody ever "fixes" the list down to seven.
   assert.equal(LIFECYCLE_STATES.length, 8);
-  assert.deepEqual(
-    [...LIFECYCLE_STATES].sort(),
-    ['APPROVED', 'CLOSED', 'DRAFT', 'INFO_REQUESTED', 'REJECTED', 'SUBMITTED', 'SUSPENDED', 'UNDER_REVIEW'],
-  );
+  assert.deepEqual([...LIFECYCLE_STATES].sort(), [
+    'APPROVED',
+    'CLOSED',
+    'DRAFT',
+    'INFO_REQUESTED',
+    'REJECTED',
+    'SUBMITTED',
+    'SUSPENDED',
+    'UNDER_REVIEW',
+  ]);
 });
 
 test('AC-1 — every one of the 64 pairs matches the PRD diagram', () => {

@@ -88,7 +88,10 @@ test('AC-6 — the policy is checked BEFORE the password, so staff get no passwo
   // └───────────────────────────────────────────────────────────────────────────────────────────┘
   const right = harness();
   await assert.rejects(() => right.useCase.execute(command({ roles: ['FINANCE'] })));
-  assert.ok(!right.calls.includes('verifyPassword'), 'the password was examined for a staff account');
+  assert.ok(
+    !right.calls.includes('verifyPassword'),
+    'the password was examined for a staff account',
+  );
 
   const wrong = harness();
   await assert

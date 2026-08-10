@@ -270,9 +270,27 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
      * DEFAULT is this same expression. Writing it explicitly makes the INSERT legible without
      * introducing a caller-chosen tenant, which is the thing `BR5` exists to forbid.
      *
-     * The explanation lives out here rather than as a `/* *\/` inside the SQL: a backtick in a
-     * comment inside a tagged template ENDS the template, and the parse error it produces points
-     * at the line after the comment.
+     * ┌─ NO `::char(2)` ON `state_code` OR `country_code`, AND THE CAST WAS THERE UNTIL THE ─────┐
+     * │ INT-SPEC RAN                                                                              │
+     * │ `branch-write.int-spec.ts` measured both forms against PostgreSQL:                        │
+     * │                                                                                          │
+     * │     '291'::char(2)                         →  '29', silently                              │
+     * │     INSERT '291' INTO a char(2) column     →  ERROR: value too long for type character(2) │
+     * │                                                                                          │
+     * │ An EXPLICIT cast to `bpchar(n)` truncates; an ASSIGNMENT to the column refuses. On a GST  │
+     * │ state code that difference is the whole game — `state_code` decides **CGST + SGST versus  │
+     * │ IGST on every future invoice for a sale at this branch**, and `'291'` quietly becoming    │
+     * │ `'29'` is Karnataka: a real state, a legal code, and `ck_branches__state_code_shape`      │
+     * │ (`^[0-9]{2}$`) passes the truncated value without complaint.                               │
+     * │                                                                                          │
+     * │ So the only thing between an over-long code and a wrong tax treatment was the DTO's       │
+     * │ `^\d{2}$` — one layer, in the lowest-authority place there is. Dropping the cast makes    │
+     * │ the database a second layer instead of an accomplice.                                      │
+     * └──────────────────────────────────────────────────────────────────────────────────────────┘
+     *
+     * Both explanations live out here rather than inside the SQL: a backtick in a comment inside a
+     * tagged template ENDS the template, and the parse error it produces points at the line after
+     * the comment. That cost a build once already, four hours ago.
      */
     const rows = await this.db.client.$queryRaw<BranchRow[]>`
       INSERT INTO branches (
@@ -288,9 +306,9 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
         ${branch.cityId}::uuid,
         ${branch.localityId}::uuid,
         ${branch.state},
-        ${branch.stateCode}::char(2),
+        ${branch.stateCode},
         ${branch.postalCode},
-        ${branch.countryCode}::char(2),
+        ${branch.countryCode},
         ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography,
         ${branch.geoToleranceMetres},
         ${branch.capacity},
@@ -356,7 +374,7 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
         city_id       = CASE WHEN ${has('cityId')}::boolean        THEN ${patch.cityId ?? null}::uuid  ELSE city_id       END,
         locality_id   = CASE WHEN ${has('localityId')}::boolean    THEN ${patch.localityId ?? null}::uuid ELSE locality_id END,
         state         = CASE WHEN ${has('state')}::boolean         THEN ${patch.state ?? null}         ELSE state         END,
-        state_code    = CASE WHEN ${has('stateCode')}::boolean     THEN ${patch.stateCode ?? null}::char(2) ELSE state_code END,
+        state_code    = CASE WHEN ${has('stateCode')}::boolean     THEN ${patch.stateCode ?? null}      ELSE state_code    END,
         postal_code   = CASE WHEN ${has('postalCode')}::boolean    THEN ${patch.postalCode ?? null}    ELSE postal_code   END,
         capacity      = CASE WHEN ${has('capacity')}::boolean      THEN ${patch.capacity ?? null}      ELSE capacity      END,
         location      = CASE WHEN ${point !== null}::boolean

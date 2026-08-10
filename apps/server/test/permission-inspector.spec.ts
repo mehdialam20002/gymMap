@@ -137,10 +137,7 @@ test('RB5 — the qualifier distinguishes ● FULL from ▪ OWN, which the keys 
   const key = own.readKey ?? own.writeKey!;
 
   // The key alone says nothing about the qualifier — proved, not asserted in prose.
-  assert.ok(
-    permissionsFor(role).includes(key),
-    `${role} should hold ${key} through its OWN grant`,
-  );
+  assert.ok(permissionsFor(role).includes(key), `${role} should hold ${key} through its OWN grant`);
 
   const result = inspectPermission([{ role, scope: { kind: 'SELF' } }], key);
   assert.equal(result.held, true);
@@ -157,7 +154,10 @@ test('a reason NEVER carries the NONE qualifier', () => {
   // It can only arise if the matrix and `permissionsFor()` disagree about a cell, which is a bug
   // worth failing on rather than rendering.
   for (const role of ['GYM_OWNER', 'RECEPTIONIST', 'MEMBER', 'SUPER_ADMIN'] as const) {
-    const grants: RoleGrant[] = [{ role, scope: { kind: 'PLATFORM' } }, { role, scope: { kind: 'SELF' } }];
+    const grants: RoleGrant[] = [
+      { role, scope: { kind: 'PLATFORM' } },
+      { role, scope: { kind: 'SELF' } },
+    ];
     for (const [, reasons] of annotatedEffectivePermissions(grants)) {
       for (const reason of reasons) {
         assert.notEqual(reason.qualifier, 'NONE', `${role} produced a NONE reason`);

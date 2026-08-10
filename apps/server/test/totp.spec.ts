@@ -160,7 +160,7 @@ test('an OLDER step is refused once a newer one has been accepted', () => {
   assert.equal(verifyTotp(secret, previous, NOW, currentStep).valid, false);
 });
 
-test('the step RETURNED is the code\'s own step, not the newest in the window', () => {
+test("the step RETURNED is the code's own step, not the newest in the window", () => {
   // Returning the current step for a code from the previous one would advance the high-water mark
   // past evidence, silently invalidating the code the user is about to submit for this step.
   const secret = generateTotpSecret();
@@ -230,8 +230,9 @@ test('an authenticator following the URI computes the code this verifier accepts
   // │ QR whose codes are always wrong, on every device, with no error anywhere.                    │
   // └───────────────────────────────────────────────────────────────────────────────────────────┘
   const secret = generateTotpSecret();
-  const encoded = new URLSearchParams(provisioningUri(secret, 'ana@example.test').split('?')[1])
-    .get('secret');
+  const encoded = new URLSearchParams(
+    provisioningUri(secret, 'ana@example.test').split('?')[1],
+  ).get('secret');
   assert.ok(encoded);
 
   // Decode the base32 the way an authenticator app would, and confirm it is the same bytes.
