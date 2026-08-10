@@ -5894,10 +5894,73 @@ a new version, which is the correct answer and will feel heavy the first time so
 that pressure produces a proposal to widen the grant, the answer is a targeted `admin/` use case
 that supersedes, not an `UPDATE` on `items`.
 
+---
+
+## ADR-0041 — §21.3's five sections are mandatory and ordered, not exclusive
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-10 |
+| **Decided by** | Project owner, delegated to this session on the analysis below |
+| **Supersedes** | Nothing. Interprets `PROJECT_CONSTITUTION.md` §21.3 `FD1`; the constitution is unamended |
+| **Tracked as** | `BLK-12` in `PHASES.md` — now resolved |
+| **Related PRD ids** | `PROJECT_CONSTITUTION.md` §21.3 `FD1`–`FD4` · `DG3` · DoD item 23 |
+
+**Decision.** A feature document under `docs/features/` **must** contain the five §21.3 sections —
+*Business Rules*, *Database*, *API*, *Flow*, *Future Improvements* — in that relative order. It
+**may** contain other sections as well. `FD3`'s *Flow* must be a mermaid sequence diagram, per `DG3`.
+
+The constitution is **not** amended. The two shipped documents carry debt, not a precedent.
+
+**Context.** `BLK-12` recorded this as *"the constitution and both shipped feature documents disagree
+about what a feature document is"*, and closed by observing that *"the precedence ladder says the
+constitution wins"*. On re-reading, the framing was generous to the code: this was never a
+disagreement between documents of comparable rank. `PROJECT_CONSTITUTION.md` is rank 1. Two files
+under `docs/features/` do not conform to it, and nothing recorded that — which `CLAUDE.md` §9.6
+forbids independently of any conflict.
+
+What made it feel like a conflict is that the two files are *good documents*. Neither is careless;
+both are narrative and readable, and `M-015`'s roadmap entry even claims one has the five sections.
+That is drift with a plausible face, which is the kind that survives review — and CI job 22 checks
+only that a feature document **exists**.
+
+**The reading that matters, and it costs less than the blocker assumed.** `FD1` says:
+
+> The five sections are mandatory and appear in that order.
+
+*Mandatory* and *ordered*. It does not say *exclusive*, and no clause elsewhere does. So a document
+carrying the five sections plus narrative is conforming. The two existing files are non-conforming
+because they omit **all five**, not because they added prose — and the remedy is therefore to add
+the five around what they already have, not to rewrite them.
+
+**Options considered.**
+
+| | Option | Verdict |
+| :-: | :--- | :--- |
+| **A** | Five sections mandatory and ordered, narrative permitted alongside | **Adopted.** The literal reading of `FD1`; the two existing files become fixable rather than disposable |
+| **B** | Amend §21.3 to bless the narrative spine | Rejected. It would discard `FD2`'s guarantee — every `BR-` appears in exactly one *Business Rules* section — which is the section a CI report will one day read. A narrative document has nowhere for that report to look |
+| **C** | Five sections exclusively; strip the narrative | Rejected. `FD1` does not say it, and the prose in both files is where the reasoning lives |
+
+**Consequences accepted.**
+
+- `docs/features/rbac.md` (owed by `M-023`) is written to §21.3 from the start. The shape question
+  that blocked it is answered.
+- `docs/features/tenant-isolation.md` and `docs/features/session-lifecycle.md` need the five
+  sections added and their ASCII diagrams converted to mermaid per `DG3`. Recorded as `TD-043`
+  rather than done here, because both are large and one is being edited by a concurrent session.
+- CI job 22 checks existence only. A shape check — five headings, in order, mermaid in *Flow* — is
+  the natural companion to this decision and is named in `TD-043` as part of the repayment.
+
+**Revisit trigger.** `FD2`'s CI report going in. If it turns out that a *Business Rules* section
+cannot be machine-read reliably across documents that also carry narrative, the exclusivity question
+returns — and the answer then is a stricter heading convention, not a looser one.
 
 
 
-**End of decision log.** Forty ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
+
+
+**End of decision log.** Forty-one ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.
 
