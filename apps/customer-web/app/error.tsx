@@ -24,7 +24,14 @@ export default function ErrorState({
   return (
     <div className="gm-wrap gm-sec gm-sec-tight">
       <div className="max-w-ui rounded-card border border-danger bg-surface-danger-subtle p-inset-lg">
-        <h1 className="gm-h2-danger">{t('web.state.error.title')}</h1>
+        {/*
+         * `gm-h2 text-content-danger`, because `gm-h2-danger` is defined in no stylesheet in this
+         * repository. It has always been an unmatched selector, so the error page's heading has
+         * been rendering at the same size and weight as the sentence beneath it - on the one screen
+         * whose whole job is to be scanned quickly by somebody who has just hit a failure.
+         * `not-found.tsx` uses the real `gm-h2`, which is how the typo survived review.
+         */}
+        <h1 className="gm-h2 text-content-danger">{t('web.state.error.title')}</h1>
         <p className="mt-stack-sm text-base text-content-danger">{t('web.state.error.body')}</p>
 
         {error.digest ? (

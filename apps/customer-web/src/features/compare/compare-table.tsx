@@ -92,7 +92,18 @@ export function CompareTable({ gyms }: { readonly gyms: readonly GymDetail[] }) 
                   </span>
                   <Link
                     href={toCompareParams(keys.filter((key) => key !== compareKey(gym)))}
-                    className="gm-hit-target gm-card-add mt-stack-xs inline-block rounded-control text-sm font-semibold"
+                    /*
+                     * Neither `inline-block` nor `gm-hit-target`, and both were actively harmful
+                     * once `.gm-card-add` became a real control.
+                     *
+                     * `inline-block` is a utility, so it beat the component's `display: inline-flex`
+                     * - which took `align-items: center` with it, and the label sat jammed against
+                     * the top of a 44px pill with 22px of empty space under it. `gm-hit-target`
+                     * grows an `::after` outward to reach 44px, which the class no longer needs
+                     * because it has 44px of real height, and which an ancestor's `overflow: hidden`
+                     * would clip anyway.
+                     */
+                    className="gm-card-add mt-stack-xs rounded-control text-sm font-semibold"
                   >
                     {t('web.compare.remove')}
                     <span className="gm-visually-hidden">: {gym.name}</span>

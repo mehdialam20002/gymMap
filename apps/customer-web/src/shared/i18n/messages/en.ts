@@ -386,6 +386,10 @@ export const en = {
   // Rides ON the image, not on the page. A banner at the top of a results list does not travel
   // with a screenshot of one card, and this is the same disclosure the gallery already carries.
   'web.gym.samplePhoto': 'Sample photo',
+  // The same disclosure, for the image's alt text. The visible pill is `aria-hidden` so it
+  // cannot leak into the accessible name of a link wrapped round the cover; a statement about
+  // an image belongs in that image's description, which is what this is.
+  'web.gym.samplePhotoAlt': '{description} (sample photo)',
   'web.gym.gallery.label': 'Sample photos, not this gym',
   // Stated on the page rather than only in a code comment: a member looking at four photos of a
   // gym they are about to pay for is entitled to know whose photos they are.
@@ -723,6 +727,9 @@ export const en = {
     'Every verified gym in {city} on GymMap, with the price you actually pay. Compare by distance, facilities and monthly cost.',
   'web.landing.city.intro':
     'Every listing in {city} has been checked by a person before it appeared, and the monthly price on each card is the price charged at checkout.',
+  // The gym grid's own heading on both landings. Visually hidden: the h1 above it already says
+  // what is being listed, but the outline needs a level 2 between that h1 and the cards' h3.
+  'web.landing.listingsHeading': 'Listings',
   'web.landing.city.activities': 'Activities in {city}',
   'web.landing.city.otherCities': 'Other cities',
   'web.landing.city.seeAll': 'See all {count} in search',

@@ -167,7 +167,10 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
 
         {/* `gm-plan-card` pins the card below the header on desktop — same
             `--gm-chrome-height` the filter rail uses, declared once in globals.css. */}
-        <aside className="gm-plan-card lg:self-start">
+        {/* Named, because an unnamed `complementary` is announced as "complementary" and nothing
+            else - and this one carries the prices, which is what a reader jumping by landmark is
+            most likely looking for. */}
+        <aside aria-label={t('web.gym.plans.title')} className="gm-plan-card lg:self-start">
           <div className="gm-card rounded-card p-inset-lg">
             <h2 className="text-lg font-semibold text-content">{t('web.gym.plans.title')}</h2>
 

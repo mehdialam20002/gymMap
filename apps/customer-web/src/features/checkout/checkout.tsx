@@ -47,13 +47,17 @@ export function Checkout({ selection }: { readonly selection: CheckoutSelection 
           </h2>
 
           <div className="gm-card mt-stack-md flex flex-wrap gap-inline-lg rounded-card p-inset-lg">
-            <Link
-              href={`/gyms/${gym.citySlug}/${gym.slug}`}
-              className="relative block aspect-video w-[12rem] shrink-0 overflow-hidden rounded-card bg-surface-sunken"
-            >
+            {/*
+             * The cover is not a link. It pointed at the same gym page as the name three lines
+             * below it, so the panel shipped two anchors to one destination and the first was
+             * named by the stock photograph's alt text - a screen reader read the contents of a
+             * sample image as the label of a link to a gym. Same defect as the one removed from
+             * `gym-card.tsx`; the name below is the one anchor, and it always was the useful one.
+             */}
+            <span className="relative block aspect-video w-[12rem] shrink-0 overflow-hidden rounded-card bg-surface-sunken">
               {/* Cover plus its own disclosure - see `gym-photo.tsx`. */}
               <GymPhoto gym={gym} sizes="12rem" className="h-full w-full" />
-            </Link>
+            </span>
 
             <div className="min-w-0 flex-1">
               <h3 className="text-lg font-semibold text-content">

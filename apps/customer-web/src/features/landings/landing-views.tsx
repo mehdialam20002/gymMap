@@ -269,12 +269,22 @@ function GymGrid({
     );
   }
 
+  /*
+   * A level 2 the page was missing. Both landings go `h1` -> gym cards, and every `GymCard` emits
+   * an `h3`, so the outline read h1 -> h3 -> h3 -> h3 and only reached a real `h2` at the chip
+   * sections right at the bottom. Hidden rather than drawn: the `h1` immediately above already
+   * says "Gyms in Mumbai", so a visible "Listings" would be repetition on screen - but the outline
+   * is a separate artefact and it needs the rung.
+   */
   return (
-    <ul className="mt-stack-xl grid gap-stack-lg sm:grid-cols-2 xl:grid-cols-3">
-      {gyms.map((gym) => (
-        <GymCard key={gym.id} gym={gym} />
-      ))}
-    </ul>
+    <>
+      <h2 className="gm-visually-hidden">{t('web.landing.listingsHeading')}</h2>
+      <ul className="mt-stack-xl grid gap-stack-lg sm:grid-cols-2 xl:grid-cols-3">
+        {gyms.map((gym) => (
+          <GymCard key={gym.id} gym={gym} />
+        ))}
+      </ul>
+    </>
   );
 }
 

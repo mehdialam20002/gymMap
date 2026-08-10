@@ -57,7 +57,7 @@ export function GymPhoto({
         <>
           <Image
             src={gym.photo}
-            alt={gym.photoAlt}
+            alt={t('web.gym.samplePhotoAlt').replace('{description}', gym.photoAlt)}
             width={1200}
             height={675}
             sizes={sizes}
@@ -72,7 +72,17 @@ export function GymPhoto({
            * Not `aria-hidden`. A screen-reader user is told the photo is a sample for the same
            * reason a sighted one is, and the alt text alone ("barbell floor") does not say it.
            */}
-          <span className="gm-photo-sample">{t('web.gym.samplePhoto')}</span>
+          {/*
+           * `aria-hidden`, and the disclosure moves into the alt text instead.
+           *
+           * On the compare page the cover sits inside the column's link, and a pill is just text -
+           * so the link's accessible name came out as "SAMPLE PHOTO Apex CrossFit Powai". The
+           * marker is a visual annotation on the photograph; the same fact reaches a screen reader
+           * through the image's own description, which is where a statement about an image belongs.
+           */}
+          <span aria-hidden="true" className="gm-photo-sample">
+            {t('web.gym.samplePhoto')}
+          </span>
         </>
       )}
     </span>

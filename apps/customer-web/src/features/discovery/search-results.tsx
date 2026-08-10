@@ -455,7 +455,16 @@ function FacetCount({ count, muted }: { count: number | undefined; muted: boolea
 
 function SortBar({ query }: { query: SearchQuery }) {
   return (
-    <div className="gm-scroll-row -mx-inset-md flex items-center gap-inline-xs overflow-x-auto border-b border-subtle px-inset-md pb-inset-sm sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+    /*
+     * `py-inset-2xs` on the phone layout, not `pb-inset-sm` alone.
+     *
+     * `overflow-x-auto` makes this a scroll container below `sm`, and a scroll container clips at
+     * its PADDING box - so the `gm-hit-target` expansion on each sort link was cut at the top,
+     * where there was no padding at all, leaving about 33px of reachable height against AX3's 44.
+     * Padding on both blocks sides gives the grown target somewhere to grow into. Above `sm` the
+     * row is `overflow-visible` and nothing was ever clipped, which is why this only bit the phone.
+     */
+    <div className="gm-scroll-row -mx-inset-md flex items-center gap-inline-xs overflow-x-auto border-b border-subtle px-inset-md py-inset-sm sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pt-0">
       <span className="shrink-0 text-sm font-medium text-content-muted">
         {t('web.search.sort.label')}
       </span>

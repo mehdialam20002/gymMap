@@ -87,7 +87,13 @@ export function CompareRail({ selected }: { readonly selected: readonly GymDetai
               <Link
                 href={railToggleHref(selected, gym)}
                 aria-label={t('web.compare.rail.remove').replace('{gym}', gym.name)}
-                className="gm-hit-target gm-rail-x"
+                /*
+                 * `gm-hit-target` removed. It grows an `::after` outward, and `.gm-rail-set` is a
+                 * scroll container (`overflow-x: auto` forces `overflow-y: auto`), which clips at
+                 * its padding box - so the 44px this class claimed was 36px in fact. `.gm-rail-x`
+                 * now has 44px of its own, and the row has the padding to hold it.
+                 */
+                className="gm-rail-x"
               >
                 <Close aria-hidden="true" className="h-[0.75rem] w-[0.75rem]" />
               </Link>

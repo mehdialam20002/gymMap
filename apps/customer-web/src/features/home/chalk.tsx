@@ -189,20 +189,35 @@ export function GymRail({ selected = [] }: { readonly selected?: readonly GymDet
                   ) : (
                     <Link
                       href={railToggleHref(selected, gym)}
-                      className="gm-hit-target gm-card-add text-sm font-semibold transition-colors duration-fast ease-standard"
+                      className="gm-card-add text-sm font-semibold transition-colors duration-fast ease-standard"
                     >
                       {t(
                         chosen.has(compareKey(gym))
                           ? 'web.home.compare.remove'
                           : 'web.home.compare.add',
                       )}
+                      {/* Six of these on the rail, one per card, and the name on the card is not a
+                          link - so without this they are six controls called "Add to compare". */}
+                      <span className="gm-visually-hidden">: {gym.name}</span>
                     </Link>
                   )}
+                  {/*
+                   * The gym's name, for anybody who cannot see which card this is.
+                   *
+                   * The rail renders six cards, and the name on each is a plain `<h3>` rather than
+                   * a link - so listing the page's links gave six controls called "View" and six
+                   * called "Add to compare", twelve destinations and not one of them identified.
+                   * The visible label stays short because the card supplies the context visually;
+                   * the hidden half supplies it to everything else. `gym-card.tsx` already did
+                   * this for its own compare control, which is where the pattern comes from.
+                   */}
                   <Link
                     href={`/gyms/${gym.citySlug}/${gym.slug}`}
                     className="gm-btn gm-btn-ghost gm-btn-sm"
                   >
-                    {t('web.home.card.view')} <i aria-hidden="true">→</i>
+                    {t('web.home.card.view')}
+                    <span className="gm-visually-hidden">: {gym.name}</span>
+                    <i aria-hidden="true">→</i>
                   </Link>
                 </div>
               </div>
@@ -316,7 +331,12 @@ export function PlanRow() {
                   ))}
                 </ul>
                 <Link href={checkoutHref(gym, plan)} className="gm-btn mt-auto w-full">
-                  {t('web.home.plans.view')} <i aria-hidden="true">→</i>
+                  {t('web.home.plans.view')}
+                  {/* Which plan, at which gym. Three identical buttons otherwise. */}
+                  <span className="gm-visually-hidden">
+                    : {plan.name}, {gym.name}
+                  </span>
+                  <i aria-hidden="true">→</i>
                 </Link>
               </article>
             );

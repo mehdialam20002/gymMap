@@ -165,19 +165,6 @@ export function Hero() {
         <div className="gm-noise" />
       </div>
 
-      {/*
-       * The constellation. It sits OUTSIDE `gm-hero-in` so it can reach the panel's right edge
-       * rather than stopping at the wrap's measure, and inside `.gm-hero` so it scrolls with it.
-       */}
-      <div aria-hidden="true" className="gm-orbit gm-orbit-art">
-        <span className="gm-orbit-ring gm-orbit-ring-3" />
-        <span className="gm-orbit-ring" />
-        <span className="gm-orbit-ring gm-orbit-ring-2" />
-        <span className="gm-orbit-dot gm-orbit-dot-1" />
-        <span className="gm-orbit-dot gm-orbit-dot-2" />
-        <span className="gm-orbit-dot gm-orbit-dot-3" />
-      </div>
-
       <div className="gm-hero-in gm-wrap">
         <p className="gm-hero-tag">
           {/*
@@ -330,6 +317,38 @@ export function Hero() {
          * before it heard what the page was. It is positioned absolutely either way, so moving it
          * costs nothing on screen.
          */}
+        {/*
+         * ┌─ THE ARCS AND THE NODES HAD STOPPED AGREEING ON WHERE "RIGHT" IS ─────────────────────┐
+         * │ `.gm-orbit` positions both boxes with `right: clamp(12px,3vw,46px)` and `top: 0`, and  │
+         * │ they were in two different positioned ancestors: the arcs in `.gm-hero`, the nodes -   │
+         * │ moved here for the tab order - in `.gm-hero-in`, which also carries `.gm-wrap`'s       │
+         * │ `max-width: 1240px; margin-inline: auto`.                                              │
+         * │                                                                                       │
+         * │ So the same two declarations resolved against different boxes. Horizontally the nodes  │
+         * │ sat (viewport - 1240) / 2 to the left of the arcs: nothing at 1240px, 100px at 1440,   │
+         * │ 340px at 1920 - on a box only 500px wide. Vertically they dropped by `.gm-hero`'s      │
+         * │ `padding-top`, about 31px, at EVERY width the constellation is shown. Five labelled    │
+         * │ nodes floating inboard of the rings they are supposed to sit on.                       │
+         * │                                                                                       │
+         * │ The note that used to sit above the arcs said moving the nav "costs nothing on screen, │
+         * │ it is positioned absolutely either way". Absolute positioning is exactly what makes a  │
+         * │ move cost something: it changes which box the offsets are measured from.               │
+         * │                                                                                       │
+         * │ The arcs come here rather than the nodes going back out, because the nodes' geometry   │
+         * │ is the one that was measured against the search console across 1181-1920px. Moving     │
+         * │ them would invalidate that; moving the arcs to meet them does not. The arcs are        │
+         * │ `aria-hidden`, so their DOM position costs no tab stop and no announcement.            │
+         * └───────────────────────────────────────────────────────────────────────────────────────┘
+         */}
+        <div aria-hidden="true" className="gm-orbit gm-orbit-art">
+          <span className="gm-orbit-ring gm-orbit-ring-3" />
+          <span className="gm-orbit-ring" />
+          <span className="gm-orbit-ring gm-orbit-ring-2" />
+          <span className="gm-orbit-dot gm-orbit-dot-1" />
+          <span className="gm-orbit-dot gm-orbit-dot-2" />
+          <span className="gm-orbit-dot gm-orbit-dot-3" />
+        </div>
+
         <nav aria-label={t('web.home.hero.orbitLabel')} className="gm-orbit">
           {ORBIT.map((node) => {
             const Glyph = icon[node.glyph];

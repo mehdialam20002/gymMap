@@ -51,7 +51,8 @@ export function AccountOverview() {
           </div>
         ) : (
           <div className="mt-stack-md">
-            <MembershipCard membership={active} />
+            {/* Under "Your active membership", which is the `h2` - so this one is a level down. */}
+            <MembershipCard membership={active} level={3} />
           </div>
         )}
       </section>
@@ -89,22 +90,37 @@ export function Memberships() {
   );
 }
 
-function MembershipCard({ membership }: { readonly membership: Membership }) {
+/**
+ * `level` because the same card sits at two depths.
+ *
+ * On `/account/memberships` the card follows the shell's `h1` with no section heading between, so
+ * its title is the page's level 2 and a fixed `h3` skipped a level. On `/account` it sits UNDER
+ * "Your active membership", which is already an `h2`, so there it has to be an `h3`. A heading
+ * level is a fact about where a component is used, not about the component, so the caller states it.
+ */
+function MembershipCard({
+  membership,
+  level = 2,
+}: {
+  readonly membership: Membership;
+  readonly level?: 2 | 3;
+}) {
   const Place = icon.place;
   const visits = visitCount(DEMO_MEMBER, membership.id);
+  const Heading = level === 2 ? 'h2' : 'h3';
 
   return (
     <article className="gm-card rounded-card p-inset-lg">
       <div className="flex flex-wrap items-start justify-between gap-inline-md">
         <div className="min-w-0">
-          <h3 className="text-lg font-semibold text-content">
+          <Heading className="text-lg font-semibold text-content">
             <Link
               href={`/gyms/${membership.gymCitySlug}/${membership.gymSlug}`}
               className="gm-h3 rounded-control"
             >
               {membership.gymName}
             </Link>
-          </h3>
+          </Heading>
           <p className="mt-stack-2xs flex items-center gap-inline-2xs text-sm text-content-secondary">
             <Place aria-hidden="true" className="h-[1rem] w-[1rem] shrink-0" />
             {membership.gymLocality}
@@ -165,6 +181,10 @@ function MembershipCard({ membership }: { readonly membership: Membership }) {
         }`}
       >
         {t('web.account.overview.checkIn')}
+        {/* Which membership. `/account/memberships` renders three of these cards, so without the
+            gym's name the page offers three identical "Show check-in code" links to three
+            different credentials - and picking the wrong one at a gym door is the whole cost. */}
+        <span className="gm-visually-hidden">: {membership.gymName}</span>
       </Link>
     </article>
   );
