@@ -1,9 +1,12 @@
 /**
  * M-019 · `iam/permissions.ts` — the §B3.1 roles and the §B3.2 matrix, as data.
  *
- * ┌─ THE 42×12 GRID IS TRANSCRIBED MECHANICALLY, NOT BY HAND ───────────────────────────────────┐
- * │ 504 cells. A human transcribing them will get some wrong, and a wrong cell is a silent      │
- * │ privilege change: one `—` typed as `●` gives a receptionist the ability to publish plans.   │
+ * ┌─ THE 45×12 GRID IS TRANSCRIBED MECHANICALLY, NOT BY HAND ───────────────────────────────────┐
+ * │ 540 cells — 42 rows and 504 cells until `ADR-0047` added three under Part C §C10. A human   │
+ * │ transcribing them will get some wrong, and a wrong cell is a silent privilege change: one   │
+ * │ `—` typed as `●` gives a receptionist the ability to publish plans. That is not hypothetical │
+ * │ — applying `ADR-0047` I shifted row 20 by one column, which demoted `GYM_OWNER` to read and │
+ * │ handed `SUPPORT_AGENT` full branch write. Counting the cells caught it; nothing else would. │
  * │                                                                                              │
  * │ So `rbac-matrix.spec.ts` re-parses `MASTER_PRD.md` §B3.2 at test time and compares every    │
  * │ cell against this file. The PRD stays the source of truth, and an edit to either side that  │
@@ -29,7 +32,7 @@
  * │ `user_roles` **520,000** and a 10× column. It is a capacity estimate for a table that grows  │
  * │ as endpoints land, not a list anybody has written down.                                      │
  * │                                                                                              │
- * │ The enumerated, binding source is §B3.2: 42 capabilities. Decomposed into read and write     │
+ * │ The enumerated, binding source is §B3.2: 45 capabilities. Decomposed into read and write     │
  * │ actions they yield the keys below. Seeding 180 invented keys to match a projection would     │
  * │ put an authorisation matrix nobody specified into the database, and `FR-RBAC-01` fails CI    │
  * │ on an endpoint whose declared permission is undeclared — not on a permission with no         │

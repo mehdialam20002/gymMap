@@ -1,5 +1,5 @@
 /**
- * `M-023` · `AC-4` — every one of §B3.2's 504 cells, checked against the PRD ITSELF.
+ * `M-023` · `AC-4` — every one of §B3.2's 540 cells, checked against the PRD ITSELF.
  *
  * ═══════════════════════════════════════════════════════════════════════════════════════════
  * THIS READS THE DOCUMENT, NOT A COPY OF IT
@@ -10,7 +10,7 @@
  * that nobody edited it.
  *
  * That suite would assert that a constant equals itself. Generated from the matrix, it can only
- * ever agree with the matrix — including agreeing with a typo in it. Five hundred and four green
+ * ever agree with the matrix — including agreeing with a typo in it. Five hundred and forty green
  * assertions, all of them tautologies, and the ONE thing worth knowing left unchecked.
  *
  * So the table is parsed out of `MASTER_PRD.md` and compared to the code. That is a real
@@ -123,7 +123,7 @@ function parseMatrixFromPrd(): { header: readonly string[]; rows: readonly Parse
 const { header, rows } = parseMatrixFromPrd();
 
 test('the PRD table still has the twelve columns this file knows how to read', () => {
-  // If the PRD gains a role, this fails FIRST and by name, rather than as 42 confusing cell
+  // If the PRD gains a role, this fails FIRST and by name, rather than as 45 confusing cell
   // mismatches in a column that shifted one place to the left.
   assert.deepEqual(
     header,
@@ -152,7 +152,7 @@ test('the code carries exactly the capabilities the PRD lists, in the same order
   );
 });
 
-test('AC-4 — all 504 cells agree with §B3.2', () => {
+test('AC-4 — all 540 cells agree with §B3.2', () => {
   const mismatches: string[] = [];
   let checked = 0;
 
