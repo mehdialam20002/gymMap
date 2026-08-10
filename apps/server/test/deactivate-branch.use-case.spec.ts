@@ -50,7 +50,7 @@ function build(options: {
       },
     } as never,
     {
-      findInGym: (gymId: string, branchId: string) => {
+      findInGym: (_gymId: string, branchId: string) => {
         calls.push(`findInGym:${branchId}`);
         return Promise.resolve(
           branchFound
