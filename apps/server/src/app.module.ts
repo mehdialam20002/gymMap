@@ -15,6 +15,7 @@ import { IamModule } from './iam/iam.module.js';
 import { AdminModule } from './admin/index.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { PlatformRoleGuard } from './common/guards/platform-role.guard.js';
+import { PermissionsGuard } from './common/guards/permissions.guard.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { TenancyModule } from './tenancy/tenancy.module.js';
 import { TenantContextMiddleware } from './tenancy/context/tenant-context.middleware.js';
@@ -40,6 +41,36 @@ import { TenantGuard } from './tenancy/guards/tenant.guard.js';
     // guards in registration order, so reversing these two would make every admin route
     // 403 for an authenticated operator whose principal had not been resolved yet.
     { provide: APP_GUARD, useClass: PlatformRoleGuard },
+
+    /*
+     * ┌─ `PermissionsGuard` IS BOUND, AND UNTIL TODAY IT COULD NOT BE — `TD-045` ──────────────────┐
+     * │ `FR-RBAC-01` and `FR-RBAC-02` require every endpoint's permission to be enforced           │
+     * │ server-side. `M-023` built this guard, unit tested it, exported it from the barrel — and   │
+     * │ registered it NOWHERE, so the 540-cell matrix governed nothing at runtime. `PHASES.md`     │
+     * │ claimed it was "registered per route"; it was not registered at all.                        │
+     * │                                                                                            │
+     * │ It could not simply be added. `permits()` refuses anything outside `PERMISSION_KEYS` as    │
+     * │ `UNKNOWN_PERMISSION`, and SEVEN declared route keys sat outside it — so binding this would │
+     * │ have 403'd every authenticated route in the application. Resolving those seven, in order,  │
+     * │ is what this commit's predecessors did:                                                     │
+     * │                                                                                            │
+     * │   `admin.platform_overview.read` · `admin.gym_register.read`  → `§B3.2` rows 44, 45 (owner)│
+     * │   `iam.impersonation.manage`                                  → the two strings the         │
+     * │                                                                 catalogue actually freezes  │
+     * │   `iam.session.list` · `.revoke` · `iam.mfa.*`                → `SELF_SERVICE_PERMISSIONS`  │
+     * │   `tenancy.ping.read`                                         → `SCOPED_NON_MATRIX_…`      │
+     * │                                                                                            │
+     * │ AFTER `PlatformRoleGuard` and after `JwtAuthGuard`, per `Security.md`'s fixed pipeline —    │
+     * │ *"not a matter of taste; each stage assumes the previous one ran"*. This one assumes        │
+     * │ `principal` is on the request, which `JwtAuthGuard` puts there.                             │
+     * │                                                                                            │
+     * │ **`MfaGuard` is deliberately NOT bound here.** Every one of the eleven seeded principals    │
+     * │ has `password_hash` NULL, and enrolment re-authenticates against that hash — so binding the │
+     * │ mandate today locks every platform account out of every route with no path back in. That   │
+     * │ is `TD-045`'s remaining half and it needs the seed fixed first.                             │
+     * └────────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    { provide: APP_GUARD, useClass: PermissionsGuard },
 
     // ── Interceptor ORDER matters, and this is the order ──────────────────────────────────
     //

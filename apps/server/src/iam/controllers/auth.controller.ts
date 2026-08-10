@@ -422,7 +422,7 @@ export class AuthController {
 
   @Post('mfa/enrol')
   @MfaExempt()
-  @RequiredPermission(IAM_PERMISSIONS.OWN_MFA_MANAGE)
+  @RequiredPermission(IAM_PERMISSIONS.OWN_MFA_ENROL)
   @RateLimit('RL-AUTH')
   @HttpCode(HttpStatus.OK)
   @EmitsErrors('MFA_NOT_AVAILABLE_FOR_ROLE', 'MFA_VERIFICATION_FAILED')
@@ -456,7 +456,7 @@ export class AuthController {
 
   @Post('mfa/verify')
   @MfaExempt()
-  @RequiredPermission(IAM_PERMISSIONS.OWN_MFA_MANAGE)
+  @RequiredPermission(IAM_PERMISSIONS.OWN_MFA_VERIFY)
   @RateLimit('RL-AUTH')
   @HttpCode(HttpStatus.OK)
   @EmitsErrors('MFA_VERIFICATION_FAILED')
@@ -509,7 +509,7 @@ export class AuthController {
 
   @Delete('mfa')
   @MfaExempt()
-  @RequiredPermission(IAM_PERMISSIONS.OWN_MFA_MANAGE)
+  @RequiredPermission(IAM_PERMISSIONS.OWN_MFA_DISABLE)
   @RateLimit('RL-AUTH')
   @HttpCode(HttpStatus.NO_CONTENT)
   @EmitsErrors('MFA_MANDATORY_FOR_ROLE', 'MFA_VERIFICATION_FAILED')

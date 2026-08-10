@@ -244,7 +244,7 @@
           "MFA_MANDATORY_FOR_ROLE",
           "MFA_VERIFICATION_FAILED"
         ],
-        "x-gymmap-permission": "iam.own_mfa.manage",
+        "x-gymmap-permission": "iam.mfa.disable",
         "x-gymmap-rate-limit": "RL-AUTH"
       }
     },
@@ -266,7 +266,7 @@
           "MFA_NOT_AVAILABLE_FOR_ROLE",
           "MFA_VERIFICATION_FAILED"
         ],
-        "x-gymmap-permission": "iam.own_mfa.manage",
+        "x-gymmap-permission": "iam.mfa.enrol",
         "x-gymmap-rate-limit": "RL-AUTH"
       }
     },
@@ -287,7 +287,7 @@
         "x-gymmap-error-codes": [
           "MFA_VERIFICATION_FAILED"
         ],
-        "x-gymmap-permission": "iam.own_mfa.manage",
+        "x-gymmap-permission": "iam.mfa.verify",
         "x-gymmap-rate-limit": "RL-AUTH"
       }
     },
@@ -597,7 +597,7 @@
           "UNAUTHENTICATED",
           "PERMISSION_DENIED"
         ],
-        "x-gymmap-permission": "iam.own_session.read",
+        "x-gymmap-permission": "iam.session.list",
         "x-gymmap-rate-limit": "RL-READ"
       }
     },
@@ -629,7 +629,7 @@
           "PERMISSION_DENIED",
           "RESOURCE_NOT_FOUND"
         ],
-        "x-gymmap-permission": "iam.own_session.revoke",
+        "x-gymmap-permission": "iam.session.revoke",
         "x-gymmap-rate-limit": "RL-WRITE"
       }
     },

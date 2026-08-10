@@ -1248,35 +1248,29 @@ export function describePermission(key: string): string {
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 export const IAM_PERMISSIONS = {
-  /** `FR-AUTH-09`. Read your own device sessions. */
-  OWN_SESSION_READ: 'iam.own_session.read',
-  /** `FR-AUTH-10`. Sign one of your own devices out. */
-  OWN_SESSION_REVOKE: 'iam.own_session.revoke',
-  /**
-   * `FR-AUTH-07`. Manage your OWN second factor — enrol, confirm, present, remove.
-   *
-   * Same category as the two above and outside `§B3.2` for the same reason: every authenticated
-   * principal manages their own account security, including a `USER` with no memberships. Adding a
-   * matrix row would put twelve cells into a grid verified against the PRD, and that verification
-   * would fail, correctly.
-   *
-   * One key for all four operations rather than read/write. What separates them is not authority —
-   * it is the same person acting on the same row — but the POLICY (`mfaRequirementForPrincipal`)
-   * and re-authentication, both of which a permission cannot express.
-   */
-  OWN_MFA_MANAGE: 'iam.own_mfa.manage',
+  /** `FR-AUTH-09` · `GET /auth/sessions`. Read your own device sessions. */
+  OWN_SESSION_READ: 'iam.session.list',
+  /** `FR-AUTH-10` · `DELETE /auth/sessions/:id`. Sign one of your own devices out. */
+  OWN_SESSION_REVOKE: 'iam.session.revoke',
 
-  /**
-   * `FR-AUTH-12`. Start and end an impersonation.
-   *
-   * Outside `§B3.2` like the two above, and for a sharper reason than "every principal has it":
-   * NOT every principal has it. Who may impersonate is `MAY_IMPERSONATE` in the policy — a
-   * deliberate two-role list — because "may borrow an identity" is not a capability the matrix
-   * expresses, and inferring it from permissions is how a broad-read role like `FINANCE` would
-   * acquire it by accident.
-   *
-   * The key exists so the route can declare one (`FR-RBAC-01`, `PG-1`); the POLICY is the control.
+  /*
+   * ┌─ THREE MFA KEYS, NOT ONE — AND THE COLLAPSE WAS A RANK-5 OVERRIDE ──────────────────────────┐
+   * │ This was a single `iam.own_mfa.manage`, with a comment arguing the merge on merit: "what     │
+   * │ separates them is not authority — it is the same person acting on the same row — but the     │
+   * │ POLICY and re-authentication, both of which a permission cannot express."                     │
+   * │                                                                                             │
+   * │ The argument is sound and it is not this file's to make. `API_Catalog.md` 720-722 freezes    │
+   * │ **three** strings on three routes; a rank-5 constant cannot merge two rank-3 rows. If the    │
+   * │ merge is right it is a `§C10` amendment to the catalogue, and until then the catalogue wins. │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
    */
+  /** `FR-AUTH-07` · `POST /auth/mfa/enrol`. */
+  OWN_MFA_ENROL: 'iam.mfa.enrol',
+  /** `FR-AUTH-07` · `POST /auth/mfa/verify`. */
+  OWN_MFA_VERIFY: 'iam.mfa.verify',
+  /** `FR-AUTH-07` · `DELETE /auth/mfa`. */
+  OWN_MFA_DISABLE: 'iam.mfa.disable',
+
   /**
    * `POST /auth/impersonate` — `API_Catalog.md` 723. Was `iam.impersonation.manage`, a string in
    * neither the register nor the catalogue; `ADR-0047`'s companion fix put the row on the two the
@@ -1286,5 +1280,56 @@ export const IAM_PERMISSIONS = {
   /** `POST /auth/impersonate/end` — `API_Catalog.md` 724, auth mode `support`. */
   IMPERSONATION_END: permissionOf('Impersonate user', 'iam.impersonation.end'),
 } as const;
+
+/**
+ * The keys every AUTHENTICATED principal holds, which `§B3.2` deliberately does not contain.
+ *
+ * ┌─ AN EXPLICIT LIST, NEVER A PATTERN ──────────────────────────────────────────────────────────┐
+ * │ The tempting shape is `key.startsWith('iam.session.') || key.startsWith('iam.mfa.')`. That is │
+ * │ a rule an attacker satisfies by NAMING A ROUTE WELL: any future handler under those prefixes  │
+ * │ is admitted for every authenticated caller, with no review and no diff anyone would question. │
+ * │                                                                                              │
+ * │ So it is five strings, enumerated, each answerable in review. Adding a sixth is a visible     │
+ * │ line in a file whose whole subject is who may do what.                                        │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ WHY THESE ARE NOT `§B3.2` ROWS, AND WHY THAT IS NOT A LOOPHOLE ─────────────────────────────┐
+ * │ §B3.2's rows are capabilities a ROLE exercises against tenant resources. "Read your own       │
+ * │ sessions" is held by every authenticated principal including a `USER` with no membership — a  │
+ * │ row for it would be twelve `●` cells, and `RB2`'s drift job would fail the build against the  │
+ * │ PRD, correctly.                                                                                │
+ * │                                                                                              │
+ * │ **The permission is not what scopes these.** `AZ4` makes a `/me` route act on the caller's    │
+ * │ own rows, and the handler enforces it: `revokeOne(sessionId, principal.sub)` returns 404 for  │
+ * │ somebody else's session id — indistinguishable from one that does not exist. Admitting the    │
+ * │ key grants the ROUTE, never the row. A future route that declared one of these against        │
+ * │ another user's record would be a bug in that route, and the audit for it is this list.        │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+/**
+ * Keys held by any principal whose grant REACHES the resource, but which are not `§B3.2` rows.
+ *
+ * ┌─ ONE ENTRY, AND IT IS A DIAGNOSTIC RATHER THAN A CAPABILITY ─────────────────────────────────┐
+ * │ `tenancy.ping.read` gates `GET /v1/tenant/ping`, which `M-012` built so the whole chain —    │
+ * │ token to middleware to guard to repository to RLS policy to response — could be exercised     │
+ * │ end to end before any business logic depended on it. It is in `_inventory.generated.ts`,     │
+ * │ which `PG-4` requires.                                                                        │
+ * │                                                                                              │
+ * │ **Separate from `SELF_SERVICE_PERMISSIONS`, and the difference matters.** A self-service key │
+ * │ acts on the caller's OWN row, so the handler scopes it and the guard need not. This returns   │
+ * │ TENANT data — trading name and the like — so the tenant scope check must still run. Admitting │
+ * │ it the self-service way would let any authenticated principal ping any tenant, which is       │
+ * │ `BR-TEN-01`. It is admitted past the matrix lookup only; `scopeReaches()` still decides.      │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export const SCOPED_NON_MATRIX_PERMISSIONS: readonly string[] = ['tenancy.ping.read'];
+
+export const SELF_SERVICE_PERMISSIONS: readonly string[] = [
+  IAM_PERMISSIONS.OWN_SESSION_READ,
+  IAM_PERMISSIONS.OWN_SESSION_REVOKE,
+  IAM_PERMISSIONS.OWN_MFA_ENROL,
+  IAM_PERMISSIONS.OWN_MFA_VERIFY,
+  IAM_PERMISSIONS.OWN_MFA_DISABLE,
+];
 
 export type IamPermission = (typeof IAM_PERMISSIONS)[keyof typeof IAM_PERMISSIONS];

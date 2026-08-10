@@ -33,6 +33,8 @@ import {
   CAPABILITY_MATRIX,
   PERMISSION_KEYS,
   ROLE_DEFINITIONS,
+  SCOPED_NON_MATRIX_PERMISSIONS,
+  SELF_SERVICE_PERMISSIONS,
   capabilityDeclares,
   permissionsFor,
 } from '../permissions.js';
@@ -181,11 +183,36 @@ export function permits(
   resource: ResourceContext,
   principalId: string,
 ): Decision {
-  if (!KNOWN_PERMISSIONS.has(permission)) {
+  /*
+   * ┌─ SELF-SERVICE IS CHECKED BEFORE `KNOWN_PERMISSIONS`, AND HAS TO BE ────────────────────────┐
+   * │ These keys are deliberately absent from `§B3.2` — see `SELF_SERVICE_PERMISSIONS` for why a  │
+   * │ row for them would fail `RB2`'s drift check against the PRD, correctly. So they are also    │
+   * │ absent from `PERMISSION_KEYS`, and the `UNKNOWN_PERMISSION` guard below would refuse them   │
+   * │ before anything else ran. That refusal is what kept `PermissionsGuard` unregisterable:      │
+   * │ binding it globally 403'd every route declaring one, which is `TD-045`.                      │
+   * │                                                                                             │
+   * │ **Any authenticated principal holds them, and the permission is not what scopes them.**      │
+   * │ `AZ4` makes a `/me` route act on the caller's own rows and the handler enforces that in its │
+   * │ `WHERE` clause. An empty `grants` array still fails — an unauthenticated caller has no       │
+   * │ grants at all, so `@Public()` remains the only way to reach a route without a token.         │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  if (SELF_SERVICE_PERMISSIONS.includes(permission)) {
+    const [any] = grants;
+    return any === undefined
+      ? { allowed: false, reason: 'NOT_GRANTED' }
+      : { allowed: true, via: any };
+  }
+
+  if (!KNOWN_PERMISSIONS.has(permission) && !SCOPED_NON_MATRIX_PERMISSIONS.includes(permission)) {
     return { allowed: false, reason: 'UNKNOWN_PERMISSION' };
   }
 
-  const holding = grants.filter((grant) => permissionsFor(grant.role).includes(permission));
+  // A scoped non-matrix key is held by every grant; what decides it is `scopeReaches()` below, so
+  // a principal can ping their OWN tenant and gets `OUT_OF_SCOPE` for anybody else's.
+  const holding = SCOPED_NON_MATRIX_PERMISSIONS.includes(permission)
+    ? grants
+    : grants.filter((grant) => permissionsFor(grant.role).includes(permission));
   if (holding.length === 0) return { allowed: false, reason: 'NOT_GRANTED' };
 
   const reaching = holding.find((grant) => scopeReaches(grant, resource, principalId));
