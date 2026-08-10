@@ -608,7 +608,11 @@ model Application {
   reasonCodes   String[]                 @default([]) @map("reason_codes")
   reviewerNotes String?                  @map("reviewer_notes")
 
-  precheckResults Json     @default("{}") @map("precheck_results")
+  /// `Schema.md` §4.2 line 885. `{}` was drift — see `20260810210000`: a row never checked and a
+  /// row from a future schema version must not look alike, and `schema_version` is what tells them
+  /// apart. Prisma does not read this from the database, so this literal and the migration's are
+  /// two copies; a mismatch reports as permanent `migrate diff` drift with both sides sure.
+  precheckResults Json     @default("{\"schema_version\": 1}") @map("precheck_results")
   submittedAt     DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
 
   tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)

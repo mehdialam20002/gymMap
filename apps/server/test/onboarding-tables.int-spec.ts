@@ -154,11 +154,45 @@ it('AC-2 — UPDATE snapshot as app_rw raises permission denied', () => {
   assert.match(error, /permission denied/i, `expected a grant refusal, got: ${error}`);
 });
 
-it('AC-2 — version and submitted_at are equally immutable', () => {
-  for (const column of ['version = 99', `submitted_at = now()`]) {
+it('AC-2 — version, submitted_at and precheck_results are equally immutable', () => {
+  /*
+   * ┌─ `precheck_results` IS THE ONE ADDED FOR `BLK-22`, AND IT IS A REGRESSION LOCK ──────────────┐
+   * │ `PrecheckResultPrismaStore.replaceFor` UPDATEs this column and is refused under `app_rw`,   │
+   * │ because `D-03`'s column-scoped UPDATE list excludes it. The tempting one-line repair —      │
+   * │ `GRANT UPDATE (precheck_results) ON applications TO app_rw` — makes the code work, and is a │
+   * │ rank-5 override of `Schema.md` §4.2, whose list is exhaustive and registered in §16.1.       │
+   * │                                                                                             │
+   * │ Worse than a precedence violation: it opens a post-decision mutation path on the artefact   │
+   * │ the reviewer's approval rests on. A `FLAG` could become a `PASS` afterwards, and            │
+   * │ `BR-GYM-01`'s *"a human approved this, on this evidence"* stops being falsifiable — exactly │
+   * │ what the `snapshot` refusal above exists to prevent. This assertion makes taking that        │
+   * │ shortcut break the build instead of passing quietly.                                         │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  for (const column of ['version = 99', `submitted_at = now()`, `precheck_results = '{}'::jsonb`]) {
     const error = asAppRw(TENANT_A, `UPDATE applications SET ${column}`);
     assert.match(error, /permission denied/i, `${column} was writable: ${error}`);
   }
+});
+
+it('precheck_results defaults to the schema_version discriminator, not to {}', () => {
+  /*
+   * `Schema.md` §4.2 line 885 gives `'{"schema_version":1}'`. The creating migration shipped
+   * `'{}'::jsonb` and `schema.prisma` carried the same drift; `20260810210000` corrects the
+   * database and this pins it.
+   *
+   * The default is load-bearing rather than decorative, because the column is NOT updatable by
+   * any application role (see the test above). Whatever the DEFAULT puts there on INSERT is what
+   * the row carries for the rest of its life — so a row that has never been pre-checked and a row
+   * written by a future schema version would be indistinguishable under `{}`, permanently.
+   */
+  assert.equal(
+    one(
+      `SELECT column_default FROM information_schema.columns
+        WHERE table_name = 'applications' AND column_name = 'precheck_results'`,
+    ),
+    `'{"schema_version": 1}'::jsonb`,
+  );
 });
 
 it('the VERDICT columns ARE writable — the grant is narrow, not a lockout', () => {
