@@ -82,6 +82,152 @@ landed — a value the shape `CHECK` had accepted for weeks, in committed code, 
 
 ---
 
+## 2c. THE SEVEN PARTIALS, AS PHASES — written 2026-08-10, and this is the working queue
+
+The owner asked for the remaining partials broken into phases with the work named. This section is
+that. It supersedes nothing below: §3's five phases are the shape of the whole roadmap, and this is
+the shape of the seven milestones sitting at the front of it.
+
+**Ordered by what unblocks what, not by milestone number.** Every item is `FREE` — nothing stops it
+today — or names its blocker. The percentages are the verified audit's, not estimates.
+
+---
+
+### Phase P1 — M-023 RBAC · 70% → done
+
+The guard is bound as of `c9c851e`, which was the hard part. What is left is all free.
+
+| Deliverable | State |
+| :--- | :--- |
+| `GET /admin/users/:id/permissions` (`FR-RBAC-05`) — a cross-tenant grants port, its Prisma adapter, a use case, the route | FREE. `annotatedEffectivePermissions()` and `inspectPermission()` exist and are tested; what is missing is a reader for one user's grants ACROSS tenants, which needs `runElevated()` |
+| `docs/features/rbac.md` — §21.3's five sections plus `DG3`'s sequence diagram | FREE since `ADR-0041` |
+| A `ResourceTenantGuard` unit spec | FREE. The file has 126 lines and **zero** test references |
+| `rbac.contract-spec.ts` — 403 envelopes carry a registry code and a correlation id | FREE |
+
+**Exit:** `M-023` is `✅`. The nearest milestone to done in the project.
+
+---
+
+### Phase P2 — M-024 MFA · 70% → done, and the seed that gates it
+
+| Deliverable | State |
+| :--- | :--- |
+| **Give the eleven seeded principals a password** | FREE, and it gates the row below. `prisma/seed/users.ts` leaves `password_hash` NULL on all eleven; enrolment re-authenticates against that hash, so no seeded account can enrol MFA today |
+| Register `MfaGuard` | Blocked on the row above and on nothing else. `permissions-guard-registered.spec.ts` asserts its absence — delete that test in the commit that binds it |
+| `docs/features/mfa.md` | FREE |
+| `mfa.contract-spec.ts` · `staff-login-requires-mfa.int-spec.ts` | FREE |
+| `amr` / `auth_time` per-session freshness | **Stays `KL-102`.** Not part of this exit |
+
+**Exit:** `M-024` is `✅`, and `NFR-SEC-11`'s mandatory staff second factor actually runs.
+
+---
+
+### Phase P3 — M-025 Impersonation · 45% → done
+
+Almost all of it is built and **inert** — `TD-047`. Ordered behind P1 deliberately: lifting the
+token check without a bound `PermissionsGuard` would have granted the session the subject's FULL
+permission set, the union-by-omission `AC-5` forbids. That guard is now bound, so this is open.
+
+| Deliverable | State |
+| :--- | :--- |
+| `AccessTokenVerifier` accepts `typ: 'IMPERSONATION'`, with structural checks and fail-closed on a truncated claim | FREE. Today it refuses, so `POST /auth/impersonate/end` cannot be called with the token its own contract requires |
+| Register `ImpersonationRestrictionGuard` | FREE |
+| Open the ALS frame per request — `runAsImpersonator` has no production caller | FREE |
+| Wire `mayElevate()` and `impersonationExpired()`, both dead outside their unit tests | FREE |
+| `docs/features/impersonation.md` · `impersonation.contract-spec.ts` · two int-specs | FREE |
+
+**Exit:** `M-025` is `✅`, and a session can be started, used and ended.
+
+---
+
+### Phase P4 — M-031 catalogue · 30% → done
+
+`BLK-19` closed, so the five branch routes are buildable. `catalog/permissions.ts` shipped in
+`d2cfc7b`. **Nothing in this phase is blocked.**
+
+| Deliverable | State |
+| :--- | :--- |
+| `dto/` — three Zod request/response pairs | FREE |
+| Four use cases — create, update, deactivate, list — plus specs | FREE |
+| `gym.prisma-repository.ts` + Testcontainers int-spec; the write half of `branch.prisma-repository.ts` | FREE |
+| `branch.controller.ts` — five routes, each declaring a `CATALOG_PERMISSIONS` key | FREE |
+| `AC-9`'s audit row inside each mutation | FREE |
+| `catalog.seed.ts`, `SEED_VERSION` → `0.5` | FREE |
+| `EXPLAIN` baseline for `ST_DWithin` · `postgis-radius.int-spec.ts` · `one-primary-per-gym.int-spec.ts` | FREE |
+| `docs/database/catalog.md` · `docs/apis/api-ten-catalog.md` | FREE |
+
+**Exit:** `M-031` is `✅`.
+
+---
+
+### Phase P5 — M-027 wizard · 20% → done
+
+`BLK-14` closed and `onboarding/permissions.ts` carries the tenant's five keys. Today the milestone
+is a step enum and a normaliser, and nothing else.
+
+| Deliverable | State |
+| :--- | :--- |
+| `packages/types/src/schemas/onboarding.schema.ts` — one Zod schema per step | FREE |
+| `business-identity.vo.ts` · `onboarding.errors.ts` | FREE |
+| `save-wizard-step` · `get-wizard-state` · `validate-step` use cases + specs | FREE |
+| `wizard-draft.prisma-repository.ts` — the draft IS `applications` at `version = 0` | FREE |
+| `dto/` and the routes | FREE |
+| `AC-8`'s audit row per step save | FREE |
+| `docs/features/onboarding-wizard.md` | FREE |
+| **`POST /tenants` — wizard step 1** | **BLOCKED.** Declares `tenancy.tenant.create`, which is in no matrix row. A second `BLK-14`-shaped hole, not yet raised as one |
+
+**Exit:** steps 2–6 work end to end. Step 1 needs one more `§C10` row.
+
+---
+
+### Phase P6 — M-029 KYC · 45% → done
+
+`A-42` landed, so documents can be scanned at all. Two things still are not free.
+
+| Deliverable | State |
+| :--- | :--- |
+| Bind a real MinIO `ObjectStoragePort` adapter | FREE. MinIO already runs; the port answers `UNAVAILABLE` |
+| Checklist-membership check on upload (`KYC_DOCUMENT_TYPE_NOT_IN_CHECKLIST`) | FREE |
+| Supersession on re-upload · the `audit_log` row · populate `kyc_checklists_id` | FREE |
+| Sharp renditions + EXIF stripping | FREE — `A-17` is approved |
+| The reviewer read path, `GET .../documents/:id/view` | **`BLK-16`.** The two-hop design exists (`GETDEL`, `appendOrThrow`) and came back PROCEED WITH CHANGES |
+| `kyc-storage-segregation.int-spec.ts` | Follows the row above |
+
+**Exit:** an owner can upload and a reviewer can open. `E2E-01` becomes reachable.
+
+---
+
+### Phase P7 — M-030 pre-checks · 62% → done
+
+| Deliverable | State |
+| :--- | :--- |
+| Bind the real `DuplicateAddressProbe` — its dependency (`gyms`, `branches`) shipped at M-031 | FREE. Today one of six checks reports `ERROR` on every submission |
+| Bind a `GEOCODING_PORT` adapter with recorded fixtures | FREE — `DEP-02`; fixtures need no vendor |
+| The composition root that assembles the six and runs them at submission | FREE |
+| A `MetricsPort` emitting `precheck_outcome_total` | FREE |
+| `cross-tenant-prechecks.int-spec.ts` · `duplicate-address.check.int-spec.ts` | FREE |
+| The persistence shape and the duplicate register | **`BLK-22`.** The design came back **feature-dead as drafted**: a `SECURITY DEFINER` function owned by `app_migrator` under `FORCE` RLS sees zero rows, and every duplicate check would silently report `PASS` |
+| `AC-10`'s `job_runs` record | **`BLK-08`** — deferred by the owner |
+
+**Exit:** four checks run and persist. Two wait on `BLK-22`.
+
+---
+
+### What this queue is honest about
+
+**It is not one sitting, and saying otherwise would be the easy lie.** P1 alone is four deliverables
+including a new port, adapter, use case and route. P4 is eight and P5 is eight. Added up, the seven
+partials are most of Sprints 1 and 2.
+
+**Three phases are fully free** — P1, P3, P4 — and P1 finishes the nearest milestone in the project.
+**Two are free but gated on one small thing each:** P2 on the seed, P6 on `BLK-16`. **P5 and P7
+complete except for one item each**, and both of those need an owner decision.
+
+**Order: P1 → P4 → P3 → P2 → P5 → P7 → P6.** Free-and-finishable first; owner-gated last; and the
+two decisions raised early enough that the answer arrives before the work that needs it.
+
+---
+
 ## 3. The five execution phases
 
 Grouped by what unblocks what, not by calendar. Each phase's exit condition is a fact somebody can
