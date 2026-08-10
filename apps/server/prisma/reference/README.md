@@ -10,18 +10,24 @@ something applied at runtime.
 
 ## What is here, and what is not
 
-| File                 | Rows specified | Rows present | Why                                                                                                                                                                                                                           |
-| :------------------- | :------------: | :----------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `countries.csv`      |   20 (§1.4)    |    **1**     | Only the India row has every column fixed — `SeedStrategy.md` §3.1 gives it as an explicit `INSERT`. Of the nineteen inactive countries §3.1 asks for, five are named with values and fourteen are not named at all. `BLK-21` |
-| `cities.csv`         |   120 (§1.4)   |      —       | §3.6 fixes twelve slugs with their GST state code, `status = PLANNED` and `Asia/Kolkata`. It fixes **no** display `name` and **no** `centroid`, and `Schema.md` §12.1 makes both `NOT NULL`. `BLK-21`                         |
-| `amenities.csv`      |   59 (§1.4)    |      —       | §3.7 fixes all 59 **keys** in six display groups and not one `name`, `icon` or `sort_order`. `Epic_04.md` line 349 calls the taxonomy content an unmade client decision. `BLK-21`                                             |
-| `gym-categories.csv` |   15 (§1.4)    |      —       | Same: 15 keys fixed, no `name`, no `slug`. `BLK-21`                                                                                                                                                                           |
-| `localities.csv`     |      ~120      |      —       | §3.6 enumerates zero. `BLK-21`                                                                                                                                                                                                |
-| `india-states.csv`   |       38       |      —       | §3.6 fixes all 38 GST codes with names — but `india_state_codes` is **not** one of the sixteen tables of §2.1, so `RD3` forbids a migration writing it. The table has no home.                                                |
+| File                 | Rows specified | Rows present | Why                                                                                                                                                                                                              |
+| :------------------- | :------------: | :----------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `countries.csv`      |   20 (§1.4)    |    **1**     | Only the India row has every column fixed — §3.1 gives it as an explicit INSERT. Of the nineteen inactive countries, five are named with values and fourteen are not named at all. Still open.                   |
+| `cities.csv`         |   120 (§1.4)   |    **12**    | §3.6 fixes twelve metro slugs, their GST state codes, `PLANNED` and `Asia/Kolkata`. Names and centroids are FACTS rather than choices — `ADR-0042`. The other ~108 are second-tier cities nobody has enumerated. |
+| `amenities.csv`      |   59 (§1.4)    |    **59**    | Complete. Keys from §3.7 verbatim; the display layer is `ADR-0042`.                                                                                                                                              |
+| `gym-categories.csv` |   15 (§1.4)    |    **15**    | Complete. Same.                                                                                                                                                                                                  |
+| `localities.csv`     |      ~120      |      —       | §3.6 enumerates zero, and a locality is not a fact the way a metro centroid is — `Indiranagar` has no agreed boundary. Still open.                                                                               |
+| `india-states.csv`   |       38       |      —       | §3.6 fixes all 38 GST codes with names — but `india_state_codes` is **not** one of the sixteen tables of §2.1, so `RD3` forbids a migration writing it. The table has no home. `KL-111`.                         |
 
-**The empty rows are the honest state, not a to-do.** Inventing 74 display names, 59 icons, 15 slugs
-and 12 coordinate pairs would produce a populated database and a wrong vocabulary, and a wrong
-vocabulary is invisible — every filter would work, against terms nobody chose.
+**What is still absent is absent for a reason, and the reasons differ.** `ADR-0042` shipped the
+taxonomy and the twelve metros because their keys were already fixed and their display layer was
+either a fact (a centroid) or cheap to retrofit (a name) — `Epic_04.md` line 349 asked for exactly
+that: _"Search filters ship with a placeholder taxonomy; retrofitting terms is cheap, retrofitting
+ids is not."_
+
+The rows still missing are ones no document enumerates at all. Inventing those would produce a
+populated database and a wrong vocabulary — which is invisible, because every filter would work,
+against terms nobody chose.
 
 ## The id is derived, never written
 

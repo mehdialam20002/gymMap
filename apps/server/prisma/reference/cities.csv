@@ -1,0 +1,13 @@
+country_code,slug,name,latitude,longitude,status,timezone
+IN,ahmedabad,Ahmedabad,23.0225,72.5714,PLANNED,Asia/Kolkata
+IN,bengaluru,Bengaluru,12.9716,77.5946,PLANNED,Asia/Kolkata
+IN,chandigarh,Chandigarh,30.7333,76.7794,PLANNED,Asia/Kolkata
+IN,chennai,Chennai,13.0827,80.2707,PLANNED,Asia/Kolkata
+IN,delhi,Delhi,28.6139,77.2090,PLANNED,Asia/Kolkata
+IN,hyderabad,Hyderabad,17.3850,78.4867,PLANNED,Asia/Kolkata
+IN,jaipur,Jaipur,26.9124,75.7873,PLANNED,Asia/Kolkata
+IN,kolkata,Kolkata,22.5726,88.3639,PLANNED,Asia/Kolkata
+IN,lucknow,Lucknow,26.8467,80.9462,PLANNED,Asia/Kolkata
+IN,mumbai,Mumbai,19.0760,72.8777,PLANNED,Asia/Kolkata
+IN,pune,Pune,18.5204,73.8567,PLANNED,Asia/Kolkata
+IN,surat,Surat,21.1702,72.8311,PLANNED,Asia/Kolkata

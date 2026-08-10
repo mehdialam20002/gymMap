@@ -1,10 +1,14 @@
 {
-  "version": 2,
+  "version": 3,
   "namespace": "3f8a2d10-0000-5000-b000-000000000000",
   "files": {
     "countries.csv": {
       "sha256": "f2d80e1803380c58d666e3adb1aa4873f2e7065fe5439b4aee0d936aaa57092f",
       "rows": 1
+    },
+    "cities.csv": {
+      "sha256": "49e624365e65d790563ac73152b2eee04514a75637976649044f37717240fdfa",
+      "rows": 12
     },
     "amenities.csv": {
       "sha256": "c20413b50cea38afa2edd2d9516462221271cd3d1c0d5eee7f5685bb96712a23",
@@ -21,8 +25,8 @@
       "rows": 1
     },
     "cities": {
-      "hash": "",
-      "rows": 0
+      "hash": "e14b8d4aab29c9d0b19f387bbbc5beaf",
+      "rows": 12
     },
     "localities": {
       "hash": "",

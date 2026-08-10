@@ -161,6 +161,63 @@ test('the reader refuses a row whose cell count does not match the header', () =
   assert.throws(() => readCsv('a,b,c\n1,2\n'), /has 2 cells, header has 3/);
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// cities — §3.6's twelve, and the argument order that is easiest to get wrong
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('§3.6 — all twelve city slugs appear in the specification, and only those', () => {
+  const rows = csv('cities.csv');
+  assert.equal(rows.length, 12, '§3.6 fixes twelve metros');
+  for (const row of rows) assert.ok(SPEC.includes(`\`${row.slug}\``), `${row.slug} is not in §3.6`);
+});
+
+test('§3.6 — every city starts PLANNED, because the launch city is a C9.4 decision', () => {
+  /*
+   * *"`OQ-01` fixed the launch COUNTRY; the launch CITY is selected separately against the `C9.4`
+   * criteria. Until then every Indian city is `PLANNED`."* Open item `O-5`.
+   *
+   * A city arriving as `LIVE` in a data file would bypass five measurable gate criteria with a
+   * CSV edit, which is exactly the kind of change nobody reviews as a decision.
+   */
+  for (const row of csv('cities.csv')) {
+    assert.equal(row.status, 'PLANNED', `${row.slug} is not PLANNED`);
+    assert.equal(row.timezone, 'Asia/Kolkata');
+  }
+});
+
+test('ST_MakePoint gets LONGITUDE first — the swap that puts Mumbai in the ocean', () => {
+  /*
+   * Swapped, Mumbai's 19.076N 72.877E becomes 72.877N 19.076E — the Norwegian Sea. A valid point
+   * on the right planet, which no "is this a geography" check would catch and no visual review of
+   * a CSV would either, because the CSV is right and only the emit is wrong.
+   *
+   * Asserted on the generated SQL, which is the artefact that can be wrong.
+   */
+  const rows = csv('cities.csv');
+  const sql = emitInsert('cities', rows, [
+    'country_code',
+    'name',
+    'slug',
+    'centroid',
+    'status',
+    'timezone',
+  ]);
+
+  const mumbai = rows.find((r) => r.slug === 'mumbai');
+  assert.ok(
+    sql.includes(`ST_MakePoint(${Number(mumbai.longitude)}, ${Number(mumbai.latitude)})`),
+    'longitude must be the FIRST argument',
+  );
+
+  // And every Indian city sits in India's bounding box, so a swap anywhere is caught, not just Mumbai.
+  for (const row of rows) {
+    const lat = Number(row.latitude);
+    const lon = Number(row.longitude);
+    assert.ok(lat > 6 && lat < 37, `${row.slug}: latitude ${String(lat)} is outside India`);
+    assert.ok(lon > 68 && lon < 98, `${row.slug}: longitude ${String(lon)} is outside India`);
+  }
+});
+
 test('BUSINESS_KEY covers every table the generator can emit', () => {
   for (const table of ['countries', 'cities', 'localities', 'amenities', 'gym_categories']) {
     assert.equal(typeof BUSINESS_KEY[table], 'function', `${table} has no business-key rule`);

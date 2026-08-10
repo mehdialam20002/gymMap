@@ -297,7 +297,7 @@ if (isMain) {
   );
   console.log(
     `  ${String(unbuilt)} of the sixteen do not exist yet · ${String(Object.keys(files).length)} ` +
-      `data file(s) committed. The empty ones are BLK-21 — the content is an unmade client ` +
-      `decision, not a forgotten migration.`,
+      `data file(s) committed. An unbuilt table is not a forgotten migration — the seven have no ` +
+      `CREATE TABLE anywhere yet, which is KL-111.`,
   );
 }

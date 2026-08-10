@@ -93,6 +93,32 @@ export function readCsv(text) {
 const quote = (v) => `'${String(v).replaceAll("'", "''")}'`;
 
 /**
+ * Columns whose SQL is an EXPRESSION rather than a literal, keyed by table.
+ *
+ * ┌─ `centroid` IS THE ONLY ONE, AND IT HAS TO BE ───────────────────────────────────────────────┐
+ * │ `cities.centroid` is `geography(Point,4326)`. A CSV can hold two numbers; it cannot hold a    │
+ * │ PostGIS constructor, and quoting one would emit a string literal that fails the cast.          │
+ * │                                                                                              │
+ * │ `ST_MakePoint` takes LONGITUDE FIRST. That argument order is the single easiest thing to get  │
+ * │ wrong here, and getting it wrong puts Mumbai in the Indian Ocean off Somalia — a plausible    │
+ * │ point, on the right planet, that no test comparing "is it a valid geography" would catch. The │
+ * │ CSV names its columns `latitude` and `longitude` so the swap has to be made deliberately.      │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+const EXPRESSIONS = {
+  cities: {
+    centroid: (row) =>
+      `ST_SetSRID(ST_MakePoint(${Number(row.longitude)}, ${Number(row.latitude)}), 4326)::geography`,
+  },
+};
+
+/** A column's SQL: an expression where one is registered, otherwise a quoted literal. */
+function cell(table, column, row) {
+  const expression = EXPRESSIONS[table]?.[column];
+  return expression === undefined ? quote(row[column]) : expression(row);
+}
+
+/**
  * One table's `INSERT`, rows ordered by business key.
  *
  * Ordered so the generated SQL is stable across runs — an unordered emit would produce a different
@@ -104,7 +130,9 @@ export function emitInsert(table, rows, columns) {
     .sort((a, b) => (BUSINESS_KEY[table](a.row) < BUSINESS_KEY[table](b.row) ? -1 : 1));
 
   const values = keyed
-    .map(({ id, row }) => `  (${[quote(id), ...columns.map((c) => quote(row[c]))].join(', ')})`)
+    .map(
+      ({ id, row }) => `  (${[quote(id), ...columns.map((c) => cell(table, c, row))].join(', ')})`,
+    )
     .join(',\n');
 
   return `INSERT INTO ${table} (id, ${columns.join(', ')}) VALUES\n${values};`;
@@ -140,10 +168,27 @@ if (isMain) {
       table: 'gym_categories',
       columns: ['key', 'name', 'slug', 'sort_order'],
     },
+    {
+      file: 'cities.csv',
+      table: 'cities',
+      columns: ['country_code', 'name', 'slug', 'centroid', 'status', 'timezone'],
+    },
   ];
 
+  /*
+   * `--tables=a,b` selects which of the plan lands in this migration.
+   *
+   * Needed because a reference migration is one deploy of one decision, not "every CSV that
+   * exists". The taxonomy shipped before cities did, and re-emitting the taxonomy into the cities
+   * migration would attempt 74 duplicate INSERTs — which `RD5` correctly makes fail loudly.
+   */
+  const only = process.argv
+    .find((a) => a.startsWith('--tables='))
+    ?.slice('--tables='.length)
+    .split(',');
+
   const blocks = [];
-  for (const { file, table, columns } of PLAN) {
+  for (const { file, table, columns } of PLAN.filter((p) => !only || only.includes(p.table))) {
     const path = resolve(dir, file);
     if (!existsSync(path)) {
       console.error(`ref:generate: ${file} is absent — skipping ${table}`);
@@ -172,7 +217,19 @@ if (isMain) {
   mkdirSync(outDir, { recursive: true });
   const out = resolve(outDir, 'migration.sql');
 
-  const header = readFileSync(resolve(dir, 'HEADER.template.sql'), 'utf8');
+  /*
+   * A header per migration, not one shared template.
+   *
+   * `§2.4`'s fifteen header keys include `tables`, `est_duration` and `rollback`, and those are
+   * different for every reference migration — a shared header would be wrong for all but the first,
+   * and a header that is wrong is worse than none because `migration-lint` still passes it.
+   */
+  const headerPath = resolve(dir, `HEADER.${target}.sql`);
+  if (!existsSync(headerPath)) {
+    console.error(`ref:generate: no header at ${headerPath}. Write one — §2.4 wants fifteen keys.`);
+    process.exit(1);
+  }
+  const header = readFileSync(headerPath, 'utf8');
   const body = blocks
     .map((b) => `-- ${b.table}: ${String(b.count)} row(s), generated from ${b.file}\n${b.sql}`)
     .join('\n\n');
