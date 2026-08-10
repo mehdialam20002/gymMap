@@ -141,18 +141,31 @@ it('IS6 · dropping the platform-read policy is reported', () => {
 });
 
 it('PC2 · a tenant_id column on an exempted table is reported', () => {
-  // The check that stops the exemption list becoming an escape hatch. The easiest way to make
-  // CI-01 green is to add the offending table to the list; this makes that impossible.
+  /*
+   * The check that stops the exemption list becoming an escape hatch. The easiest way to make
+   * `CI-01` green is to add the offending table to the list; this makes that impossible.
+   *
+   * ┌─ THE PROBE USED TO CREATE A TABLE CALLED `countries`, AND M-031 BUILT ONE ───────────────────┐
+   * │ `CREATE TABLE countries (…)` inside a rolled-back transaction was safe for as long as the     │
+   * │ real table did not exist. M-031 created it, and the probe began failing with *"relation        │
+   * │ countries already exists"* — a fixture colliding with production schema, not a rule breaking.  │
+   * │                                                                                              │
+   * │ `feature_flags` is the replacement: it is on the §1.3 exemption list (so `PC2` applies to it)  │
+   * │ and it is one of the seven §2.1 tables that do not exist yet, so nothing can collide. If a     │
+   * │ later milestone builds it, this probe fails the same way — which is why the name is chosen     │
+   * │ from the unbuilt set rather than invented, and why that is said here.                            │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   const probe = psql(
     [
       'BEGIN;',
-      'CREATE TABLE countries (iso_code char(2) PRIMARY KEY, tenant_id uuid NOT NULL);',
+      'CREATE TABLE feature_flags (key text PRIMARY KEY, tenant_id uuid NOT NULL);',
       coverageSql,
       'ROLLBACK;',
     ].join('\n'),
   );
   assert.ok(probe.ok, probe.err);
-  assert.match(probe.out, /countries/);
+  assert.match(probe.out, /feature_flags/);
   assert.match(probe.out, /exemption list but HAS a tenant_id/);
 });
 

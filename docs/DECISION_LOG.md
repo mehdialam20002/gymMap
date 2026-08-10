@@ -5705,8 +5705,114 @@ physically refused by a shipped constraint that nobody had to argue about.
 code embedded in the tax identifier. India's does; `LAUNCH_MARKET_INDIA.md` §4 is the whole reason
 this column exists. Until then, nothing in a second market's onboarding touches this decision.
 
+---
 
-**End of decision log.** Thirty-eight ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
+## ADR-0039 — `audit_log`'s write policy is role-scoped and unpredicated; the read policy is not
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-10 |
+| **Decided by** | Project owner, delegated to this session on the analysis below |
+| **Supersedes** | Nothing. Amends the policy shipped by `20260807040000_expand_create_audit_log` |
+| **Tracked as** | `BLK-18` in `PHASES.md` — now resolved |
+| **Related PRD ids** | `BR-DAT-01` · `BR-DAT-02` · `NFR-SEC-13` · `AC-ADMN-02.3` · `AC-FND-11.2` |
+
+**Decision.** `audit_log` and every partition carry **two** policies where they carried one:
+
+```sql
+-- READ. Tenant-scoped, SELECT only, app_rw only.
+CREATE POLICY rls_audit_log__tenant_isolation ON audit_log
+  FOR SELECT TO app_rw
+  USING (tenant_id = current_setting('app.tenant_id')::uuid);
+
+-- WRITE. app_append only, INSERT only, no predicate.
+CREATE POLICY rls_audit_log__append_write ON audit_log
+  FOR INSERT TO app_append
+  WITH CHECK (true);
+```
+
+`Constraints.md` §8.3 is **not** amended. `missing_ok` remains never written.
+
+**Context.** `BLK-18` was the most consequential open row in the register: as the deployed audit
+credential, **every** audit write failed, and the failure was swallowed by design — so `BR-DAT-01`
+was unsatisfiable in any environment using that credential, and `audit_log` held zero rows.
+
+Reproduced as `gymmap_audit`, a member of `app_append` and nothing else:
+
+```text
+ERROR:  unrecognized configuration parameter "app.tenant_id"     -- SQLSTATE 42704
+```
+
+The shipped policy was `FOR ALL TO app_rw, app_append` with
+`WITH CHECK (tenant_id = current_setting('app.tenant_id')::uuid OR tenant_id IS NULL)`.
+`AuditPrismaService` is deliberately **not** tenant-extended — its own header explains that an audit
+row's `tenant_id` is frequently NULL, because an elevation belongs to no tenant and neither does a
+platform-admin login, and the extension refuses any operation with no tenant in scope. So
+`app.tenant_id` is never set on that connection, the one-argument `current_setting` raises, and
+PostgreSQL does not short-circuit the `OR` — the left operand raises before `tenant_id IS NULL`,
+which is `TRUE`, is ever reached. Every insert failed, **including** the rows that clause exists to
+permit.
+
+**Why this is an alignment rather than a new decision.** Read from
+`information_schema.role_table_grants` before writing the migration:
+
+| Role | Privileges on `audit_log` |
+| :--- | :--- |
+| `app_append` | `INSERT` |
+| `app_rw` | `SELECT` |
+| `app_platform_ro` | `SELECT` |
+
+`app_rw` holds no `INSERT`. So the `FOR ALL` policy covered operations that role could never
+perform, and the tenant predicate on the write side applied only to `app_append` — the one role that
+structurally cannot satisfy it. The policy was out of step with the grant.
+
+`AuditStrategy.md` §2.3's own illustrative block already specifies the shape adopted here —
+`FOR SELECT TO app_rw` for the read, and a bare `GRANT INSERT ... TO app_append` for the write. The
+write path was always meant to be governed by the grant, not by a predicate. `audit-prisma.service.ts`
+says the same in its header: *"isolation is instead the `app_append` grant: this pool can write one
+table and read nothing."*
+
+**Options considered.**
+
+| | Option | Verdict |
+| :-: | :--- | :--- |
+| **A** | Role-scoped `FOR INSERT` policy for `app_append` with no predicate | **Adopted.** Matches the grants, matches `AuditStrategy.md` §2.3, and is the pattern `rls_audit_log__platform_read` already uses for a role-scoped exception |
+| **B** | The audit connection sets `app.tenant_id` before each write | Rejected. The writer would choose the value it is then checked against — §8.4's tautology in a different costume. It constrains nothing and costs every audit row |
+| **C** | `current_setting('app.tenant_id', true)` | Forbidden. `Constraints.md` §8.3: *"`missing_ok` is `false`. It is never written."* `migration-lint` refused it at M-029, correctly |
+
+**Consequences accepted, and verified rather than asserted.** `WITH CHECK (true)` reads permissively,
+so each property was probed against the live database after the migration:
+
+| Property | Result |
+| :--- | :--- |
+| `app_append` can insert, including `tenant_id IS NULL` | `INSERT 0 1` |
+| `app_append` can read | `permission denied for table audit_log` |
+| `app_append` can update or delete | `permission denied` on both |
+| Tenant A reads its own row only, not tenant B's | 1 of 2 |
+| A tenant sees `tenant_id IS NULL` platform rows | 0 |
+| A read with no tenant context | raises `42704` — §8.3's loud failure intact |
+| `app_platform_ro` reads across tenants | permitted, as the elevation path requires |
+
+The canary in `audit-correlation.int-spec.ts` was written to go red when this was fixed. It did, and
+it is now three positive assertions: the write succeeds, `app_append` is refused every other verb,
+and a context-less read still raises.
+
+**The partition obligation, which is the half a table-only fix forgets.** `audit_log` is
+`RANGE`-partitioned and `audit_log_create_partition()` builds next month's. The parent's policies do
+not apply when a partition is addressed by name (§2.3.3 obligation 7, `CI-10`), so the migration
+applies both policies to the parent, to all three existing partitions, and inside the function —
+otherwise the cron path silently re-introduces the defect on the first of the month.
+
+**Revisit trigger.** Any proposal to give `app_rw` an `INSERT` grant on `audit_log`. That would make
+the read policy's `FOR SELECT` narrowing wrong, and it would mean a request-scoped role can write
+audit rows — which `FolderStructure.md` §8.2 forbids for a reason it states plainly: a module that
+can append an audit row can append a **false** one, and a false entry in an append-only log is
+permanent and unfalsifiable.
+
+
+
+**End of decision log.** Thirty-nine ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.
 

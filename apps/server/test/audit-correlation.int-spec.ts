@@ -49,6 +49,9 @@ const LOCAL_URL = TEST_SUPERUSER_URL;
 // parameter when the same string is handed to the `psql` CLI.
 const AUDIT_ROLE_URL = 'postgresql://gymmap_audit:gymmap_local_dev@localhost:5432/gymmap';
 
+// ADR-0039 · the READ side, to prove Constraints.md §8.3 survived the write-side fix.
+const APP_ROLE_URL = 'postgresql://gymmap_app:gymmap_local_dev@localhost:5432/gymmap';
+
 /** Not a uuid, and eight characters of `[A-Za-z0-9_-]` — so the log-injection sanitiser accepts it. */
 const SUPPRESSOR = 'abcdefgh';
 
@@ -243,44 +246,64 @@ const APPEND_PROBE = `INSERT INTO audit_log
   VALUES (gen_random_uuid(), now(), NULL, gen_random_uuid(), 'USER', 'KYC_DOCUMENT',
           '${ENTITY.canary}', 'EXPORT', gen_random_uuid());`;
 
-it('BLK-18 — as the DEPLOYED audit role, every write still fails. This is a CANARY.', () => {
-  // ┌─ WHEN THIS TEST GOES RED, BLK-18 HAS BEEN FIXED AND THIS FILE SHOULD BE UPDATED ───────────┐
-  // │ `AuditPrismaService` connects as `gymmap_audit` and is deliberately NOT tenant-extended —  │
-  // │ its own header says why: "an audit row's tenant_id is frequently NULL … and the extension  │
-  // │ refuses any operation with no tenant in scope."                                             │
-  // │                                                                                            │
-  // │ So `app.tenant_id` is never set on that connection, and the policy's WITH CHECK opens with │
-  // │ the RAISING form of `current_setting`. PostgreSQL does not short-circuit the `OR`, so the  │
-  // │ left operand raises before `tenant_id IS NULL` — which is TRUE — is ever reached. Every    │
-  // │ insert fails with 42704, and `AuditPrismaRepository.append()` swallows it by design.        │
-  // │                                                                                            │
-  // │ BR-DAT-01 is therefore unsatisfiable in any environment using the documented audit          │
-  // │ credential. It is invisible locally only because the fallback is a superuser, and           │
-  // │ superusers bypass RLS.                                                                      │
-  // │                                                                                            │
-  // │ The obvious fix — `current_setting('app.tenant_id', true)` — is FORBIDDEN by                │
-  // │ Constraints.md §8.3: "missing_ok is false. It is never written." `migration-lint` enforces  │
-  // │ it and refused that change. So the fix is a schema-owner decision, raised as BLK-18.        │
-  // └───────────────────────────────────────────────────────────────────────────────────────────┘
+it('ADR-0039 — as the DEPLOYED audit role, the write SUCCEEDS. BLK-18 is closed.', () => {
+  /*
+   * ┌─ THIS WAS A CANARY THAT SAID "WHEN I GO RED, THE BUG IS FIXED". IT WENT RED. ───────────────┐
+   * │ Before ADR-0039 this same insert failed with SQLSTATE 42704, *"unrecognized configuration    │
+   * │ parameter app.tenant_id"*, and `AuditPrismaRepository.append()` swallowed it by design — so   │
+   * │ `BR-DAT-01` was unsatisfiable in any environment using the documented audit credential and    │
+   * │ `audit_log` held zero rows.                                                                   │
+   * │                                                                                              │
+   * │ The policy was `FOR ALL TO app_rw, app_append` with a `WITH CHECK` opening on the RAISING     │
+   * │ form of `current_setting`. The grants already said what the policy should have been:           │
+   * │ `app_rw : SELECT`, `app_append : INSERT`. So the read policy narrowed to `FOR SELECT TO       │
+   * │ app_rw` — which is what `AuditStrategy.md` §2.3's own block specifies — and `app_append` got  │
+   * │ a `FOR INSERT` policy with no predicate, because a writer checked against a value it chose    │
+   * │ itself is §8.4's tautology.                                                                    │
+   * │                                                                                              │
+   * │ `Constraints.md` §8.3 was NOT amended. `missing_ok` is still never written, and a READ with   │
+   * │ no tenant context still raises — asserted below.                                               │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   const error = asRole(AUDIT_ROLE_URL, APPEND_PROBE);
 
-  assert.match(
+  assert.equal(
     error,
-    /unrecognized configuration parameter/,
-    'BLK-18 appears to be FIXED — the deployed audit role can now write. Update this file: turn ' +
-      'this canary into a positive assertion, and close BLK-18 in docs/PHASES.md.',
+    '',
+    'the deployed audit credential cannot write an audit row. BR-DAT-01 is unsatisfiable again — ' +
+      `this is BLK-18 returning: ${error}`,
   );
 });
 
-it('BLK-18 — the same write SUCCEEDS once a tenant context exists, which isolates the cause', () => {
-  // Rules out the alternatives: it is not the grant (that would be 42501), not the enum values,
-  // not a NOT NULL column. The only missing thing is the session variable.
-  const error = asRole(
-    AUDIT_ROLE_URL,
-    `BEGIN;
-     SELECT set_config('app.tenant_id', '0192de00-6028-7000-8000-0000000000c1', true);
-     ${APPEND_PROBE}
-     ROLLBACK;`,
+it('ADR-0039 — app_append can ONLY insert: no read, no update, no delete', () => {
+  /*
+   * The other half of the fix, and the half a reader should be able to check without trusting me.
+   * `WITH CHECK (true)` sounds permissive. What bounds this role is its GRANT: one table, insert
+   * only, reads nothing. Asserted rather than asserted-in-a-comment.
+   */
+  for (const statement of [
+    'SELECT count(*) FROM audit_log;',
+    "UPDATE audit_log SET action = 'LOGIN';",
+    'DELETE FROM audit_log;',
+  ]) {
+    assert.match(
+      asRole(AUDIT_ROLE_URL, statement),
+      /permission denied for table audit_log/,
+      `app_append was permitted: ${statement}`,
+    );
+  }
+});
+
+it('ADR-0039 — a READ with no tenant context still raises, so §8.3 is intact', () => {
+  /*
+   * `Constraints.md` §8.3's reasoning is about the READ side: a NULL predicate returns zero rows
+   * silently, the bug looks like missing data, somebody widens the policy to "fix" it, and THAT is
+   * the breach. The read policy keeps the one-argument `current_setting`, so an unset variable is
+   * a loud failure rather than an empty result.
+   */
+  assert.match(
+    asRole(APP_ROLE_URL, 'SELECT count(*) FROM audit_log;'),
+    /unrecognized configuration parameter/,
+    'a tenant read with no context returned rows instead of raising — §8.3 has been weakened',
   );
-  assert.equal(error, '', `the cause is not the missing setting after all: ${error}`);
 });

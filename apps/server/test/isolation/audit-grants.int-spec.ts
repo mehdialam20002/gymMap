@@ -238,15 +238,34 @@ it('CI-10 · every partition has RLS enabled AND forced', () => {
   assert.deepEqual(offenders, [], `partitions without forced RLS: ${offenders.join(', ')}`);
 });
 
-it('CI-10 · every partition carries BOTH policies and the G-AUDIT grants', () => {
+it('CI-10 · every partition carries ALL THREE policies and the G-AUDIT grants', () => {
   const partitions = rows(
     `SELECT relname FROM pg_class WHERE relname LIKE 'audit\\_log\\_y%' AND relkind='r' ORDER BY relname;`,
   );
   assert.ok(partitions.length >= 3, 'expected at least three partitions of runway');
 
   for (const name of partitions) {
+    /*
+     * THREE since ADR-0039, not two.
+     *
+     * The read policy narrowed to `FOR SELECT TO app_rw`, and a separate `rls_<t>__append_write` —
+     * `FOR INSERT TO app_append`, no predicate — was added. The old single `FOR ALL` policy failed
+     * EVERY insert, because the audit connection deliberately opens no tenant context and its
+     * `WITH CHECK` began with the raising form of `current_setting`. That was `BLK-18`.
+     */
     const policies = rows(`SELECT count(*) FROM pg_policies WHERE tablename = '${name}';`)[0];
-    assert.equal(policies, '2', `${name} has ${policies} policies, expected 2`);
+    assert.equal(policies, '3', `${name} has ${policies} policies, expected 3`);
+
+    // The SHAPE, not only the count: neither read policy may cover a write, and the write policy
+    // must be INSERT-only and scoped to app_append alone.
+    const shape = rows(
+      `SELECT cmd || ':' || roles::text FROM pg_policies WHERE tablename = '${name}' ORDER BY 1;`,
+    );
+    assert.deepEqual(
+      shape,
+      ['INSERT:{app_append}', 'SELECT:{app_platform_ro}', 'SELECT:{app_rw}'],
+      `${name}: policy shape is not the ADR-0039 shape`,
+    );
 
     const grants = rows(
       `SELECT grantee||':'||privilege_type FROM information_schema.table_privileges
@@ -276,7 +295,20 @@ it('the maintenance function creates a partition WITH its policies and grants', 
   const policies = rows(
     `SELECT count(*) FROM pg_policies WHERE tablename='audit_log_y2027m01';`,
   )[0];
-  assert.equal(policies, '2');
+  assert.equal(policies, '3', 'the maintenance function must create all three policies — ADR-0039');
+
+  /*
+   * The shape, and this is the assertion that stops the CRON path diverging.
+   *
+   * The migration fixed the parent and three partitions. A function still emitting the old single
+   * `FOR ALL` policy would re-introduce `BLK-18` on the first of next month, with no code change
+   * and nobody watching — which is exactly how the defect stayed invisible the first time.
+   */
+  const shape = rows(
+    `SELECT cmd || ':' || roles::text FROM pg_policies
+     WHERE tablename='audit_log_y2027m01' ORDER BY 1;`,
+  );
+  assert.deepEqual(shape, ['INSERT:{app_append}', 'SELECT:{app_platform_ro}', 'SELECT:{app_rw}']);
 
   const forced = rows(
     `SELECT relrowsecurity::text||'|'||relforcerowsecurity::text FROM pg_class WHERE relname='audit_log_y2027m01';`,

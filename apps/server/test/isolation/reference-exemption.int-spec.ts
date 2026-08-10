@@ -171,6 +171,56 @@ const EXEMPT: readonly Exemption[] = [
       '"whose copy of the law is this?". Scoped by country_code, which is not a tenant. ' +
       'app_rw holds SELECT only, so the applicant cannot edit away the document they lack.',
   },
+
+  /*
+   * ┌─ M-031 · THE FIVE THE CATALOGUE'S FOREIGN KEYS POINT AT ────────────────────────────────────┐
+   * │ All five appear BY NAME on the CLOSED exemption list of `Schema.md` §1.3, and `RS4` says     │
+   * │ extending that list takes *"the same scrutiny as a new elevation"* — so these entries are a  │
+   * │ transcription of a reviewed artefact, not five fresh judgement calls.                         │
+   * │                                                                                              │
+   * │ They were missing for two commits. `migration-lint`'s `MG10_NO_RLS_BY_CLASS` had them from    │
+   * │ the start, and I checked THAT gate and `isolation-coverage.mjs` and concluded I was done —    │
+   * │ this int-spec keeps its own list, and nothing told me until it ran. Two lists for one closed  │
+   * │ set is the defect underneath; `rls-policy-parity.spec.mjs` is the natural home for asserting  │
+   * │ they agree, and that is worth doing rather than remembering.                                  │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  {
+    table: 'countries',
+    reason:
+      'GLOBAL platform reference (Schema.md §12.1, §1.3 exemption list), G-REF. No tenant owns ' +
+      'India. The row is byte-identical in every environment because it arrived by the same ' +
+      'migration (SEP1, SEP9), and app_rw holds SELECT only.',
+  },
+  {
+    table: 'cities',
+    reason:
+      'GLOBAL platform reference (Schema.md §12.1, §1.3 exemption list), G-REF. Bengaluru is not ' +
+      'owned by a gym, and every tenant operating in it reads the same row. The C9.4 city-gating ' +
+      'status is a platform decision about a market, not a tenant fact.',
+  },
+  {
+    table: 'localities',
+    reason:
+      'GLOBAL platform reference (Schema.md §12.1, §1.3 exemption list), G-REF. Scoped by ' +
+      'city_id, which is itself reference data. Serves SEO landing pages and filter chips — ' +
+      'surfaces that exist before any tenant is involved.',
+  },
+  {
+    table: 'gym_categories',
+    reason:
+      'GLOBAL platform reference (Schema.md §12.2, §1.3 exemption list), G-REF. NFR-DQ-06 ' +
+      'requires ONE platform-managed vocabulary precisely so filtering works across tenants; a ' +
+      'per-tenant category list would make "show me all yoga studios" unanswerable.',
+  },
+  {
+    table: 'amenities',
+    reason:
+      'GLOBAL platform reference (Schema.md §12.2, §1.3 exemption list), G-REF. Same reasoning ' +
+      'as gym_categories. Note the asymmetry that matters: a gym DECLARES an amenity through ' +
+      'gym_amenities, which IS tenant-owned and does carry RLS with both policy halves. The ' +
+      'claim is a tenant fact; the vocabulary it draws from is not.',
+  },
 ];
 
 const EXEMPT_TABLES = new Set(EXEMPT.map((e) => e.table));
