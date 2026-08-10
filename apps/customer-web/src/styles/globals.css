@@ -3484,24 +3484,14 @@
   }
 
   /*
-   * The hero's slow push-in. `MO1` — it communicates that the footage is a live place rather than
-   * a still, which is the whole reason the section carries video at all. 24s and 4%: below the
-   * threshold where a viewer notices it as motion, above the threshold where the frame feels dead.
+   * `@keyframes gm-hero-push` and its empty guard are gone.
    *
-   * Guarded, not token-driven: `RM1` collapses the DURATION tokens to 1ms, and a 1ms infinite loop
-   * is still an infinite loop (§4.4). Scroll-driven and looping motion must go STATIC.
+   * They were the hero VIDEO's slow push-in - 24s, 4%, guarded so `RM1` could not turn an infinite
+   * loop into a 1ms strobe. The video became a photograph and then a drawn background two
+   * rewrites ago; the keyframes lost their caller and the `no-preference` block that was meant to
+   * apply them was left empty. A rule with nothing referencing it beside a guard with nothing
+   * inside it.
    */
-  @keyframes gm-hero-push {
-    from {
-      transform: scale(1);
-    }
-    to {
-      transform: scale(1.04);
-    }
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-  }
 
   /*
    * ┌─ THE CHROME ADVERTISES ITS OWN HEIGHT, AND THEN HONOURS IT ────────────────────────────────┐
@@ -3591,10 +3581,17 @@
     }
   }
 
-  /* Photography is never dimmed, tinted or filtered in dark mode (§9.4): a gym owner comparing
-   * their own cover photo across themes must see the same photo. The one permitted change is a
-   * hairline so a white-heavy image does not appear to float on the dark canvas. */
-  :root[data-theme='dark'] img[data-photo='true'] {
+  /*
+   * Photography is never dimmed, tinted or filtered in dark mode (§9.4): a gym owner comparing
+   * their own cover across themes must see the same photo. The one permitted change is a hairline
+   * so a white-heavy image does not appear to float on the dark canvas.
+   *
+   * The selector is `:not([data-theme='light'])`, not `[data-theme='dark']`. The rebuild made dark
+   * the DEFAULT by matching an unstamped root, so a first visit - which is every visit before
+   * anyone touches the toggle - is dark and carries no attribute at all. Written the old way this
+   * rule applied only to readers who had explicitly chosen the theme they already had.
+   */
+  :root:not([data-theme='light']) img[data-photo='true'] {
     border: 1px solid var(--gm-color-border-subtle);
   }
 }

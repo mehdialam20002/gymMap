@@ -63,7 +63,9 @@ export function Gallery({ gym }: { readonly gym: GymDetail }) {
             // Sized for what it really occupies: half the container at `sm` and up, the full width
             // below it. Without this Next serves the largest candidate to a phone — `NFR-PERF-02`'s
             // budget spent on pixels nobody sees.
-            sizes="(min-width: 1280px) 49vw, (min-width: 640px) 50vw, 100vw"
+            // The wrap caps at 1150px, so past that the box stops growing and a `vw` unit does not.
+            // `620px` is half the capped wrap; below it the viewport is still the constraint.
+            sizes="(min-width: 1280px) 620px, (min-width: 640px) 50vw, 100vw"
             priority
             className="h-full w-full object-cover text-transparent"
             data-photo="true"

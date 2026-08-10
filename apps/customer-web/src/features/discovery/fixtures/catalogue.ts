@@ -164,8 +164,11 @@ export const CATALOGUE: readonly GymDetail[] = [
       galleryPhoto(29224211, 'floor under geometric lighting'),
     ],
     about:
+      // NOT "the app shows live occupancy". There is no such feature, and this sentence renders on
+      // the listing page AND in its meta description - a capability claim in a search result for a
+      // thing nobody built. The busy hours are a fact the gym can state; the app is not.
       'A large mixed-use floor with a full cardio deck, three studios and classes running from ' +
-      '06:00. Busy between 19:00 and 21:00 — the app shows live occupancy before you leave home.',
+      '06:00. Busiest between 19:00 and 21:00.',
     address: '80 Feet Road, Koramangala 5th Block, Bengaluru 560095',
     openingHours: 'Mon–Sun 05:30–22:30',
     plans: [

@@ -52,7 +52,14 @@ export const config = {
   // function invocation per request. `_next/static` is already immutable and content-hashed.
   matcher: [
     {
-      source: '/((?!_next/static|_next/image|favicon.ico).*)',
+      /*
+       * `fonts` and `icon.svg` join the exclusions.
+       *
+       * The nonce exists for documents. Running the Edge function on a static woff2 spends a
+       * generation and a whole header rewrite on a response that can never execute a script - and
+       * it does it on the render-blocking resource, three times per cold load.
+       */
+      source: '/((?!_next/static|_next/image|favicon.ico|fonts/|icon.svg).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

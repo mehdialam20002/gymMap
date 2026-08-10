@@ -27,6 +27,7 @@ import {
   activeMembership,
   findMembership,
   reviewableGyms,
+  visitCount,
 } from '../src/features/account/fixtures/member.ts';
 import { formatDate, formatDateTime, MARKET_TIME_ZONE } from '../src/features/account/format.ts';
 
@@ -64,7 +65,13 @@ test('the fixture exercises PENDING, which only exists because activation is web
   // And PENDING has never had a visit — it was never usable.
   const pending = DEMO_MEMBER.memberships.filter((m) => m.status === 'PENDING');
   for (const membership of pending) {
-    assert.equal(membership.visitCount, 0, `${membership.id} recorded a visit while pending`);
+    // Counted from the records now, not read off the membership - the stored field disagreed
+    // with them and has gone.
+    assert.equal(
+      visitCount(DEMO_MEMBER, membership.id),
+      0,
+      `${membership.id} recorded a visit while pending`,
+    );
     assert.equal(
       DEMO_MEMBER.visits.filter((visit) => visit.membershipId === membership.id).length,
       0,
@@ -143,7 +150,7 @@ test('reviewable gyms come from VISITS, not from memberships', () => {
   assert.equal(eligible.length, visited.size);
 
   // The proof the rule is not "has a membership": the fixture holds a membership with no visits.
-  const paidButNeverWent = DEMO_MEMBER.memberships.find((m) => m.visitCount === 0);
+  const paidButNeverWent = DEMO_MEMBER.memberships.find((m) => visitCount(DEMO_MEMBER, m.id) === 0);
   assert.ok(paidButNeverWent, 'the fixture no longer exercises paid-but-never-visited');
   assert.ok(
     !eligible.includes(paidButNeverWent.gymName),

@@ -50,7 +50,13 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
          */}
         <GymPhoto
           gym={gym}
-          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+          /*
+           * `GymCard` renders into four different layouts - the results list beside a filter
+           * rail, the gym page's "similar gyms" row, and two grids - so a single `sizes` cannot
+           * be right everywhere. These are the widest it occupies in any of them, which is the
+           * safe direction: too large wastes bytes, too small ships a blurry cover.
+           */
+          sizes="(min-width: 1024px) 42vw, (min-width: 640px) 50vw, 100vw"
           className="aspect-video"
         />
       </Link>

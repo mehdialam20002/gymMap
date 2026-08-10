@@ -530,8 +530,20 @@ test("Next's route announcer is hidden from the stylesheet, not by its own inlin
 // NFR-USE-08 / I18N1 · no user-facing literal in a component.
 // ═══════════════════════════════════════════════════════════════════════════
 
-/** Prose is two or more words with a space. A className or a token name never is. */
-const PROSE_IN_JSX = />\s*([A-Z][a-z]+(?: [a-z]+){1,})\s*</g;
+/**
+ * Prose is two or more words with a space. A className or a token name never is.
+ *
+ * ┌─ THE SECOND WORD DID NOT HAVE TO BE LOWERCASE ─────────────────────────────────────────────┐
+ * │ This read `(?: [a-z]+){1,}`, so every word after the first had to be lowercase - and        │
+ * │ "Find A Gym", "List Your Gym", "Sample Photo", any Title-Case heading at all, was invisible │
+ * │ to the gate `CLAUDE.md` and the taste skill both treat as the thing that stops hard-coded   │
+ * │ copy. The single most likely form for a hard-coded HEADING was the one form it could not    │
+ * │ match.                                                                                      │
+ * │                                                                                             │
+ * │ Either case now, and an apostrophe counts as part of a word so "Gym's" does not split.       │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+const PROSE_IN_JSX = />\s*([A-Z][A-Za-z']+(?: [A-Za-z']+){1,})\s*</g;
 
 test('I18N1 — every user-facing string comes from the catalogue', () => {
   const offenders: string[] = [];

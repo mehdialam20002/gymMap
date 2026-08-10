@@ -48,6 +48,19 @@ const nextConfig = {
   // someone runs on `localhost` over plain HTTP is a foot-gun with a long memory.
   async headers() {
     return [
+      /*
+       * The three self-hosted faces, cached hard.
+       *
+       * Anything under `public/` is served with `Cache-Control: public, max-age=0` by default, so
+       * every navigation revalidated all three woff2 files - on a render-blocking resource, over
+       * the mobile connection this product is for. They are content-addressed by nothing, so the
+       * immutable year is only safe because a face is replaced by adding a file rather than
+       * editing one; if that ever stops being true, the filename has to carry a hash.
+       */
+      {
+        source: '/fonts/:file*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
       {
         source: '/:path*',
         headers: [
@@ -83,7 +96,10 @@ const nextConfig = {
     // agree or the image 404s in one and is blocked in the other.
     remotePatterns: [
       { protocol: 'https', hostname: 'images.pexels.com' },
-      { protocol: 'https', hostname: 'images.unsplash.com' },
+      // `images.unsplash.com` was removed: the hero video that loaded from it is gone, and a
+      // named host in `remotePatterns` is a standing permission for `/_next/image` to fetch and
+      // re-serve anything on it. An allowlist entry with no caller is an open door with no room
+      // behind it.
     ],
   },
 

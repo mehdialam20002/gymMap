@@ -34,7 +34,7 @@ import Link from 'next/link';
 
 import { t, type MessageKey } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
-import { compareKey, toCompareParams } from '../compare/compare.ts';
+import { MAX_COMPARE, compareKey, toCompareParams } from '../compare/compare.ts';
 import { GymPhoto } from '../discovery/gym-photo.tsx';
 import { railToggleHref } from '../compare/compare-rail.tsx';
 import { CATALOGUE, type GymDetail } from '../discovery/fixtures/catalogue.ts';
@@ -173,16 +173,30 @@ export function GymRail({ selected = [] }: { readonly selected?: readonly GymDet
                    * the theme control: this is a link that navigates, not a control that holds
                    * state, so the label changes instead.
                    */}
-                  <Link
-                    href={railToggleHref(selected, gym)}
-                    className="gm-hit-target gm-card-add text-sm font-semibold transition-colors duration-fast ease-standard"
-                  >
-                    {t(
-                      chosen.has(compareKey(gym))
-                        ? 'web.home.compare.remove'
-                        : 'web.home.compare.add',
-                    )}
-                  </Link>
+                  {/*
+                   * At the limit the ADD becomes a statement, not a link.
+                   *
+                   * `toCompareParams` caps the set at `MAX_COMPARE`, so with four already chosen
+                   * the "add" href resolved to the URL the reader was already on: a control that
+                   * looked live, announced itself as an add, and did nothing. Saying the set is
+                   * full is the honest version, and it is a `<span>` so it leaves the tab order.
+                   */}
+                  {!chosen.has(compareKey(gym)) && selected.length >= MAX_COMPARE ? (
+                    <span className="gm-card-add text-sm font-semibold opacity-60">
+                      {t('web.compare.rail.full').replace('{max}', String(MAX_COMPARE))}
+                    </span>
+                  ) : (
+                    <Link
+                      href={railToggleHref(selected, gym)}
+                      className="gm-hit-target gm-card-add text-sm font-semibold transition-colors duration-fast ease-standard"
+                    >
+                      {t(
+                        chosen.has(compareKey(gym))
+                          ? 'web.home.compare.remove'
+                          : 'web.home.compare.add',
+                      )}
+                    </Link>
+                  )}
                   <Link
                     href={`/gyms/${gym.citySlug}/${gym.slug}`}
                     className="gm-btn gm-btn-ghost gm-btn-sm"

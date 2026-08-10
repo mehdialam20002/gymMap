@@ -51,7 +51,7 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
        * without running into a neighbour. That is the whole reason the footer's column of links
        * needed real row height instead: expansion there would have overlapped.
        */}
-      <nav aria-label="Breadcrumb" className="gm-crumbs mt-stack-lg">
+      <nav aria-label={t('web.chrome.breadcrumb.landmark')} className="gm-crumbs mt-stack-lg">
         <Link href="/search" className="gm-hit-target hover:underline">
           {t('web.gym.breadcrumb.root')}
         </Link>

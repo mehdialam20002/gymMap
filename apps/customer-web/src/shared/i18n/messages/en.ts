@@ -50,6 +50,10 @@ export const en = {
 
   // --- footer ---------------------------------------------------------------
   'web.chrome.footer.landmark': 'Footer',
+  // The trail's landmark. It was `aria-label="Breadcrumb"` in three components - the one English
+  // literal on the site that never went through the catalogue, and one a translator could not
+  // reach.
+  'web.chrome.breadcrumb.landmark': 'Breadcrumb',
   'web.chrome.footer.tagline': 'Find a gym you can trust, at a price you can see.',
   /*
    * No YEAR. The reference reads "© 2026 GymMap", and a year written into a string is wrong from

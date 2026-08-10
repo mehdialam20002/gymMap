@@ -17,6 +17,7 @@ import { AccountShell, StatusBadge } from './account-shell.tsx';
 import { formatDate, formatDateTime, machineDate } from './format.ts';
 import {
   DEMO_MEMBER,
+  visitCount,
   activeMembership,
   findMembership,
   reviewableGyms,
@@ -144,7 +145,7 @@ function MembershipCard({ membership }: { readonly membership: Membership }) {
       )}
 
       <p className="mt-stack-md text-sm tabular-nums text-content-muted">
-        {String(membership.visitCount)} {t('web.account.memberships.visits')}
+        {String(visitCount(DEMO_MEMBER, membership.id))} {t('web.account.memberships.visits')}
       </p>
 
       <Link

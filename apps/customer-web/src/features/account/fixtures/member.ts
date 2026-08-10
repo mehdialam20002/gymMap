@@ -47,8 +47,6 @@ export interface Membership {
   /** `Asia/Kolkata` local midnights, stored as instants. */
   readonly startsOn: string;
   readonly endsOn: string;
-  /** Visits recorded against this membership. Counted by the server, not by this screen. */
-  readonly visitCount: number;
 }
 
 export interface Visit {
@@ -111,7 +109,6 @@ export const DEMO_MEMBER: DemoMember = {
       status: 'ACTIVE',
       startsOn: '2026-06-01T00:00:00.000Z',
       endsOn: '2026-08-30T00:00:00.000Z',
-      visitCount: 31,
     },
     {
       id: 'mem-002',
@@ -125,7 +122,6 @@ export const DEMO_MEMBER: DemoMember = {
       status: 'PENDING',
       startsOn: '2026-08-08T00:00:00.000Z',
       endsOn: '2026-09-07T00:00:00.000Z',
-      visitCount: 0,
     },
     {
       id: 'mem-003',
@@ -137,7 +133,6 @@ export const DEMO_MEMBER: DemoMember = {
       status: 'EXPIRED',
       startsOn: '2026-03-01T00:00:00.000Z',
       endsOn: '2026-03-31T00:00:00.000Z',
-      visitCount: 12,
     },
   ],
 
@@ -217,6 +212,25 @@ export const DEMO_MEMBER: DemoMember = {
     },
   ],
 };
+
+/**
+ * How many visits are on record against a membership.
+ *
+ * ┌─ COUNTED, NEVER STORED ────────────────────────────────────────────────────────────────────┐
+ * │ This was a `visitCount` field on each membership, hand-typed, and it disagreed with the     │
+ * │ `visits` array in the same file: `mem-001` claimed 31 against 5 records, `mem-003` claimed  │
+ * │ 12 against 1. So `/account/memberships` and `/account/attendance` - one click apart -       │
+ * │ reported different totals for the same fact, and the field's own comment said "counted by   │
+ * │ the server", which is exactly what it was not.                                               │
+ * │                                                                                             │
+ * │ It is the same rule the marketing surface has been held to all session: a number is derived │
+ * │ from the records, or there is no number. When this fixture becomes an API the server counts │
+ * │ it and the call site does not change.                                                        │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export function visitCount(member: DemoMember, membershipId: string): number {
+  return member.visits.filter((visit) => visit.membershipId === membershipId).length;
+}
 
 /** The membership a check-in screen would open by default: the one that can actually be used. */
 export function activeMembership(member: DemoMember): Membership | null {
