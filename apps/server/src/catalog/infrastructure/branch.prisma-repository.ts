@@ -8,15 +8,21 @@
  * │ caller-CHOSEN tenant whose only guard is the policy — a backstop used as a control.            │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
- * ┌─ WHY THERE IS NO `location` HERE, AND NO `ST_DWithin` ───────────────────────────────────────┐
+ * ┌─ `location` NEEDS RAW SQL, AND THE PRECEDENT FOR THAT IS ESTABLISHED ────────────────────────┐
  * │ `location` is `Unsupported("geography(Point,4326)")`, so Prisma can migrate around it and     │
- * │ cannot read it. Every radius query is therefore `$queryRaw` — and raw SQL through the         │
- * │ tenant-scoped client is a separate question with its own answer, which `M-042` (the radius    │
- * │ search) owns along with the `EXPLAIN` baseline `AC-2` asks for.                                │
+ * │ cannot read or write it. `listInGym` below therefore projects it with                          │
+ * │ `ST_Y(location::geometry)` and `ST_X(location::geometry)`.                                     │
  * │                                                                                              │
- * │ This repository answers identity questions, which Prisma can express. Reaching for            │
- * │ `$queryRaw` here to "save a trip later" would put the one statement class that can bypass the │
- * │ extension into the file least likely to be reviewed for it.                                    │
+ * │ This header used to defer that to `M-042`, on the grounds that raw SQL through the             │
+ * │ tenant-scoped client was an unanswered question. It is answered: `AuditReadPrismaRepository`   │
+ * │ already runs `this.db.client.$queryRaw` through the same `PrismaService`, so the `A-01`        │
+ * │ extension opens the interactive transaction and sets `app.tenant_id` before the statement,     │
+ * │ exactly as it does for a Prisma query. RLS filters either way.                                 │
+ * │                                                                                              │
+ * │ What has NOT changed is the reason for caution. `$queryRaw` is the one statement class that    │
+ * │ CAN bypass the extension — through `$queryRawUnsafe`, or through a second client — and every   │
+ * │ value below is a tagged-template parameter for that reason. `M-042` still owns `ST_DWithin`    │
+ * │ and the `EXPLAIN` baseline; this is the tenant's own list, not a radius search.                 │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
@@ -28,6 +34,7 @@ import type {
   BranchQueryPort,
 } from '../application/ports/branch-query.port.js';
 import type { BranchIdentity, BranchStatus } from '../types/catalog.types.js';
+import type { BranchRow } from './branch.mapper.js';
 
 /** One row → the identity projection. Explicit, so a new column cannot leak into a consumer. */
 function toIdentity(row: {
@@ -90,5 +97,53 @@ export class BranchPrismaRepository implements BranchQueryPort {
     });
 
     return rows.map(toIdentity);
+  }
+
+  /**
+   * Every branch of a gym in full — `GET /v1/tenant/branches`, `Gym.md` §12.1.
+   *
+   * ┌─ WHY THIS RETURNS INACTIVE BRANCHES AND `activeInGym` DOES NOT ────────────────────────────┐
+   * │ They answer different questions. `activeInGym` feeds a DECISION — which branch to promote,  │
+   * │ whether this is the last one — and a deactivated branch is not a candidate for either.      │
+   * │ This feeds `SCR-DASH-004`, where an owner needs to see the branch they closed last month,   │
+   * │ because otherwise it has silently vanished from a screen that claims to list their estate.  │
+   * │                                                                                            │
+   * │ `deleted_at IS NULL` still applies to both. Soft-deleted is gone; `INACTIVE` is closed.     │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  async listInGym(gymId: string): Promise<readonly BranchRow[]> {
+    /*
+     * `::geometry` before `ST_Y`/`ST_X`, and the cast is not decoration.
+     *
+     * On a `geography` those functions are undefined — PostGIS reserves them for planar geometry —
+     * so the cast is what makes the projection legal. It is exact rather than approximate: the
+     * cast reinterprets the same stored point, and no reprojection happens at 4326.
+     *
+     * `ST_Y` is LATITUDE and `ST_X` is LONGITUDE, which is the reverse of `ST_MakePoint`'s
+     * argument order. `branch.mapper.ts` is where that asymmetry is explained; here the column
+     * aliases say which is which so a reader need not remember.
+     */
+    return this.db.client.$queryRaw<BranchRow[]>`
+      SELECT id,
+             gym_id                        AS "gymId",
+             name,
+             address_line1                 AS "addressLine1",
+             address_line2                 AS "addressLine2",
+             city_id                       AS "cityId",
+             locality_id                   AS "localityId",
+             state,
+             state_code                    AS "stateCode",
+             postal_code                   AS "postalCode",
+             country_code                  AS "countryCode",
+             ST_Y(location::geometry)      AS lat,
+             ST_X(location::geometry)      AS lng,
+             geo_tolerance_metres          AS "geoToleranceMetres",
+             capacity,
+             status::text                  AS status,
+             is_primary                    AS "isPrimary"
+        FROM branches
+       WHERE gym_id = ${gymId}::uuid
+         AND deleted_at IS NULL
+       ORDER BY is_primary DESC, created_at ASC`;
   }
 }
