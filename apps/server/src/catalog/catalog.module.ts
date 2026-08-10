@@ -4,16 +4,23 @@
  * ┌─ NO CONTROLLERS, AND IT IS `BLK-19` RATHER THAN AN OMISSION ─────────────────────────────────┐
  * │ `catalog/README.md` §4 says `controllers/`, `dto/` and `permissions.ts` are mandatory here —  │
  * │ this is not one of the four provider-only modules. The five branch routes are specified down  │
- * │ to their request bodies in `apis/Gym.md` §12, and four of them cannot declare a permission.   │
+ * │ to their request bodies in `apis/Gym.md` §12, and they cannot be built yet.                    │
  * │                                                                                              │
- * │ `API_Catalog.md` names `catalog.branch.list`, `.create`, `.read`, `.update`, `.deactivate`;   │
- * │ `Security.md` and the shipped `CAPABILITY_MATRIX` decompose `§B3.2` row 20 into               │
- * │ `catalog.branch.read` and `catalog.branch.write` and nothing else. Only `.read` is in both,   │
- * │ and `§B3.2` holds no key strings at all to break the tie. Both documents are rank 3.          │
+ * │ **The reason is NOT the one this comment used to give, and the correction matters.** It said  │
+ * │ two rank-3 documents gave two vocabularies, that only `catalog.branch.read` appeared in both, │
+ * │ and that `§B3.2` held no key strings to break the tie. `PHASES.md`'s own `BLK-19` row labels  │
+ * │ that framing *"What I got wrong"*. `API_Catalog.md` §5.6's column header is **"Permission     │
+ * │ string(s)"**, plural, and its rows already carry three keys for one capability — so five keys │
+ * │ from one row is the DOCUMENTED shape, not a conflict. The vocabulary question is answered.    │
  * │                                                                                              │
- * │ `controllers/README.md` carries the same reason where somebody looking for the missing        │
- * │ controller will actually find it. `PG-7` now fails the build on an invented key, which is the │
- * │ half of this that was fixable without an owner decision.                                       │
+ * │ What is actually open is the **grant width**. `Gym.md` 167 gives `GET /tenant/branches` to    │
+ * │ `RECEPTIONIST` and `TRAINER`; `§B3.2` rows 19 and 20 give both `—`. Precedence settles it for │
+ * │ `§B3.2`, which means `SCR-DASH-004` as designed cannot be built — and that is a PRODUCT       │
+ * │ decision under `§C10`, not an engineering one. Hence still blocked, for a different reason.   │
+ * │                                                                                              │
+ * │ `controllers/README.md` carries this where somebody looking for the missing controller will   │
+ * │ find it. `PG-7` fails the build on an invented key, which was the half fixable without the    │
+ * │ owner. Note the DTOs and the AC-9 audit write are NOT blocked by any of this.                  │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
  * The repositories are providers and are NOT exported. Other modules reach this one through the

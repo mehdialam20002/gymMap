@@ -41,7 +41,9 @@ The wizard does not write `gyms` directly.
 
 ## 3. Owned tables
 
-_Planned. No code in this module yet - populated by the milestones listed below._
+**Three of the six exist** as of `M-031` (2026-08-10): `gyms`, `branches`, `gym_amenities`, all with
+`ENABLE` + `FORCE` RLS and both a tenant-isolation and a platform-read policy. `branch_hours` and
+`branch_hour_exceptions` arrive at `M-034`; `gym_media` at `M-033`.
 
 | Table                    | Notes that matter                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -64,7 +66,10 @@ M-034 (`branch_hours`, `branch_hour_exceptions`).
 
 ## 4. Public surface
 
-_Planned. No code in this module yet - populated by the milestones listed below._
+**Two of the six ports exist** — `BRANCH_QUERY_PORT` and `GYM_TIMEZONE_PORT`, with
+`AFFECTED_MEMBERSHIPS_PORT` declared but unprovided. **`controllers/`, `dto/` and `permissions.ts`
+are still empty**, and `controllers/README.md` carries the reason: `BLK-19`, which is a `§C10`
+product decision about grant width rather than the vocabulary question it was first recorded as.
 
 `catalog/` is not one of the four provider-only modules of `FolderStructure.md` §8.2, so
 `controllers/`, `dto/` and `permissions.ts` are mandatory. It is nevertheless the most heavily
@@ -97,7 +102,10 @@ M-033, M-034 (`OPERATING_HOURS_PORT`), M-035 (the material-field registry).
 
 ## 5. Consumed ports
 
-_Planned. No code in this module yet - populated by the milestones listed below._
+**One of the three edges is live.** `branch.prisma-repository.ts` and `gym-timezone.prisma-adapter.ts`
+both go through `tenancy/`'s scoped client, so the RLS edge is exercised and tested. The `iam/` and
+`common/` edges below are specified and not yet consumed — nothing in this module resolves an actor
+or writes an outbox row today.
 
 | Provider   | Port                                                                                                                                             | Why the answer must be synchronous                                                                                       |
 | :--------- | :----------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
@@ -120,7 +128,10 @@ External dependencies through `§4.5` ACLs: **DEP-05** object storage and the Sh
 
 ## 6. Emitted events
 
-_Planned. No code in this module yet - populated by the milestones listed below._
+**None emitted yet.** The table below is the specification. Emission needs the write use cases,
+which `M-031` did not deliver — and note the aggregate type must be one of the 26 roots of
+`engineering/ERD.md` §6.1, now enforced by `outbox_aggregate_type_enum` (`ADR-0045`). `Gym` and
+`Branch` are rows 5 and 6; a contained entity such as `gym_amenities` is never an aggregate type.
 
 Every payload carries `tenant_id` and `occurred_at` and **no personal datum** (`E5`). The outbox row
 is written inside the state-changing transaction (`E2`).
@@ -151,7 +162,8 @@ M-036 (the `application.approved` handler that produces `gym.approved`).
 
 ## 7. Consumed events
 
-_Planned. No code in this module yet - populated by the milestones listed below._
+**No handler exists yet.** The table is the specification. Nothing in this module subscribes to
+anything today, which is why `application.approved` currently has no effect on a `gyms` row.
 
 | Event                             | Publisher     | Handler idempotency key                           |
 | :-------------------------------- | :------------ | :------------------------------------------------ |
@@ -175,7 +187,8 @@ by any other trigger.
 
 ## 8. Jobs
 
-_Planned. No code in this module yet - populated by the milestones listed below._
+**Neither is registered yet.** The `§C5` harness and the `SKIP LOCKED` dispatcher shipped at
+`M-018`, so the mechanism exists and this module has not yet put anything on it.
 
 One `§C5` job, and one processor that is not a `§C5` job.
 
