@@ -370,6 +370,61 @@ it('a gym cannot name a category that does not exist', () => {
   );
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// BLK-20 · state_code accepts both alphabets, and that is a CANARY, not a control
+// ═══════════════════════════════════════════════════════════════════════════
+
+it('BLK-20 — state_code accepts BOTH "27" and "MH". This is a canary.', () => {
+  /*
+   * ┌─ WHEN THIS TEST GOES RED, BLK-20 HAS BEEN DECIDED AND THIS FILE SHOULD BE UPDATED ─────────┐
+   * │ Two rank-3 documents specify two different alphabets for the same column:                   │
+   * │                                                                                              │
+   * │   NUMERIC  SeedStrategy.md §3.6 seeds all 38 GST codes ("27" Maharashtra, "29" Karnataka)   │
+   * │            and calls them "the 2-digit prefix of every GSTIN". Schema.md derives            │
+   * │            tenants.state_code "from gstin when present". Gym.md:696 shows "27".              │
+   * │   ALPHA    Marketplace.md:662, 1694, 1699 show "MH", "KA", "TG".                             │
+   * │                                                                                              │
+   * │ `ck_branches__state_code_shape` is `^[A-Z0-9]{2}$` and admits both. That is the conflict     │
+   * │ procedure's step 1 violated — "do not implement both" — and it is recorded as BLK-20 rather  │
+   * │ than tightened, because tightening it would be picking a side in code.                       │
+   * │                                                                                              │
+   * │ So this assertion does NOT say the constraint is right. It says the constraint is not a      │
+   * │ control yet, and pins that fact where somebody will meet it. `state_code` is the place of    │
+   * │ supply: it selects CGST+SGST versus IGST on every invoice the branch issues, and a wrong     │
+   * │ value is corrected only by a credit note per document.                                        │
+   * │                                                                                              │
+   * │ WHEN BLK-20 RESOLVES: tighten the CHECK to the decided alphabet, turn the two `assert.equal` │
+   * │ lines below into one acceptance and one refusal, and close BLK-20 in docs/PHASES.md.          │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  assert.equal(refusedBy(branchInsert({ state_code: `'27'` })), '', 'the GST numeric form');
+  assert.equal(refusedBy(branchInsert({ state_code: `'MH'` })), '', 'the ISO alpha form');
+
+  // What it DOES refuse, so the check is not simply inert.
+  assert.equal(
+    refusedBy(branchInsert({ state_code: `'m'` })),
+    'ck_branches__state_code_shape',
+    'a one-character code must still be refused',
+  );
+  assert.equal(
+    refusedBy(branchInsert({ state_code: `'mh'` })),
+    'ck_branches__state_code_shape',
+    'lower case must still be refused — the shape check is doing something',
+  );
+});
+
+it('BLK-20 — tenants.state_code has NO constraint at all, which Constraints.md specifies', () => {
+  // `ck_tenants__state_code_matches_gstin` is specified and was never created. Asserted so the
+  // gap is a failing expectation the day somebody adds it, rather than a thing nobody re-checks.
+  const { out } = psql(`
+    SELECT count(*) FROM pg_constraint WHERE conname = 'ck_tenants__state_code_matches_gstin';`);
+  assert.equal(
+    out,
+    '0',
+    'the constraint now exists — good. Update BLK-20, and give branches.state_code the same one.',
+  );
+});
+
 it('the same gym cannot declare the same amenity twice', () => {
   const declare = `INSERT INTO gym_amenities (tenant_id, gym_id, amenity_id)
     SELECT '${TENANT}', '${GYM}', a.id FROM amenities a WHERE a.key = 'probe-sauna';`;
