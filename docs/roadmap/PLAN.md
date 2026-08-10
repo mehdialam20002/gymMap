@@ -174,8 +174,9 @@ permission set, the union-by-omission `AC-5` forbids. That guard is now bound, s
 
 | Deliverable | State |
 | :--- | :--- |
-| `dto/` — three Zod request/response pairs | FREE |
-| Four use cases — create, update, deactivate, list — plus specs | FREE |
+| `dto/` — the three Zod contracts | ✅ **DONE** `fa30a4f` — one file, 11 assertions. Transcribed from `Gym.md` §12, not from the table |
+| Four use cases — create, update, deactivate, list — plus specs | FREE, with one dependency found 2026-08-10: **`deactivate` needs a gym-STATUS reader and no port supplies one.** `DeactivationFacts.gymStatus` is required by `mayDeactivate()`, `GYM_TIMEZONE_PORT` returns only a timezone and `BRANCH_QUERY_PORT` only branches. `catalog/README.md` says the module has six ports and three exist, so this is one of the three planned — build it first, not as a side effect of the use case |
+| `branch.mapper.ts` | ✅ **DONE** `0eab74d` — the lat/lng ↔ `ST_MakePoint` seam, with `postGisPoint()` returning a TUPLE so the coordinate is never interpolated into SQL |
 | `gym.prisma-repository.ts` + Testcontainers int-spec; the write half of `branch.prisma-repository.ts` | FREE |
 | `branch.controller.ts` — five routes, each declaring a `CATALOG_PERMISSIONS` key | FREE |
 | `AC-9`'s audit row inside each mutation | FREE |
