@@ -18,6 +18,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { code, source, tsxFiles } from './helpers.ts';
 import { en } from '../src/shared/i18n/messages/en.ts';
+import { CATALOGUE } from '../src/features/discovery/fixtures/catalogue.ts';
 import { t, DEFAULT_LOCALE, LOCALES } from '../src/shared/i18n/index.ts';
 import { themeScript, THEME_STORAGE_KEY } from '../src/shared/theme/theme-script.ts';
 import { FOOTER_NAV } from '../src/shared/chrome/nav-model.ts';
@@ -621,6 +622,43 @@ test('no rendered string contains an em-dash or an en-dash — ui-taste §5.1', 
     [],
     'a dash a translator cannot type and a screen reader announces as a pause:\n  ' +
       offenders.join('\n  '),
+  );
+
+  /*
+   * ┌─ THE CATALOGUE IS ALSO USER-FACING, AND THIS GATE STOPPED AT `en.ts` ──────────────────────┐
+   * │ Found by reading the served HTML while verifying something else: a gym page's               │
+   * │ `og:description` carried an em-dash, out of that gym's blurb. Blurbs, names and localities  │
+   * │ are prose a member reads on the page and in every share preview - prose that happens to      │
+   * │ live in a fixture rather than in the message catalogue. The rule follows the reader, not    │
+   * │ the file it is stored in.                                                                   │
+   * │                                                                                             │
+   * │ EM-dash only here, deliberately. `openingHours` is full of EN dashes - `Mon–Sat 05:00–23:00` │
+   * │ - and an en dash spanning a range is correct typography doing real work, not the connector   │
+   * │ §5.1 is about. Banning it would be applying the letter of the rule against its purpose.      │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const PROSE_FIELDS = ['name', 'locality', 'city', 'about', 'address', 'photoAlt'] as const;
+  /*
+   * The field list is asserted before it is used. The first version of this check read `gym.blurb`,
+   * and the field is called `about` - so it filtered `undefined` across every gym, found nothing,
+   * and reported the catalogue clean while the em-dash that prompted the check sat in it. A gate
+   * that names a field is a gate that can name the wrong one, and it fails silently and green.
+   */
+  for (const field of PROSE_FIELDS) {
+    assert.ok(
+      typeof CATALOGUE[0]?.[field] === 'string',
+      `the catalogue has no string field "${field}" — this scan would pass by reading undefined`,
+    );
+  }
+  const prose = CATALOGUE.flatMap((gym) =>
+    PROSE_FIELDS.map((field) => [field, gym[field]] as const),
+  )
+    .filter(([, value]) => typeof value === 'string' && value.includes('—'))
+    .map(([field, value]) => `${field}: ${String(value).slice(0, 60)}`);
+  assert.deepEqual(
+    prose,
+    [],
+    `a fixture's rendered prose carries an em-dash:\n  ${prose.join('\n  ')}`,
   );
 });
 

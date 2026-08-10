@@ -41,18 +41,28 @@ export const metadata: Metadata = {
    * whatever image they find on the page, which here would be a stock photograph of a gym that is
    * not the gym. Booked as work rather than faked.
    */
+  /*
+   * ┌─ WHAT WAS HERE SPOKE FOR EVERY PAGE, AND SAID "HOME" ───────────────────────────────────────┐
+   * │ This block carried `url`, `title` and `description` as well, and the note above it claimed   │
+   * │ "every page inherits these and overrides the two that vary". No page overrides them. So all   │
+   * │ twenty-eight indexable URLs shipped the home page's `og:title`, the home page's description,  │
+   * │ and `og:url` pointing at the site root - a gym link pasted into WhatsApp previewed the home   │
+   * │ page and linked to the front door. The comment described an intention; the code shipped a     │
+   * │ constant.                                                                                     │
+   * │                                                                                              │
+   * │ Only the three fields that really are site-wide stay. Next fills `og:title` and               │
+   * │ `og:description` from each route's own `title` and `description` when they are absent here,   │
+   * │ so every page now previews as itself - and it does so without twenty-eight more overrides to  │
+   * │ keep in step, which is the version of this that stays true.                                   │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   openGraph: {
     type: 'website',
     siteName: 'GymMap',
     locale: 'en_IN',
-    url: SITE_URL,
-    title: t('web.home.meta.title'),
-    description: t('web.home.meta.description'),
   },
   twitter: {
     card: 'summary',
-    title: t('web.home.meta.title'),
-    description: t('web.home.meta.description'),
   },
 };
 

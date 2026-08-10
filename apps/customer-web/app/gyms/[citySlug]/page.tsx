@@ -12,9 +12,9 @@ import { toJsonLd } from '../../../src/features/gym-detail/json-ld.ts';
 import { cityLanding, toItemList } from '../../../src/features/landings/landings.ts';
 import { cityLandingMetadata } from '../../../src/features/landings/landing-metadata.ts';
 import { CityLandingView } from '../../../src/features/landings/landing-views.tsx';
+import { SITE_URL } from '../../../src/shared/seo/site.ts';
 
 /** The origin structured data resolves against. Configured, never guessed from a request. */
-const ORIGIN = process.env['NEXT_PUBLIC_SITE_ORIGIN'] ?? 'https://gymmap.example';
 
 interface RouteParams {
   readonly params: { readonly citySlug: string };
@@ -48,7 +48,7 @@ export default function CityRoute({ params }: RouteParams) {
       {/* `toJsonLd`, not `JSON.stringify` — every name below is text a gym owner typed. */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: toJsonLd(toItemList(landing.gyms, ORIGIN)) }}
+        dangerouslySetInnerHTML={{ __html: toJsonLd(toItemList(landing.gyms, SITE_URL.origin)) }}
       />
       <CityLandingView landing={landing} />
     </>

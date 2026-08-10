@@ -244,10 +244,40 @@ test('the ItemList is escaped for a script tag, like every other JSON-LD on the 
   }
 });
 
-test('the origin for structured data is configured, never inferred from a request', () => {
-  // A URL built from a `Host` header is a URL an attacker can set, and it ends up in the index.
-  for (const route of ['app/gyms/[citySlug]/page.tsx', 'app/explore/[activitySlug]/page.tsx']) {
-    assert.match(code(route), /process\.env\['NEXT_PUBLIC_SITE_ORIGIN'\]/, route);
-    assert.ok(!code(route).includes('headers()'), `${route} reads the request host`);
+test('the origin for structured data is the site origin, and there is only one of them', () => {
+  /*
+   * ┌─ THIS ASSERTED THE NAME OF A VARIABLE, WHICH IS NOT THE PROPERTY THAT MATTERS ─────────────┐
+   * │ It matched `process.env['NEXT_PUBLIC_SITE_ORIGIN']` in the source. That is satisfied by the │
+   * │ variable being MENTIONED, and it was satisfied throughout the period when the app had TWO   │
+   * │ origins with different defaults - this one falling back to `https://gymmap.example`, a      │
+   * │ domain nobody owns, while canonicals and the sitemap used another. A page could ship a      │
+   * │ canonical on the real host and an ItemList on a fictional one, and this stayed green.       │
+   * │                                                                                             │
+   * │ The properties worth having are that the origin is CONFIGURED rather than taken from the    │
+   * │ request, and that the whole app agrees on one. Both are checked now, and the second is       │
+   * │ checked by counting: a second environment variable naming an origin fails this.             │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const ROUTES = ['app/gyms/[citySlug]/page.tsx', 'app/explore/[activitySlug]/page.tsx'];
+  for (const route of ROUTES) {
+    const text = code(route);
+    assert.match(text, /SITE_URL\.origin/, `${route} does not build its item URLs from SITE_URL`);
+    // A URL built from a `Host` header is a URL an attacker can set, and it ends up in the index.
+    assert.ok(!text.includes('headers()'), `${route} reads the request host`);
   }
+
+  const sources = [...ROUTES, 'app/robots.ts', 'app/sitemap.ts', 'src/shared/seo/site.ts'].map(
+    code,
+  );
+  const originVars = new Set(
+    sources
+      .flatMap((text) => [...text.matchAll(/process\.env\['([A-Z0-9_]*(?:URL|ORIGIN|HOST))'\]/g)])
+      .map((m) => m[1]),
+  );
+  assert.deepEqual(
+    [...originVars],
+    ['NEXT_PUBLIC_SITE_URL'],
+    'more than one environment variable names the site address, so setting the documented one ' +
+      'still leaves part of the output pointing somewhere else',
+  );
 });

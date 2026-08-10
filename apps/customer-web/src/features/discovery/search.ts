@@ -121,15 +121,30 @@ export function parseSearchQuery(params: RawParams): SearchQuery {
  * `FR-SRCH-13` is trying to avoid, created by the filter panel itself.
  */
 export function toSearchParams(query: Partial<SearchQuery>): string {
+  /*
+   * "Has a value", spelled out. The parameter is `Partial<SearchQuery>`, so every field is
+   * `T | null | undefined` and `!== null` alone does not narrow it - and truthiness, which is what
+   * this used to use, treats `0` and `0n` as absent. Both matter here: a price ceiling of zero is
+   * "free only", a value the parser accepts and this function silently dropped.
+   */
+  const has = <T>(value: T | null | undefined): value is T => value !== null && value !== undefined;
   const params = new URLSearchParams();
   if (query.q) params.set('q', query.q);
   if (query.city) params.set('city', query.city);
   if (query.category) params.set('category', query.category);
   if (query.amenity) params.set('amenity', query.amenity);
-  // Integer division, and exact: the value only ever arrives here as whole rupees × 100.
-  if (query.maxPriceMinor) params.set('maxPrice', String(query.maxPriceMinor / 100n));
-  if (query.minRating) params.set('rating', String(query.minRating));
-  if (query.radiusKm) params.set('radius', String(query.radiusKm));
+  /*
+   * `!== null`, not truthiness. `0n` and `0` are falsy, and all three of these are numbers whose
+   * zero is a value rather than an absence - a price ceiling of zero means "free only", which
+   * `parseSearchQuery` accepts and this function silently dropped. Every filter-removal link on the
+   * results page is built from here, so removing ANY chip also removed the price ceiling, and the
+   * result set changed for a reason the reader never asked for.
+   *
+   * Integer division, and exact: the value only ever arrives here as whole rupees × 100.
+   */
+  if (has(query.maxPriceMinor)) params.set('maxPrice', String(query.maxPriceMinor / 100n));
+  if (has(query.minRating)) params.set('rating', String(query.minRating));
+  if (has(query.radiusKm)) params.set('radius', String(query.radiusKm));
   if (query.sort && query.sort !== 'relevance') params.set('sort', query.sort);
   const encoded = params.toString();
   return encoded === '' ? '/search' : `/search?${encoded}`;
@@ -292,13 +307,24 @@ export function facets(query: SearchQuery): Facets {
   };
 }
 
-/** True when anything is narrowing the result set — what a "clear all" control keys off. */
+/**
+ * True when anything is narrowing the result set — what a "clear all" control keys off.
+ *
+ * `radiusKm` was missing, and it is the ONE filter the home page's hero can set: a reader picks
+ * "Within 2 km", lands on the results page, and sees a smaller catalogue with no chip saying why,
+ * no "clear all filters" offered, and no relaxation link in the empty state. The filter is applied
+ * and invisible, which is the worst of both - the reader concludes the marketplace is empty.
+ *
+ * Found by three independent readers in one audit, which is what a missing line in a boolean OR
+ * looks like: nothing crashes, nothing logs, and the page is quietly wrong.
+ */
 export function hasActiveFilters(query: SearchQuery): boolean {
   return (
     query.q !== '' ||
     query.city !== null ||
     query.category !== null ||
     query.amenity !== null ||
+    query.radiusKm !== null ||
     query.maxPriceMinor !== null ||
     query.minRating !== null
   );

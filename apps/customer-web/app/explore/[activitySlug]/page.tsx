@@ -11,8 +11,7 @@ import { toJsonLd } from '../../../src/features/gym-detail/json-ld.ts';
 import { activityLanding, toItemList } from '../../../src/features/landings/landings.ts';
 import { activityLandingMetadata } from '../../../src/features/landings/landing-metadata.ts';
 import { ActivityLandingView } from '../../../src/features/landings/landing-views.tsx';
-
-const ORIGIN = process.env['NEXT_PUBLIC_SITE_ORIGIN'] ?? 'https://gymmap.example';
+import { SITE_URL } from '../../../src/shared/seo/site.ts';
 
 interface RouteParams {
   readonly params: { readonly activitySlug: string };
@@ -36,7 +35,7 @@ export default function ActivityRoute({ params }: RouteParams) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: toJsonLd(toItemList(landing.gyms, ORIGIN)) }}
+        dangerouslySetInnerHTML={{ __html: toJsonLd(toItemList(landing.gyms, SITE_URL.origin)) }}
       />
       <ActivityLandingView landing={landing} />
     </>

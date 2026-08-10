@@ -819,6 +819,9 @@ export const en = {
   'web.account.orders.placed': 'Placed',
   'web.account.orders.subtotal': 'Subtotal',
   'web.account.orders.total': 'Total paid',
+  // The same row on an order the provider has not confirmed. `BR-PAY-02` makes the webhook the
+  // only thing that can say a payment happened, so the receipt must not say it first.
+  'web.account.orders.totalDue': 'Total',
   'web.account.orders.none': 'No receipts yet.',
   // §A6.3 stated to the member: what they are reading is what they were charged, not a fresh sum.
   'web.account.orders.persisted':

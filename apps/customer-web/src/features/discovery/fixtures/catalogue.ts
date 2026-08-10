@@ -131,7 +131,7 @@ export const CATALOGUE: readonly GymDetail[] = [
     ],
     about:
       'A barbell-first gym with four competition platforms and coaches who compete. Not a circuit ' +
-      'studio — if you want to learn to squat, deadlift and press properly, this is the room.',
+      'studio: if you want to learn to squat, deadlift and press properly, this is the room.',
     address: '412, 12th Main Road, Indiranagar, Bengaluru 560038',
     openingHours: 'Mon–Sat 05:00–23:00 · Sun 06:00–14:00',
     plans: [
@@ -302,7 +302,7 @@ export const CATALOGUE: readonly GymDetail[] = [
     ],
     about:
       'Opened this quarter. Weights floor plus a full ring, with boxing classes four evenings a ' +
-      'week. No reviews yet — reviews here can only be left by members who actually checked in.',
+      'week. No reviews yet, because a review here can only be left by a member who checked in.',
     address: 'Press Enclave Road, Saket, New Delhi 110017',
     openingHours: 'Mon–Sat 05:00–22:00',
     plans: [

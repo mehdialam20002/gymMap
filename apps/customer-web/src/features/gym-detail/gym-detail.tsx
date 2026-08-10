@@ -86,7 +86,9 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
             <span className="text-base text-content-secondary">
               <span className="font-semibold text-content">{gym.rating.toFixed(1)} ★</span>{' '}
               <span className="text-content-muted">
-                {`(${gym.reviewCount.toLocaleString('en-IN')} ${t('web.gym.reviews.many')})`}
+                {`(${gym.reviewCount.toLocaleString('en-IN')} ${t(
+                  gym.reviewCount === 1 ? 'web.gym.reviews.one' : 'web.gym.reviews.many',
+                )})`}
               </span>
             </span>
           )}

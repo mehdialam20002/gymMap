@@ -32,6 +32,7 @@ import type { MessageKey } from '../../shared/i18n/index.ts';
 import { t } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
 import { GymCard } from './gym-card.tsx';
+import { CITIES } from './fixtures/catalogue.ts';
 import {
   EMPTY_QUERY,
   facets,
@@ -219,7 +220,18 @@ function ActiveFilters({ query }: { query: SearchQuery }) {
     });
   }
   if (query.city !== null) {
-    chips.push({ key: 'city', label: query.city, href: toSearchParams({ ...query, city: null }) });
+    /*
+     * The city's NAME, not its slug. The chip rendered `query.city` raw, so choosing "Bengaluru"
+     * from the hero produced a chip reading "bengaluru" - and where a slug carries a hyphen it
+     * would read "new-delhi". Every other chip on this row shows the label the reader picked; this
+     * one showed the URL. The facet list already carries the pairing, so the lookup is a lookup.
+     */
+    const named = CITIES.find((city) => city.slug === query.city);
+    chips.push({
+      key: 'city',
+      label: named?.name ?? query.city,
+      href: toSearchParams({ ...query, city: null }),
+    });
   }
   if (query.category !== null) {
     chips.push({
@@ -247,6 +259,24 @@ function ActiveFilters({ query }: { query: SearchQuery }) {
       key: 'rating',
       label: t('web.search.filters.ratingAndUp').replace('{rating}', query.minRating.toFixed(1)),
       href: toSearchParams({ ...query, minRating: null }),
+    });
+  }
+  /*
+   * The distance chip, which this row never had.
+   *
+   * Six filters had one and `radiusKm` did not - and it is the ONE filter the home page's hero can
+   * set. A reader picks "Within 2 km", arrives here, and the catalogue is smaller for a reason with
+   * no name on it and no way to undo it. `hasActiveFilters` was missing it too, so even the
+   * "clear all" escape hatch was absent; both are fixed, and this is the half that names the cause.
+   *
+   * The string is the hero's own, deliberately. It is the same sentence the reader chose from, and
+   * a second key holding the same phrase is two translations that have to agree forever.
+   */
+  if (query.radiusKm !== null) {
+    chips.push({
+      key: 'radius',
+      label: t('web.home.hero.radiusWithin').replace('{km}', String(query.radiusKm)),
+      href: toSearchParams({ ...query, radiusKm: null }),
     });
   }
 

@@ -72,15 +72,23 @@ export default function GymPage({ params }: RouteParams) {
               addressCountry: 'IN',
             },
             openingHours: gym.openingHours,
-            ...(gym.rating === null
-              ? {}
-              : {
-                  aggregateRating: {
-                    '@type': 'AggregateRating',
-                    ratingValue: gym.rating,
-                    reviewCount: gym.reviewCount,
-                  },
-                }),
+            /*
+             * ┌─ NO `aggregateRating` WHILE THE CATALOGUE IS FIXTURES ─────────────────────────────┐
+             * │ It emitted `ratingValue: 4.7, reviewCount: 213` for a gym that does not exist, from │
+             * │ numbers typed into a fixture file. The `gym.rating === null` guard was correct as   │
+             * │ far as it went - an unrated gym published nothing - but the rated ones published a  │
+             * │ machine-readable assertion that 213 members had reviewed a business.                │
+             * │                                                                                     │
+             * │ `BR-REV-01` says a review exists only where a check-in was recorded. On the page    │
+             * │ the same figure sits under a "Sample listings" notice, which is a disclosed         │
+             * │ shortcut; structured data carries no notice and cannot. It is read by a machine     │
+             * │ that renders stars in a result, and a rich snippet has nowhere to say "illustrative".│
+             * │                                                                                     │
+             * │ The block returns when a rating is computed from recorded check-ins - at which      │
+             * │ point it is a fact and belongs here. Everything else about the listing is           │
+             * │ descriptive and stays.                                                              │
+             * └─────────────────────────────────────────────────────────────────────────────────────┘
+             */
           }),
         }}
       />

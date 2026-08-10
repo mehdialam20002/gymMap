@@ -64,7 +64,19 @@ test('the sitemap carries every landing the catalogue can produce', () => {
   );
 });
 
-test('nothing private is in the sitemap, and everything private is disallowed', () => {
+test('nothing private is in the sitemap, and robots does not gag the pages that speak', () => {
+  /*
+   * ┌─ THIS TEST PINNED THE DEFECT IN PLACE ─────────────────────────────────────────────────────┐
+   * │ Its second half REQUIRED `robots.ts` to disallow `/account`, `/checkout`, `/compare` and    │
+   * │ `/search?`. Every one of those pages carries a directive - `noindex`, `follow`, a canonical  │
+   * │ - that a crawler can only read by fetching the page, and `Disallow` stops the fetch. So the  │
+   * │ suite was asserting that four page-level directives must be unreadable.                      │
+   * │                                                                                             │
+   * │ Written the same day as the file it was checking, from the same wrong idea. A gate inherits  │
+   * │ its author's mistake unless it is derived from something independent - which is why the      │
+   * │ first half of this test, built from the fixtures, was right and the second half was not.     │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   const robots = code('app/robots.ts');
 
   for (const path of indexablePaths()) {
@@ -79,13 +91,13 @@ test('nothing private is in the sitemap, and everything private is disallowed', 
     );
   }
 
-  for (const prefix of ['/account', '/checkout', '/compare', '/search?']) {
-    assert.ok(
-      robots.includes(`'${prefix}'`),
-      `robots.txt does not disallow ${prefix} — a crawler spends its budget there instead of on ` +
-        'the landings FR-SRCH-13 exists to create',
-    );
-  }
+  assert.ok(
+    !/disallow/i.test(robots),
+    'robots.ts disallows a path. Every page that must stay out of the index says so ON the page, ' +
+      'and a Disallow stops the crawler fetching the page where it would read that. If a genuinely ' +
+      'unbounded URL space appears later, weigh it against the directive it silences',
+  );
+  assert.match(robots, /sitemap:/i, 'robots.txt does not point at the sitemap, which is its job');
 });
 
 test('the site speaks one absolute address, and it is not localhost', () => {

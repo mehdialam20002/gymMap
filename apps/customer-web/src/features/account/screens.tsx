@@ -367,7 +367,21 @@ export function Orders() {
                   />
                 ))}
                 <div className="mt-stack-xs flex items-baseline justify-between gap-inline-md border-t border-strong pt-inset-sm">
-                  <dt className="font-semibold text-content">{t('web.account.orders.total')}</dt>
+                  {/*
+                   * "Total paid" only where the provider said so.
+                   *
+                   * Every order used this label, including one whose own badge two lines above
+                   * reads "Awaiting confirmation" - the receipt asserting a payment on the same
+                   * card that says the payment is not confirmed. `BR-PAY-02` puts that statement
+                   * in exactly one place, the webhook, and a label is not it.
+                   */}
+                  <dt className="font-semibold text-content">
+                    {t(
+                      order.status === 'PAID'
+                        ? 'web.account.orders.total'
+                        : 'web.account.orders.totalDue',
+                    )}
+                  </dt>
                   <dd className="text-lg font-semibold tabular-nums text-content">
                     {formatMinorExact(order.totalMinor)}
                   </dd>
