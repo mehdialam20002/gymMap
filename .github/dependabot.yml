@@ -45,6 +45,43 @@ updates:
       - dependency-name: typescript
         versions: ["7.x"]
 
+      # ── The locked stack: MAJOR bumps only. Minors and patches still flow. ──
+      #
+      # STACK_ADDITIONS.md Part 1: "Substitution = forbidden." A major version of
+      # a locked selection IS a substitution — Next 14 -> 16 is not the same
+      # framework, and the comment at the top of this file ("Dependabot may only
+      # ever *update* an already-approved dependency") did not previously say so
+      # in a way Dependabot could read.
+      #
+      # It opened `chore(deps): Bump next from 14.2.35 to 16.3.0` on the day this
+      # repository went public. The build failed on
+      # `app/layout.tsx: Property 'get' does not exist on type
+      # 'Promise<ReadonlyHeaders>'` — Next 15 made `headers()` async — which is a
+      # clear signal and an expensive way to receive it.
+      #
+      # These are ignored for MAJORS ONLY. A security patch on 14.x still opens a
+      # PR, which is the whole point of A-25 and NFR-SEC-07. Raising any of these
+      # majors is an owner decision under STACK_ADDITIONS.md, recorded in
+      # DECISION_LOG.md, and then this row is removed in the same change.
+      - dependency-name: next
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@nestjs/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: prisma
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@prisma/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: zod
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
