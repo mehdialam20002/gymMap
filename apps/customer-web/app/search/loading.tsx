@@ -34,12 +34,49 @@ export default function Loading() {
           `DesignSystem.md` §2.4 replaces Tailwind's numeric spacing scale with the token scale
           rather than extending it, so `h-8` resolves to nothing and Tailwind drops it silently.
           These bars had no height at all, which made the skeleton three invisible rows. */}
-      <div className="h-[2rem] w-2/3 max-w-prose animate-pulse rounded-control bg-surface-sunken" />
-      <div className="mt-stack-md h-[1rem] w-1/2 max-w-prose animate-pulse rounded-control bg-surface-sunken" />
-      <div className="mt-stack-xl grid gap-stack-lg sm:grid-cols-2 xl:grid-cols-3">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="h-[10rem] animate-pulse rounded-card bg-surface-sunken" />
-        ))}
+      {/*
+       * ┌─ THE SHAPE OF THE PAGE, NOT A GENERIC THREE-CARD GRID ─────────────────────────────────┐
+       * │ A skeleton's whole job is "and it will look like this". This one showed a heading, one  │
+       * │ line and three cards across, while `SearchResults` renders a notice band, an eyebrow, a │
+       * │ heading, a count, a search form, a filter row, and then a SIDEBAR beside a two-column   │
+       * │ results grid. Every one of those is a block that appears when the skeleton is replaced, │
+       * │ so the thing built to prevent layout shift was causing it - and against `NFR-PERF-02`'s │
+       * │ CLS budget, a wrong skeleton is worse than none, because it moves content twice.        │
+       * │                                                                                        │
+       * │ Same wrapper, same spacing tokens and the same grid template as `search-results.tsx`.   │
+       * │ If that layout changes, this is the file that has to change with it.                    │
+       * └────────────────────────────────────────────────────────────────────────────────────────┘
+       */}
+      {/* The fixture notice band, which is the first thing on the real page. */}
+      <div className="h-[3.25rem] animate-pulse rounded-card bg-surface-sunken" />
+
+      <div className="mt-[26px] h-[0.875rem] w-[9rem] animate-pulse rounded-control bg-surface-sunken" />
+      <div className="mt-stack-xs h-[2.5rem] w-2/3 max-w-prose animate-pulse rounded-control bg-surface-sunken" />
+      <div className="mt-stack-sm h-[1rem] w-1/3 max-w-prose animate-pulse rounded-control bg-surface-sunken" />
+
+      {/* The search form, then the active-filter row. */}
+      <div className="mt-stack-md h-[3rem] max-w-form animate-pulse rounded-control bg-surface-sunken" />
+
+      <div className="mt-stack-lg grid grid-cols-[minmax(0,1fr)] gap-inline-xl lg:grid-cols-[17rem_minmax(0,1fr)]">
+        {/* The filter rail. A row of chips below `lg`, a column of groups above it. */}
+        <div className="flex flex-col gap-stack-sm lg:gap-stack-lg">
+          {[0, 1, 2].map((group) => (
+            <div key={group} className="flex flex-col gap-stack-2xs">
+              <div className="h-[1rem] w-[5rem] animate-pulse rounded-control bg-surface-sunken" />
+              <div className="h-[6rem] animate-pulse rounded-control bg-surface-sunken" />
+            </div>
+          ))}
+        </div>
+
+        <div className="min-w-0">
+          {/* The sort bar. */}
+          <div className="h-[2.5rem] animate-pulse rounded-control bg-surface-sunken" />
+          <ul className="mt-stack-md grid gap-stack-md xl:grid-cols-2">
+            {[0, 1, 2, 3].map((card) => (
+              <li key={card} className="h-[22rem] animate-pulse rounded-card bg-surface-sunken" />
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );

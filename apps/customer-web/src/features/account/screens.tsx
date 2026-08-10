@@ -79,13 +79,30 @@ export function AccountOverview() {
 export function Memberships() {
   return (
     <AccountShell current="/account/memberships" title="web.account.memberships.title">
-      <ul className="grid gap-stack-md xl:grid-cols-2">
-        {DEMO_MEMBER.memberships.map((membership) => (
-          <li key={membership.id}>
-            <MembershipCard membership={membership} />
-          </li>
-        ))}
-      </ul>
+      {/*
+       * The empty state this list did not have.
+       *
+       * Receipts, attendance and reviews all carry one; memberships was the only account list where
+       * a member with none got a heading and an empty `<ul>` - no explanation, and nothing to do
+       * next. It is also the emptiest a new account can be, so it is the first screen a member
+       * meets, and it was the one screen with nothing on it.
+       */}
+      {DEMO_MEMBER.memberships.length === 0 ? (
+        <div className="gm-card max-w-prose rounded-card p-inset-lg">
+          <p className="text-base text-content-secondary">{t('web.account.memberships.none')}</p>
+          <Link href="/search" className="gm-card-add mt-stack-md text-base font-semibold">
+            {t('web.account.memberships.findGym')}
+          </Link>
+        </div>
+      ) : (
+        <ul className="grid gap-stack-md xl:grid-cols-2">
+          {DEMO_MEMBER.memberships.map((membership) => (
+            <li key={membership.id}>
+              <MembershipCard membership={membership} />
+            </li>
+          ))}
+        </ul>
+      )}
     </AccountShell>
   );
 }

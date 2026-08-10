@@ -119,10 +119,12 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
            * `BR-GYM-01` — nothing is listed before a human approves it, so this badge means
            * something specific. Icon AND word, never colour alone (`AX8`).
            */}
-          <span className="gm-card-badge gm-card-badge-inline">
-            <Verified aria-hidden="true" className="h-[0.875rem] w-[0.875rem]" weight="fill" />
-            {t('web.gym.verified')}
-          </span>
+          {gym.verified && (
+            <span className="gm-card-badge gm-card-badge-inline">
+              <Verified aria-hidden="true" className="h-[0.875rem] w-[0.875rem]" weight="fill" />
+              {t('web.gym.verified')}
+            </span>
+          )}
         </div>
 
         <ul className="mt-stack-sm flex flex-wrap gap-inline-xs">

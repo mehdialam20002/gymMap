@@ -106,9 +106,28 @@ export const DEMO_MEMBER: DemoMember = {
       gymName: 'Iron House Strength Club',
       gymLocality: 'Indiranagar',
       planName: 'Quarterly',
+      /*
+       * ┌─ THIS PAIR WAS THREE WEEKS FROM CONTRADICTING ITSELF ────────────────────────────────┐
+       * │ `ACTIVE` with `endsOn: 2026-08-30`. The status is stored rather than computed, which  │
+       * │ is correct and is argued at the top of this file - but the CARD renders both, so from │
+       * │ 31 August 2026 the account overview would have shown a green "Active" badge over a    │
+       * │ validity window that had already closed. Nobody would have changed anything; the      │
+       * │ calendar would have walked into it.                                                   │
+       * │                                                                                       │
+       * │ Moved out by a year, which is a demo's useful life. It is a can kicked and worth      │
+       * │ saying so: the real answer is a status the server computes from a real membership,    │
+       * │ and until then a fixture whose dates are a snapshot will always age.                   │
+       * │                                                                                       │
+       * │ There is no test for this, and that is not an oversight. A guard would have to ask    │
+       * │ what today is, and `gymmap/no-bare-date` bans reading the ambient clock in this        │
+       * │ repository - test files included; the override at `eslint/index.mjs` §224 relaxes      │
+       * │ `no-float-money` and `no-explicit-any` and deliberately not this. So the protection    │
+       * │ here is the comment and the review, which is weaker, and stated rather than implied.   │
+       * └───────────────────────────────────────────────────────────────────────────────────────┘
+       */
       status: 'ACTIVE',
       startsOn: '2026-06-01T00:00:00.000Z',
-      endsOn: '2026-08-30T00:00:00.000Z',
+      endsOn: '2027-08-30T00:00:00.000Z',
     },
     {
       id: 'mem-002',

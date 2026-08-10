@@ -94,10 +94,12 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
           )}
           {/* `BR-GYM-01` is a fact about the listing, not a success state - same reasoning as the
               results card's badge, which is why they now share a treatment. */}
-          <span className="gm-card-badge gm-card-badge-inline">
-            <Verified aria-hidden="true" className="h-[0.875rem] w-[0.875rem]" weight="fill" />
-            {t('web.gym.verifiedByPlatform')}
-          </span>
+          {gym.verified && (
+            <span className="gm-card-badge gm-card-badge-inline">
+              <Verified aria-hidden="true" className="h-[0.875rem] w-[0.875rem]" weight="fill" />
+              {t('web.gym.verifiedByPlatform')}
+            </span>
+          )}
         </div>
       </header>
 
@@ -278,9 +280,16 @@ function AtAGlance({ gym }: { readonly gym: Gym }) {
     },
     {
       key: 'distance',
+      /*
+       * The same sentence every other surface uses, and this one was the worst of the four.
+       *
+       * The hint read "km away", which does not merely omit the origin - it NAMES one, and the
+       * wrong one. "Away" means "from you", the app asks for no location permission and reads no
+       * coordinate, and a member in Whitefield was being told Indiranagar is 1.2 km from them.
+       * The card, the comparison row and the picker all say "from centre".
+       */
       term: t('web.gym.facts.distance'),
-      value: gym.distanceKm.toFixed(1),
-      hint: t('web.gym.facts.km'),
+      value: t('web.gym.distanceFromCentre').replace('{km}', gym.distanceKm.toFixed(1)),
     },
     {
       key: 'rating',

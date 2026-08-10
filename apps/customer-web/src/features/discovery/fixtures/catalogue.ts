@@ -53,15 +53,37 @@ export interface SearchResult {
    * The distinction is the whole of `A-08`'s honesty rule applied to a number: the app has no
    * geolocation of any kind, asks for no permission and reads no coordinate, so a figure rendered
    * as a bare "1.2 km" beside a locality reads as "from you" and cannot be. Every label that
-   * exposes this field now names its origin - the hero's control, the sort, the chip and the card -
-   * because a filter called "Within 2 km" with an unstated origin is a claim, not a control.
+   * exposes this field names its origin - the hero's control, the sort, the chip, the card, the
+   * comparison row, the picker, the home rail and the gym page's facts strip - because a filter
+   * called "Within 2 km" with an unstated origin is a claim, not a control.
+   *
+   * That sentence used to end at "the card", and it was written while FOUR surfaces still printed
+   * the figure bare or, on the gym page, as "km away" - which does not omit the origin but names
+   * the wrong one. A comment describing the intended state of a change rather than its actual
+   * state is the same defect as a test that checks a name instead of a value, and it is harder to
+   * catch, because nothing runs it.
    *
    * When a real geolocation arrives, this becomes a computed distance from the reader and the
    * labels change with it. Until then it says what it is.
    */
   readonly distanceKm: number;
-  /** `BR-GYM-01` — nothing is listed before a human approves it. All fixtures are verified. */
-  readonly verified: true;
+  /*
+   * `boolean`, not the literal `true`, and the widening IS the fix.
+   *
+   * `BR-GYM-01` says nothing is listed before a human approves it, and every fixture here is
+   * approved - so the literal was accurate. It was also the reason four surfaces render the
+   * Verified badge WITHOUT consulting this field: the type made a false value impossible, so
+   * reading it looked like ceremony. `compare-table.tsx` was the only one that ever did.
+   *
+   * The day this becomes real data the type widens, and on that day the card, the gym page, the
+   * checkout summary and the home rail would each have gone on printing "Verified" over gyms
+   * nobody had approved - with no test failing, because nothing was reading the field to break.
+   *
+   * Widening it now makes the compiler the guard: the badge is conditional at every site, and a
+   * fixture that sets `false` renders no badge anywhere. `BR-GYM-01` is the one invariant where
+   * the failure is invisible to the person it misleads.
+   */
+  readonly verified: boolean;
   /**
    * Cover photography. Pexels for now, because the fixture catalogue is demo data and real media
    * arrives with `FR-GYM-02`'s upload path. The host is named in `next.config.mjs` and admitted by

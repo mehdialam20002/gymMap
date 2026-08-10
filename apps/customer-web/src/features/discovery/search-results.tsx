@@ -545,6 +545,18 @@ function EmptyState({ query }: { query: SearchQuery }) {
       label: t('web.search.empty.everyCity'),
       href: toSearchParams({ ...query, city: null }),
     },
+    /*
+     * The distance radius, which was the one filter missing from this list.
+     *
+     * It is also the one the home page's hero can set, so the commonest route into an empty result
+     * set was the route the escape hatch did not cover: the panel offered to discard the city or
+     * the price a member had chosen deliberately, and not the radius that had actually emptied it.
+     * Third and last place this omission hid - `hasActiveFilters` and the chip row were the others.
+     */
+    query.radiusKm !== null && {
+      label: t('web.search.empty.anyDistance'),
+      href: toSearchParams({ ...query, radiusKm: null }),
+    },
     query.q !== '' && {
       label: t('web.search.empty.clearTerm'),
       href: toSearchParams({ ...query, q: '' }),

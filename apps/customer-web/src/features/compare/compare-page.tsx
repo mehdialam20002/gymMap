@@ -168,7 +168,16 @@ function Picker({
                       {gym.locality}, {gym.city}
                     </span>
                     <span className="mt-stack-2xs block text-sm tabular-nums text-content-muted">
-                      {formatMinor(gym.fromPriceMinor)} ·{' '}
+                      {/*
+                       * Qualified, because this is the grid a member picks FROM.
+                       *
+                       * It printed the amount bare - "₹2,499 · 1.2 km from centre" - and ₹2,499 is
+                       * the cheapest of three plans and a monthly rate. Neither fact was on
+                       * screen, so a member choosing between gyms on price read it as what joining
+                       * costs. Every other surface pairs the same figure with "per month, from";
+                       * this was the only one that did not, and it is the one they choose at.
+                       */}
+                      {formatMinor(gym.fromPriceMinor)} {t('web.gym.perMonthFrom')} ·{' '}
                       {t('web.gym.distanceFromCentre').replace('{km}', gym.distanceKm.toFixed(1))}
                     </span>
                   </span>

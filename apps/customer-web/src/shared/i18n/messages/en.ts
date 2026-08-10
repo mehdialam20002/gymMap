@@ -350,6 +350,10 @@ export const en = {
   'web.search.empty.raisePrice': 'Show any price',
   'web.search.empty.dropRating': 'Show any rating',
   'web.search.empty.everyCity': 'Search every city',
+  // The seventh relaxation. Six filters could be dropped from the empty state and the distance
+  // radius could not - the one filter the home page's hero can set, so the most likely way to
+  // arrive here was the one the panel refused to undo.
+  'web.search.empty.anyDistance': 'Search any distance',
   'web.search.empty.clearTerm': 'Clear the search term',
   'web.search.metaTitle.any': 'Verified gyms',
   'web.search.metaDescription':
@@ -401,7 +405,6 @@ export const en = {
   'web.gym.facts.from': 'From',
   'web.gym.facts.perMonth': 'per month',
   'web.gym.facts.distance': 'Distance',
-  'web.gym.facts.km': 'km away',
   'web.gym.facts.rating': 'Rating',
   'web.gym.facts.unrated': 'Not yet rated',
   'web.gym.facts.verified': 'Verified',
@@ -845,9 +848,25 @@ export const en = {
   // only thing that can say a payment happened, so the receipt must not say it first.
   'web.account.orders.totalDue': 'Total',
   'web.account.orders.none': 'No receipts yet.',
+  // `/account/memberships` was the only account list with no empty state: a member with none
+  // got a heading and an empty `<ul>`. Every sibling list has one, and each offers a way on.
+  'web.account.memberships.none':
+    'No memberships yet. When you join a gym, it appears here with its validity and your check-in code.',
+  'web.account.memberships.findGym': 'Find a gym',
   // §A6.3 stated to the member: what they are reading is what they were charged, not a fresh sum.
+  /*
+   * "recorded", not "charged".
+   *
+   * This sentence sits above the WHOLE list, and the list contains an order whose own badge two
+   * lines below reads "Awaiting confirmation". So the page stated that money had moved, above an
+   * order where it had not - `BR-PAY-02` puts that statement in exactly one place, the provider's
+   * webhook, and a paragraph of explanatory copy is not it.
+   *
+   * The sentence's actual subject was never the charge. It is `MASTER_PRD.md` §A6.3: a figure on a
+   * receipt is stored and never recomputed. That survives intact.
+   */
   'web.account.orders.persisted':
-    'These are the figures charged at the time of purchase. They are stored with the order and are never recalculated, so a later change to a price or a tax rate cannot alter a receipt you already have.',
+    'These are the figures recorded at the time of purchase. They are stored with the order and are never recalculated, so a later change to a price or a tax rate cannot alter a receipt you already have.',
   'web.account.orders.status.PAID': 'Paid',
   'web.account.orders.status.PENDING': 'Awaiting confirmation',
   'web.account.orders.status.REFUNDED': 'Refunded',

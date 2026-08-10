@@ -68,10 +68,16 @@ export function Checkout({ selection }: { readonly selection: CheckoutSelection 
               <p className="mt-stack-2xs text-base text-content-secondary">
                 {gym.locality}, {gym.city}
               </p>
-              <p className="gm-card-badge gm-card-badge-inline mt-stack-xs">
-                <Verified aria-hidden="true" className="h-[0.875rem] w-[0.875rem]" weight="fill" />
-                {t('web.gym.verifiedByPlatform')}
-              </p>
+              {gym.verified && (
+                <p className="gm-card-badge gm-card-badge-inline mt-stack-xs">
+                  <Verified
+                    aria-hidden="true"
+                    className="h-[0.875rem] w-[0.875rem]"
+                    weight="fill"
+                  />
+                  {t('web.gym.verifiedByPlatform')}
+                </p>
+              )}
 
               <dl className="mt-stack-md grid gap-stack-xs sm:grid-cols-2">
                 <div>

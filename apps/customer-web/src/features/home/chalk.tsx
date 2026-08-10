@@ -139,9 +139,14 @@ export function GymRail({ selected = [] }: { readonly selected?: readonly GymDet
                  * badge here is earned - and the day one is not, the flag is on the record rather
                  * than on the component.
                  */}
-                <span className="gm-card-badge">
-                  <b aria-hidden="true">✓</b> {t('web.gym.facts.verified')}
-                </span>
+                {/* `BR-GYM-01`: the badge states that a human approved this listing, so it reads
+                    the field that records the approval. Unconditional while the type was the
+                    literal `true`; the type is `boolean` now and the compiler keeps it honest. */}
+                {gym.verified && (
+                  <span className="gm-card-badge">
+                    <b aria-hidden="true">✓</b> {t('web.gym.facts.verified')}
+                  </span>
+                )}
 
                 <p className="gm-card-price">
                   <strong>{formatMinor(gym.fromPriceMinor)}</strong>
@@ -157,7 +162,11 @@ export function GymRail({ selected = [] }: { readonly selected?: readonly GymDet
                     {gym.locality}, {gym.city}
                   </span>
                   <span>
-                    <b>{gym.distanceKm.toFixed(1)} km</b>
+                    {/* Through the catalogue, like every other surface. A bare "1.2 km" beside a
+                        locality reads as "from you", and the unit was a hard-coded string. */}
+                    <b>
+                      {t('web.gym.distanceFromCentre').replace('{km}', gym.distanceKm.toFixed(1))}
+                    </b>
                   </span>
                   {/*
                    * `BR-REV-01`. An unrated gym reads as a new listing, never as a zero - a zero
@@ -168,8 +177,16 @@ export function GymRail({ selected = [] }: { readonly selected?: readonly GymDet
                       t('web.gym.facts.unrated')
                     ) : (
                       <>
-                        <b>{gym.rating.toFixed(1)}</b> · {String(gym.reviewCount)}{' '}
-                        {t('web.gym.facts.reviews')}
+                        {/*
+                         * `toLocaleString('en-IN')` and the singular, like the card and the gym
+                         * page. This printed `String(count)` with a fixed plural, so a gym with
+                         * 1,204 reviews read "1204 reviews" here and "1,204 reviews" on its card -
+                         * and a gym with one would have read "1 reviews". The grouping matters
+                         * more than it looks on an India-facing surface, where the separator
+                         * positions are not the ones a naive format produces.
+                         */}
+                        <b>{gym.rating.toFixed(1)}</b> · {gym.reviewCount.toLocaleString('en-IN')}{' '}
+                        {t(gym.reviewCount === 1 ? 'web.gym.reviews.one' : 'web.gym.reviews.many')}
                       </>
                     )}
                   </span>
@@ -181,8 +198,17 @@ export function GymRail({ selected = [] }: { readonly selected?: readonly GymDet
                       {amenity}
                     </li>
                   ))}
+                  {/* The catalogue's marker, not a bare "+3". The card two sections below shows
+                      "+3 more" from `web.gym.amenitiesMore`; this printed "+3" from a literal, so
+                      the same gym's facility list ended two different ways on one page - and the
+                      "+" was a user-facing string outside the catalogue. */}
                   {gym.amenities.length > 3 ? (
-                    <li className="gm-tag">+{String(gym.amenities.length - 3)}</li>
+                    <li className="gm-tag">
+                      {t('web.gym.amenitiesMore').replace(
+                        '{count}',
+                        String(gym.amenities.length - 3),
+                      )}
+                    </li>
                   ) : null}
                 </ul>
 
@@ -345,12 +371,28 @@ export function PlanRow() {
                   {t('web.home.plans.perMonth')} · {String(plan.durationDays)}{' '}
                   {t('web.home.plans.days')}
                 </p>
+                {/*
+                 * Three, and then a count of what is not shown.
+                 *
+                 * This truncated silently: a gym with six facilities showed three, and the same
+                 * gym's card two sections up showed three plus "+3 more". Same page, same gym, two
+                 * different facility lists, and only one of them admits it is a list. A truncation
+                 * with no marker is not a summary - it is a shorter fact.
+                 */}
                 <ul className="gm-tags my-[18px]">
                   {gym.amenities.slice(0, 3).map((amenity) => (
                     <li key={amenity} className="gm-tag">
                       {amenity}
                     </li>
                   ))}
+                  {gym.amenities.length > 3 && (
+                    <li className="gm-tag">
+                      {t('web.gym.amenitiesMore').replace(
+                        '{count}',
+                        String(gym.amenities.length - 3),
+                      )}
+                    </li>
+                  )}
                 </ul>
                 <Link href={checkoutHref(gym, plan)} className="gm-btn mt-auto w-full">
                   {t('web.home.plans.view')}
@@ -414,7 +456,8 @@ export function CompareBand() {
     {
       mark: 'web.compare.markNearest' as MessageKey,
       label: 'web.home.compareTeaser.rowDistance' as MessageKey,
-      cell: (gym: (typeof gyms)[number]) => `${gym.distanceKm.toFixed(1)} km`,
+      cell: (gym: (typeof gyms)[number]) =>
+        t('web.gym.distanceFromCentre').replace('{km}', gym.distanceKm.toFixed(1)),
       best: (gym: (typeof gyms)[number]) =>
         gym.distanceKm === Math.min(...gyms.map((g) => g.distanceKm)),
     },
