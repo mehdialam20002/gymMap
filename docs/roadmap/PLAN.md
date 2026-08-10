@@ -117,6 +117,22 @@ The guard is bound as of `c9c851e`, which was the hard part. What is left is all
 > together rather than twice, and worth checking whether `Security.md` mirrors the list before
 > either — if it does, the extension is a rank-3 edit and not a code change.
 
+> **Second finding, 2026-08-10 — and it is why the endpoint did not land today.** `TD-048` showed
+> the code's `ELEVATION_SCOPES` shares **zero** values with the nine `Admin.md` writes, so the list
+> is not closed-and-short-by-one; it is wrong. Adding a fifth invented value would deepen a debt
+> recorded the same day.
+>
+> Nor is there a document to take the right value from. `Admin.md` line 23 lists
+> `GET /admin/users/:id/permissions` under **"Not owned here — see §23"**, and **`Admin.md` has no
+> §23**; `read_permissions` appears nowhere in the file. So the endpoint's only rank-3 description
+> is its single `API_Catalog.md` row, which names a permission and a scope column and nothing about
+> auditing.
+>
+> **Order: `TD-048`'s mapping first, then this.** The mapping decides what the scope vocabulary IS;
+> writing an endpoint against a vocabulary known to be wrong would have to be redone. The dangling
+> `§23` is worth raising separately — it is a rank-3 document disclaiming a route and pointing at a
+> section that does not exist.
+
 ---
 
 ### Phase P2 — M-024 MFA · 70% → done, and the seed that gates it
