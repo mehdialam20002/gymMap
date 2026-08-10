@@ -203,14 +203,15 @@ model IdempotencyKey {
 /// "save then publish" loses the event if the process dies between them, and "publish then save"
 /// acts downstream on a state that never committed. One transaction makes both impossible.
 ///
-/// `aggregateType` is String and not an enum — BLK-07. Schema.md §2.5 cites a list of 26
-/// aggregate roots at ERD.md §6, which contains no such list, and deriving it yields 36
-/// candidates. MG9 makes an enum value permanent, so guessing is worse than deferring.
+/// `aggregateType` is the enum after all — BLK-07 closed by ADR-0045, TD-031 paid. The list this
+/// model's previous comment called missing is `docs/engineering/ERD.md` §6.1, which holds exactly
+/// the 26 the citation names; the search that found nothing was run against `docs/database/ERD.md`,
+/// whose §6 is the foreign-key register. Two files share the name.
 model OutboxEvent {
   id       String @id @default(uuid()) @db.Uuid
   tenantId String @map("tenant_id") @db.Uuid
 
-  aggregateType String @map("aggregate_type")
+  aggregateType OutboxAggregateTypeEnum @map("aggregate_type")
   /// NO relation, deliberately: the outbox is purged 30 days after publish while aggregates live
   /// for years, so the FK direction is wrong and the lifetimes do not nest.
   aggregateId   String @map("aggregate_id") @db.Uuid
@@ -240,6 +241,48 @@ enum OutboxStatusEnum {
   DEAD
 
   @@map("outbox_status_enum")
+}
+
+/// The 26 aggregate roots of `docs/engineering/ERD.md` §6.1, in that section's own order.
+///
+/// Not alphabetical, deliberately: a reviewer diffing this against the document reads down two
+/// columns instead of sorting one. `PROJECT_CONSTITUTION.md` §4.3 names 18 of these and §6.1
+/// completes the assignment of all 76 entities — not a conflict, because the constitution's own
+/// "Referenced by id only" column names `User` and `CreditNote`, and rule A2 makes a by-id
+/// reference an aggregate boundary.
+///
+/// `MG9`: a value is addable but never removable. `outbox-aggregate-type.spec.ts` greps §6.1 and
+/// fails if this list and the document disagree in EITHER direction, so the set is checked rather
+/// than transcribed.
+enum OutboxAggregateTypeEnum {
+  Tenant
+  Application
+  User
+  Staff
+  Gym
+  Branch
+  Plan
+  Order
+  Payment
+  Invoice
+  CreditNote
+  Membership
+  CheckIn
+  CrmMember
+  Lead
+  Review
+  LedgerEntry
+  SettlementBatch
+  Refund
+  Dispute
+  Coupon
+  SupportTicket
+  Segment
+  Referral
+  SubscriptionInvoice
+  AttributionEvent
+
+  @@map("outbox_aggregate_type_enum")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════

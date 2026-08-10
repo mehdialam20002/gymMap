@@ -224,11 +224,44 @@ export class UploadKycDocumentUseCase {
        * No filename, no key, no digest in the payload. A consumer that needs the document reads it
        * through the audited access path; an event is not a side door into the enclave.
        */
+      /*
+       * ┌─ THE AGGREGATE IS `Application`, OR `Tenant` WHILE THE DOCUMENT IS STILL A DRAFT ────────┐
+       * │ This emitted `KycDocument` / `documentId` until `BLK-07` closed, and that was wrong on   │
+       * │ the register's own terms: `engineering/ERD.md` §6.1 row 2 lists `kyc_documents` among    │
+       * │ the entities CONTAINED IN `Application`, so `KycDocument` is not an aggregate root and   │
+       * │ never was. A consumer receiving it gets an aggregate it cannot load (rule A4 loads and   │
+       * │ saves an aggregate whole). The comment below already cited the right precedent.          │
+       * │                                                                                          │
+       * │ `applicationId` is nullable *"while the tenant is still assembling a draft"*             │
+       * │ (`Schema.md` §4.3), and a draft attachment has no `Application` instance to name. Its    │
+       * │ owner then is the `Tenant` — §6.1 row 1, and the row's own `tenant_id`. Both branches    │
+       * │ name a real root, which is now a compile-time property rather than a hope: `DomainEvent` │
+       * │ types this field as the 26 rather than as `string`.                                      │
+       * └──────────────────────────────────────────────────────────────────────────────────────────┘
+       */
+      const [aggregateType, aggregateId] =
+        command.applicationId === null
+          ? (['Tenant', context.tenantId] as const)
+          : (['Application', command.applicationId] as const);
+
       await this.outbox.record(tx as never, {
-        aggregateType: 'KycDocument',
-        aggregateId: documentId,
+        aggregateType,
+        aggregateId,
         eventType: 'kyc.document.uploaded',
-        payload: { documentType: command.documentType, uploadedAt: this.clock.now().toISOString() },
+        /*
+         * `documentId` moved INTO the payload when `aggregateId` stopped being it. Without it the
+         * event says a document was uploaded and not which one, and the correction above would
+         * have quietly dropped information while looking like a pure rename.
+         *
+         * It is safe where the fields the comment below rules out are not: an opaque uuid names
+         * the row, whereas a filename, a key or a digest describes the CONTENT of a passport scan
+         * to every consumer of an unencrypted queue.
+         */
+        payload: {
+          documentId,
+          documentType: command.documentType,
+          uploadedAt: this.clock.now().toISOString(),
+        },
       });
     });
 

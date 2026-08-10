@@ -201,7 +201,7 @@ Full detail for each entry is in §4. `PRD id` shows the primary identifier; eac
 | **TD-028** | No provider-sandbox contract tests, fixtures hand-authored | Test | **High** | M | Before sprint 6 exit — no production payment traffic before this | QA Lead | SCHEDULED | `BR-PAY-05` |
 | **TD-029** | `strictPropertyInitialization: false` in `apps/server` | Code | Low | S | A NestJS version that resolves injection without constructor-parameter metadata | Technical Lead | ACCEPTED | `§9.1`, M-001 |
 | **TD-030** | `verbatimModuleSyntax: false` in `apps/server` | Code | Medium | M | NestJS ships first-class ESM support, or the ecosystem's CJS-only dependencies clear | Technical Lead | ACCEPTED | `§9.1`, M-001 |
-| **TD-031** | `outbox.aggregate_type` is `text` + `CHECK`, not an enum | Data | Low | S | `BLK-07` answered — the register of aggregate roots is written down | Technical Lead | **BLOCKED** | `MG9`, M-018 |
+| **TD-031** | `outbox.aggregate_type` is `text` + `CHECK`, not an enum | Data | Low | S | **PAID 2026-08-10** — `BLK-07` closed by `ADR-0045`; the register is `docs/engineering/ERD.md` §6.1 and always was. `20260810200000_contract_alter_outbox_aggregate_type_to_enum` | Technical Lead | **PAID** | `MG9`, `ADR-0045`, M-018 |
 | **TD-032** | Job run history is a log line, not a `job_runs` table | Data | Medium | S | `BLK-08` answered, or the first overrun nobody could reconstruct from logs | Technical Lead | **BLOCKED** | `AC-FND-12.2`, M-018 |
 | **TD-033** | Seed versioned by a string, not by `seed.manifest.json` checksums | Test | Medium | S | The first "works on my machine" traced to seed drift; sprint 6 at the latest | QA Lead | ACCEPTED | `§6.7`, `SD-2`, M-019 |
 | **TD-034** | `/v1/admin/*` gated on PLATFORM role membership, not the `§B3.2` matrix | Security | **High** | S | **M-023** — the matrix, `PermissionsGuard` and the generated per-cell test | Backend Lead | SCHEDULED | `FR-RBAC-01`, `PG-1`, M-022 |
@@ -307,8 +307,9 @@ failure, if it remains, is immediate and unambiguous.
 | **Interest rate** | **Low** — one column, and the `CHECK` already prevents the failure an enum would |
 | **Effort** | S |
 | **Owner** | Technical Lead |
-| **Status** | BLOCKED — on `BLK-07` |
+| **Status** | ✅ **PAID** 2026-08-10 — `ADR-0045` |
 | **Discovered** | M-006, deferred. Forced by M-018, which had to create the column |
+| **Paid by** | `20260810200000_contract_alter_outbox_aggregate_type_to_enum` |
 
 **What.** `outbox.aggregate_type` is `text` with `CHECK (aggregate_type ~ '^[A-Z][A-Za-z]*$')`
 rather than the `outbox_aggregate_type_enum` the schema implies. Every other categorical column in
@@ -335,7 +336,28 @@ string.
 … TYPE … USING aggregate_type::outbox_aggregate_type_enum`, drop the `CHECK` — with **no data
 change**, because every value already conforms.
 
-**Verified.** `apps/server/test/isolation/outbox.int-spec.ts` asserts the constraint bites.
+**PAID 2026-08-10, and the "Why we took it" paragraph above was wrong about one thing.** It says
+*"`ERD.md` §6 lists none"*. **`docs/database/ERD.md` §6** lists none — it is the *Foreign-key
+inventory*. **`docs/engineering/ERD.md` §6** is *"The aggregate map"*, and its §6.1 enumerates
+exactly the 26 the citation names. The modelling questions the paragraph called the owner's are
+answered there: `Invoice` is row **10** and `SettlementBatch` is row **18**, both roots in their own
+right. See `ADR-0045`.
+
+One correction to the "drop the `CHECK`" ordering above, learned by writing it: the `CHECK` must be
+dropped **before** the type change, not after. It is a regex over `text`, there is no `enum ~ text`
+operator, and PostgreSQL revalidates it during `ALTER COLUMN … TYPE`.
+
+**Verified.** `apps/server/test/isolation/outbox.int-spec.ts` asserted the old constraint bit.
+`apps/server/test/outbox-aggregate-type.spec.ts` now asserts the enum against
+`docs/engineering/ERD.md` §6.1 **in both directions**, plus the constitution's 18 as a subset — 8
+assertions. Probed live: 26 labels · `'Membership'` accepted · `'Outbox'` refused.
+
+**What it cost while it was outstanding, which was more than the entry estimated.** The "Interest
+rate: Low" above reasoned that *"the `CHECK` already prevents the failure an enum would"*. It did
+not. `upload-kyc-document.use-case.ts` emitted `aggregateType: 'KycDocument'` — well-formed
+PascalCase, so the `CHECK` passed it — and `KycDocument` is not an aggregate root at all. The enum
+refused it on the day it landed. A shape constraint cannot police a value set, and this entry
+priced it as though it could.
 
 ---
 

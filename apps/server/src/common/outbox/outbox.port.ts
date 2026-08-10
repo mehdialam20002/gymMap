@@ -10,9 +10,63 @@
 
 export const OUTBOX_PORT = Symbol('OutboxPort');
 
+/**
+ * The 26 aggregate roots of `docs/engineering/ERD.md` §6.1, in that section's own order.
+ *
+ * ┌─ WHY THIS IS A UNION AND NOT `string`, AND WHAT `string` COST ───────────────────────────────┐
+ * │ It was `string` until `BLK-07` closed, because the register was believed missing. The price  │
+ * │ came due immediately: `upload-kyc-document.use-case.ts` emitted `aggregateType: 'KycDocument'`│
+ * │ — which is not an aggregate root at all (§6.1 row 2 CONTAINS `kyc_documents` inside           │
+ * │ `Application`) — and nothing caught it. Not the `PascalCase` CHECK, which it satisfied. Not  │
+ * │ the compiler, because this port widened it back to `string` one line before the call.         │
+ * │ Its own comment even cited the right precedent and then did something else.                   │
+ * │                                                                                              │
+ * │ A domain type declared in `common/` rather than imported from Prisma: the constitution keeps │
+ * │ ORM types out of ports (§3.4.3), and a port that imports `$Enums` is a port that knows which │
+ * │ database it has. `outbox-aggregate-type.spec.ts` asserts this list against §6.1, so the      │
+ * │ independence costs an assertion rather than a divergence.                                     │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export const AGGREGATE_TYPES = [
+  'Tenant',
+  'Application',
+  'User',
+  'Staff',
+  'Gym',
+  'Branch',
+  'Plan',
+  'Order',
+  'Payment',
+  'Invoice',
+  'CreditNote',
+  'Membership',
+  'CheckIn',
+  'CrmMember',
+  'Lead',
+  'Review',
+  'LedgerEntry',
+  'SettlementBatch',
+  'Refund',
+  'Dispute',
+  'Coupon',
+  'SupportTicket',
+  'Segment',
+  'Referral',
+  'SubscriptionInvoice',
+  'AttributionEvent',
+] as const;
+
+export type AggregateType = (typeof AGGREGATE_TYPES)[number];
+
 export interface DomainEvent {
-  /** The aggregate root — `Order`, `Membership`. PascalCase; see BLK-07 in the migration. */
-  readonly aggregateType: string;
+  /**
+   * The aggregate root the event belongs to — `Order`, `Membership`.
+   *
+   * A CONTAINED entity never appears here. `kyc_documents` is part of `Application`, so a document
+   * event carries `Application` and the application's id (rule A4: an aggregate is loaded and
+   * saved whole). Naming the contained row instead gives consumers an aggregate they cannot load.
+   */
+  readonly aggregateType: AggregateType;
   readonly aggregateId: string;
   /** `order.placed`, `payment.captured`. The routing key a consumer subscribes to. */
   readonly eventType: string;

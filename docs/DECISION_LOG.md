@@ -6173,7 +6173,103 @@ that should not exist is itself a defect, exactly as `BLK-20` turned out to be.
 
 ---
 
-**End of decision log.** Forty-four ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
+## ADR-0045 — `outbox_aggregate_type_enum` ships with 26 values; the register was never missing
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-10 |
+| **Closes** | `BLK-07`. Pays **`TD-031`** |
+| **Decided by** | Derived from `docs/engineering/ERD.md` §6.1, checked against `PROJECT_CONSTITUTION.md` §4.3 |
+| **Amends** | Nothing |
+
+**There are two files named `ERD.md`.** That sentence is the entire finding.
+
+`Schema.md` §2.5 says the values are *"one value per aggregate root of ERD.md §6 — 26 at Phase 1"*.
+`Relationships.md` line 714 says *"the 26 aggregate roots of ERD.md §6.1"*. The deferral note
+committed in `0_init` concluded:
+
+> **BOTH citations are wrong:** ERD.md §6 and §6.1 are the foreign-key register and the four FK
+> conventions. Neither contains a list of aggregate roots.
+
+That is an accurate description of **`docs/database/ERD.md`**, whose §6 is *"Foreign-key
+inventory"*. It is not the file the citations mean. **`docs/engineering/ERD.md` §6 is "The
+aggregate map"** and **§6.1 is "Aggregate composition"** — a numbered table of exactly **26** roots,
+which is the number both citing documents give. The citations were right for three weeks.
+
+**The secondary objection is answered in the same section.** The note said a derived set yields 36
+and *"includes rows that are plainly not event-emitting aggregates — `outbox` itself, `audit_log`,
+`idempotency_keys`."* §6.1 excludes precisely those, by name: *"**Six entities belong to no
+aggregate** … `audit_log`, `outbox`, `idempotency_keys`, `notification_log`, `export_jobs`,
+`report_definitions`"*, plus sixteen reference rows *"managed by `admin/` as configuration, not as
+aggregates"*. The derivation performed by hand had already been done in the cited file.
+
+### Rank 1 names 18, and that is an elaboration rather than a rival
+
+`PROJECT_CONSTITUTION.md` §4.3 lists 18 roots; §6.1 lists 26 and says openly *"This section does
+what the constitution does not: it assigns **all 76 entities** to an aggregate."* The eight extra
+are `User`, `CreditNote`, `CrmMember`, `Lead`, `Segment`, `Referral`, `SubscriptionInvoice` and
+`AttributionEvent`.
+
+**The check that settles it is inside the constitution.** Its own *"Referenced by id only"* column
+names `User` (on `Order`) and `CreditNote` (on `Invoice`), and rule **A2** says *"aggregates
+reference each other by id only"*. A by-id reference **is** an aggregate boundary — so rank 1
+already implies roots its own table does not enumerate, and rank 3 finished a job rank 1 declined
+to start. A test pins that this stays true: the 18 must remain a **subset** of the 26, because the
+day rank 3 drops one, it stops elaborating and starts overriding.
+
+### Why `MG9` now argues for shipping rather than waiting
+
+`MG9` makes an enum value permanent — addable, never removable while a row holds it, never renamed.
+Shipping 36 and learning the answer was 26 would have left ten values that can never be withdrawn.
+**The deferral was correct.** What changed is that the set is now *read out of* a register instead
+of derived, and the asymmetry reverses: a missing 27th value is one migration, a wrong value is
+forever. `20260810200000_contract_alter_outbox_aggregate_type_to_enum` creates the type, drops
+`ck_outbox__aggregate_type` **first** (there is no `enum ~ text` operator, so leaving it makes the
+type change fail on revalidation), and casts the column. The table held zero rows, verified before
+writing, so no rewrite is paid and no row can fail the cast.
+
+Probed against the live database rather than argued: column type is `outbox_aggregate_type_enum` ·
+26 labels · the old `CHECK` is gone · `'Membership'` is accepted (the insert reaches the `tenant_id`
+NOT NULL constraint, so the cast succeeded) · `'Outbox'` is refused with `invalid input value for
+enum` — which is the exact value the deferral note worried about.
+
+### What the enum found on the day it landed
+
+**`upload-kyc-document.use-case.ts` was emitting `aggregateType: 'KycDocument'`, and `KycDocument`
+is not an aggregate root.** §6.1 row 2 lists `kyc_documents` among the entities **contained in**
+`Application`. Three layers each had a reason not to catch it:
+
+| Layer | Why it passed |
+| :--- | :--- |
+| `ck_outbox__aggregate_type` | `^[A-Z][A-Za-z]{2,49}$` — `KycDocument` is well-formed PascalCase |
+| The compiler | `DomainEvent.aggregateType` was `string`, widening the enum away one line before the call |
+| Review | The use case's own comment cited the right precedent — *"aggregate `Application`, event `application.submitted`"* — and then did something else |
+
+Both halves are fixed. `DomainEvent.aggregateType` is now the 26-value union, declared in
+`common/outbox/outbox.port.ts` rather than imported from Prisma (§3.4.3 keeps ORM types out of
+ports) and asserted against §6.1 so the independence costs an assertion instead of a divergence.
+The use case emits `Application` with the application's id, or `Tenant` with the tenant's id when
+`applicationId` is null — which `Schema.md` §4.3 permits *"while the tenant is still assembling a
+draft"*, and a draft attachment has no `Application` instance to name.
+
+**`documentId` moved into the payload**, because `aggregateId` used to be it. Without that the
+event would say a document was uploaded and not which one, and a correction would have silently
+dropped information while looking like a rename. An opaque uuid is safe where the fields that
+comment rules out are not: a filename, a key or a digest describes the *content* of a passport scan
+to every consumer of the queue.
+
+### One divergence recorded, not fixed
+
+`ERD.md` §9.1 *"Three, not two"* lists `outbox` among the partitioned tables and §9.4 specifies it.
+The shipped table is `relkind = r` — plain — and no migration creates an outbox partition or a
+maintenance function. That is real and it is not this migration's to close: partitioning has a
+different lock profile, and folding it into a type change would hide it. Stated in the migration
+header so `partitioned: no` does not read as an oversight.
+
+---
+
+**End of decision log.** Forty-five ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.
 

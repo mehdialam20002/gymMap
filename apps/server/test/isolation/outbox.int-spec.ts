@@ -25,6 +25,7 @@ import {
   runInTenantTransaction,
   withTenantContext,
 } from '../../dist/tenancy/prisma/tenant-scoped-client.js';
+import type { DomainEvent } from '../../dist/common/outbox/outbox.port.js';
 import { OutboxWriter } from '../../dist/common/outbox/outbox.writer.js';
 import { OutboxDispatcher, backoffMs } from '../../dist/common/outbox/outbox.dispatcher.js';
 import { FixedClock } from '../../dist/common/clock/fixed-clock.adapter.js';
@@ -225,7 +226,10 @@ const it = (name: string, fn: () => Promise<void>) =>
     await fn();
   });
 
-const anEvent = (eventType: string) => ({
+// Annotated rather than inferred: `DomainEvent.aggregateType` is the 26-root union since ADR-0045,
+// and an inferred object literal widens it straight back to `string` — which is exactly how
+// `KycDocument` reached production code unnoticed. The probe uses `Tenant`, §6.1 row 1.
+const anEvent = (eventType: string): DomainEvent => ({
   aggregateType: 'Tenant',
   aggregateId: TENANT_A,
   eventType,
@@ -539,16 +543,40 @@ it('a PUBLISHED row without a timestamp is refused by the CHECK', async () => {
   await Promise.resolve();
 });
 
-it('BLK-07 · the aggregate_type CHECK stands in for the deferred enum', async () => {
-  // `outbox_aggregate_type_enum` is deferred (BLK-07): Schema.md cites 26 aggregate roots at a
-  // section that lists none, and deriving the set yields 36. MG9 makes an enum value permanent,
-  // so the CHECK guards the shape until the owner supplies the list.
-  const output = psql(
-    `INSERT INTO outbox (tenant_id, aggregate_type, aggregate_id, event_type, payload,
-                         correlation_id)
-     VALUES ('${TENANT_A}', 'lowercase_thing', '${TENANT_A}', 'spec.badaggregate', '{}'::jsonb,
-             gen_random_uuid());`,
+it('BLK-07 · aggregate_type is the ENUM now, and it refuses a VALUE the CHECK accepted', async () => {
+  /*
+   * ┌─ THIS TEST USED TO ASSERT THE STAND-IN, AND THE STAND-IN WAS THE WEAKER GUARANTEE ───────────┐
+   * │ It read *"the aggregate_type CHECK stands in for the deferred enum"* and probed              │
+   * │ `lowercase_thing` — a SHAPE violation. `ADR-0045` closed `BLK-07` (the register is           │
+   * │ `docs/engineering/ERD.md` §6.1 and always was), so the column is                              │
+   * │ `outbox_aggregate_type_enum` and the CHECK is gone.                                           │
+   * │                                                                                              │
+   * │ The probe changed with it, and deliberately to a HARDER case. `Outbox` is well-formed        │
+   * │ PascalCase, so the old CHECK would have waved it through — and §6.1 names `outbox` among the │
+   * │ six entities that belong to no aggregate at all. That gap is not hypothetical: it is how     │
+   * │ `KycDocument` reached committed code. A shape constraint cannot police a value set.          │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const insert = (aggregateType: string): string =>
+    psql(
+      `INSERT INTO outbox (tenant_id, aggregate_type, aggregate_id, event_type, payload,
+                           correlation_id)
+       VALUES ('${TENANT_A}', '${aggregateType}', '${TENANT_A}', 'spec.badaggregate', '{}'::jsonb,
+               gen_random_uuid());`,
+    );
+
+  const shape = insert('lowercase_thing');
+  assert.match(shape, /invalid input value for enum/i, shape);
+
+  const wellFormedNonRoot = insert('Outbox');
+  assert.match(wellFormedNonRoot, /invalid input value for enum/i, wellFormedNonRoot);
+
+  // And the constraint it replaced is actually gone, rather than both being present — otherwise
+  // this suite would keep passing on the old mechanism and never notice the enum was reverted.
+  const dropped = psql(
+    `SELECT count(*) FROM pg_constraint WHERE conname = 'ck_outbox__aggregate_type';`,
   );
-  assert.match(output, /ck_outbox__aggregate_type|violates check constraint/i, output);
+  assert.match(dropped, /\b0\b/, dropped);
+
   await Promise.resolve();
 });

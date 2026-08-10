@@ -287,9 +287,49 @@ test('the event name satisfies ck_outbox__event_type, which the spec wording doe
   await inTenant(() => useCase.execute(command(pdf()) as never));
 
   const event = recorded.events[0];
-  assert.equal(event?.['aggregateType'], 'KycDocument');
   assert.match(String(event?.['eventType']), /^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*){1,3}$/);
   assert.equal(event?.['eventType'], 'kyc.document.uploaded');
+});
+
+test('the aggregate is Tenant for a draft attachment, and Application once one exists', async () => {
+  /*
+   * ┌─ THIS ASSERTED `KycDocument` UNTIL 2026-08-10, AND `KycDocument` IS NOT AN AGGREGATE ────────┐
+   * │ `docs/engineering/ERD.md` §6.1 row 2 lists `kyc_documents` among the entities CONTAINED IN  │
+   * │ `Application`, so naming it hands a consumer an aggregate it cannot load — rule A4 loads an │
+   * │ aggregate whole. It went unnoticed for two reasons that both looked like coverage:          │
+   * │ `ck_outbox__aggregate_type` accepted it (well-formed PascalCase), and this test asserted it. │
+   * │ A test can pin a defect exactly as firmly as it pins a requirement.                          │
+   * │                                                                                             │
+   * │ `ADR-0045` made the column an enum and `DomainEvent.aggregateType` the 26-root union, so the │
+   * │ old value is now refused by both the compiler and the storage engine. What remains checkable │
+   * │ here is the BRANCH — `applicationId` is nullable *"while the tenant is still assembling a    │
+   * │ draft"* (`Schema.md` §4.3), and a draft has no `Application` instance to name.                │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const draft = build();
+  await inTenant(() => draft.useCase.execute({ ...command(pdf()), applicationId: null } as never));
+  assert.equal(draft.recorded.events[0]?.['aggregateType'], 'Tenant');
+  assert.equal(draft.recorded.events[0]?.['aggregateId'], TENANT);
+
+  const APPLICATION_ID = '0192de00-6028-7000-8000-00000000a001';
+  const submitted = build();
+  await inTenant(() =>
+    submitted.useCase.execute({ ...command(pdf()), applicationId: APPLICATION_ID } as never),
+  );
+  assert.equal(submitted.recorded.events[0]?.['aggregateType'], 'Application');
+  assert.equal(submitted.recorded.events[0]?.['aggregateId'], APPLICATION_ID);
+});
+
+test('the document id survives the move out of aggregateId, into the payload', async () => {
+  // `aggregateId` used to BE the document id. Correcting the aggregate would have silently dropped
+  // "which document" from the event — a rename that quietly loses information is worse than the
+  // defect it fixes, so the id moved rather than vanished. An opaque uuid is safe here in a way a
+  // filename, key or digest is not; see the test below.
+  const { useCase, recorded } = build();
+  const result = await inTenant(() => useCase.execute(command(pdf()) as never));
+
+  const payload = recorded.events[0]?.['payload'] as Record<string, unknown>;
+  assert.equal(payload['documentId'], (result as { documentId: string }).documentId);
 });
 
 test('the event carries no filename, key or digest', async () => {
