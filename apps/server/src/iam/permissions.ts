@@ -1,8 +1,8 @@
 /**
  * M-019 · `iam/permissions.ts` — the §B3.1 roles and the §B3.2 matrix, as data.
  *
- * ┌─ THE 45×12 GRID IS TRANSCRIBED MECHANICALLY, NOT BY HAND ───────────────────────────────────┐
- * │ 540 cells — 42 rows and 504 cells until `ADR-0047` added three under Part C §C10. A human   │
+ * ┌─ THE 46×12 GRID IS TRANSCRIBED MECHANICALLY, NOT BY HAND ───────────────────────────────────┐
+ * │ 552 cells — 42 rows and 504 cells until `ADR-0047` added three under Part C §C10. A human   │
  * │ transcribing them will get some wrong, and a wrong cell is a silent privilege change: one   │
  * │ `—` typed as `●` gives a receptionist the ability to publish plans. That is not hypothetical │
  * │ — applying `ADR-0047` I shifted row 20 by one column, which demoted `GYM_OWNER` to read and │
@@ -32,7 +32,7 @@
  * │ `user_roles` **520,000** and a 10× column. It is a capacity estimate for a table that grows  │
  * │ as endpoints land, not a list anybody has written down.                                      │
  * │                                                                                              │
- * │ The enumerated, binding source is §B3.2: 45 capabilities. Decomposed into read and write     │
+ * │ The enumerated, binding source is §B3.2: 46 capabilities. Decomposed into read and write     │
  * │ actions they yield the keys below. Seeding 180 invented keys to match a projection would     │
  * │ put an authorisation matrix nobody specified into the database, and `FR-RBAC-01` fails CI    │
  * │ on an endpoint whose declared permission is undeclared — not on a permission with no         │
@@ -1086,6 +1086,49 @@ export const CAPABILITY_MATRIX: readonly CapabilityDefinition[] = [
       FINANCE: 'NONE',
       MODERATOR: 'NONE',
       SUPER_ADMIN: 'FULL',
+    },
+  },
+  {
+    capability: 'Create own tenant',
+    /*
+     * `§B3.2` row 46, added 2026-08-10 by the owner under Part C §C10 — wizard step 1.
+     *
+     * `POST /tenants` declared `tenancy.tenant.create` and no row carried it, so `M-027`'s FIRST
+     * step was a second `BLK-14`-shaped hole that nobody had raised: row 43 unblocked the wizard
+     * steps AFTER a tenant exists, and not the one that creates it.
+     *
+     * ┌─ THE HOLDERS, AND WHY THEY ARE NOT JUST `GYM_OWNER` ─────────────────────────────────────┐
+     * │ `Gym.md` §2.1 row 1's capability cell reads *"(pre-tenant; the caller is a `USER`)"* — at │
+     * │ the moment this route is called the person owns nothing, so `GYM_OWNER` would be a role   │
+     * │ they acquire BY calling it. The owner's answer was `USER`, and the marketplace argument is │
+     * │ the right one: any registered person may start listing a gym.                              │
+     * │                                                                                          │
+     * │ `MEMBER` follows by coherence — a member is a registered person who happens to hold a      │
+     * │ membership, and buying one must not stop them opening a gym of their own.                  │
+     * │                                                                                          │
+     * │ `GYM_OWNER` is REQUIRED rather than inferred: `BR-TEN-02` says *"One owner account may own │
+     * │ multiple tenants."* Without it, an owner could never onboard a second gym.                 │
+     * │                                                                                          │
+     * │ `SUPER_ADMIN` is `—` for row 43's reason: a platform actor must not create the tenant it   │
+     * │ later approves (`BR-GYM-03`).                                                              │
+     * └──────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    readKey: null,
+    writeKey: 'tenancy.tenant.create',
+    description: 'Register a new gym business. Wizard step 1 — the caller owns nothing yet.',
+    grants: {
+      VISITOR: 'NONE',
+      USER: 'FULL',
+      MEMBER: 'FULL',
+      RECEPTIONIST: 'NONE',
+      TRAINER: 'NONE',
+      GYM_MANAGER: 'NONE',
+      GYM_OWNER: 'FULL',
+      SUPPORT_AGENT: 'NONE',
+      VERIFICATION_OFFICER: 'NONE',
+      FINANCE: 'NONE',
+      MODERATOR: 'NONE',
+      SUPER_ADMIN: 'NONE',
     },
   },
 ];

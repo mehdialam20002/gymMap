@@ -1165,6 +1165,7 @@ Roles are **additive within a scope**; a user may hold `MEMBER` at the platform 
 | Submit own gym application | — | — | — | — | — | — | ● | — | — | — | — | — |
 | View platform overview | — | — | — | — | — | — | — | ○ | — | — | — | ● |
 | View gym register | — | — | — | — | — | — | — | ○ | — | — | — | ● |
+| Create own tenant | — | ● | ● | — | — | — | ● | — | — | — | — | — |
 
 ### B3.2.1 Amendment record — 2026-08-10, under Part C §C10
 

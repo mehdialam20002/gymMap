@@ -6589,7 +6589,45 @@ this reversible — a stronger engine is a new adapter behind the same port, wit
 
 ---
 
-**End of decision log.** Forty-eight ADRs, all `Accepted`, numbered `ADR-0001` … `ADR-0048` with no
+## ADR-0049 — `§B3.2` row 46, *Create own tenant* — the hole wizard step 1 was standing in
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-10 |
+| **Decided by** | **Project owner**, directly |
+| **Amends** | `MASTER_PRD.md` §B3.2 under Part C §C10 — row 46. Now 46 rows, 552 cells |
+
+`ADR-0047` closed `BLK-14` and unblocked the onboarding wizard — or so it looked. Applying it
+surfaced a second hole of exactly the same shape that nobody had raised: **`POST /tenants`, the
+wizard's FIRST step, declares `tenancy.tenant.create`, and no row carried it.** Row 43 unblocked
+every step AFTER a tenant exists and not the one that creates it.
+
+**The holders are not just `GYM_OWNER`, and the reason is in the timing.** At the moment this route
+is called the person owns nothing — `Gym.md` §2.1 row 1's capability cell reads literally
+*"(pre-tenant; the caller is a `USER`)"*. `GYM_OWNER` is a role they acquire **by** calling it.
+
+| Role | Cell | Why |
+| :--- | :-: | :--- |
+| `USER` | `●` | The owner's answer, and the marketplace argument is the right one: any registered person may start listing a gym |
+| `MEMBER` | `●` | Coherence. A member is a registered person who happens to hold a membership; buying one must not stop them opening a gym of their own |
+| `GYM_OWNER` | `●` | **Required, not inferred.** `BR-TEN-02`: *"One owner account may own multiple tenants."* Without it an owner could never onboard a second gym |
+| `SUPER_ADMIN` | `—` | Row 43's reason: a platform actor must not create the tenant it later approves (`BR-GYM-03`) |
+
+`VISITOR` is `—`: the route is authenticated, and a tenant with no owner attached is a row nobody
+can administer.
+
+**No key is invented.** `tenancy.tenant.create` is already the string `API_Catalog.md` freezes on
+the route; `permissionOf()` now reads it out of this row, so the two cannot drift — which is the
+mechanism `ADR-0047` put in place after four separate cases of a module writing its own vocabulary.
+
+**The pattern this is the sixth instance of.** A rank-5 artefact needs a key, the rank-2 register
+has no row for it, and the gap is invisible because nothing fails until a guard is bound. It was
+found this time only because `PermissionsGuard` was finally registered earlier the same day.
+
+---
+
+**End of decision log.** Forty-nine ADRs, all `Accepted`, numbered `ADR-0001` … `ADR-0049` with no
 gaps. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.

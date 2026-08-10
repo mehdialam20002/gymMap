@@ -1,5 +1,5 @@
 /**
- * `M-023` · `AC-4` — every one of §B3.2's 540 cells, checked against the PRD ITSELF.
+ * `M-023` · `AC-4` — every one of §B3.2's 552 cells, checked against the PRD ITSELF.
  *
  * ═══════════════════════════════════════════════════════════════════════════════════════════
  * THIS READS THE DOCUMENT, NOT A COPY OF IT
@@ -10,7 +10,7 @@
  * that nobody edited it.
  *
  * That suite would assert that a constant equals itself. Generated from the matrix, it can only
- * ever agree with the matrix — including agreeing with a typo in it. Five hundred and forty green
+ * ever agree with the matrix — including agreeing with a typo in it. Five hundred and fifty-two green
  * assertions, all of them tautologies, and the ONE thing worth knowing left unchecked.
  *
  * So the table is parsed out of `MASTER_PRD.md` and compared to the code. That is a real
@@ -123,7 +123,7 @@ function parseMatrixFromPrd(): { header: readonly string[]; rows: readonly Parse
 const { header, rows } = parseMatrixFromPrd();
 
 test('the PRD table still has the twelve columns this file knows how to read', () => {
-  // If the PRD gains a role, this fails FIRST and by name, rather than as 45 confusing cell
+  // If the PRD gains a role, this fails FIRST and by name, rather than as 46 confusing cell
   // mismatches in a column that shifted one place to the left.
   assert.deepEqual(
     header,
@@ -152,7 +152,7 @@ test('the code carries exactly the capabilities the PRD lists, in the same order
   );
 });
 
-test('AC-4 — all 540 cells agree with §B3.2', () => {
+test('AC-4 — all 552 cells agree with §B3.2', () => {
   const mismatches: string[] = [];
   let checked = 0;
 
@@ -198,15 +198,15 @@ test('AC-4 — all 540 cells agree with §B3.2', () => {
   // │ nothing, the loop body never runs and a suite that verifies NOTHING reports success —      │
   // │ which is the most expensive way for a test file like this to fail.                         │
   // │                                                                                          │
-  // │ 45 capabilities × 12 roles. The roadmap says 516 cells; §B3.2 has 45 rows, and the PRD is │
-  // │ rank 2 to the roadmap's rank 4, so 540 is the number that is true.                         │
+  // │ 46 capabilities × 12 roles. The roadmap says 516 cells; §B3.2 has 46 rows, and the PRD is │
+  // │ rank 2 to the roadmap's rank 4, so 552 is the number that is true.                         │
   // │                                                                                          │
   // │ It was 42 rows and 504 cells until 2026-08-10, when the owner added three under Part C    │
   // │ §C10 — `ADR-0047`. This literal is deliberately NOT derived from the parse: deriving it    │
   // │ would make the assertion "the number I just counted equals itself", which is exactly the   │
   // │ vacuous-success this block exists to prevent. It is meant to need a human edit.            │
   // └──────────────────────────────────────────────────────────────────────────────────────────┘
-  assert.equal(checked, 540, `expected 540 cells, checked ${String(checked)}`);
+  assert.equal(checked, 552, `expected 552 cells, checked ${String(checked)}`);
 });
 
 test('every capability row names at least one permission key', () => {

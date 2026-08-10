@@ -2,7 +2,7 @@
  * M-019 · The §B3.2 permission matrix, checked against the PRD itself — `FR-RBAC-01`, `§B3.1`.
  *
  * ┌─ THE SOURCE OF TRUTH IS THE DOCUMENT, AND THIS SUITE ENFORCES THAT ─────────────────────────┐
- * │ `iam/permissions.ts` holds 45 capabilities × 12 roles = 540 authorisation cells. Asserting  │
+ * │ `iam/permissions.ts` holds 46 capabilities × 12 roles = 552 authorisation cells. Asserting  │
  * │ that the array has 42 entries proves the file parses and nothing else. So this suite        │
  * │ RE-PARSES `MASTER_PRD.md` §B3.2 at run time and compares every cell.                         │
  * │                                                                                              │
@@ -183,7 +183,7 @@ test('PLATFORM_ROLES and ROLE_DEFINITIONS cannot drift apart', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// §B3.2 — all 540 cells.
+// §B3.2 — all 552 cells.
 // ═══════════════════════════════════════════════════════════════════════════
 
 test('§B3.2 · the capability list matches the PRD, in order', () => {
@@ -194,7 +194,7 @@ test('§B3.2 · the capability list matches the PRD, in order', () => {
   );
 });
 
-test('§B3.2 · every one of the 540 cells matches the PRD glyph', () => {
+test('§B3.2 · every one of the 552 cells matches the PRD glyph', () => {
   const mismatches: string[] = [];
 
   for (const [row, prdRow] of PRD.entries()) {
