@@ -1177,6 +1177,18 @@
     background: color-mix(in srgb, var(--gm-color-surface-subtle) 82%, transparent);
     backdrop-filter: blur(20px) saturate(150%);
     max-width: 960px;
+    /*
+     * A control answers for its own surface. Unconditionally, not because the geometry happens to
+     * agree today.
+     *
+     * `.gm-hero-in` is the stacking context and the constellation sits at `z-index: 1` inside it.
+     * This panel was `position: static`, so a POSITIONED sibling painted and hit-tested above it
+     * however far apart their boxes were meant to be - and for two rewrites they were not far apart
+     * at all. Claiming the layer above costs nothing when the boxes are separate, and is the
+     * difference between a cosmetic overlap and a submit button that navigates somewhere else.
+     */
+    position: relative;
+    z-index: 2;
   }
 
   /*
@@ -1478,6 +1490,22 @@
    * against the brightest of the six, which is the same bounded-worst-case reasoning the scrim
    * used, applied to a much easier problem.
    */
+  /*
+   * `pointer-events: none` on both of the card's labels.
+   *
+   * Neither is a control - `BR-GYM-01`'s Verified mark and the "Sample photo" note are statements
+   * ABOUT the card, and there is nowhere for a click on either of them to go. They were raised
+   * above the cover's scrims to stay legible (`z-index` 2 and 3), which also put them above the
+   * card's stretched link at 1, so the two places a reader is most likely to aim at - the badge in
+   * the corner of the photograph, and the pill under it - were the two places the card did nothing.
+   *
+   * Measured: 4 of 169 sample points over a card landed on these and reached no link at all.
+   */
+  .gm-card-badge,
+  .gm-photo-sample {
+    pointer-events: none;
+  }
+
   .gm-card-badge {
     position: absolute;
     top: 13px;
@@ -2100,7 +2128,21 @@
     padding: 20px;
   }
 
-  .gm-city-art {
+  /*
+   * `.gm-city .gm-city-art`, not `.gm-city-art`, and the descendant is doing real work.
+   *
+   * This class lands on `GymPhoto`'s root, which already carries `.gm-photo` - and `.gm-photo` is
+   * declared 300 lines LOWER in this file with `position: relative`. Both selectors are (0,1,0), so
+   * the cascade settled it on source order and the cover stopped being absolute: `.gm-city` is
+   * `display: flex; align-items: flex-end`, so the photograph fell out of the corner it was meant
+   * to fill and sat in the flow at its intrinsic size, a thumbnail in the bottom-left of an empty
+   * white tile with the "Sample photo" pill on top of it. Exactly what the four city tiles showed.
+   *
+   * Qualifying by the parent makes it (0,2,0), which wins wherever either rule is written. "Later
+   * wins" is only true at EQUAL specificity, and that is the second time that has bitten this
+   * stylesheet.
+   */
+  .gm-city .gm-city-art {
     position: absolute;
     inset: 0;
     transition:
@@ -2584,14 +2626,33 @@
      */
     right: clamp(12px, 3vw, 46px);
     /*
-     * 42%, not 50%. Centred on the hero, the lowest node sat behind the search console - the
-     * console is the widest thing in the panel and it reaches into the constellation's column at
-     * every width the orbit is shown at. Lifting the whole box clears it without moving the nodes
-     * off their own arcs.
+     * ┌─ THE CLAIM THAT USED TO BE HERE WAS FALSE, AND IT WAS FALSE WHEN IT WAS WRITTEN ──────────┐
+     * │ It read: "42%, not 50%. Centred on the hero, the lowest node sat behind the search        │
+     * │ console. Lifting the whole box clears it without moving the nodes off their own arcs."     │
+     * │                                                                                            │
+     * │ It did not clear it. Hit-testing a grid over every hero control found 44% of the amber      │
+     * │ Search submit and 27% of the query input answering to `gm-orbit-4` and `gm-orbit-5`, at     │
+     * │ 1200, 1280, 1440 and 1600 alike. The primary call to action of the page navigated to        │
+     * │ "Boxing" or "Group classes" for nearly half its surface, and looked like it had worked.     │
+     * │                                                                                            │
+     * │ Two attempts had now moved a percentage and declared the collision solved. The reason both  │
+     * │ failed is arithmetic, not carelessness: the console is `max-width: 960px` and the orbit is  │
+     * │ up to 560px inset from the right, so on a 1240px content column the two ALWAYS share about  │
+     * │ 370px of horizontal band. No value of `top` separates boxes that overlap horizontally.      │
+     * └────────────────────────────────────────────────────────────────────────────────────────────┘
+     *
+     * So they are separated VERTICALLY instead, and the separation is sized rather than guessed.
+     * Anchored at the top of the panel, the lowest node sits at `72% x height + half a node`, and
+     * the console's top edge is never higher than 575px from the panel's top at any width the
+     * constellation is shown at. 500px of height puts that node at 558px - clear at every width,
+     * and clear by 50px at the common ones.
+     *
+     * The console additionally claims the layer above this one, so that if a future change to the
+     * headline's wrap moves the console up again, the failure is a node partly behind a panel
+     * rather than a button that silently does something else.
      */
-    top: 42%;
-    transform: translateY(-50%);
-    width: min(46vw, 560px);
+    top: 0;
+    width: min(42vw, 500px);
     aspect-ratio: 1;
     pointer-events: none;
     z-index: 1;
@@ -3080,16 +3141,66 @@
     border-color: var(--gm-color-content-on-media-accent);
   }
 
+  /*
+   * "Add to compare" was `color: content-muted` and nothing else - a sentence in grey at the foot
+   * of a card, indistinguishable from the facilities list two lines above it. It is a control, and
+   * the only one on the card, so it is drawn as one.
+   *
+   * 44px of real height rather than `gm-hit-target`: the card is `overflow: hidden`, and a target
+   * grown by a `::after` is CLIPPED by that - the pseudo-element cannot escape its ancestor's clip,
+   * so the reachable area would have been the 40px the padding gives and the rule would have
+   * reported itself satisfied. Height that the box actually has cannot be clipped away.
+   */
   .gm-card-add {
-    color: var(--gm-color-content-muted);
+    /* Above the stretched card link, which is the whole point: the card opens the gym, this
+     * opens the comparison, and the two must not be the same click. */
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid var(--gm-color-border-subtle);
+    border-radius: 999px;
+    color: var(--gm-color-content-secondary);
+    transition:
+      border-color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard),
+      color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard),
+      background-color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard);
   }
 
   .gm-card-add:hover {
+    border-color: var(--gm-color-border-brand);
     color: var(--gm-color-content-primary);
+    background-color: var(--gm-color-surface-subtle);
   }
 
   .gm-card-k[data-compared='true'] .gm-card-add {
     color: var(--gm-color-content-on-media-accent);
+    border-color: var(--gm-color-border-brand);
+  }
+
+  /*
+   * The whole card opens the gym - `SCR-WEB-001`, and the reason the previous build did not do it
+   * is written in the component: "a nested link inside an anchor is invalid HTML and behaves
+   * unpredictably for keyboard users". That is true, and it is an argument against wrapping the
+   * card in an anchor, not against making the card clickable.
+   *
+   * So there is still exactly ONE anchor for the destination - the gym's name - and its `::after`
+   * is stretched over the card. A screen reader hears one link with the gym's name on it, Tab
+   * stops once, and every pixel of the card reaches it. The cover's own duplicate anchor is gone
+   * with it: two links to one href, one of them with no accessible name of its own.
+   *
+   * `z-index: 1` so it covers the card, and `.gm-card-add` sits at 2 so the control on the card
+   * still gets its own clicks.
+   */
+  .gm-card-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
   }
 
   /*
@@ -3272,6 +3383,11 @@
    * The lift is on the LINK-shaped cards only, applied by adding `gm-card-interactive`. A card
    * that rises under the cursor and then does nothing when clicked is a worse lie than a flat one.
    */
+  /* The containing block the stretched card link measures itself against. */
+  .gm-card-interactive {
+    position: relative;
+  }
+
   .gm-card-interactive:hover {
     transform: translateY(-6px);
     border-color: var(--gm-color-border-brand);

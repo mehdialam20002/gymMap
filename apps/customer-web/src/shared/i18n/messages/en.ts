@@ -778,6 +778,8 @@ export const en = {
   'web.account.memberships.validity': 'Valid',
   'web.account.memberships.to': 'to',
   'web.account.memberships.visits': 'visits recorded',
+  // A membership with one check-in read "1 visits recorded". Same shape as `listingsOne`.
+  'web.account.memberships.visitsOne': 'visit recorded',
   'web.account.memberships.plan': 'Plan',
   // The four states, and the sentence each one needs. PENDING is the one that exists only
   // because activation is webhook-driven (BR-PAY-02).
@@ -805,6 +807,8 @@ export const en = {
   'web.account.attendance.none':
     'No visits yet. A visit is recorded when a gym scans your check-in code.',
   'web.account.attendance.count': 'visits',
+  // Six today, so this has never been seen. It is one check-in away from being seen.
+  'web.account.attendance.countOne': 'visit',
 
   'web.account.orders.title': 'Receipts',
   'web.account.orders.reference': 'Reference',

@@ -91,6 +91,7 @@ export function Memberships() {
 
 function MembershipCard({ membership }: { readonly membership: Membership }) {
   const Place = icon.place;
+  const visits = visitCount(DEMO_MEMBER, membership.id);
 
   return (
     <article className="gm-card rounded-card p-inset-lg">
@@ -144,8 +145,14 @@ function MembershipCard({ membership }: { readonly membership: Membership }) {
         </p>
       )}
 
+      {/*
+       * Counted, then made to agree with itself. `visitCount` returns 1 for `mem-003`, and the
+       * only string this line had was the plural - so the card read "1 visits recorded". The
+       * catalogue carries both forms, chosen here, the same way the city tiles do it.
+       */}
       <p className="mt-stack-md text-sm tabular-nums text-content-muted">
-        {String(visitCount(DEMO_MEMBER, membership.id))} {t('web.account.memberships.visits')}
+        {String(visits)}{' '}
+        {t(visits === 1 ? 'web.account.memberships.visitsOne' : 'web.account.memberships.visits')}
       </p>
 
       <Link
@@ -234,7 +241,12 @@ export function Attendance() {
   return (
     <AccountShell current="/account/attendance" title="web.account.attendance.title">
       <p className="text-base tabular-nums text-content-secondary">
-        {String(DEMO_MEMBER.visits.length)} {t('web.account.attendance.count')}
+        {String(DEMO_MEMBER.visits.length)}{' '}
+        {t(
+          DEMO_MEMBER.visits.length === 1
+            ? 'web.account.attendance.countOne'
+            : 'web.account.attendance.count',
+        )}
       </p>
       <VisitList visits={DEMO_MEMBER.visits} />
     </AccountShell>

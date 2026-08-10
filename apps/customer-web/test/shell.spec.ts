@@ -542,8 +542,35 @@ test("Next's route announcer is hidden from the stylesheet, not by its own inlin
  * │                                                                                             │
  * │ Either case now, and an apostrophe counts as part of a word so "Gym's" does not split.       │
  * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ AND THE SENTENCE STILL GOT PAST IT ───────────────────────────────────────────────────────┐
+ * │ Widening the case fixed headings and left the larger hole open. The class was `[A-Za-z']`,   │
+ * │ and the pattern is anchored `>` … `<`, so the WHOLE text node had to be free of every other  │
+ * │ character. One full stop, comma, digit or hyphen anywhere in it and the node was invisible.  │
+ * │                                                                                             │
+ * │ Measured, not assumed - these all returned zero matches against the old pattern:            │
+ * │     <p>Find a gym near you.</p>            a full stop                                       │
+ * │     <p>Book a class, then check in</p>     a comma                                           │
+ * │     <h2>Verified gyms only!</h2>           an exclamation mark                               │
+ * │     <p>Gyms in Bengaluru 2026</p>          a digit                                           │
+ * │     <p>Every gym is human-approved.</p>    a hyphen                                          │
+ * │                                                                                             │
+ * │ Which is to say it caught labels and missed PROSE - and prose is where the claims live. The  │
+ * │ sentences `BR-GYM-01`, `BR-PLN-03` and `BR-REV-01` govern are exactly the strings that must  │
+ * │ be in the catalogue where they can be reviewed, and exactly the ones the gate could not see. │
+ * │                                                                                             │
+ * │ Digits, sentence punctuation and hyphens are admitted now. Two things are deliberately NOT:  │
+ * │ a word may not be a bare `?` or `:`, and `&` is excluded - without that, `{a ? B : C}` and   │
+ * │ `if (x > B && y < z)` both read as prose, and a gate that cries wolf gets deleted.           │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
  */
-const PROSE_IN_JSX = />\s*([A-Z][A-Za-z']+(?: [A-Za-z']+){1,})\s*</g;
+const IN_WORD = "[A-Za-z0-9'’-]";
+const END_OF_WORD = '[.,!?;:]?';
+// Built by concatenation, not in a template literal: `\s` in a template literal is the letter s.
+const PROSE_IN_JSX = new RegExp(
+  '>\\s*' + `([A-Z]${IN_WORD}*${END_OF_WORD}` + `(?: ${IN_WORD}+${END_OF_WORD}){1,})` + '\\s*<',
+  'g',
+);
 
 test('I18N1 — every user-facing string comes from the catalogue', () => {
   const offenders: string[] = [];
@@ -568,6 +595,42 @@ test('CONTROL — the literal scan actually detects a literal', () => {
   const found = [...'<p>Find a gym near you</p>'.matchAll(PROSE_IN_JSX)];
   assert.equal(found.length, 1);
   assert.equal(found[0]![1], 'Find a gym near you');
+});
+
+test('CONTROL — the scan catches SENTENCES, which is what it used to miss', () => {
+  /*
+   * The previous fixture was the one sentence in the language with no punctuation in it, so it
+   * certified a pattern that could not see a full stop. Each of these failed against that pattern
+   * and is a form real hard-coded copy takes. If a future edit narrows the class again, this is
+   * the test that goes red.
+   */
+  for (const sample of [
+    '<p>Find a gym near you.</p>',
+    '<p>Book a class, then check in</p>',
+    '<h2>Verified gyms only!</h2>',
+    '<p>Gyms in Bengaluru 2026</p>',
+    '<p>Every gym is human-approved before it is listed.</p>',
+    '<span>The price you see is the price you pay.</span>',
+  ]) {
+    assert.equal([...sample.matchAll(PROSE_IN_JSX)].length, 1, `not detected: ${sample}`);
+  }
+});
+
+test('CONTROL — the scan does not read ordinary TSX as prose', () => {
+  /*
+   * The other half of a usable gate. A detector that flags `{a ? B : C}` gets suppressed within a
+   * week, and then it is not a gate at all. These are all code, and none of them may match.
+   */
+  for (const sample of [
+    '<div className="x">{isOpen ? Close : Open}</div>',
+    'if (a > B && c < d) {',
+    'const p: Promise<void> = load(); if (n < 3) {',
+    '<i aria-hidden="true">→</i>',
+    '<b>{String(count)}</b>',
+    "<span>{t('web.home.hero.subtitle')}</span>",
+  ]) {
+    assert.equal([...sample.matchAll(PROSE_IN_JSX)].length, 0, `false positive: ${sample}`);
+  }
 });
 
 test('CONTROL — the scan is looking at real files', () => {

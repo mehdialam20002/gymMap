@@ -42,34 +42,45 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
 
   return (
     <li className="gm-card gm-card-interactive group overflow-hidden rounded-card">
-      <Link href={`/gyms/${gym.citySlug}/${gym.slug}`} className="block">
-        {/*
-         * The cover, with its "Sample photo" marker attached - see `gym-photo.tsx`. The marker is
-         * part of the image rather than part of the page, so a screenshot of one card still says
-         * what the photograph is.
-         */}
-        <GymPhoto
-          gym={gym}
-          /*
-           * `GymCard` renders into four different layouts - the results list beside a filter
-           * rail, the gym page's "similar gyms" row, and two grids - so a single `sizes` cannot
-           * be right everywhere. These are the widest it occupies in any of them, which is the
-           * safe direction: too large wastes bytes, too small ships a blurry cover.
-           */
-          sizes="(min-width: 1024px) 42vw, (min-width: 640px) 50vw, 100vw"
-          className="aspect-video"
-        />
-      </Link>
+      {/*
+       * The cover is no longer its own anchor. It pointed at the same href as the gym's name, so
+       * every card shipped two links to one destination and the first of them had no accessible
+       * name at all - a screen reader read "link" and then "link, Apex CrossFit Powai". The name's
+       * anchor is stretched over the whole card instead (`.gm-card-link`), which is what makes the
+       * cover clickable now, along with the price, the rating and the white space between them.
+       */}
+      {/*
+       * The cover, with its "Sample photo" marker attached - see `gym-photo.tsx`. The marker is
+       * part of the image rather than part of the page, so a screenshot of one card still says
+       * what the photograph is.
+       */}
+      <GymPhoto
+        gym={gym}
+        /*
+         * `GymCard` renders into four different layouts - the results list beside a filter
+         * rail, the gym page's "similar gyms" row, and two grids - so a single `sizes` cannot
+         * be right everywhere. These are the widest it occupies in any of them, which is the
+         * safe direction: too large wastes bytes, too small ships a blurry cover.
+         */
+        sizes="(min-width: 1024px) 42vw, (min-width: 640px) 50vw, 100vw"
+        className="aspect-video"
+      />
 
       <div className="p-inset-lg">
         <div className="flex flex-wrap items-start justify-between gap-inline-md">
           <div className="min-w-0">
             <h3 className="gm-h3">
-              {/* The whole card is not one anchor — a nested link inside an anchor is invalid
-                  HTML and behaves unpredictably for keyboard users. */}
+              {/*
+               * The card's ONLY anchor for the gym, stretched over the card by `.gm-card-link`.
+               *
+               * Still not a wrapping `<a>`: nesting the compare link inside it would be invalid
+               * HTML and unpredictable for keyboard users, which is what the note here used to
+               * say and is still the reason this is a pseudo-element and not a parent element.
+               * One tab stop, one accessible name, and the whole card is the target.
+               */}
               <Link
                 href={`/gyms/${gym.citySlug}/${gym.slug}`}
-                className="rounded-control hover:underline"
+                className="gm-card-link rounded-control hover:underline"
               >
                 {gym.name}
               </Link>
@@ -80,7 +91,21 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
             </p>
           </div>
 
-          <div className="text-right">
+          {/*
+           * NOT `text-right`, and the reason only shows up at some card widths.
+           *
+           * This row is `flex-wrap`. When the card is wide the price block sits at the right end
+           * of it and right-aligned text looks deliberate. When the card is narrow - the two-column
+           * city grid, the "similar gyms" row - the block WRAPS onto its own line, and a wrapped
+           * flex item is only as wide as its widest child. That child is "PER MONTH, FROM" at
+           * 133px; "₹3,499" is 88px; right-aligned inside it, the amount started 45px in from the
+           * card's own left edge, while the gym's name, its locality and the label underneath all
+           * started at 0. An indent with nothing on its left, which is what it looked like.
+           *
+           * Aligned to the start, the two lines agree with each other in both states and with
+           * every other line on the card.
+           */}
+          <div>
             {/* The same money treatment the home rail uses - one price, one voice. */}
             <p className="gm-card-amount">{formatMinor(gym.fromPriceMinor)}</p>
             <p className="gm-card-per">{t('web.gym.perMonthFrom')}</p>
@@ -123,9 +148,15 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
          * │ marketplace ships and the reason none of their comparisons can be shared.              │
          * └───────────────────────────────────────────────────────────────────────────────────────┘
          */}
+        {/*
+         * `gm-hit-target` is gone from here on purpose. It reaches 44px by growing an `::after`
+         * OUTWARD, and this card is `overflow: hidden` - the pseudo-element is clipped by the
+         * card, so the rule reported itself satisfied while the reachable area stayed at the
+         * padding's 40px. `.gm-card-add` now has 44px of real height, which nothing can clip.
+         */}
         <Link
           href={toCompareParams([compareKey(gym)])}
-          className="gm-hit-target gm-card-add mt-stack-sm inline-block rounded-control text-sm font-semibold"
+          className="gm-card-add mt-stack-sm rounded-control text-sm font-semibold"
         >
           {t('web.gym.compare.add')}
           <span className="gm-visually-hidden">: {gym.name}</span>

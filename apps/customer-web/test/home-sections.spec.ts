@@ -172,6 +172,31 @@ test('the teaser is a real table, not a grid of divs pretending to be one', () =
 
 test('an unrated gym in the teaser reads as words, never 0.0 — BR-REV-01', () => {
   const text = SECTIONS;
+  /*
+   * ┌─ ONE LITERAL USED TO EXCUSE TWO RENDERERS ─────────────────────────────────────────────────┐
+   * │ This was `text.includes("t('web.gym.facts.unrated')")` against every homepage module joined │
+   * │ into one string. `chalk.tsx` renders a rating in TWO places - the gym card and the compare  │
+   * │ teaser's cell - and a single occurrence anywhere satisfied a substring test. Rewriting the  │
+   * │ teaser cell as `Number(gym.rating).toFixed(1)` renders "0.0" for Coastal Swim & Gym, which  │
+   * │ is third by distance and therefore always in the three-column teaser, and the suite stayed  │
+   * │ green: the card kept the literal, and the companion regex below only catches `??` and `||`. │
+   * │                                                                                             │
+   * │ A per-ELEMENT rule needs a per-element count. Every `toFixed` on a rating must have an       │
+   * │ unrated branch, so the two are counted against each other rather than merely both present.  │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const unratedBranches = [...text.matchAll(/web\.gym\.facts\.unrated/g)].length;
+  const ratingRenders = [...text.matchAll(/\brating[^\n]{0,40}?\.toFixed\(/g)].length;
+  assert.ok(
+    ratingRenders >= 2,
+    `expected the homepage to render a rating in at least two places, found ${String(ratingRenders)} — ` +
+      'if a renderer was removed, lower this; if the shape changed, the pattern below is now blind',
+  );
+  assert.ok(
+    unratedBranches >= ratingRenders,
+    `${String(ratingRenders)} places render a rating but only ${String(unratedBranches)} name the ` +
+      'unrated string — at least one would print a number for a gym nobody has reviewed (BR-REV-01)',
+  );
   assert.ok(
     text.includes("t('web.gym.facts.unrated')"),
     'the rating row has no unrated branch, so a new listing would render a number',
