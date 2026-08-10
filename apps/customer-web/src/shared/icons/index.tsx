@@ -13,6 +13,24 @@
  *
  * Every icon here is `aria-hidden` and sits beside a text label. An icon that is the only label
  * is a bug this file cannot prevent, but it should not encourage one either.
+ *
+ * ┌─ THE MAP IS A RUNTIME OBJECT, SO A CLIENT COMPONENT TAKES ALL OF IT ───────────────────────┐
+ * │ Raised by an audit as a bundle problem, and it is real: components read `icon.search`, which │
+ * │ is a property lookup on an object, so a bundler cannot drop the twenty-one entries a given   │
+ * │ component never touches. `search-results.tsx` is `'use client'`, uses `icon.search` and       │
+ * │ `icon.close`, and ships the whole vocabulary to the browser.                                 │
+ * │                                                                                             │
+ * │ Then it was measured, and the measurement is the reason nothing changed: all 22 of these     │
+ * │ modules come to 6,684 raw bytes - 6 KB unminified, before gzip - because the `ssr` build is  │
+ * │ path data and nothing else. The two that component needs are 600 of those bytes. The waste   │
+ * │ is about 6 KB raw against `NFR-PERF-10`'s 200 KB, under one percent of the budget, and the   │
+ * │ price of removing it is the rule in the paragraph above: a component that imports its own    │
+ * │ glyph directly is a component that can pick a different "verified" tick to the next one.     │
+ * │                                                                                             │
+ * │ Recorded rather than fixed, so the next person to notice the shape does not re-derive it.    │
+ * │ If this map ever grows past roughly a hundred entries the arithmetic changes and a           │
+ * │ client-safe subset becomes worth its own module.                                             │
+ * └───────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
 /**

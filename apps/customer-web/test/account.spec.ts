@@ -180,10 +180,28 @@ test('the demo notice is on EVERY account screen, not just the first', () => {
   // memberships, which are exactly what somebody screenshots.
   assert.match(code('src/features/account/account-shell.tsx'), /web\.account\.demoNotice/);
   const screens = code(SCREENS);
-  assert.ok(screens.includes('AccountShell'), 'a screen renders outside the shell');
-  // Every exported screen goes through the shell.
+
+  /*
+   * ┌─ ONE OCCURRENCE USED TO EXCUSE ALL SIX SCREENS ────────────────────────────────────────────┐
+   * │ This was `screens.includes('AccountShell')` against the whole file joined together, which   │
+   * │ is a rule about EVERY screen checked as if it were a rule about the file. Delete the shell  │
+   * │ from five of the six screens and the sixth keeps the substring alive: five account pages    │
+   * │ ship without the caveat, and this test stays green. That is the same shape as the           │
+   * │ BR-REV-01 teaser guard, found the same way.                                                 │
+   * │                                                                                             │
+   * │ Counted against each other instead. The numbers must move together, so a screen added       │
+   * │ without the shell fails, and a screen removed with its shell does not.                       │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   const exported = [...screens.matchAll(/export function (\w+)/g)].map((m) => m[1]);
+  const wrapped = [...screens.matchAll(/<AccountShell[\s>]/g)].length;
   assert.ok(exported.length >= 5, `only ${String(exported.length)} account screens are exported`);
+  assert.equal(
+    wrapped,
+    exported.length,
+    `${String(exported.length)} account screens are exported but ${String(wrapped)} render ` +
+      '<AccountShell> — a screen reached by a direct link would show no demo caveat',
+  );
 });
 
 test('no account route is offered to a search engine', () => {

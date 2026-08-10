@@ -25,6 +25,7 @@ import { en } from '../src/shared/i18n/messages/en.ts';
 import { CATALOGUE } from '../src/features/discovery/fixtures/catalogue.ts';
 import { EMPTY_QUERY, search } from '../src/features/discovery/search.ts';
 import { compareKey, parseCompare } from '../src/features/compare/compare.ts';
+import { teaserCompareHref, teaserGyms } from '../src/features/home/teaser.ts';
 
 const PAGE = 'app/page.tsx';
 
@@ -160,7 +161,26 @@ test('the compare teaser link opens the same three gyms the table just showed', 
     'the teaser CTA would not resolve to the gyms in the table',
   );
   assert.deepEqual(parsed.unresolved, []);
-  assert.ok(SECTIONS.includes('toCompareParams('), 'the CTA does not build a real compare URL');
+
+  /*
+   * ┌─ THE TEST USED TO CHECK THE FUNCTION'S NAME, NOT ITS ARGUMENT ─────────────────────────────┐
+   * │ The line here was `SECTIONS.includes('toCompareParams(')`. Everything above it computed     │
+   * │ what the teaser OUGHT to open and then compared it to nothing the page builds - so the      │
+   * │ teaser could have shipped `toCompareParams([])`, a table of three gyms above a button that  │
+   * │ opens an empty comparison, and this test would have stayed green.                           │
+   * │                                                                                             │
+   * │ The href now comes from `teaser.ts`, which is what the two CTAs in `chalk.tsx` call, so     │
+   * │ this reads the URL that ships and parses it the way the compare page will.                  │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const href = teaserCompareHref();
+  const keys = [...new URL(href, 'http://gymmap.test').searchParams.getAll('gym')];
+  assert.deepEqual(
+    keys,
+    shown.map(compareKey),
+    `the teaser button opens ${href}, which is not the three gyms the table showed`,
+  );
+  assert.equal(teaserGyms().length, shown.length, 'the teaser shows a different number of gyms');
 });
 
 test('the teaser is a real table, not a grid of divs pretending to be one', () => {

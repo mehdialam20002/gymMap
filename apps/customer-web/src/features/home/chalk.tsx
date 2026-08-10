@@ -34,11 +34,12 @@ import Link from 'next/link';
 
 import { t, type MessageKey } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
-import { MAX_COMPARE, compareKey, toCompareParams } from '../compare/compare.ts';
+import { MAX_COMPARE, compareKey } from '../compare/compare.ts';
 import { GymPhoto } from '../discovery/gym-photo.tsx';
 import { railToggleHref } from '../compare/compare-rail.tsx';
 import { CATALOGUE, type GymDetail } from '../discovery/fixtures/catalogue.ts';
 import { EMPTY_QUERY, formatMinor, search } from '../discovery/search.ts';
+import { teaserCompareHref, teaserGyms } from './teaser.ts';
 import { checkoutHref } from '../checkout/quote.ts';
 
 /*
@@ -281,7 +282,6 @@ export function Promises() {
 
 export function PlanRow() {
   const cheapest = search({ ...EMPTY_QUERY, sort: 'price-asc' }).slice(0, 3);
-  const comparable = search({ ...EMPTY_QUERY, sort: 'distance' }).slice(0, 3);
 
   return (
     <section className="gm-sec gm-sec-paper" id="plans">
@@ -328,10 +328,7 @@ export function PlanRow() {
               {t('web.home.compareTeaser.title')}
             </p>
             <p className="gm-plan-sub">{t('web.home.plans.compareBody')}</p>
-            <Link
-              href={toCompareParams(comparable.map(compareKey))}
-              className="gm-btn mt-auto w-full"
-            >
+            <Link href={teaserCompareHref()} className="gm-btn mt-auto w-full">
               {t('web.home.plans.compareCta')} <i aria-hidden="true">→</i>
             </Link>
           </article>
@@ -348,7 +345,7 @@ export function PlanRow() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function CompareBand() {
-  const gyms = search({ ...EMPTY_QUERY, sort: 'distance' }).slice(0, 3);
+  const gyms = teaserGyms();
   if (gyms.length === 0) return null;
 
   /**
@@ -411,10 +408,7 @@ export function CompareBand() {
           <h2 className="gm-h2">{t('web.home.compareTeaser.title')}</h2>
           <p className="gm-lede">{t('web.home.compareTeaser.body')}</p>
           <p className="mt-[26px]">
-            <Link
-              href={toCompareParams(gyms.map(compareKey))}
-              className="gm-btn gm-btn-amber gm-btn-lg"
-            >
+            <Link href={teaserCompareHref()} className="gm-btn gm-btn-amber gm-btn-lg">
               {t('web.home.compareTeaser.cta')} <i aria-hidden="true">→</i>
             </Link>
           </p>

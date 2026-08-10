@@ -138,8 +138,23 @@ test('every landing declares its own canonical', () => {
     seen.add(canonical);
   }
 
-  for (const route of ['app/cities/page.tsx', 'app/explore/page.tsx']) {
-    assert.match(code(route), /alternates:\s*\{\s*canonical:/, `${route} has no canonical`);
+  /*
+   * The two INDEX routes, by VALUE and not by presence.
+   *
+   * This asserted `/alternates:\s*\{\s*canonical:/` - that the key exists. `canonical: '/'` and
+   * `canonical: '/cities?page=2'` both satisfy that, and either one hands the index's ranking to
+   * another URL, which is the exact failure the per-slug half of this test was written to stop.
+   * The slug landings above are checked against their expected string; these were not.
+   */
+  for (const [route, expected] of [
+    ['app/cities/page.tsx', '/cities'],
+    ['app/explore/page.tsx', '/explore'],
+  ] as const) {
+    const found = /alternates:\s*\{\s*canonical:\s*'([^']+)'/.exec(code(route));
+    assert.ok(found, `${route} has no canonical`);
+    assert.equal(found[1], expected, `${route} points its canonical at ${String(found[1])}`);
+    assert.ok(!seen.has(expected), `${expected} is claimed by two landings`);
+    seen.add(expected);
   }
 });
 
