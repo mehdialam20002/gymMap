@@ -47,6 +47,18 @@ export interface SearchResult {
   readonly reviewCount: number;
   /** The cheapest plan, which is what a results card shows. Integer paise. */
   readonly fromPriceMinor: bigint;
+  /**
+   * Kilometres from the CITY CENTRE, not from the reader.
+   *
+   * The distinction is the whole of `A-08`'s honesty rule applied to a number: the app has no
+   * geolocation of any kind, asks for no permission and reads no coordinate, so a figure rendered
+   * as a bare "1.2 km" beside a locality reads as "from you" and cannot be. Every label that
+   * exposes this field now names its origin - the hero's control, the sort, the chip and the card -
+   * because a filter called "Within 2 km" with an unstated origin is a claim, not a control.
+   *
+   * When a real geolocation arrives, this becomes a computed distance from the reader and the
+   * labels change with it. Until then it says what it is.
+   */
   readonly distanceKm: number;
   /** `BR-GYM-01` — nothing is listed before a human approves it. All fixtures are verified. */
   readonly verified: true;

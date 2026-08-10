@@ -200,9 +200,22 @@ export function CheckInScreen({ membershipId }: { readonly membershipId: string 
   return (
     <AccountShell current="/account/memberships" title="web.account.qr.title">
       {membership === null ? (
-        <p className="max-w-prose text-base text-content-secondary">
-          {t('web.checkout.notFound.body')}
-        </p>
+        /*
+         * Its own copy, and a way out.
+         *
+         * This rendered `web.checkout.notFound.body` - checkout's message, about a gym and a plan
+         * being unavailable, on a page whose subject is a check-in credential. A reader who follows
+         * a stale link was told about something they had not asked for and given nowhere to go.
+         */
+        <div className="max-w-prose">
+          <p className="text-base text-content-secondary">{t('web.account.qr.notFound')}</p>
+          <Link
+            href="/account/memberships"
+            className="gm-card-add mt-stack-md text-base font-semibold"
+          >
+            {t('web.account.qr.backToMemberships')}
+          </Link>
+        </div>
       ) : (
         <div className="grid gap-inline-xl lg:grid-cols-[24rem_minmax(0,1fr)]">
           <div className="gm-card rounded-card p-inset-lg text-center">

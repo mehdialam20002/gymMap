@@ -141,9 +141,9 @@ export const en = {
   'web.home.hero.cityAny': 'All cities',
   // `FR-SRCH-03` distance radius. `{km}` is substituted at the call site rather than being four
   // separate keys, so a translator writes the phrase once and the numbers stay numbers.
-  'web.home.hero.radiusLabel': 'Distance',
+  'web.home.hero.radiusLabel': 'Distance from centre',
   'web.home.hero.radiusAny': 'Any distance',
-  'web.home.hero.radiusWithin': 'Within {km} km',
+  'web.home.hero.radiusWithin': 'Within {km} km of the centre',
 
   /*
    * The three promises, in the compact form the hero needs. Deliberately the SAME three claims
@@ -319,6 +319,9 @@ export const en = {
   // a ₹2,500 plan missing from the results has been misled by one word.
   'web.search.filters.price': 'Monthly price, up to',
   'web.search.filters.rating': 'Rating, at least',
+  // The card's and the comparison's distance. The unit used to be a bare ` km` typed into the
+  // JSX, which is both a hard-coded user-facing string and a number with no stated origin.
+  'web.gym.distanceFromCentre': '{km} km from centre',
   'web.search.filters.anyCity': 'Any city',
   'web.search.filters.anyActivity': 'Any activity',
   'web.search.filters.anyFacility': 'Any facility',
@@ -337,7 +340,7 @@ export const en = {
   'web.search.sort.priceAsc': 'Price: low to high',
   'web.search.sort.priceDesc': 'Price: high to low',
   'web.search.sort.rating': 'Highest rated',
-  'web.search.sort.distance': 'Nearest',
+  'web.search.sort.distance': 'Nearest the centre',
   'web.search.empty.title': 'Nothing matched',
   // States the reason the catalogue is small, which is BR-GYM-01 working rather than a fault.
   'web.search.empty.body':
@@ -462,8 +465,17 @@ export const en = {
   'web.compare.pick.full':
     'Four gyms is the limit. Remove one to add another. Past four this stops being a decision and becomes a spreadsheet.',
   // `{keys}` is substituted at the call site.
+  /*
+   * NOT "these are no longer listed". That asserted, as a platform statement of fact, that each of
+   * these WAS a listing and has since been removed - for text that came out of the URL bar. Any
+   * `?gym=anything` produced it, so arbitrary input was echoed back inside a claim the product had
+   * no basis for. What is actually known is that the link did not match a gym; delisting is one
+   * possible reason among several, and it is offered as one.
+   */
   'web.compare.unresolved':
-    'These are no longer listed and have been left out: {keys}. A gym can be delisted after a comparison is shared.',
+    'Some links in this comparison did not match a gym and were left out: {keys}. A link can go stale if a gym is delisted after it was shared.',
+  // Beyond a handful, the list stops being information and starts being the URL pasted back.
+  'web.compare.unresolvedMore': 'and {count} more',
   'web.compare.truncated': 'Only the first four gyms in this link are shown.',
   'web.compare.row.price': 'From, per month',
   'web.compare.row.distance': 'Distance',
@@ -795,6 +807,11 @@ export const en = {
     'The payment has been started and our server has not yet heard from the provider. It activates on that message, not on this page.',
   'web.account.status.expiredNote': 'Renew from the gym page to start a new membership.',
 
+  // The check-in screen's own not-found. It used to borrow `web.checkout.notFound.body`, which
+  // talks about gyms and plans - wrong subject, wrong screen, and no way back.
+  'web.account.qr.notFound':
+    'We could not find that membership. It may have been removed, or the link may be out of date.',
+  'web.account.qr.backToMemberships': 'Back to your memberships',
   'web.account.qr.title': 'Check-in code',
   // FR-CHK-02 / BR-CHK-02, stated where the code would be. The reason the panel is empty is the
   // reason the feature is safe.

@@ -87,7 +87,8 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
             </h3>
             <p className="gm-card-meta mt-stack-2xs flex items-center gap-inline-2xs">
               <Place aria-hidden="true" className="h-[1rem] w-[1rem] shrink-0" />
-              {gym.locality}, {gym.city} · {gym.distanceKm.toFixed(1)} km
+              {gym.locality}, {gym.city} ·{' '}
+              {t('web.gym.distanceFromCentre').replace('{km}', gym.distanceKm.toFixed(1))}
             </p>
           </div>
 

@@ -36,7 +36,23 @@ export function ComparePage({ selection }: { readonly selection: CompareSelectio
           role="status"
           className="mt-stack-md max-w-prose rounded-card border border-warning bg-surface-warning-subtle px-inset-md py-inset-sm text-base text-content-warning"
         >
-          {t('web.compare.unresolved').replace('{keys}', unresolved.join(', '))}
+          {/*
+           * Capped at four, because the rest of this string is attacker-supplied.
+           *
+           * `unresolved` is whatever did not match, straight from the query string, and a link with
+           * forty `gym=` parameters put forty of them into a warning panel. React escapes the text,
+           * so this is not an injection - it is the panel becoming a mirror for anything a sender
+           * chooses to put in a link they share. Four names the problem; a tally covers the rest.
+           */}
+          {t('web.compare.unresolved').replace(
+            '{keys}',
+            unresolved.length <= 4
+              ? unresolved.join(', ')
+              : `${unresolved.slice(0, 4).join(', ')} ${t('web.compare.unresolvedMore').replace(
+                  '{count}',
+                  String(unresolved.length - 4),
+                )}`,
+          )}
         </p>
       )}
       {truncated && (
@@ -130,7 +146,8 @@ function Picker({
                       {gym.locality}, {gym.city}
                     </span>
                     <span className="mt-stack-2xs block text-sm tabular-nums text-content-muted">
-                      {formatMinor(gym.fromPriceMinor)} · {gym.distanceKm.toFixed(1)} km
+                      {formatMinor(gym.fromPriceMinor)} ·{' '}
+                      {t('web.gym.distanceFromCentre').replace('{km}', gym.distanceKm.toFixed(1))}
                     </span>
                   </span>
                 </label>

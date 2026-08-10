@@ -130,7 +130,9 @@ export function CompareTable({ gyms }: { readonly gyms: readonly GymDetail[] }) 
             <Row label="web.compare.row.distance">
               {gyms.map((gym) => (
                 <Cell key={gym.id}>
-                  <span className="tabular-nums">{gym.distanceKm.toFixed(1)} km</span>
+                  <span className="tabular-nums">
+                    {t('web.gym.distanceFromCentre').replace('{km}', gym.distanceKm.toFixed(1))}
+                  </span>
                   {closest !== null && gym.distanceKm === closest && (
                     <Mark label={t('web.compare.nearest')} />
                   )}
