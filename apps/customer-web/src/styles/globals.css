@@ -166,6 +166,11 @@
   --gm-color-border-strong: #6a7284;
   --gm-color-border-input: #6a7284;
   --gm-color-border-input-hover: #9aa2b1;
+  /*
+   * Amber, and declared for BOTH themes below - this line alone was inside the dark block, so an
+   * explicit light theme fell back to `tokens.css`'s emerald `#047857` and the whole customer site
+   * focused in the design system's green while every other accent on the page was amber.
+   */
   --gm-color-border-focus: #ffb627;
   --gm-color-border-success: #4ade80;
   --gm-color-border-warning: #fbbf24;
@@ -364,6 +369,12 @@
    */
   --gm-color-accent-solid: #ffb627;
   --gm-color-content-on-accent: #141005;
+  /*
+   * The focus ring is a MARK, not ink: it is drawn beside a control rather than read on a ground,
+   * so it is the same swatch in both themes for the same reason the fill is. Pinned here because
+   * declaring it in the dark block left the light theme on the design system's emerald.
+   */
+  --gm-color-border-focus: #ffb627;
 }
 
 @tailwind base;
@@ -807,6 +818,20 @@
   }
 
   /*
+   * The amber button keeps its own ink and its own glow on hover.
+   *
+   * `.gm-btn:hover` sets `color: content-on-brand` - white, for the cobalt fill - and at (0,2,0)
+   * it beat `.gm-btn-amber`'s (0,1,0). So every amber call to action, including the hero's Search,
+   * hovered to WHITE on a dark amber sheet: about 2.2:1, on the page's loudest control. The
+   * `::before` fill was corrected earlier and the ink was not, which is the half that is harder
+   * to see because the change is only there while the cursor is.
+   */
+  .gm-btn-amber:hover {
+    color: var(--gm-color-content-on-accent);
+    box-shadow: 0 12px 34px -14px var(--gm-color-accent-solid);
+  }
+
+  /*
    * The amber button's hover fill is amber too.
    *
    * `.gm-btn::before` is a shared cobalt sheet that rises on hover, and `.gm-btn-amber` overrode
@@ -833,11 +858,21 @@
     position: relative;
   }
 
-  .gm-btn-sm::after {
-    content: '';
-    position: absolute;
-    inset: -4px 0;
-    min-height: 44px;
+  /*
+   * `HT2`, not a pseudo-element: a coarse pointer gets the taller control.
+   *
+   * This was `::after { inset: -4px 0; min-height: 44px }`, and `.gm-btn` carries
+   * `overflow: hidden` for its rising fill - which clips the expansion away. The comment claimed
+   * "36px painted, 44px reachable" and the control was 36px reachable. A hit target that cannot
+   * escape its own parent is not one.
+   *
+   * `pointer: coarse` is the repo's own answer (`focus.css` §7.4 `HT2`): a finger gets 44px of
+   * real control, a mouse keeps the 36px the design draws.
+   */
+  @media (pointer: coarse) {
+    .gm-btn-sm {
+      height: 44px;
+    }
   }
 
   .gm-btn-lg {
@@ -1218,8 +1253,13 @@
    * a rounded pill, so an outline traced round the input itself draws a rectangle through the
    * middle of the console. `:focus-within` puts the ring on the shape a reader actually sees.
    */
+  /*
+   * `border-focus`, not `accent-solid`. They are the same swatch today, and the ring has to follow
+   * whatever the focus ROLE is - a component reaching past the role is how the site ends up with
+   * two focus colours the day one of them moves.
+   */
   .gm-field:focus-within {
-    outline: 2px solid var(--gm-color-accent-solid);
+    outline: 2px solid var(--gm-color-border-focus);
     outline-offset: 2px;
     border-radius: 999px;
   }
@@ -1458,8 +1498,13 @@
     border: 1px solid rgb(255 255 255 / 0.14);
   }
 
+  /*
+   * The tick is amber, not mint. `BR-GYM-01` is a FACT about the listing, not a success state -
+   * the results card's badge and the gym page's both moved for that reason, and this one was
+   * missed, so the same claim wore two colours on two surfaces.
+   */
   .gm-card-badge b {
-    color: var(--gm-color-success-solid);
+    color: var(--gm-color-content-on-media-accent);
     font-weight: 500;
   }
 
@@ -1937,8 +1982,13 @@
    * `AX8` - the winner is never colour alone. Mint marks it AND the cell carries a visually
    * hidden "best" so a screen reader is told the same thing the colour says.
    */
+  /*
+   * Amber, matching `.gm-best-pill` on `/compare`. The two marked the SAME fact in two colours -
+   * mint here, amber there - and `compare-table.tsx` carries a comment saying they agree. They
+   * did not.
+   */
   .gm-best {
-    color: var(--gm-color-success-solid);
+    color: var(--gm-color-content-on-media-accent);
     font-weight: 700;
   }
 
@@ -2382,8 +2432,22 @@
    * eleven characters. Ink and tint are the theme-invariant media roles, because a photograph is
    * as dark in a light theme as in a dark one.
    */
+  /*
+   * ┌─ THIS MARKER WAS INVISIBLE ON THE TWO SURFACES IT WAS WRITTEN FOR ─────────────────────────┐
+   * │ The whole argument for putting the disclosure on the image was that a screenshot of one    │
+   * │ card should still say what the photograph is. It did not: `.gm-card-media::after` and      │
+   * │ `.gm-city::after` are full-box scrims, and a pseudo-element is the LAST child of its box,  │
+   * │ so both painted over a marker that declared no `z-index` at all. Measured against the      │
+   * │ gradient at the pill's height it came to about 2.4:1 at 9.5px - present in the DOM, absent │
+   * │ from the page.                                                                              │
+   * │                                                                                            │
+   * │ `.gm-card-badge` and `.gm-card-price` both carry `z-index: 2` and both have a comment      │
+   * │ about sitting over this scrim. The new overlay was the one that did not get the line.       │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   .gm-photo-sample {
     position: absolute;
+    z-index: 3;
     left: 10px;
     bottom: 10px;
     padding: 3px 8px;
@@ -3215,13 +3279,12 @@
   }
 
   /* The section eyebrow the reference puts above every heading: small, spaced, brand-coloured. */
-  .gm-eyebrow {
-    font-size: var(--gm-font-size-2xs);
-    font-weight: var(--gm-font-weight-bold);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--gm-color-content-brand);
-  }
+  /*
+   * `.gm-eyebrow` is gone. It was the PRE-IDENTITY eyebrow - `content-brand` ink, no rule, no mono
+   * face - superseded by `.gm-eyebrow-k` everywhere, and the sweep could not see it: membership
+   * was a substring test, and `gm-eyebrow` sits inside `gm-eyebrow-k`. The stricter, word-bounded
+   * check found it on its first run, which is the argument for the stricter check.
+   */
 
   /*
    * ┌─ THE MICRO-INTERACTIONS THE REFERENCE IS ACTUALLY MADE OF ─────────────────────────────────┐

@@ -140,9 +140,7 @@ export function ForGymsPage() {
           </p>
         </div>
 
-        <h2 className="mt-region-sm text-2xl font-semibold tracking-tight text-content sm:text-3xl">
-          {t('web.forGyms.faq.title')}
-        </h2>
+        <h2 className="mt-region-sm gm-h2">{t('web.forGyms.faq.title')}</h2>
         {/*
          * `<details>` and not a JavaScript accordion. It opens before hydration, it is keyboard
          * operable and announced correctly with no work, and a search engine reads the answers
@@ -164,9 +162,7 @@ export function ForGymsPage() {
 
       <section className="border-t border-subtle bg-surface-subtle">
         <div className="gm-wrap gm-sec gm-sec-tight text-center">
-          <h2 className="mx-auto max-w-prose text-2xl font-semibold tracking-tight text-content sm:text-3xl">
-            {t('web.forGyms.signup.title')}
-          </h2>
+          <h2 className="mx-auto max-w-prose gm-h2">{t('web.forGyms.signup.title')}</h2>
           <Link
             href="/for-gyms/signup"
             data-on-solid="true"

@@ -178,24 +178,6 @@ export function Hero() {
         <span className="gm-orbit-dot gm-orbit-dot-3" />
       </div>
 
-      <nav aria-label={t('web.home.hero.orbitLabel')} className="gm-orbit">
-        {ORBIT.map((node) => {
-          const Glyph = icon[node.glyph];
-          return (
-            <Link
-              key={node.value}
-              href={`/search?category=${encodeURIComponent(node.value)}`}
-              className={`gm-orbit-node ${node.at} ${node.amber ? 'gm-orbit-node-amber' : ''}`}
-            >
-              <span className="gm-orbit-ico">
-                <Glyph aria-hidden="true" className="h-[1.75rem] w-[1.75rem]" />
-              </span>
-              {t(node.key)}
-            </Link>
-          );
-        })}
-      </nav>
-
       <div className="gm-hero-in gm-wrap">
         <p className="gm-hero-tag">
           {/*
@@ -336,6 +318,34 @@ export function Hero() {
               );
             })}
           </ul>
+        </nav>
+
+        {/*
+         * LAST in the hero's content, not first.
+         *
+         * It was declared before `.gm-hero-in`, which is where it needs to be visually - and the DOM
+         * decides both the tab order and what a screen reader reads. So five category links came
+         * before the page's `h1` and before its search form: a keyboard user pressed Tab from the
+         * navigation and landed in the constellation, and a screen reader heard five destinations
+         * before it heard what the page was. It is positioned absolutely either way, so moving it
+         * costs nothing on screen.
+         */}
+        <nav aria-label={t('web.home.hero.orbitLabel')} className="gm-orbit">
+          {ORBIT.map((node) => {
+            const Glyph = icon[node.glyph];
+            return (
+              <Link
+                key={node.value}
+                href={`/search?category=${encodeURIComponent(node.value)}`}
+                className={`gm-orbit-node ${node.at} ${node.amber ? 'gm-orbit-node-amber' : ''}`}
+              >
+                <span className="gm-orbit-ico">
+                  <Glyph aria-hidden="true" className="h-[1.75rem] w-[1.75rem]" />
+                </span>
+                {t(node.key)}
+              </Link>
+            );
+          })}
         </nav>
 
         {/*

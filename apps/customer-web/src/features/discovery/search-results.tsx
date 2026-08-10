@@ -167,6 +167,17 @@ function SearchForm({ query }: { query: SearchQuery }) {
        * what it contains, and a GET form contains nothing it was not given.
        */}
       {query.city !== null && <input type="hidden" name="city" value={query.city} />}
+      {/*
+       * `radius` was missing from this list, and it is the one the HERO sets.
+       *
+       * A member picks "within 5 km" on the home page, lands here, types a term, and the distance
+       * filter is silently gone - the form posts only what it contains, and this one did not
+       * contain it. Every other filter was carried; the field added with `FR-SRCH-03` was not
+       * added here with it.
+       */}
+      {query.radiusKm !== null && (
+        <input type="hidden" name="radius" value={String(query.radiusKm)} />
+      )}
       {query.category !== null && <input type="hidden" name="category" value={query.category} />}
       {query.amenity !== null && <input type="hidden" name="amenity" value={query.amenity} />}
       {query.maxPriceMinor !== null && (

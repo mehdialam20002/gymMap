@@ -28,7 +28,7 @@ import { t } from '../../src/shared/i18n/index.ts';
 
 export default function Loading() {
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-md" aria-busy="true">
+    <div className="gm-wrap gm-sec gm-sec-tight" aria-busy="true">
       <span className="gm-visually-hidden">{t('web.state.loading')}</span>
       {/* Heights are ARBITRARY VALUES, not `h-8` / `h-4`.
           `DesignSystem.md` §2.4 replaces Tailwind's numeric spacing scale with the token scale

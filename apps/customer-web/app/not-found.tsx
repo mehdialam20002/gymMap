@@ -10,8 +10,8 @@ import { t } from '../src/shared/i18n/index.ts';
 
 export default function NotFound() {
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-md">
-      <h1 className="text-2xl font-semibold text-content">{t('web.state.notFound.title')}</h1>
+    <div className="gm-wrap gm-sec gm-sec-tight">
+      <h1 className="gm-h2">{t('web.state.notFound.title')}</h1>
       <p className="mt-stack-sm max-w-ui text-base text-content-secondary">
         {t('web.state.notFound.body')}
       </p>

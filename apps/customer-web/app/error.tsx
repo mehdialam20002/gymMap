@@ -22,9 +22,9 @@ export default function ErrorState({
   reset: () => void;
 }) {
   return (
-    <div className="mx-auto max-w-container px-inset-md py-region-md">
+    <div className="gm-wrap gm-sec gm-sec-tight">
       <div className="max-w-ui rounded-card border border-danger bg-surface-danger-subtle p-inset-lg">
-        <h1 className="text-2xl font-semibold text-content-danger">{t('web.state.error.title')}</h1>
+        <h1 className="gm-h2-danger">{t('web.state.error.title')}</h1>
         <p className="mt-stack-sm text-base text-content-danger">{t('web.state.error.body')}</p>
 
         {error.digest ? (

@@ -156,7 +156,10 @@ export const en = {
    */
   // The orbit beside the headline. Its labels are the CATEGORY names the catalogue carries, so
   // every node lands on results - see the note on ORBIT in hero.tsx.
-  'web.home.hero.orbitLabel': 'Browse by activity',
+  // NOT the same string as `browseLabel`. Both are `<nav>` landmarks on the homepage, and two
+  // landmarks with one accessible name is a screen-reader user hearing "Browse by activity"
+  // twice with no way to tell which list they are in.
+  'web.home.hero.orbitLabel': 'Activities, as a constellation',
   'web.home.hero.category.group': 'Group classes',
   'web.home.hero.category.strength': 'Strength',
   'web.home.hero.category.cardio': 'Cardio',

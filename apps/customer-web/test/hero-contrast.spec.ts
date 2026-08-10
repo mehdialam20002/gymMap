@@ -463,7 +463,24 @@ test('no rule is left in the stylesheet with nothing using it', () => {
    */
   const exempt = new Set<string>([]);
 
-  const orphans = [...declared].filter((name) => !exempt.has(name) && !applied.includes(name));
+  /*
+   * A WORD-BOUNDED match, not `applied.includes(name)`.
+   *
+   * Substring membership means any class whose name is a prefix of another applied class can never
+   * be reported: `gm-card` is inside `gm-card-media`, `gm-art-1` is inside nothing but `gm-plan`
+   * is inside `gm-plan-alt`. The sweep would have gone quiet on exactly the rules most likely to
+   * be left behind - the short, general ones a redesign replaces with a more specific sibling.
+   */
+  /*
+   * Built by CONCATENATION, not in a template literal. A template swallows the backslash, so
+   * `(?<![\w-])` becomes `(?<![w-])` - a class of the letter w and a hyphen. It happened to reject
+   * `gm-eyebrow-k` correctly and would have accepted `gm-carda`, which is the kind of nearly-right
+   * this file has now been bitten by four times.
+   */
+  const usesClass = (name: string): boolean =>
+    new RegExp('(?<![\\w-])' + name + '(?![\\w-])').test(applied);
+
+  const orphans = [...declared].filter((name) => !exempt.has(name) && !usesClass(name));
   assert.deepEqual(
     orphans,
     [],

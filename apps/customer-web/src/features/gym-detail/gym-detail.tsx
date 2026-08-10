@@ -227,7 +227,10 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
               <Link
                 href={checkoutHref(gym, gym.plans[0])}
                 data-on-solid="true"
-                className="gm-hit-target mt-stack-lg block w-full rounded-control bg-brand-solid px-inset-lg py-inset-sm text-center text-md font-semibold text-content-on-brand transition-colors duration-fast ease-standard hover:bg-brand-solid-hover"
+                /* The page's conversion control wears the same pill every other primary CTA does. It was a
+                 * 12px-radius cobalt rectangle - the pre-identity button - which made the one place a
+                 * member actually pays the one place that looked like a different product. */
+                className="gm-btn gm-btn-amber gm-btn-lg"
               >
                 {t('web.gym.plans.join')}
               </Link>
