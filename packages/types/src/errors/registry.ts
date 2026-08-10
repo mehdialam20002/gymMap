@@ -542,4 +542,58 @@ export const ERROR_REGISTRY = {
     enforces: ['FR-AUTH-01', 'NFR-SEC-07'],
     retryable: false,
   },
+
+  // --- catalog · M-031, branch deactivation --------------------------------
+
+  BRANCH_HAS_ACTIVE_MEMBERSHIPS: {
+    module: 'catalog',
+    class: 'Business',
+    // 422 and not 409. `API_Catalog.md` §6.6 line 1639 fixes the status; the reason is that the
+    // request is well-formed and the caller is permitted — the DOMAIN refuses the outcome. A 409
+    // would suggest a concurrent edit and send an owner looking for one.
+    httpStatus: 422,
+    messageKey: 'error.catalog.branch_has_active_memberships',
+    enforces: ['FR-GYM-07', 'BR-MEM-14', 'NFR-USE-06'],
+    // Retryable once the members are moved or their memberships expire, which is exactly what the
+    // message tells the owner to do. Not retryable as-is.
+    retryable: false,
+    /*
+     * `member_count` is NOT decoration, and it is why this row has a `detailsShape` at all.
+     *
+     * `NFR-USE-06`: *"Every destructive action requires confirmation and states its consequence
+     * specifically ('this will archive a plan held by 34 active members')."* `Gym.md` §12.4 makes
+     * the same demand of this refusal and says a vague *"cannot delete"* fails review. The number
+     * has to reach the client, so it has to be in the shape.
+     */
+    detailsShape: '{ branch_id: string; member_count: number; }',
+  },
+
+  CONFIG_VALIDATION_FAILED: {
+    /*
+     * Owned by `admin`, and the row is here because `catalog` needs to EMIT it.
+     *
+     * `API_Catalog.md` catalogues this at §6.13 line 1784 under the admin family — *"configuration
+     * payload internally inconsistent"* — and `Gym.md` §12.4 reuses it for the last-active-branch
+     * refusal: *"a listed gym with no location is not a listing."* One code, two emitters; the
+     * registry's `module` records who OWNS the vocabulary, not who throws it.
+     *
+     * ┌─ `LAST_ACTIVE_BRANCH` IS NOT THIS CODE, AND IS NOT ANY CODE ────────────────────────────┐
+     * │ It appears in exactly two rank-4 documents — `Epic_04.md` and                            │
+     * │ `Milestones_030-059.md` — with no HTTP status attached, and has no row in                │
+     * │ `API_Catalog.md`'s error catalogue at all. `Gym.md` §12.4 is rank 3 and names            │
+     * │ `CONFIG_VALIDATION_FAILED`. Registering `LAST_ACTIVE_BRANCH` would be inventing a        │
+     * │ contract from a plan of work, which `CLAUDE.md` §2 says the roadmap never is.            │
+     * └──────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    module: 'admin',
+    class: 'Business',
+    httpStatus: 422,
+    messageKey: 'error.admin.config_validation_failed',
+    enforces: ['FR-ADMN-03', 'FR-GYM-07', 'NFR-USE-05'],
+    retryable: false,
+    // `NFR-USE-05` requires an error to say what happened, why, and what next — "name the
+    // inconsistency", in API_Catalog's words. A code with no field named is the generic failure
+    // that rule exists to forbid.
+    detailsShape: '{ field: string; reason: string; }',
+  },
 } as const satisfies Record<string, ErrorRegistryRow>;

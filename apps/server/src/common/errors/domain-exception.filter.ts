@@ -193,6 +193,31 @@ export const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
   CAPTCHA_REQUIRED:
     'Please complete the verification challenge to continue. This protects the service from ' +
     'automated abuse.',
+
+  // --- M-031, branch deactivation ------------------------------------------
+
+  /*
+   * ┌─ THIS STATIC SENTENCE IS THE FALLBACK, AND IT IS DELIBERATELY THE WEAKER ANSWER ───────────┐
+   * │ `NFR-USE-06` wants the REAL count — *"this will archive a plan held by 34 active members"* │
+   * │ — and a count is per-request, so it cannot live in a static map. The use case supplies it  │
+   * │ through `DomainException`'s fourth `clientMessage` argument, the same override             │
+   * │ `ACCOUNT_LOCKED` already uses for a live value.                                             │
+   * │                                                                                            │
+   * │ What this row does is stop the fallback being `GENERIC_500`. If the count is ever           │
+   * │ unavailable, an owner reads a sentence that still names the obstacle and the two ways out,  │
+   * │ rather than "something went wrong" on a refusal the system understood exactly.              │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  BRANCH_HAS_ACTIVE_MEMBERSHIPS:
+    'Members can still check in at this branch, so it cannot be closed yet. Move them to another ' +
+    'branch, or wait for their memberships to expire.',
+
+  // Names the shape of the problem without naming the field, because the field is per-request and
+  // arrives through `clientMessage`. "Configuration is inconsistent" alone would fail NFR-USE-05,
+  // so the fallback at least says which two things have to agree.
+  CONFIG_VALIDATION_FAILED:
+    'That change would leave the configuration inconsistent. Check the values against each other ' +
+    'and try again.',
 };
 
 const GENERIC_500 = 'An internal error occurred.';

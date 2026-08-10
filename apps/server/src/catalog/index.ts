@@ -34,6 +34,25 @@ export {
 } from './application/ports/gym-timezone.port.js';
 
 export {
+  AFFECTED_MEMBERSHIPS_PORT,
+  type AffectedMembershipCount,
+  type AffectedMembershipsPort,
+} from './application/ports/affected-memberships.port.js';
+
+/**
+ * The deactivation decision is exported as a pure function, not behind a use case.
+ *
+ * `admin/` will need to answer "could this branch be closed?" for the review console before the
+ * tenant-facing route exists, and a rule that can only be reached through an HTTP handler gets
+ * reimplemented by the second caller. `Gym.md` §12.4 is one rule; there is one place it lives.
+ */
+export {
+  mayDeactivate,
+  type DeactivationFacts,
+  type DeactivationVerdict,
+} from './domain/branch-deactivation.policy.js';
+
+export {
   BRANCH_STATUSES,
   GENDER_POLICIES,
   GYM_STATUSES,
