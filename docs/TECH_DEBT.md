@@ -208,6 +208,8 @@ Full detail for each entry is in §4. `PRD id` shows the primary identifier; eac
 | **TD-035** | Verification SLA counted in WALL-CLOCK hours, not `Asia/Kolkata` business hours | Correctness | Low | S | A business-hours calendar exists anywhere in `docs/`, or the first officer complaint that an application was called late over a weekend | Technical Lead | **BLOCKED** | `Admin.md` §5.1.1, `FR-ADMN-11`, M-036 |
 | **TD-037** | `kyc_documents` diverged from `Schema.md` §4.3 in eight places, unrecorded | Correctness | **High** | S | **PAID at M-029** — corrected by `20260809130000_expand_alter_kyc_documents_to_schema` | Schema Owner | **PAID** | `Schema.md` §4.3, `NFR-SEC-10`, `BR-DAT-07`, M-026, M-029 |
 | **TD-036** | Two `customer-web` security headers relax `Security.md` §11 without the `DECISION_LOG.md` entry §11.7 requires | Security | Medium | S | Before `SEC-A05-002` is written, or the owner rules on either deviation | Project owner + Security | **OPEN** | `Security.md` §11.3, §11.7, `NFR-SEC-12`, `SCR-WEB-001` |
+| **TD-038** | Four `K1` reference tables are populated by a SEED SCRIPT, which `SEP1` forbids | Data | **High** | M | The first environment where `roles` and `permissions` disagree — or the first attempt to deploy reference data to production, which `SEP4` makes impossible by design | Schema Owner | **OPEN** | `SeedStrategy.md` SEP1, SEP4, SEP9, RD3, §2.1, §2.7 · M-019 · M-029 · M-031 |
+| **TD-039** | `reference-data-drift` cannot verify hashes in CI — the PR job has no Postgres service | Test | Medium | S | The first hand-edited reference migration that reaches `main`, which is the exact thing the check was built to stop | Engineering / DevOps | **OPEN** | `SeedStrategy.md` §2.7 · `CI_CD.md` · M-031 |
 
 ---
 
@@ -1068,6 +1070,88 @@ entry, and it is closed.
 | **Related PRD id** | `BR-PAY-05`, `BR-PAY-07`, `FR-PAY-04`, `FR-PAY-12`, `BR-FIN-06`, `FR-RFND-08`, `E2E-02`, `E2E-08`, `KPI-19`, `KPI-21`, `C7` |
 
 ---
+
+### TD-039 — the drift check skips in CI, because the job it runs in has no database
+
+**What was taken.** `reference-data-drift` computes its hashes by querying a live PostgreSQL, which
+is what §2.7 specifies — _"applies **all** migrations to an empty database, then computes, for each
+of the sixteen tables, an ordered hash"_. The `pr.yml` job it was wired into has no Postgres
+service, so it takes the skip branch: it prints one loud line and exits 0.
+
+**Why it was taken.** The check is worth having locally and in the nightly production read from the
+day it is written, and adding a service container to a CI job is a change with its own review.
+Shipping it behind a skip is better than not shipping it — but only if the skip is recorded,
+because a green step that examined nothing is precisely the failure this family of gates exists to
+prevent, and leaving it unwritten would build that failure into the gate against it.
+
+**The interest.** Until repayment, the only thing CI verifies here is that the manifest parses. A
+hand-edited reference migration — `RD4`'s named hazard — reaches `main` unopposed. The check does
+still bite locally and `pnpm ci:reference-drift` is one command, so the exposure is a reviewer
+forgetting rather than a mechanism missing.
+
+**The payoff.** Add the `postgres:16-postgis` service to the job, run `db:deploy` before the step,
+and delete the skip branch's `exit 0` so an unreachable database becomes a failure rather than a
+pass. Several other integration steps need the same service, so this is likely one change serving
+more than one gate.
+
+**The trigger.** The first hand-edited reference migration that reaches `main` — which is the exact
+thing the check was built to stop.
+
+
+### TD-038 — four `K1` reference tables are populated by a seed script, which `SEP1` forbids
+
+**What was taken.** `SeedStrategy.md` `SEP1` is one sentence: _"Reference data (`K1`) is only ever
+created by a versioned migration. There is no reference-data seed **script**."_ Four of the sixteen
+`K1` tables of §2.1 are nevertheless written by `pnpm db:seed`:
+
+| Table | Rows today | Written by |
+| :--- | :-: | :--- |
+| `role_permissions` | 191 | `prisma/seed/roles.ts` |
+| `permissions` | 64 | `prisma/seed/roles.ts` |
+| `roles` | 12 | `prisma/seed/roles.ts` |
+| `kyc_checklists` | 4 | `prisma/seed/kyc-checklists.ts` |
+
+Found by building the `reference-data-drift` check of §2.7 at M-031 and reading its first output.
+Exactly one migration in the repository contains an `INSERT`, and it is the `countries` row that
+same milestone added — so 271 of the 272 reference rows in a developer's database arrived by a
+route the specification excludes.
+
+**Why it was taken.** Not deliberately. `roles.ts` was written at M-019, before any of this
+document's rules had a gate behind them, and `kyc-checklists.ts` followed the same pattern at M-029
+because the pattern was there. Neither author was choosing against `SEP1`; there was nothing that
+could tell them.
+
+**The interest.** Three separate charges, and the third is the one that bites first.
+
+1. **Environments can diverge, which is the exact property `SEP9` exists to guarantee.** _"The
+   India GST profile in `local` is byte-identical to the one in production, because it arrived by
+   the same migration."_ A seed script arrives by whoever ran it, when they ran it, from whatever
+   the file said at the time — and `_prisma_migrations` records none of it.
+2. **The rows cannot reach production at all.** `SEP4`: the seeder needs `app_migrator`, and
+   production's `app_migrator` credential _"exists only inside the one-shot migrator job's workload
+   identity and is not issuable to a developer."_ So `roles` and `permissions` — the tables the
+   authorisation decision itself reads — have no path into a production database. That is not a
+   future problem; it is a deployment that cannot succeed.
+3. **`SEP3`'s environment assertion is a guard in the wrong direction here.** The seeder aborts on
+   a `production` cluster by design, which is correct for `K3` test data and is precisely wrong for
+   `K1`, because `K1` is the data production most needs.
+
+**The payoff.** Move the four into versioned migrations. It is ordinary work rather than a
+redesign: `roles.ts` already emits SQL text — `roles.ts:150` builds `INSERT INTO roles (…)` — so the
+generator exists and what changes is where its output is written. Two constraints on the repayment:
+
+- The ids must not change. `roleId()` and `permissionId()` derive from `NS_SEED`, and `RD2` says a
+  reference row's id derives from `NS_REFERENCE`. Those are different namespaces by `DT2a`, so
+  moving the rows to migrations without re-deriving would leave four tables keyed off the wrong
+  namespace permanently. This has to be settled in the same change, and it is the reason the effort
+  is `M` rather than `S`.
+- `reference-data-drift`'s manifest must be regenerated in the same commit (§7.2), or the check
+  fails on the repayment itself.
+
+**The trigger.** The first environment where `roles` and `permissions` disagree — or, sooner and
+more certainly, the first attempt to deploy reference data to production, which `SEP4` makes
+impossible by design.
+
 
 ### TD-037 — `kyc_documents` diverged from `Schema.md` §4.3 in eight places, and nothing recorded it
 

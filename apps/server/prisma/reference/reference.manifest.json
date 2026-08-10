@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "namespace": "3f8a2d10-0000-5000-b000-000000000000",
+  "files": {
+    "countries.csv": {
+      "sha256": "f2d80e1803380c58d666e3adb1aa4873f2e7065fe5439b4aee0d936aaa57092f",
+      "rows": 1
+    }
+  },
+  "tables": {
+    "countries": {
+      "hash": "b3ecf57c9fc2059cd841db7f9e2d1da1",
+      "rows": 1
+    },
+    "cities": {
+      "hash": "",
+      "rows": 0
+    },
+    "localities": {
+      "hash": "",
+      "rows": 0
+    },
+    "amenities": {
+      "hash": "",
+      "rows": 0
+    },
+    "gym_categories": {
+      "hash": "",
+      "rows": 0
+    },
+    "reason_codes": null,
+    "help_articles": null,
+    "subscription_tiers": null,
+    "tax_profiles": null,
+    "kyc_checklists": {
+      "hash": "84c5780b334061aec11124dceb5e72b4",
+      "rows": 4
+    },
+    "commission_rules": null,
+    "feature_flags": null,
+    "notification_templates": null,
+    "roles": {
+      "hash": "113244ce205bca43a06876de09d5bc5e",
+      "rows": 12
+    },
+    "permissions": {
+      "hash": "134af3a300fa4f0f75f18aec7cd18be7",
+      "rows": 64
+    },
+    "role_permissions": {
+      "hash": "7e76d21391a3abcb310ecdfa2dcc3f30",
+      "rows": 191
+    }
+  }
+}
