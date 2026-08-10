@@ -625,13 +625,10 @@ export const en = {
     'Every application is read by a person. A gym is not listed until it has been approved, which is why the catalogue is smaller than a directory that lists anyone.',
 
   // --- the section eyebrows -------------------------------------------------
-  'web.home.eyebrow.featured': 'Discover near you',
-  'web.home.eyebrow.goals': 'Find your fit',
-  'web.home.eyebrow.how': 'Simple by design',
-  'web.home.eyebrow.plans': 'Membership marketplace',
-  'web.home.eyebrow.compare': 'Smarter decisions',
+  // Five eyebrows, not eleven. One states the section's AUDIENCE, its FORM, or the product
+  // RULE it demonstrates - never a restatement of the heading below it, and never a mood.
+  // The six that did neither are gone with their keys; see `SectionHead` in `chalk.tsx`.
   'web.home.eyebrow.member': 'The member experience',
-  'web.home.eyebrow.cities': 'Explore by city',
   'web.home.eyebrow.reviews': 'Earned reviews',
   'web.home.eyebrow.faq': 'Questions',
 

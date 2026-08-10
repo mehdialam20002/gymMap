@@ -318,13 +318,37 @@ test('every section a rendered module exports is actually on the page', () => {
   assert.ok(checked >= 8, `only ${String(checked)} sections checked`);
 });
 
-test('every homepage section carries an eyebrow, and every eyebrow key exists', () => {
+test('eyebrows are RARE and every one that exists is used', () => {
+  /*
+   * ┌─ THIS TEST ASSERTED THE DEFECT ────────────────────────────────────────────────────────────┐
+   * │ It read "every homepage section carries an eyebrow" and required at least eight of them.    │
+   * │ That is a floor on a decorative device, so it made the density a requirement: eleven ran     │
+   * │ down the page, and six were saying nothing the heading below them did not already say -      │
+   * │ "Discover near you" over "Verified gyms near you", "Find your fit" over "What are you        │
+   * │ training for?", plus three mood phrases of the kind `ai-tells.md` names outright.            │
+   * │                                                                                             │
+   * │ A gate that mandates a device cannot also be the gate that keeps it honest. The floor is a   │
+   * │ CEILING now, and the two properties worth having are kept: no orphan key, and no key used    │
+   * │ that is not defined.                                                                        │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   const eyebrows = Object.keys(en).filter((key) => key.startsWith('web.home.eyebrow.'));
-  assert.ok(eyebrows.length >= 8, `only ${String(eyebrows.length)} eyebrow keys`);
-
   const rendered = [code(PAGE), SECTIONS].join('\n');
+
+  assert.ok(
+    eyebrows.length <= 6,
+    `${String(eyebrows.length)} eyebrow keys. An eyebrow states the section's audience, its form, ` +
+      'or the product rule it demonstrates. If a seventh is genuinely one of those, raise this — ' +
+      'but a small-caps line that repeats the heading under it is a second heading, not structure',
+  );
+
   for (const key of eyebrows) {
     assert.ok(rendered.includes(key), `${key} is defined but never used`);
+  }
+
+  // And the other direction: a key rendered but never defined prints the raw key to a member.
+  for (const used of rendered.matchAll(/web\.home\.eyebrow\.\w+/g)) {
+    assert.ok(eyebrows.includes(used[0]), `${used[0]} is rendered but not in the catalogue`);
   }
 });
 

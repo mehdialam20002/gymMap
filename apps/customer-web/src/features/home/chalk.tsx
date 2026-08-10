@@ -48,13 +48,37 @@ import { checkoutHref } from '../checkout/quote.ts';
  * decision, which is where it should have been from the start.
  */
 
+/**
+ * ┌─ THE EYEBROW IS OPTIONAL, AND MOST SECTIONS DID NOT EARN ONE ──────────────────────────────┐
+ * │ Eleven of them ran down this page, and the count was the smaller half of the problem. Read  │
+ * │ against the heading each sat above, most were saying nothing:                               │
+ * │                                                                                             │
+ * │     "Discover near you"      over  "Verified gyms near you"       the same words             │
+ * │     "Explore by city"        over  "Where we have listings"       the same idea              │
+ * │     "Find your fit"          over  "What are you training for?"   the same question          │
+ * │     "Smarter decisions"      over  the comparison teaser          a mood, not a fact         │
+ * │     "Simple by design"       over  "How GymMap works"             a claim about ourselves    │
+ * │     "Membership marketplace" over  "Plans from verified gyms"     positioning                │
+ * │                                                                                             │
+ * │ A structural device has to encode something true about the content or it is decoration, and  │
+ * │ a small-caps line that repeats the heading underneath it is just a second heading. The three │
+ * │ mood phrases are the `ai-tells.md` filler case exactly.                                      │
+ * │                                                                                             │
+ * │ The rule now: an eyebrow states the section's KIND - who it is for, or what form it takes -  │
+ * │ and never restates the heading. Five survive it. Two mark AUDIENCE, which a reader genuinely │
+ * │ cannot get from the heading and which this page switches between more than once ("For gym    │
+ * │ owners", "The member experience"); one marks FORM ("Questions"); and two name the product    │
+ * │ RULE the section exists to demonstrate ("What we guarantee", "Earned reviews"), where the    │
+ * │ headings below them are deliberately hedged and the eyebrow is the unhedged version.         │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
 function SectionHead({
   eyebrow,
   title,
   lede,
   action,
 }: {
-  readonly eyebrow: MessageKey;
+  readonly eyebrow?: MessageKey;
   readonly title: MessageKey;
   readonly lede?: MessageKey;
   readonly action?: { readonly href: string; readonly label: MessageKey };
@@ -62,7 +86,7 @@ function SectionHead({
   return (
     <div className="gm-sec-head">
       <div>
-        <p className="gm-eyebrow-k">{t(eyebrow)}</p>
+        {eyebrow ? <p className="gm-eyebrow-k">{t(eyebrow)}</p> : null}
         <h2 className="gm-h2">{t(title)}</h2>
         {lede ? <p className="gm-lede">{t(lede)}</p> : null}
       </div>
@@ -87,7 +111,6 @@ export function GymRail({ selected = [] }: { readonly selected?: readonly GymDet
     <section className="gm-sec" id="gyms">
       <div className="gm-wrap gm-reveal">
         <SectionHead
-          eyebrow="web.home.eyebrow.featured"
           title="web.home.featured.title"
           action={{ href: '/search', label: 'web.home.featured.seeAll' }}
         />
@@ -302,7 +325,6 @@ export function PlanRow() {
     <section className="gm-sec gm-sec-paper" id="plans">
       <div className="gm-wrap gm-reveal">
         <SectionHead
-          eyebrow="web.home.eyebrow.plans"
           title="web.home.plans.title"
           lede="web.home.plans.body"
           action={{ href: '/search', label: 'web.home.plans.seeAll' }}
@@ -424,7 +446,6 @@ export function CompareBand() {
     <section className="gm-sec" id="compare">
       <div className="gm-wrap gm-cmp gm-reveal">
         <div>
-          <p className="gm-eyebrow-k">{t('web.home.eyebrow.compare')}</p>
           <h2 className="gm-h2">{t('web.home.compareTeaser.title')}</h2>
           <p className="gm-lede">{t('web.home.compareTeaser.body')}</p>
           <p className="mt-[26px]">
@@ -501,7 +522,6 @@ export function CityGrid() {
     <section className="gm-sec" id="cities">
       <div className="gm-wrap gm-reveal">
         <SectionHead
-          eyebrow="web.home.eyebrow.cities"
           title="web.home.cities.title"
           action={{ href: '/cities', label: 'web.home.cities.seeAll' }}
         />
@@ -630,11 +650,7 @@ export function Goals() {
   return (
     <section className="gm-sec" id="goals">
       <div className="gm-wrap gm-reveal">
-        <SectionHead
-          eyebrow="web.home.eyebrow.goals"
-          title="web.home.goals.title"
-          lede="web.home.goals.body"
-        />
+        <SectionHead title="web.home.goals.title" lede="web.home.goals.body" />
 
         <ul className="gm-goals">
           {GOALS.map((goal) => {
@@ -677,7 +693,7 @@ export function HowItWorks() {
   return (
     <section className="gm-sec gm-sec-paper" id="how">
       <div className="gm-wrap gm-reveal">
-        <SectionHead eyebrow="web.home.eyebrow.how" title="web.home.how.title" />
+        <SectionHead title="web.home.how.title" />
 
         {/*
          * Numbered, and here the numbers earn it: this is a sequence a member moves through in
