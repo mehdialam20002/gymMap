@@ -16,11 +16,44 @@ import { themeScript } from '../src/shared/theme/theme-script.ts';
 import { AnnouncementBar } from '../src/shared/chrome/announcement.tsx';
 import { SiteHeader } from '../src/shared/chrome/site-header.tsx';
 import { SiteFooter } from '../src/shared/chrome/site-footer.tsx';
+import { SITE_URL } from '../src/shared/seo/site.ts';
 import '../src/styles/globals.css';
 
 export const metadata: Metadata = {
+  /*
+   * `metadataBase`, and it was missing.
+   *
+   * Every relative URL in metadata is resolved against this. Without it the landings' canonicals
+   * emitted as `href="/gyms/bengaluru"` - which Google tolerates and the specification does not
+   * promise - and, more seriously, any absolute-URL field would have resolved against `localhost`
+   * in a production build, silently and with only a build-time warning to say so.
+   */
+  metadataBase: SITE_URL,
   title: t('web.home.meta.title'),
   description: t('web.home.meta.description'),
+  /*
+   * Open Graph, which the site had none of. Every page inherits these and overrides the two that
+   * vary, so a link shared to WhatsApp - which is how this audience shares anything - shows a title
+   * and a sentence instead of a bare URL.
+   *
+   * No `images`. There is no share image in `public/`, and pointing at one that does not exist is
+   * worse than omitting the field: the scraper fetches a 404 and some clients then fall back to
+   * whatever image they find on the page, which here would be a stock photograph of a gym that is
+   * not the gym. Booked as work rather than faked.
+   */
+  openGraph: {
+    type: 'website',
+    siteName: 'GymMap',
+    locale: 'en_IN',
+    url: SITE_URL,
+    title: t('web.home.meta.title'),
+    description: t('web.home.meta.description'),
+  },
+  twitter: {
+    card: 'summary',
+    title: t('web.home.meta.title'),
+    description: t('web.home.meta.description'),
+  },
 };
 
 export const viewport: Viewport = {

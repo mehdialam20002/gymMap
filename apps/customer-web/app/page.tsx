@@ -9,6 +9,8 @@
  * real discovery UI arrives from `src/features/discovery/` with `SCR-WEB-002`.
  */
 
+import type { Metadata } from 'next';
+
 import { t } from '../src/shared/i18n/index.ts';
 import { Hero } from '../src/features/home/hero.tsx';
 import type { RawParams } from '../src/features/discovery/search.ts';
@@ -28,6 +30,22 @@ import {
   Promises,
   Reviews,
 } from '../src/features/home/chalk.tsx';
+
+/**
+ * The home page's canonical, and it is the one page that could least afford not to have one.
+ *
+ * The compare rail keeps its selection in the URL (`FR-CMP-01`), by design and for good reasons -
+ * a shared link opens the same four gyms, the back button removes the last one, and none of it
+ * needs hydration. The consequence nobody had written down is that `/?gym=a&gym=b` is a real,
+ * linkable, shareable address that serves the home page, and with eight listings and a cap of four
+ * there are hundreds of them. Every chip on every card is one more, and they are all in the HTML
+ * for a crawler to follow.
+ *
+ * `alternates.canonical` collapses the lot back to `/`. The rail keeps working exactly as it did.
+ */
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 /**
  * `searchParams`, because the compare selection lives in the URL (`FR-CMP-01`).

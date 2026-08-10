@@ -24,6 +24,23 @@ export function generateMetadata({ searchParams }: { searchParams: RawParams }):
   return {
     title: `${scope} · GymMap`,
     description: t('web.search.metaDescription'),
+    /*
+     * ┌─ ONE CANONICAL FOR EVERY FACET, AND THE NOTE ABOVE WAS HALF TRUE ───────────────────────┐
+     * │ The comment above says a filtered view must not be a duplicate of every other filtered   │
+     * │ view. It is right, and this function did not achieve it: the title varies by `q` ALONE,  │
+     * │ and the description is one constant. Read out of the served HTML, `/search` and          │
+     * │ `/search?city=bengaluru` shipped the same `<title>` AND the same description.            │
+     * │                                                                                         │
+     * │ The fix is not to multiply the facets into thousands of thin near-identical pages. It is │
+     * │ the architecture that already exists: `FR-SRCH-13` built `/gyms/[citySlug]` and          │
+     * │ `/explore/[activitySlug]` to BE the indexable per-city and per-activity pages, each with │
+     * │ its own copy, its own cross-links and its own canonical. So every faceted search URL     │
+     * │ consolidates here, and the landings carry the ranking.                                  │
+     * │                                                                                         │
+     * │ The title still varies, because it is what a person reads in a tab and in their history. │
+     * └─────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    alternates: { canonical: '/search' },
   };
 }
 
