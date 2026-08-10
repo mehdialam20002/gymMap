@@ -179,10 +179,11 @@ Direct pushes to `main` and `develop` are blocked by the pre-push hook.
 ## 8. Local environment
 
 ```bash
-pnpm infra:up      # Postgres 16+PostGIS · Redis 7 · MinIO · Mailpit
+pnpm infra:up      # Postgres 16+PostGIS · Redis 7 · MinIO · Mailpit · ClamAV
 pnpm infra:ps      # health
 pnpm infra:down    # stop, keep data
 pnpm infra:reset   # stop and DESTROY volumes
+pnpm env:check     # is my .env.local still current with .env.example?
 ```
 
 | Service                | Endpoint                                                          |
@@ -194,6 +195,13 @@ pnpm infra:reset   # stop and DESTROY volumes
 
 Copy `.env.example` → `.env.local`. Never commit a real credential; `.env.local` is git-ignored and
 Gitleaks-scanned.
+
+Because it is git-ignored, it is a copy taken **once** — no test and no CI job can see it, so when a
+required variable is added to the schema your copy silently stops being enough and the server stops
+booting. `pnpm dev` runs `env:check` first for that reason, and it names the missing keys. What it
+is protecting you from is not the config error, which is excellent, but _where_ the config error
+appears: under four interleaved `turbo run dev` streams, eleven lines below a
+`[vite] http proxy error: ECONNREFUSED 127.0.0.1:3000` from an entirely different workspace.
 
 ---
 

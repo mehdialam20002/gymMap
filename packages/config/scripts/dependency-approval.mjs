@@ -136,6 +136,23 @@ const APPROVED_PREFIXES = [
   'vite',
   '@vitejs/',
   '@tanstack/',
+  /*
+   * ┌─ NOT NAMED IN PART 1, AND IT SAT UNDER THE COMMENT THAT SAYS IT IS — TD-049 ───────────────┐
+   * │ Part 1's row is `Dashboards (both) | React 18 + Vite + TypeScript (SPA)`. It names no       │
+   * │ router. Neither does any A-NN row: the register runs A-01…A-30, A-40, A-41, A-42, and the   │
+   * │ only "router" in the document is Next.js's App Router, which is the other application.      │
+   * │                                                                                            │
+   * │ So this line made `pnpm ci:deps-approved` print *"every dependency maps to an approved      │
+   * │ A-NN row"* about a dependency that maps to none — a green gate is worse than no gate here,  │
+   * │ because it converts an unreviewed choice into an apparently-reviewed one and the next       │
+   * │ reader stops looking.                                                                       │
+   * │                                                                                            │
+   * │ Kept rather than deleted, deliberately. Deleting it turns CI red on a question only the     │
+   * │ owner can answer, and `react-router-dom` v6 is very likely the answer — the two Vite        │
+   * │ dashboards need a router and the slot is genuinely open. What was wrong was the SILENCE,    │
+   * │ not the package. Remove this block and move the entry up when the A-NN row exists.          │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   'react-router-dom',
   // Node types — the runtime itself.
   '@types/node',

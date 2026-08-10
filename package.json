@@ -12,7 +12,9 @@
   "//": "R1a — the root has NO `dependencies` block, not an empty one. devDependencies are limited to turbo, prettier, husky, lint-staged, @commitlint/*, dependency-cruiser and typescript. An accidental root dependency is invisible to size-limit (A-29) and to per-app Dockerfile pruning.",
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "//dev": "The env check is chained rather than named `predev`, because pnpm does not run pre/post scripts by default (`enable-pre-post-scripts` is unset in .npmrc) and a guard that silently never runs is worse than none. It costs about a second and it runs FIRST for a reason: on 2026-08-11 a stale `.env.local` missing CLAMAV_HOST surfaced as `[vite] http proxy error: ECONNREFUSED 127.0.0.1:3000` — the wrong process, in the wrong workspace — with the real message buried under four interleaved turbo streams.",
+    "dev": "node packages/config/scripts/env-local-drift.mjs && turbo run dev",
+    "env:check": "node packages/config/scripts/env-local-drift.mjs",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "//architecture": "NOT `turbo run architecture`. Every workspace's own `architecture` script is a no-op, so the turbo form cruised nothing while reporting success — and a local sweep reported '0 errors' for three milestones while apps/server/src/audit held a real no-raw-prisma-outside-tenancy violation. This is byte-identical to what pr.yml job 5 runs. The rules are also mostly CROSS-workspace (no-app-to-app, no-ui-to-utils), which a per-workspace cruise cannot see at all.",
