@@ -425,7 +425,7 @@ export class AuthController {
   @RequiredPermission(IAM_PERMISSIONS.OWN_MFA_ENROL)
   @RateLimit('RL-AUTH')
   @HttpCode(HttpStatus.OK)
-  @EmitsErrors('MFA_NOT_AVAILABLE_FOR_ROLE', 'MFA_VERIFICATION_FAILED')
+  @EmitsErrors('MFA_NOT_AVAILABLE_FOR_ROLE', 'MFA_VERIFICATION_FAILED', 'UNAUTHENTICATED')
   @ApiOperation({
     summary: 'Begin TOTP enrolment',
     description:
@@ -459,7 +459,7 @@ export class AuthController {
   @RequiredPermission(IAM_PERMISSIONS.OWN_MFA_VERIFY)
   @RateLimit('RL-AUTH')
   @HttpCode(HttpStatus.OK)
-  @EmitsErrors('MFA_VERIFICATION_FAILED')
+  @EmitsErrors('MFA_VERIFICATION_FAILED', 'UNAUTHENTICATED')
   @ApiOperation({
     summary: 'Confirm enrolment, or present the second factor',
     description:
@@ -512,7 +512,7 @@ export class AuthController {
   @RequiredPermission(IAM_PERMISSIONS.OWN_MFA_DISABLE)
   @RateLimit('RL-AUTH')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @EmitsErrors('MFA_MANDATORY_FOR_ROLE', 'MFA_VERIFICATION_FAILED')
+  @EmitsErrors('MFA_MANDATORY_FOR_ROLE', 'MFA_VERIFICATION_FAILED', 'UNAUTHENTICATED')
   @ApiOperation({
     summary: 'Remove the second factor',
     description:
@@ -543,7 +543,10 @@ export class AuthController {
   @RequiredPermission(IAM_PERMISSIONS.IMPERSONATION_START)
   @RateLimit('RL-AUTH')
   @HttpCode(HttpStatus.OK)
-  @EmitsErrors('IMPERSONATION_REFUSED')
+  // `UNAUTHENTICATED` and `PERMISSION_DENIED` were missing, and rbac.contract-spec.ts caught it.
+  // The route is guarded — `iam.impersonation.start` is SUPPORT_AGENT and SUPER_ADMIN only — so a
+  // client generated from the document had no branch for the refusal it will actually meet.
+  @EmitsErrors('IMPERSONATION_REFUSED', 'UNAUTHENTICATED', 'PERMISSION_DENIED')
   @ApiOperation({
     summary: 'Act as another user, briefly and with a reason',
     description:
@@ -585,6 +588,10 @@ export class AuthController {
   @Post('impersonate/end')
   @MfaExempt()
   @RequiredPermission(IAM_PERMISSIONS.IMPERSONATION_END)
+  // This route declared NO error codes at all. `Authentication.md` §8.15's own error table names
+  // `UNAUTHENTICATED` for "called with an ACCESS token instead of the IMPERSONATION token" — the
+  // most likely mistake a client makes here — and the route is guarded, so it can also refuse.
+  @EmitsErrors('UNAUTHENTICATED', 'PERMISSION_DENIED')
   @RateLimit('RL-AUTH')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({

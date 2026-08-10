@@ -136,7 +136,9 @@
           "iam"
         ],
         "x-gymmap-error-codes": [
-          "IMPERSONATION_REFUSED"
+          "IMPERSONATION_REFUSED",
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED"
         ],
         "x-gymmap-permission": "iam.impersonation.start",
         "x-gymmap-rate-limit": "RL-AUTH"
@@ -155,6 +157,10 @@
         "summary": "End an impersonation",
         "tags": [
           "iam"
+        ],
+        "x-gymmap-error-codes": [
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED"
         ],
         "x-gymmap-permission": "iam.impersonation.end",
         "x-gymmap-rate-limit": "RL-AUTH"
@@ -242,7 +248,8 @@
         ],
         "x-gymmap-error-codes": [
           "MFA_MANDATORY_FOR_ROLE",
-          "MFA_VERIFICATION_FAILED"
+          "MFA_VERIFICATION_FAILED",
+          "UNAUTHENTICATED"
         ],
         "x-gymmap-permission": "iam.mfa.disable",
         "x-gymmap-rate-limit": "RL-AUTH"
@@ -264,7 +271,8 @@
         ],
         "x-gymmap-error-codes": [
           "MFA_NOT_AVAILABLE_FOR_ROLE",
-          "MFA_VERIFICATION_FAILED"
+          "MFA_VERIFICATION_FAILED",
+          "UNAUTHENTICATED"
         ],
         "x-gymmap-permission": "iam.mfa.enrol",
         "x-gymmap-rate-limit": "RL-AUTH"
@@ -285,7 +293,8 @@
           "iam"
         ],
         "x-gymmap-error-codes": [
-          "MFA_VERIFICATION_FAILED"
+          "MFA_VERIFICATION_FAILED",
+          "UNAUTHENTICATED"
         ],
         "x-gymmap-permission": "iam.mfa.verify",
         "x-gymmap-rate-limit": "RL-AUTH"
