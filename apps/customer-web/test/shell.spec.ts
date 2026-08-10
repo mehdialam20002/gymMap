@@ -597,6 +597,42 @@ test('CONTROL — the literal scan actually detects a literal', () => {
   assert.equal(found[0]![1], 'Find a gym near you');
 });
 
+test('no rendered string contains an em-dash or an en-dash — ui-taste §5.1', () => {
+  /*
+   * ┌─ A RULE WITH NO GATE IS A PREFERENCE ──────────────────────────────────────────────────────┐
+   * │ `.claude/skills/ui-taste` §5.1 bans `—` and `–` in user-visible strings, and records its    │
+   * │ own exception: "several strings already in en.ts contain em-dashes. Fix them when you touch │
+   * │ that string for another reason; do not open a change that only removes dashes."             │
+   * │                                                                                             │
+   * │ Sixteen of them were still there, which is what happens to a rule nothing checks - the      │
+   * │ exception was written as temporary and had become the state of the file. Removing them and  │
+   * │ leaving it there would put the count back up within a month, so the count is asserted.       │
+   * │                                                                                             │
+   * │ The exemption the skill grants is preserved exactly: this reads the catalogue's VALUES, not │
+   * │ its source, so the em-dashes in the comments explaining these keys are untouched and stay   │
+   * │ legal. Source comments, commit messages and `docs/` are explicitly out of scope there.       │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const offenders = Object.entries(en)
+    .filter(([, value]) => typeof value === 'string' && /[–—]/.test(value))
+    .map(([key, value]) => `${key}: ${String(value).slice(0, 70)}`);
+  assert.deepEqual(
+    offenders,
+    [],
+    'a dash a translator cannot type and a screen reader announces as a pause:\n  ' +
+      offenders.join('\n  '),
+  );
+});
+
+test('CONTROL — the dash scan would actually catch one', () => {
+  // The catalogue being clean is not evidence that the check works.
+  const probe = { a: 'price — charged', b: 'range 1–4', c: 'fine, honestly' };
+  const caught = Object.entries(probe)
+    .filter(([, v]) => /[–—]/.test(v))
+    .map(([k]) => k);
+  assert.deepEqual(caught, ['a', 'b']);
+});
+
 test('CONTROL — the scan catches SENTENCES, which is what it used to miss', () => {
   /*
    * The previous fixture was the one sentence in the language with no punctuation in it, so it

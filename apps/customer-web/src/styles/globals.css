@@ -573,8 +573,10 @@
    * │ Deleted rather than filled in, because filling them in means naming the five surfaces each  │
    * │ applies to and proving the fallback's contrast, which is a piece of work and not a tidy-up. │
    * │ Both features are Baseline and supported by every browser this product targets, so nothing  │
-   * │ regresses today - what was lost was a fallback that never existed. Recorded here so the     │
-   * │ next reader sees an absence rather than an assurance.                                       │
+   * │ regresses today - what was lost was a fallback that never existed.                          │
+   * │                                                                                            │
+   * │ Booked as `TD-040` in `docs/TECH_DEBT.md`, with the payoff trigger. `CLAUDE.md` §9.6: a     │
+   * │ knowing shortcut is written down or it is not taken, and there is no third option.          │
    * └────────────────────────────────────────────────────────────────────────────────────────────┘
    */
 

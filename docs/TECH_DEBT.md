@@ -210,6 +210,7 @@ Full detail for each entry is in §4. `PRD id` shows the primary identifier; eac
 | **TD-036** | Two `customer-web` security headers relax `Security.md` §11 without the `DECISION_LOG.md` entry §11.7 requires | Security | Medium | S | Before `SEC-A05-002` is written, or the owner rules on either deviation | Project owner + Security | **OPEN** | `Security.md` §11.3, §11.7, `NFR-SEC-12`, `SCR-WEB-001` |
 | **TD-038** | Four `K1` reference tables are populated by a SEED SCRIPT, which `SEP1` forbids | Data | **High** | M | The first environment where `roles` and `permissions` disagree — or the first attempt to deploy reference data to production, which `SEP4` makes impossible by design | Schema Owner | **OPEN** | `SeedStrategy.md` SEP1, SEP4, SEP9, RD3, §2.1, §2.7 · M-019 · M-029 · M-031 |
 | **TD-039** | `reference-data-drift` cannot verify hashes in CI — the PR job has no Postgres service | Test | Medium | S | The first hand-edited reference migration that reaches `main`, which is the exact thing the check was built to stop | Engineering / DevOps | **OPEN** | `SeedStrategy.md` §2.7 · `CI_CD.md` · M-031 |
+| **TD-040** | Two `@supports not (...)` fallbacks in `customer-web` were described in comments and never written | Code | Low | S | A target browser without `color-mix()` or `backdrop-filter` appears in analytics, or the veil's contrast is re-proved for any reason | Frontend Lead, customer site | ACCEPTED | `globals.css` · `DesignSystem.md` §6 · `SCR-WEB-001` |
 
 ---
 
@@ -1068,6 +1069,39 @@ entry, and it is closed.
 | **Owner** | QA Lead with Backend Lead, payments |
 | **Status** | SCHEDULED — sprint 5 or 6 |
 | **Related PRD id** | `BR-PAY-05`, `BR-PAY-07`, `FR-PAY-04`, `FR-PAY-12`, `BR-FIN-06`, `FR-RFND-08`, `E2E-02`, `E2E-08`, `KPI-19`, `KPI-21`, `C7` |
+
+---
+
+### TD-040 — two hero fallbacks were documented and never implemented
+
+**What was taken.** `apps/customer-web/src/styles/globals.css` carried two `@supports not (...)`
+blocks with nothing inside them. Each sat under a paragraph explaining in detail what it did:
+
+| Guard | What the comment promised |
+| :--- | :--- |
+| `@supports not (background-color: color-mix(...))` | The hero veil falls back to the flat token, so the scrim survives and white copy never lands straight on a bright photograph |
+| `@supports not (backdrop-filter: blur(1px))` | The glass panels go fully opaque instead of showing a sharp photograph through 57% tint |
+
+Neither was written. An empty guard is worse than no guard, because it reads as handled by everyone
+who scrolls past it — including, evidently, the person who wrote the comment above it. Found by the
+cascade audit at M-032 as a dead at-rule; the empty blocks are deleted and the absence is recorded
+in place, so the file no longer claims a fallback it does not have.
+
+**Why it was taken.** Writing them properly is not a tidy-up. Each needs the list of surfaces the
+guard has to cover — the veil, the console, the chrome, the rail and the card scrims are five
+different colour treatments — and each fallback needs its own contrast proof against
+`packages/ui/src/tokens/contrast.proof.ts`, because a fallback that fails `NFR-USE-05` is a worse
+outcome than the degraded rendering it replaces.
+
+**The interest.** Close to zero today and not zero forever. Both features are Baseline and supported
+by every browser in the target matrix, so nothing regresses now. The charge falls due if a browser
+without them appears — an older embedded WebView is the realistic case — and it falls due silently:
+the declaration is dropped, the scrim disappears, and the hero renders white text on a photograph
+with no error anywhere.
+
+**The payoff trigger.** A target browser without `color-mix()` or `backdrop-filter` appears in
+analytics, or the veil's contrast is re-proved for any other reason — at which point the fallback
+costs one more row in the proof rather than a fresh piece of work.
 
 ---
 

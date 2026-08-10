@@ -94,7 +94,7 @@ export const en = {
   'web.chrome.footer.rights': 'GymMap',
 
   // --- SCR-WEB-001 home -----------------------------------------------------
-  'web.home.meta.title': 'GymMap — find and join a gym near you',
+  'web.home.meta.title': 'GymMap: find and join a gym near you',
   'web.home.meta.description':
     'Compare gyms near you by price, distance and facilities. See the real price before you visit, and join online.',
   // Split so one phrase can carry the brand accent. Kept as two keys rather than markup inside
@@ -299,7 +299,7 @@ export const en = {
   // Rendered on every page that shows the placeholder catalogue. A demo that cannot be told
   // apart from production is how a screenshot of invented gyms ends up in a pitch deck.
   'web.fixtureNotice':
-    'Sample listings. These gyms are illustrative — real listings appear once gym onboarding and verification are live.',
+    'Sample listings. These gyms are illustrative. Real listings appear once gym onboarding and verification are live.',
 
   // --- SCR-WEB-002 · results, facets, empty state ---------------------------
   'web.search.eyebrow': 'Search results',
@@ -371,7 +371,7 @@ export const en = {
   'web.gym.section.location': 'Where and when',
   'web.gym.section.reviews': 'Reviews',
   'web.gym.reviews.none':
-    'No reviews yet. On GymMap a review can only be written by a member who has checked in at this gym — so a new listing starts empty rather than starting with reviews nobody earned.',
+    'No reviews yet. On GymMap a review can only be written by a member who has checked in at this gym, so a new listing starts empty rather than starting with reviews nobody earned.',
   'web.gym.reviews.earned':
     'members have reviewed this gym, and every one of them checked in first. Individual reviews appear here once the reviews module is live.',
   /*
@@ -419,7 +419,7 @@ export const en = {
   'web.gym.plans.join': 'Join this gym',
   // Invariant 3 stated to the member in their own words, on the screen where the price is read.
   'web.gym.plans.joinNotice':
-    'Checkout opens once payments are live. The price you see here is the price you will be charged — it is revalidated on the server before any payment is taken.',
+    'Checkout opens once payments are live. The price you see here is the price you will be charged. It is revalidated on the server before any payment is taken.',
   'web.gym.notFound.title': 'Gym not found',
   'web.gym.compare.add': 'Add to compare',
   'web.gym.compare.remove': 'Remove from compare',
@@ -453,14 +453,14 @@ export const en = {
   'web.compare.markNearest': 'nearest of these',
   'web.compare.markRated': 'highest rated of these',
   'web.compare.metaDescription':
-    'Put up to four verified gyms side by side — price, distance, rating and facilities.',
+    'Put up to four verified gyms side by side: price, distance, rating and facilities.',
   'web.compare.empty.title': 'Nothing to compare yet',
   'web.compare.empty.body':
     'Pick up to four gyms and see them side by side. Every listing here has been checked by a person before it appeared.',
   'web.compare.pick.title': 'Add a gym',
   'web.compare.pick.action': 'Compare these',
   'web.compare.pick.full':
-    'Four gyms is the limit. Remove one to add another — past four this stops being a decision and becomes a spreadsheet.',
+    'Four gyms is the limit. Remove one to add another. Past four this stops being a decision and becomes a spreadsheet.',
   // `{keys}` is substituted at the call site.
   'web.compare.unresolved':
     'These are no longer listed and have been left out: {keys}. A gym can be delisted after a comparison is shared.',
@@ -507,7 +507,7 @@ export const en = {
   'web.checkout.pay': 'Continue to payment',
   // Says exactly why the button does nothing, rather than looking broken.
   'web.checkout.payNotice':
-    'Payments are not live yet. When they are, this hands you to the payment provider — GymMap never sees your card details.',
+    'Payments are not live yet. When they are, this hands you to the payment provider. GymMap never sees your card details.',
   'web.checkout.changePlan': 'Choose a different plan',
 
   'web.confirmation.title': 'What happens after you pay',
@@ -516,7 +516,7 @@ export const en = {
   // Invariant 5, and the reason it exists, in one paragraph a member can act on.
   'web.confirmation.webhook.title': 'Your membership activates on our server, not in this tab',
   'web.confirmation.webhook.body':
-    'When you pay, the payment provider tells our server directly. That message is what activates the membership. This page reaching you is not the confirmation — which is why a lost connection, a closed tab or a failed redirect cannot leave you paid and without a membership.',
+    'When you pay, the payment provider tells our server directly. That message is what activates the membership. This page reaching you is not the confirmation, which is why a lost connection, a closed tab or a failed redirect cannot leave you paid and without a membership.',
   'web.confirmation.next.title': 'What you will get',
   'web.confirmation.next.qr':
     'A membership QR code in your account, which the gym scans when you arrive.',
@@ -540,7 +540,7 @@ export const en = {
   'web.howItWorks.choose.rule':
     'The total you approve is checked again on our server before any payment is taken. A mismatch stops the payment rather than charging a different figure.',
   'web.howItWorks.join.rule':
-    'Your membership activates when the payment provider confirms the payment to our server — not when your browser returns. A dropped connection cannot leave you paid and without a membership.',
+    'Your membership activates when the payment provider confirms the payment to our server, not when your browser returns. A dropped connection cannot leave you paid and without a membership.',
   'web.howItWorks.reviews.title': 'Why the reviews here are different',
   'web.howItWorks.reviews.body':
     'A review can only be written by a member with a recorded check-in at that gym. That is the whole rule. It means a new gym starts with no reviews rather than with reviews nobody earned, and it means the ones you read came from people who actually went.',
@@ -568,7 +568,7 @@ export const en = {
     'Members show a code, your staff scan it on any phone or tablet, and the visit is recorded against the right membership.',
   'web.forGyms.value.money.title': 'Money you can reconcile',
   'web.forGyms.value.money.body':
-    'Every sale is broken down to the paise — what the member paid, the tax, our commission, the gateway fee and what settles to you. Nothing is rounded away.',
+    'Every sale is broken down to the paise: what the member paid, the tax, our commission, the gateway fee and what settles to you. Nothing is rounded away.',
 
   'web.forGyms.steps.title': 'How listing works',
   'web.forGyms.steps.apply.title': 'Tell us about the gym',
@@ -576,7 +576,7 @@ export const en = {
     'Name, address, what you offer, your plans and prices, and the documents that show the business is yours.',
   'web.forGyms.steps.verify.title': 'A person checks it',
   'web.forGyms.steps.verify.body':
-    'Not a script. Someone reads the application and confirms the gym is real before anything goes live — which is the reason a member trusts what they find here.',
+    'Not a script. Someone reads the application and confirms the gym is real before anything goes live, which is the reason a member trusts what they find here.',
   'web.forGyms.steps.live.title': 'The listing goes live',
   'web.forGyms.steps.live.body':
     'It appears in search, on your city page and on the pages for every activity you offer.',
@@ -589,7 +589,7 @@ export const en = {
   // decision, not a page author's — so this states the SHAPE of the charge honestly and leaves
   // the number to the signup conversation rather than inventing or leaking one.
   'web.forGyms.commission.body':
-    'A commission per membership sold, and nothing else: no listing fee, no monthly charge and no fee for a month with no sales. The rate is agreed before you list and is shown on every statement, and the rate that applied on the day of a sale is the rate that sale keeps — a later change never rewrites an old settlement.',
+    'A commission per membership sold, and nothing else: no listing fee, no monthly charge and no fee for a month with no sales. The rate is agreed before you list and is shown on every statement, and the rate that applied on the day of a sale is the rate that sale keeps. A later change never rewrites an old settlement.',
 
   'web.forGyms.faq.title': 'Questions owners ask',
   'web.forGyms.faq.control.q': 'Do I lose control of my prices?',
@@ -620,7 +620,7 @@ export const en = {
   // The form is complete and its endpoint is not. Said next to the button rather than discovered
   // by a gym owner who filled it in.
   'web.forGyms.signup.notice':
-    'Gym onboarding is not connected yet, so this form does not send anything. It is here so the fields can be reviewed — nothing you type is stored or transmitted.',
+    'Gym onboarding is not connected yet, so this form does not send anything. It is here so the fields can be reviewed. Nothing you type is stored or transmitted.',
   'web.forGyms.signup.verifyNote':
     'Every application is read by a person. A gym is not listed until it has been approved, which is why the catalogue is smaller than a directory that lists anyone.',
 
@@ -753,7 +753,7 @@ export const en = {
     'A city appears here once it has a verified listing. The counts are what is actually listed, not what is planned.',
   'web.landing.explore.title': 'Explore by activity',
   'web.landing.explore.metaDescription':
-    'Browse verified gyms by what they offer — strength, cardio, yoga, swimming, boxing and more.',
+    'Browse verified gyms by what they offer: strength, cardio, yoga, swimming, boxing and more.',
   'web.landing.explore.intro':
     'Start from what you want to do. Each activity lists the gyms that offer it, in the cities where they are.',
   'web.landing.count.one': 'gym',
@@ -765,7 +765,7 @@ export const en = {
   // The account area is rendered over a sample member because sign-in is not wired to this app
   // yet. Said once, at the top of every account screen, in the same voice as the listing notice.
   'web.account.demoNotice':
-    'Sample account. Sign-in is not connected to this site yet, so these are illustrative records — they are here so the screens can be reviewed.',
+    'Sample account. Sign-in is not connected to this site yet, so these are illustrative records. They are here so the screens can be reviewed.',
   'web.account.nav.label': 'Account',
   'web.account.nav.overview': 'Overview',
   'web.account.nav.memberships': 'Memberships',
@@ -857,7 +857,7 @@ export const en = {
   'web.state.empty.title': 'Nothing here yet',
   'web.state.error.title': 'Something went wrong at our end',
   'web.state.error.body':
-    'This is our fault, not yours. Try again in a moment — if it keeps happening, the reference below helps us find it.',
+    'This is our fault, not yours. Try again in a moment. If it keeps happening, the reference below helps us find it.',
   'web.state.error.retry': 'Try again',
   'web.state.error.reference': 'Reference',
   'web.state.notFound.title': 'That page does not exist',
