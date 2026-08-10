@@ -5810,9 +5810,94 @@ audit rows — which `FolderStructure.md` §8.2 forbids for a reason it states p
 can append an audit row can append a **false** one, and a false entry in an append-only log is
 permanent and unfalsifiable.
 
+---
+
+## ADR-0040 — `kyc_checklists` is `G-COMPLETE`: append, plus one column-scoped completion write
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-10 |
+| **Decided by** | Project owner, delegated to this session on the analysis below |
+| **Supersedes** | Nothing. Resolves a disagreement inside `Schema.md` without amending either clause |
+| **Tracked as** | `BLK-15` in `PHASES.md` — now resolved |
+| **Related PRD ids** | `FR-ONB-03` · `FR-ADMN-06` · `ERD.md` §9.6 · `Schema.md` §1.3, §2.7, §12.3 |
+
+**Decision.** `kyc_checklists` takes grant class **`G-COMPLETE`**:
+
+```sql
+GRANT SELECT, INSERT                                        ON kyc_checklists TO app_rw;
+GRANT UPDATE (superseded_at, updated_at, updated_by)        ON kyc_checklists TO app_rw;
+GRANT SELECT                                                ON kyc_checklists TO app_platform_ro;
+```
+
+`items`, `country_code`, `entity_type` and `version` are ungrantable for `UPDATE` by any application
+role. Neither conflicting clause is amended.
+
+**Context.** `Schema.md` says two different things about this table:
+
+| Clause | Says | Which §2.7 class |
+| :--- | :--- | :--- |
+| §1.3 line 470 | GLOBAL, *"written only by `admin/` through the audited reason-required path"* | `G-REF` — `SELECT, INSERT, UPDATE` |
+| §12.3 line 2040 | *"**Grants: G-APPEND** on all three — versioned by validity window, superseded, never edited"* | `G-APPEND` — `SELECT, INSERT` |
+
+M-029 shipped the intersection — `SELECT` only to both roles — and raised `BLK-15` rather than pick
+a side. That was the right holding position and it made the table unwritable.
+
+**Why neither side has to lose.** Read as a choice between two class names, one document loses. Read
+for what each is *protecting*, they do not disagree at all:
+
+- **§12.3 protects the payload.** A published checklist is never edited, because an application cited
+  a version and that version must still say what it said. `ERD.md` §9.6 freezes the claim and the
+  checklist version together and depends on exactly this.
+- **§1.3 protects the write path.** The checklist is configuration, editable without a deployment
+  (`FR-ADMN-06`), through an audited reason-gated path.
+
+And one fact settles it: **superseding is an `UPDATE`.** `superseded_at` is a column on this table,
+and closing a version means writing it. Under pure `G-APPEND` — `SELECT, INSERT` and nothing more —
+§12.3's own versioning model cannot be executed at all. The clause that names `G-APPEND` describes a
+behaviour that class forbids.
+
+`G-COMPLETE` is defined in §2.7 as *"`SELECT, INSERT`, plus column-scoped `UPDATE` on named
+columns"*, and it is the only class under which both clauses are simultaneously true.
+
+**Options considered.**
+
+| | Option | Verdict |
+| :-: | :--- | :--- |
+| **A** | `G-COMPLETE` with `superseded_at`, `updated_at`, `updated_by` | **Adopted.** Both clauses honoured; the payload is physically immutable; superseding works |
+| **B** | `G-REF` — §1.3 wins | Rejected. `items` becomes editable on a version an application already cited, which is the one thing §12.3 exists to prevent |
+| **C** | `G-APPEND` — §12.3 wins | Rejected. Makes §12.3's own versioning model unexecutable: a version can be published and never closed |
+| **D** | Keep `SELECT`-only and defer | Rejected. That is the M-029 holding position, and it means `FR-ADMN-06` cannot be built at all |
+
+**Consequences accepted, probed rather than argued.** Verified as `gymmap_app` after the migration:
+
+| Statement | Result |
+| :--- | :--- |
+| `UPDATE kyc_checklists SET items = '[]'` | `permission denied` |
+| `UPDATE kyc_checklists SET version = 99` | `permission denied` |
+| `UPDATE kyc_checklists SET superseded_at = now(), updated_at = now()` | `UPDATE 4` |
+
+Publishing a new checklist is therefore: `INSERT` the successor and close the predecessor, in one
+transaction, from the reason-gated `admin/` path — and nothing else is physically possible. The
+precedent is `D-03` on `applications.snapshot` from M-026: the same technique for the same reason,
+because §2.7 opens by saying a grant is the only control that holds when the application itself is
+the attacker.
+
+`app_platform_ro` keeps `SELECT` and gains nothing. A platform role able to close a version could
+change which documents an in-flight application is judged against, from outside any tenant scope and
+outside the `FR-ADMN-06` reason path.
+
+**Revisit trigger.** A requirement to correct a typo in a *published* checklist's `items` — for
+instance a mislabelled document that is confusing applicants. Under this decision the only remedy is
+a new version, which is the correct answer and will feel heavy the first time somebody wants it. If
+that pressure produces a proposal to widen the grant, the answer is a targeted `admin/` use case
+that supersedes, not an `UPDATE` on `items`.
 
 
-**End of decision log.** Thirty-nine ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
+
+
+**End of decision log.** Forty ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.
 

@@ -262,17 +262,22 @@ it('every seeded India checklist carries the ten documents of §6', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Grants — the intersection of G-REF and G-APPEND, pending BLK-15
+// Grants — G-COMPLETE, per ADR-0040. BLK-15 is closed.
 // ═══════════════════════════════════════════════════════════════════════════
 
-it('app_rw and app_platform_ro hold SELECT and nothing else', () => {
-  // ┌─ WHY NO INSERT, AND WHY THAT IS A PROPERTY RATHER THAN A DEFERRAL ─────────────────────────┐
-  // │ A checklist any request could write is a checklist an application could edit to remove the │
-  // │ document it does not have. The write path (FR-ADMN-06) arrives at M-116, and the grant it  │
-  // │ needs is BLK-15 — Schema.md §1.3 reads this table G-REF and §12.3 reads it G-APPEND, and   │
-  // │ the two disagree about whether UPDATE may ever exist here. Until that is settled, only the │
-  // │ privilege BOTH readings agree on is granted.                                                │
-  // └───────────────────────────────────────────────────────────────────────────────────────────┘
+it('ADR-0040 — app_rw appends and may close a version, nothing more', () => {
+  /*
+   * ┌─ THIS ASSERTED THE HOLDING POSITION, AND BLK-15 IS NOW CLOSED ──────────────────────────────┐
+   * │ M-029 granted `SELECT` only — the intersection of the two readings — rather than pick a      │
+   * │ side. `Schema.md` §1.3 reads this table `G-REF` (which grants `UPDATE`), §12.3 reads it      │
+   * │ `G-APPEND` (which forbids it), and both are rank 3.                                           │
+   * │                                                                                              │
+   * │ `ADR-0040` resolves it without amending either, because the two protect different things:    │
+   * │ §12.3 protects the PAYLOAD, §1.3 protects the WRITE PATH. And superseding is itself an        │
+   * │ `UPDATE` — `superseded_at` is a column here — so under pure `G-APPEND` §12.3's own            │
+   * │ versioning model could never be executed.                                                      │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   const grants = psql(
     `SELECT grantee || '=' || string_agg(privilege_type, ',' ORDER BY privilege_type)
        FROM information_schema.role_table_grants
@@ -280,7 +285,37 @@ it('app_rw and app_platform_ro hold SELECT and nothing else', () => {
       GROUP BY grantee ORDER BY grantee;`,
   ).out;
 
-  assert.deepEqual(grants.split('\n').filter(Boolean), ['app_platform_ro=SELECT', 'app_rw=SELECT']);
+  /*
+   * `INSERT,SELECT` at the TABLE level, and no `UPDATE` — which is not a mistake.
+   *
+   * `information_schema.role_table_grants` does not report a COLUMN-scoped grant. The `UPDATE`
+   * exists and works; it lives in `column_privileges` and is asserted by the next test. Worth
+   * knowing, because a reviewer checking only this view would conclude the completion write was
+   * never granted, and a reviewer checking only the class name would conclude it was granted on
+   * everything. Both need looking at, so both are here.
+   */
+  assert.deepEqual(grants.split('\n').filter(Boolean), [
+    'app_platform_ro=SELECT',
+    'app_rw=INSERT,SELECT',
+  ]);
+});
+
+it('ADR-0040 — the UPDATE is column-scoped: items and version are unreachable', () => {
+  /*
+   * The summary above says `UPDATE`, which on its own would be `G-REF` and would let one
+   * application edit a version another already cited. The COLUMN LIST is the whole control, so it
+   * is asserted against the catalogue directly rather than inferred from the class name.
+   *
+   * Same technique as `D-03` on `applications.snapshot`, for the reason §2.7 opens with: a grant
+   * is the only control that holds when the application itself is the attacker.
+   */
+  const columns = psql(
+    `SELECT string_agg(column_name, ',' ORDER BY column_name)
+       FROM information_schema.column_privileges
+      WHERE table_name = 'kyc_checklists' AND grantee = 'app_rw' AND privilege_type = 'UPDATE';`,
+  ).out;
+
+  assert.equal(columns, 'superseded_at,updated_at,updated_by');
 });
 
 it('the table has no tenant_id, which is what its RLS exemption rests on', () => {
