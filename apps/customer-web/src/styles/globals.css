@@ -2290,9 +2290,18 @@
     color: #98a0b1;
   }
 
+  /*
+   * `flex-wrap` and a gap that gives way, because 34px x2 does not fit 320px.
+   *
+   * Three figures in a fixed 34px-gapped row measured 248px of content in a 242px box on a 320px
+   * screen - six pixels of overflow inside the owner-dashboard preview. Small, and the kind that
+   * only ever gets worse: the gap was a constant while everything around it was fluid. `clamp`
+   * lets it close before anything is cut, and wrapping is the honest last resort.
+   */
   .gm-dash-kpi {
     display: flex;
-    gap: 34px;
+    flex-wrap: wrap;
+    gap: 10px clamp(16px, 5vw, 34px);
     margin: 22px 0 18px;
   }
 

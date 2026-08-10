@@ -15,74 +15,96 @@ import { formatMinor } from '../discovery/search.ts';
 import { FixtureNotice } from '../discovery/search-results.tsx';
 import { addableGyms, compareKey, MAX_COMPARE, type CompareSelection } from './compare.ts';
 import { CompareTable } from './compare-table.tsx';
+/*
+ * Same two bands the hub pages take, for the same reason and from the same place. See the note in
+ * `landing-views.tsx`: they are the site's trust spine and its call to action, not home-page
+ * decoration, and a second copy of the four rules is a second place for them to drift.
+ */
+import { ClosingBand, Promises } from '../home/chalk.tsx';
 
 export function ComparePage({ selection }: { readonly selection: CompareSelection }) {
   const { gyms, unresolved, truncated } = selection;
   const full = gyms.length >= MAX_COMPARE;
 
   return (
-    <div className="gm-wrap gm-sec gm-sec-tight">
-      <FixtureNotice />
+    /*
+     * ┌─ THE EMPTY STATE IS THE ONE A SHARED LINK USUALLY ARRIVES AT ──────────────────────────────┐
+     * │ Measured at 1,370px against the home page's 11,251 - a heading, a sentence, a picker and    │
+     * │ the footer. It is not a dead end: the picker is right there and every gym is one tap away.  │
+     * │ It just read as a page that had not finished loading, and this is the page a member reaches │
+     * │ from a link somebody sent them, before they have decided anything.                          │
+     * │                                                                                             │
+     * │ It gets the same spine the two hubs got - the four rules, then the call to action - and     │
+     * │ nothing invented for it. The comparison itself, when there is one, still leads.             │
+     * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    <>
+      <div className="gm-wrap gm-sec gm-sec-tight">
+        <FixtureNotice />
 
-      <h1 className="gm-h2">{t('web.compare.title')}</h1>
+        <h1 className="gm-h2">{t('web.compare.title')}</h1>
 
-      {/*
-       * Both notices are `role="status"`, not `alert`. Nothing here is urgent and nothing is the
-       * member's fault — a delisted gym in a shared link is the platform's news to deliver
-       * politely, and an alert interrupts whatever a screen reader was reading to deliver it.
-       */}
-      {unresolved.length > 0 && (
-        <p
-          role="status"
-          className="mt-stack-md max-w-prose rounded-card border border-warning bg-surface-warning-subtle px-inset-md py-inset-sm text-base text-content-warning"
-        >
-          {/*
-           * Capped at four, because the rest of this string is attacker-supplied.
-           *
-           * `unresolved` is whatever did not match, straight from the query string, and a link with
-           * forty `gym=` parameters put forty of them into a warning panel. React escapes the text,
-           * so this is not an injection - it is the panel becoming a mirror for anything a sender
-           * chooses to put in a link they share. Four names the problem; a tally covers the rest.
-           */}
-          {t('web.compare.unresolved').replace(
-            '{keys}',
-            unresolved.length <= 4
-              ? unresolved.join(', ')
-              : `${unresolved.slice(0, 4).join(', ')} ${t('web.compare.unresolvedMore').replace(
-                  '{count}',
-                  String(unresolved.length - 4),
-                )}`,
-          )}
-        </p>
-      )}
-      {truncated && (
-        <p
-          role="status"
-          className="mt-stack-md max-w-prose rounded-card border border-info bg-surface-info-subtle px-inset-md py-inset-sm text-base text-content-info"
-        >
-          {t('web.compare.truncated')}
-        </p>
-      )}
-
-      {gyms.length === 0 ? (
-        <div className="mt-stack-lg max-w-prose">
-          <h2 className="text-lg font-semibold text-content">{t('web.compare.empty.title')}</h2>
-          <p className="mt-stack-2xs text-base text-content-secondary">
-            {t('web.compare.empty.body')}
+        {/*
+         * Both notices are `role="status"`, not `alert`. Nothing here is urgent and nothing is the
+         * member's fault — a delisted gym in a shared link is the platform's news to deliver
+         * politely, and an alert interrupts whatever a screen reader was reading to deliver it.
+         */}
+        {unresolved.length > 0 && (
+          <p
+            role="status"
+            className="mt-stack-md max-w-prose rounded-card border border-warning bg-surface-warning-subtle px-inset-md py-inset-sm text-base text-content-warning"
+          >
+            {/*
+             * Capped at four, because the rest of this string is attacker-supplied.
+             *
+             * `unresolved` is whatever did not match, straight from the query string, and a link with
+             * forty `gym=` parameters put forty of them into a warning panel. React escapes the text,
+             * so this is not an injection - it is the panel becoming a mirror for anything a sender
+             * chooses to put in a link they share. Four names the problem; a tally covers the rest.
+             */}
+            {t('web.compare.unresolved').replace(
+              '{keys}',
+              unresolved.length <= 4
+                ? unresolved.join(', ')
+                : `${unresolved.slice(0, 4).join(', ')} ${t('web.compare.unresolvedMore').replace(
+                    '{count}',
+                    String(unresolved.length - 4),
+                  )}`,
+            )}
           </p>
-        </div>
-      ) : (
-        <CompareTable gyms={gyms} />
-      )}
+        )}
+        {truncated && (
+          <p
+            role="status"
+            className="mt-stack-md max-w-prose rounded-card border border-info bg-surface-info-subtle px-inset-md py-inset-sm text-base text-content-info"
+          >
+            {t('web.compare.truncated')}
+          </p>
+        )}
 
-      <Picker selection={selection} full={full} />
+        {gyms.length === 0 ? (
+          <div className="mt-stack-lg max-w-prose">
+            <h2 className="text-lg font-semibold text-content">{t('web.compare.empty.title')}</h2>
+            <p className="mt-stack-2xs text-base text-content-secondary">
+              {t('web.compare.empty.body')}
+            </p>
+          </div>
+        ) : (
+          <CompareTable gyms={gyms} />
+        )}
 
-      <p className="mt-stack-lg">
-        <Link href="/search" className="gm-card-add text-base font-semibold">
-          {t('web.search.heading.any')}
-        </Link>
-      </p>
-    </div>
+        <Picker selection={selection} full={full} />
+
+        <p className="mt-stack-lg">
+          <Link href="/search" className="gm-card-add text-base font-semibold">
+            {t('web.search.heading.any')}
+          </Link>
+        </p>
+      </div>
+
+      <Promises />
+      <ClosingBand />
+    </>
   );
 }
 
