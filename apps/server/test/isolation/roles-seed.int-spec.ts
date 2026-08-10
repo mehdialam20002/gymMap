@@ -291,7 +291,7 @@ it('SEED_VERSION was bumped for this payload', () => {
   // and say so, and a comparison would let a payload change slip past under an old version.
   // `0.3` → `0.4` for `ADR-0047`: three new `§B3.2` rows and one amended, so the seed's
   // `permissions` and `role_permissions` payload differs from what `0.3` wrote.
-  assert.equal(SEED_VERSION, '0.4');
+  assert.equal(SEED_VERSION, '0.5');
   assert.ok(SEED_ROLE_COUNTS.capabilities === 45, 'the §B3.2 capability count changed');
 });
 

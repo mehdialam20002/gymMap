@@ -34,4 +34,8 @@
  * │ change slip past under an old version, which is the failure mode, not the check.               │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
-export const SEED_VERSION = '0.4' as const;
+/*
+ * 0.4 -> 0.5: the eleven principals gain a password hash. A payload change, not a code change —
+ * an environment on 0.4 has accounts that cannot enrol MFA and one on 0.5 has accounts that can.
+ */
+export const SEED_VERSION = '0.5' as const;

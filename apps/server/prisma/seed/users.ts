@@ -12,17 +12,45 @@
  * │ an empty list. A suite whose every fixture belongs to one tenant cannot detect that.          │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
- * ┌─ NOT ONE OF THEM HAS A PASSWORD ────────────────────────────────────────────────────────────┐
- * │ `password_hash` is NULL on all eleven. M-020 owns Argon2id and its recorded parameters       │
- * │ (`A-12`), and a seed that wrote a hash now would either invent parameters M-020 then has to  │
- * │ match, or store something weaker. `NULL` is also the honest state: these accounts cannot be  │
- * │ logged into, and the harness mints tokens directly rather than authenticating.               │
+ * ┌─ ALL ELEVEN NOW SHARE ONE DEV PASSWORD, AND THE REASON THEY DID NOT HAS EXPIRED ────────────┐
+ * │ This block used to read: *"`password_hash` is NULL on all eleven. M-020 owns Argon2id and    │
+ * │ its recorded parameters (`A-12`), and a seed that wrote a hash now would either invent       │
+ * │ parameters M-020 then has to match, or store something weaker."* That was correct, and       │
+ * │ **M-020 is `DONE`** — `Argon2HasherAdapter` ships with `A-12`'s parameters, so the hash below │
+ * │ is computed with the real policy rather than an invented one.                                 │
+ * │                                                                                              │
+ * │ **What NULL was costing.** MFA enrolment RE-AUTHENTICATES against the stored hash            │
+ * │ (`enrol-mfa.use-case.ts`), so a principal with no password can never enrol. `MfaGuard`       │
+ * │ refuses any `MANDATORY` role with no enrolment — which is all five PLATFORM roles — so       │
+ * │ binding that guard would have locked every seeded platform account out of every route, with  │
+ * │ no path back in. `TD-045`'s remaining half was this row, not a permission key.                │
+ * │                                                                                              │
+ * │ **Why one shared hash rather than eleven.** These are fixtures. Eleven distinct hashes would │
+ * │ cost eleven Argon2 runs per seed for no property any test asserts, and a reader comparing    │
+ * │ two rows would have to check they were the same password anyway. `SEP4` already makes the    │
+ * │ seeder unrunnable in production, and the passphrase says what it is.                          │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
 import { TENANT_A, TENANT_B } from './tenants.ts';
 import { roleId, seedUuid } from './roles.ts';
 import type { PlatformRole } from '../../src/iam/types/iam.types.ts';
+
+/**
+ * The dev passphrase every seeded principal shares, and its Argon2id hash.
+ *
+ * Computed once with `A-12`'s POLICY parameters — `m=65536, t=3, p=1`, the schema defaults — not
+ * with its minimums. A hash weaker than policy is valid and verifies, and `needsRehash()` would
+ * flag every seeded account on first login: correct behaviour, and a confusing thing to meet in a
+ * fixture.
+ *
+ * The passphrase is in the clear on purpose. A dev credential nobody can find is a dev credential
+ * somebody replaces with their own, and the whole point of a fixture is that it is the same
+ * everywhere. It says what it is; `SEP4` makes production unable to run this seeder at all.
+ */
+export const SEED_PASSWORD = 'gymmap-dev-only-not-a-real-password';
+const SEED_PASSWORD_HASH =
+  '$argon2id$v=19$m=65536,p=1,t=3$b2qoO+WNVjp79An0oDmEjQ$W3M88uqbuC27lX61JE4AvWrLVnSZJ8ig54/diRU+4nQ';
 
 export interface SeedPrincipal {
   /** The §6.6 handle. The harness looks principals up by it. */
@@ -172,7 +200,7 @@ export function seedUsersSql(now = 'now()'): string {
   const userValues = SEED_PRINCIPALS.map(
     (p) =>
       `  ('${userId(p.handle)}', ${quote(p.email)}, ${quote(p.phone)}, ${quote(p.fullName)}, ` +
-      `'ACTIVE', ${now}, ${now})`,
+      `'ACTIVE', ${now}, ${now}, '${SEED_PASSWORD_HASH}')`,
   ).join(',\n');
 
   const grantValues = SEED_PRINCIPALS.map(
@@ -184,10 +212,12 @@ export function seedUsersSql(now = 'now()'): string {
   return [
     '-- Seed v0.2 · M-019. The eleven TestingStrategy.md §6.6 principals.',
     '--',
-    '-- password_hash stays NULL: M-020 owns Argon2id and its recorded parameters (A-12), and a',
-    '-- seeded hash would either pre-empt that decision or store something weaker.',
+    '-- Every principal shares one dev passphrase, hashed with A-12 policy parameters. See the',
+    '-- file header: NULL here meant no seeded account could enrol MFA, which is what kept',
+    '-- MfaGuard unbindable (TD-045).',
     '',
-    'INSERT INTO users (id, email, phone, full_name, status, email_verified_at, phone_verified_at)',
+    'INSERT INTO users (id, email, phone, full_name, status, email_verified_at, phone_verified_at,',
+    '                   password_hash)',
     'VALUES',
     userValues,
     'ON CONFLICT (id) DO NOTHING;',
