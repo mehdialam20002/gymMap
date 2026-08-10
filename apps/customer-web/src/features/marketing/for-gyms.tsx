@@ -156,6 +156,21 @@ export function ForGymsPage() {
           <p className="mt-stack-md text-base text-content-secondary">
             {t('web.forGyms.commission.body')}
           </p>
+
+          {/*
+           * Directly under the price, because that is where the question forms.
+           *
+           * An owner reads "nothing until you make a sale", looks back up at a list that includes
+           * a check-in desk and a settlement statement, and concludes the software is free. It is
+           * not, and `ADR-0046` says so - but the page was only fixed on the money side, which
+           * left the promise standing. This is the other half.
+           */}
+          <h3 className="mt-stack-lg text-lg font-semibold text-content">
+            {t('web.forGyms.scope.title')}
+          </h3>
+          <p className="mt-stack-2xs text-base text-content-secondary">
+            {t('web.forGyms.scope.body')}
+          </p>
         </div>
 
         <h2 className="mt-region-sm gm-h2">{t('web.forGyms.faq.title')}</h2>

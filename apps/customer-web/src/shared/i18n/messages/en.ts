@@ -626,6 +626,29 @@ export const en = {
   'web.forGyms.commission.body':
     'Listing on GymMap costs a commission per membership sold, and nothing else: no listing fee, no monthly charge for your listing, and no fee for a month with no sales. The rate is agreed before you list and is shown on every statement, and the rate that applied on the day of a sale is the rate that sale keeps. A later change never rewrites an old settlement.',
 
+  /*
+   * ┌─ THE PAGE PROMISED THE SOFTWARE AND PRICED ONLY THE LISTING ───────────────────────────────┐
+   * │ `ADR-0046` ruled that commission buys the marketplace and a subscription buys the           │
+   * │ management software. The cost sentence was scoped to listing in that change - and the       │
+   * │ "What you get" list above it was not. Two of its four items, check-in and reconciliation,   │
+   * │ are the software, so the page went on offering it for a commission-only price. The money    │
+   * │ was fixed and the promise was left, which is half a fix and reads as a bargain.             │
+   * │                                                                                             │
+   * │ The line is NOT drawn by feature name, and that was the first instinct and the wrong one:   │
+   * │ check-in is how a GymMap member's visit is recorded, and `BR-REV-01` makes a review         │
+   * │ impossible without it; reconciliation is how a gym sees what settled after this platform    │
+   * │ took its cut. Both are load-bearing for the marketplace and cannot be removed from it.      │
+   * │                                                                                             │
+   * │ It is drawn by SCALE, which is where §A6.2 already draws it - the tiers are priced by       │
+   * │ branches, active members and staff seats. Listing covers the members GymMap sends; the      │
+   * │ subscription covers running the whole gym. That sentence is true today, needs no price      │
+   * │ (`OQ-03` is open), and takes nothing away from what the page already offers.                │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  'web.forGyms.scope.title': 'Listing, and the software',
+  'web.forGyms.scope.body':
+    'Everything above covers the members GymMap sends you: they find your listing, they pay online, they check in, and you see what settled. Running your whole gym is a separate subscription, priced on your branches, members and staff. You do not need it to be listed here, and listing costs nothing until you make a sale.',
+
   'web.forGyms.faq.title': 'Questions owners ask',
   'web.forGyms.faq.control.q': 'Do I lose control of my prices?',
   'web.forGyms.faq.control.a':
