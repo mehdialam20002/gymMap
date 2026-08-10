@@ -97,6 +97,22 @@ export interface CapabilityDefinition {
    * └──────────────────────────────────────────────────────────────────────────────────────────────┘
    */
   readonly extraReadKeys?: readonly string[];
+  /**
+   * Further WRITE keys — same rule as `extraReadKeys`, and strictly more dangerous.
+   *
+   * `ADR-0043` sold `extraReadKeys` partly on the ground that it *"structurally cannot emit a
+   * write"*. `ADR-0047` gives that property up, because `API_Catalog.md` freezes three write
+   * strings for one branch capability (`.create`, `.update`, `.deactivate`) and two for the
+   * onboarding one. The keys exist in the catalogue; refusing to model them would only mean the
+   * routes could not declare them.
+   *
+   * What replaces the lost property is the gate in `rbac-matrix.spec.ts`, which now covers BOTH
+   * fields: an attribution to a multi-holder row must be named in `JUSTIFIED_MULTI_HOLDER` with a
+   * rank-2 citation, or the build fails. Emitted only when the grant is not `READ`, so a `READ`
+   * cell can never reach one — which is what makes `RECEPTIONIST: 'READ'` on *Add / remove branch*
+   * the branch LIST and not the power to delete a branch.
+   */
+  readonly extraWriteKeys?: readonly string[];
   readonly description: string;
   /** Every role's cell. All twelve are listed; `NONE` is written out, never omitted. */
   readonly grants: Readonly<Record<PlatformRole, MatrixGrant>>;

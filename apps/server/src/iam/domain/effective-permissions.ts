@@ -29,8 +29,13 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { CAPABILITY_MATRIX, PERMISSION_KEYS, ROLE_DEFINITIONS, permissionsFor } from '../permissions.js';
-import type { PlatformRole } from '../types/iam.types.js';
+import {
+  CAPABILITY_MATRIX,
+  PERMISSION_KEYS,
+  ROLE_DEFINITIONS,
+  permissionsFor,
+} from '../permissions.js';
+import type { CapabilityDefinition, PlatformRole } from '../types/iam.types.js';
 
 /**
  * The scope a role was granted in, parsed from the token's `roles` claim.
@@ -117,9 +122,7 @@ export function parseRoleGrant(claim: string): RoleGrant | null {
     // branch grant portable between tenants if two ever collided.
     const [, tenantId, branchId] = scope.split(':');
     if (tenantId === undefined || branchId === undefined || branchId === '') return null;
-    return declared === 'BRANCH'
-      ? { role, scope: { kind: 'BRANCH', tenantId, branchId } }
-      : null;
+    return declared === 'BRANCH' ? { role, scope: { kind: 'BRANCH', tenantId, branchId } } : null;
   }
 
   return null;
@@ -301,8 +304,16 @@ export interface PermissionGrantReason {
  *                          fix a grant when the thing to fix is a missing `§B3.2` row.
  */
 export type PermissionInspection =
-  | { readonly held: true; readonly permission: string; readonly reasons: readonly PermissionGrantReason[] }
-  | { readonly held: false; readonly permission: string; readonly reason: 'NOT_GRANTED' | 'UNKNOWN_PERMISSION' };
+  | {
+      readonly held: true;
+      readonly permission: string;
+      readonly reasons: readonly PermissionGrantReason[];
+    }
+  | {
+      readonly held: false;
+      readonly permission: string;
+      readonly reason: 'NOT_GRANTED' | 'UNKNOWN_PERMISSION';
+    };
 
 /**
  * Why a principal holds a permission — every reason, not the first one found.
@@ -315,6 +326,34 @@ export type PermissionInspection =
  * Reasons are sorted by role so two calls with the same grants in a different order agree — the
  * output is a diffable answer to a support question, not a stream.
  */
+/**
+ * Does this `§B3.2` row declare this permission string — through ANY of its four key fields?
+ *
+ * ┌─ THIS EXISTS BECAUSE THE INSPECTOR SILENTLY DISAGREED WITH THE GUARD ────────────────────────┐
+ * │ The check here read `entry.readKey !== permission && entry.writeKey !== permission`, and had │
+ * │ done since before `extraReadKeys` existed. A key carried in `extraReadKeys` or                │
+ * │ `extraWriteKeys` therefore matched NO row, `reasons` stayed empty, and `inspectPermission()`  │
+ * │ returned `NOT_GRANTED` for a permission `permissionsFor()` says the principal holds.           │
+ * │                                                                                              │
+ * │ That is precisely the failure `RB5` names — *"the console disagrees with the guard"* — and    │
+ * │ `FR-RBAC-05` exists so a Super Admin can trust that console during a support call. It shipped │
+ * │ with `ADR-0043` and went unnoticed for one reason: the only extra key at the time was         │
+ * │ `admin.user.read_permissions`, held by `SUPER_ADMIN` alone, and the cross-check test resolves │
+ * │ a `GYM_OWNER`. `ADR-0047` gave five more keys to five roles and the test went red at once.    │
+ * │                                                                                              │
+ * │ Every place that asks "which row declares this key" goes through here, so the next field      │
+ * │ added to `CapabilityDefinition` is one edit rather than a hunt.                                │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+function capabilityDeclares(entry: CapabilityDefinition, permission: string): boolean {
+  return (
+    entry.readKey === permission ||
+    entry.writeKey === permission ||
+    (entry.extraReadKeys?.includes(permission) ?? false) ||
+    (entry.extraWriteKeys?.includes(permission) ?? false)
+  );
+}
+
 export function inspectPermission(
   grants: readonly RoleGrant[],
   permission: string,
@@ -330,7 +369,7 @@ export function inspectPermission(
 
     // RB5: the SAME compiled matrix the guard reads, so the inspector cannot disagree with it.
     for (const entry of CAPABILITY_MATRIX) {
-      if (entry.readKey !== permission && entry.writeKey !== permission) continue;
+      if (!capabilityDeclares(entry, permission)) continue;
 
       const qualifier = entry.grants[grant.role];
       // `NONE` here would mean the matrix and `permissionsFor()` disagree about the same cell.

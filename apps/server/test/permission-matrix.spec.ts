@@ -187,17 +187,26 @@ test('AC-4 — all 504 cells agree with §B3.2', () => {
     });
   }
 
-  assert.deepEqual(mismatches, [], `§B3.2 and permissions.ts disagree:\n  ${mismatches.join('\n  ')}`);
+  assert.deepEqual(
+    mismatches,
+    [],
+    `§B3.2 and permissions.ts disagree:\n  ${mismatches.join('\n  ')}`,
+  );
 
   // ┌─ THE COUNT IS AN ASSERTION, NOT A LOG LINE ─────────────────────────────────────────────┐
   // │ Every check above is inside a loop over rows parsed from a document. If the parse returns │
   // │ nothing, the loop body never runs and a suite that verifies NOTHING reports success —      │
   // │ which is the most expensive way for a test file like this to fail.                         │
   // │                                                                                          │
-  // │ 42 capabilities × 12 roles. The roadmap says 516 cells; §B3.2 has 42 rows, and the PRD is │
-  // │ rank 2 to the roadmap's rank 4, so 504 is the number that is true.                         │
+  // │ 45 capabilities × 12 roles. The roadmap says 516 cells; §B3.2 has 45 rows, and the PRD is │
+  // │ rank 2 to the roadmap's rank 4, so 540 is the number that is true.                         │
+  // │                                                                                          │
+  // │ It was 42 rows and 504 cells until 2026-08-10, when the owner added three under Part C    │
+  // │ §C10 — `ADR-0047`. This literal is deliberately NOT derived from the parse: deriving it    │
+  // │ would make the assertion "the number I just counted equals itself", which is exactly the   │
+  // │ vacuous-success this block exists to prevent. It is meant to need a human edit.            │
   // └──────────────────────────────────────────────────────────────────────────────────────────┘
-  assert.equal(checked, 504, `expected 504 cells, checked ${String(checked)}`);
+  assert.equal(checked, 540, `expected 540 cells, checked ${String(checked)}`);
 });
 
 test('every capability row names at least one permission key', () => {
@@ -207,7 +216,11 @@ test('every capability row names at least one permission key', () => {
     (entry) => entry.readKey === null && entry.writeKey === null,
   ).map((entry) => entry.capability);
 
-  assert.deepEqual(orphans, [], `capabilities with no permission key at all: ${orphans.join(', ')}`);
+  assert.deepEqual(
+    orphans,
+    [],
+    `capabilities with no permission key at all: ${orphans.join(', ')}`,
+  );
 });
 
 test('a READ-only cell never resolves to a write permission', () => {

@@ -1139,7 +1139,7 @@ Roles are **additive within a scope**; a user may hold `MEMBER` at the platform 
 | Create / edit plan | — | — | — | — | — | ○ | ● | ○ | — | ○ | — | ○ |
 | Publish plan to marketplace | — | — | — | — | — | — | ● | — | — | — | — | ● |
 | Edit gym profile | — | — | — | — | — | ▪ | ● | ○ | ○ | — | — | ● |
-| Add / remove branch | — | — | — | — | — | — | ● | — | — | — | — | ● |
+| Add / remove branch | — | — | — | ○ | ○ | ○ | ● | — | — | — | — | ● |
 | Invite / manage staff | — | — | — | — | — | ▪ | ● | — | — | — | — | ● |
 | Assign members to trainer | — | — | — | — | ○ | ● | ● | — | — | — | — | — |
 | Create workout plan | — | — | — | — | ▪ | ● | ● | — | — | — | — | — |
@@ -1162,6 +1162,45 @@ Roles are **additive within a scope**; a user may hold `MEMBER` at the platform 
 | Toggle feature flags | — | — | — | — | — | — | — | — | — | — | — | ● |
 | View audit log | — | — | — | — | — | — | ▪ | ○ | ○ | ○ | ○ | ● |
 | Manage taxonomy (amenities etc.) | — | — | — | — | — | — | — | — | — | — | ● | ● |
+| Submit own gym application | — | — | — | — | — | — | ● | — | — | — | — | — |
+| View platform overview | — | — | — | — | — | — | — | ○ | — | — | — | ● |
+| View gym register | — | — | — | — | — | — | — | ○ | — | — | — | ● |
+
+### B3.2.1 Amendment record — 2026-08-10, under Part C §C10
+
+> A `###` heading, deliberately. `permission-matrix.spec.ts` parses §B3.2 as *"every table row from
+> the heading to the next heading of the same or higher level"*, so prose carrying its own tables
+> must sit behind a heading of this level or it is read as matrix rows. A `####` would not do it —
+> the parser explicitly refuses to be ended by one, so that a sub-heading cannot truncate the matrix.
+
+**Rows 43–45 were appended rather than inserted.** The
+register is referenced by row number in `PHASES.md`, `DECISION_LOG.md` and several source comments —
+*Edit gym profile* is row 19, *Add / remove branch* is row 20, *Review KYC documents* is row 31,
+*Approve / reject gym* is row 32. Inserting in place would have silently invalidated every one of
+those references, and none of them would fail a test. The cost is that three tenant- and
+platform-side rows now sit after the platform block instead of within their groups.
+
+| Row | Why it exists | Decision |
+| :-: | :--- | :--- |
+| **43** *Submit own gym application* | The matrix held two `onboarding.*` capabilities and both were the REVIEWER's, so a gym owner filling the signup wizard had no permission to declare and `PG-1` requires every route to declare one. `SUPER_ADMIN` is `—` deliberately: a platform actor must not author the artefact they later approve (`BR-GYM-03`). The holder is read off `FR-ONB-08` | `BLK-14` · `ADR-0047` |
+| **44** *View platform overview* | `SCR-ADM-001`. The key was invented by `admin/` and existed in no row, so `PermissionsGuard` refused it as `UNKNOWN_PERMISSION` | `BLK-10` · `ADR-0047` |
+| **45** *View gym register* | `SCR-ADM-004` and `SCR-ADM-002`, which read the same list. Same history as row 44 | `BLK-10` · `ADR-0047` |
+
+**`SUPPORT_AGENT ○` on rows 44 and 45 widens access, and it is the owner's decision, recorded as
+such.** The narrower option — `SUPER_ADMIN` only — was put first with its reasoning and was not
+taken. `○` is read-only by construction: a `READ` cell yields a capability's read keys and never its
+write keys, so a support agent can open both screens and change nothing on them. Note what it does
+expose: the gym register carries every tenant's commercial terms, including effective commission
+rates.
+
+**Row 20 *Add / remove branch* was also amended in the same change** — `RECEPTIONIST`, `TRAINER` and
+`GYM_MANAGER` move from `—` to `○`. `BLK-19` had been open on precisely this: `Gym.md` line 167
+granted the branch list to those roles and `§B3.2` gave them nothing, and a rank-3 API document
+cannot widen a rank-2 register. The owner resolved it in the register's favour by widening the
+register. `○` again means the list only — creating, editing and deactivating a branch remain
+`GYM_OWNER ●` and `SUPER_ADMIN ●`. `GYM_MANAGER` is included by coherence rather than by explicit
+instruction: a manager who could not list branches while a receptionist could would be incoherent,
+and the grant is read-only. Flagged here so it can be corrected in one cell if that reading is wrong.
 
 ### B3.3 Permission requirements
 

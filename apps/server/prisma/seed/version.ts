@@ -21,4 +21,17 @@
  * asserted today by `roles-seed.int-spec.ts`, which also resolves every `role_permissions` row
  * back to its key — weaker than a checksum, and considerably better than nothing.
  */
-export const SEED_VERSION = '0.3' as const;
+/*
+ * ┌─ 0.3 → 0.4, and the reason is a PAYLOAD change rather than a code change ────────────────────┐
+ * │ `ADR-0047` amended `§B3.2` under Part C §C10: three new capability rows (43–45) and one       │
+ * │ amended row (20). The seed writes `permissions` and `role_permissions` from that matrix, so   │
+ * │ the rows this seed produces are different from the rows `0.3` produced — eight new permission │
+ * │ keys, `catalog.branch.write` gone, and new `(role, permission)` pairs for three roles.        │
+ * │                                                                                              │
+ * │ An environment still on `0.3` and one on `0.4` now disagree about who can list a branch. That │
+ * │ is exactly the divergence a version string exists to make visible, and the reason              │
+ * │ `roles-seed.int-spec.ts` compares it as a LITERAL: a `>=` comparison would let a payload       │
+ * │ change slip past under an old version, which is the failure mode, not the check.               │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export const SEED_VERSION = '0.4' as const;

@@ -459,16 +459,42 @@ export const CAPABILITY_MATRIX: readonly CapabilityDefinition[] = [
   },
   {
     capability: 'Add / remove branch',
+    /*
+     * ┌─ FIVE KEYS, AND `catalog.branch.write` IS GONE — `BLK-19`, closed by `ADR-0047` ─────────────┐
+     * │ `API_Catalog.md` 940–944 freezes five strings for the five branch routes: `.list`, `.read`, │
+     * │ `.create`, `.update`, `.deactivate`. This row used to carry `catalog.branch.write`, which   │
+     * │ `Security.md` §3.3.1 gives — and which appears on **no route in the catalogue**. It is      │
+     * │ removed rather than kept alongside, because a permission with no endpoint is an ungoverned  │
+     * │ grant (§5.6's own words) and `PG-7` cannot see it.                                           │
+     * │                                                                                             │
+     * │ Five keys from one row is the DOCUMENTED shape, not a workaround: §5.6's column header is   │
+     * │ **"Permission string(s)"**, plural, and its own rows carry three for one capability.        │
+     * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+     */
     readKey: 'catalog.branch.read',
-    writeKey: 'catalog.branch.write',
-    description: 'Add a branch to the tenant, or retire one.',
+    extraReadKeys: ['catalog.branch.list'],
+    writeKey: 'catalog.branch.create',
+    extraWriteKeys: ['catalog.branch.update', 'catalog.branch.deactivate'],
+    description:
+      'Add a branch to the tenant, or retire one. Branch-scoped roles get the list only.',
     grants: {
       VISITOR: 'NONE',
       USER: 'NONE',
       MEMBER: 'NONE',
-      RECEPTIONIST: 'NONE',
-      TRAINER: 'NONE',
-      GYM_MANAGER: 'NONE',
+      /*
+       * `READ`, not `NONE`, since `ADR-0047`. `BLK-19` was open on exactly this: `Gym.md` 167 gave
+       * the branch list to these three and `§B3.2` gave them nothing, and a rank-3 API document
+       * cannot widen a rank-2 register. The owner widened the register instead.
+       *
+       * `READ` is what makes it the list ONLY. `permissionsFor()` emits the write keys for every
+       * grant that is not `READ`, so these three get `.read` and `.list` and cannot reach `.create`,
+       * `.update` or `.deactivate` — which stay with the owner. Asserted per role in the spec,
+       * because the difference between `READ` and `OWN` here is the difference between seeing a
+       * branch and deleting one.
+       */
+      RECEPTIONIST: 'READ',
+      TRAINER: 'READ',
+      GYM_MANAGER: 'READ',
       GYM_OWNER: 'FULL',
       SUPPORT_AGENT: 'NONE',
       VERIFICATION_OFFICER: 'NONE',
@@ -942,6 +968,108 @@ export const CAPABILITY_MATRIX: readonly CapabilityDefinition[] = [
       SUPER_ADMIN: 'FULL',
     },
   },
+
+  // ═════════════════════════════════════════════════════════════════════════════════════════════
+  // Rows 43–45, added 2026-08-10 under Part C §C10 by the owner — `ADR-0047`.
+  //
+  // APPENDED, not inserted, and the PRD says why in the same words: the register is referenced by
+  // ROW NUMBER in `PHASES.md`, `DECISION_LOG.md` and several source comments, and inserting in
+  // place would silently invalidate every one of them with no test to catch it.
+  // ═════════════════════════════════════════════════════════════════════════════════════════════
+
+  {
+    capability: 'Submit own gym application',
+    /*
+     * `BLK-14`, closed. The matrix held two `onboarding.*` capabilities and BOTH were the
+     * reviewer's — rows 31 and 32 — so a gym owner filling the signup wizard had no permission to
+     * declare, and `PG-1` requires every route to declare one.
+     *
+     * All five strings are already frozen verbatim in `API_Catalog.md` §3.9, so no vocabulary is
+     * invented here. `extraWriteKeys` carries `.delete` because a draft attachment must be
+     * removable before submission; after submission the version is frozen (`FR-ONB-08`).
+     */
+    readKey: 'onboarding.application.read',
+    extraReadKeys: ['onboarding.kyc_document.list'],
+    writeKey: 'onboarding.application.submit',
+    extraWriteKeys: ['onboarding.kyc_document.upload', 'onboarding.kyc_document.delete'],
+    description: 'Fill, attach documents to, and submit the tenant’s own onboarding application.',
+    grants: {
+      VISITOR: 'NONE',
+      USER: 'NONE',
+      MEMBER: 'NONE',
+      RECEPTIONIST: 'NONE',
+      TRAINER: 'NONE',
+      // A `BRANCH`-scoped role, and an application is a tenant-level legal act — legal entity name,
+      // PAN, registration number, bank account. Not a branch's business.
+      GYM_MANAGER: 'NONE',
+      GYM_OWNER: 'FULL',
+      SUPPORT_AGENT: 'NONE',
+      VERIFICATION_OFFICER: 'NONE',
+      FINANCE: 'NONE',
+      MODERATOR: 'NONE',
+      /*
+       * `NONE`, deliberately, and this is the one cell most likely to be "corrected" by someone who
+       * assumes `SUPER_ADMIN` holds everything. It must not: `BR-GYM-03` requires a human approval,
+       * and a platform actor who can AUTHOR the application can approve an artefact they wrote.
+       * `SUPER_ADMIN` already holds rows 31 and 32 — the reviewing half — which is the whole point.
+       */
+      SUPER_ADMIN: 'NONE',
+    },
+  },
+  {
+    capability: 'View platform overview',
+    /*
+     * `SCR-ADM-001`. Half of `BLK-10`: `admin/permissions.ts` declared this key and it existed in
+     * no row, so `PermissionsGuard` refused it as `UNKNOWN_PERMISSION` — deny-by-default working
+     * correctly, and revealing that the key had been invented by the module.
+     *
+     * `SUPPORT_AGENT` is `READ` by the owner's decision. Read-only by construction: a `READ` cell
+     * yields read keys and never write keys, and this capability has no write key at all.
+     */
+    readKey: 'admin.platform_overview.read',
+    writeKey: null,
+    description: 'Aggregate counts across every tenant.',
+    grants: {
+      VISITOR: 'NONE',
+      USER: 'NONE',
+      MEMBER: 'NONE',
+      RECEPTIONIST: 'NONE',
+      TRAINER: 'NONE',
+      GYM_MANAGER: 'NONE',
+      GYM_OWNER: 'NONE',
+      SUPPORT_AGENT: 'READ',
+      VERIFICATION_OFFICER: 'NONE',
+      FINANCE: 'NONE',
+      MODERATOR: 'NONE',
+      SUPER_ADMIN: 'FULL',
+    },
+  },
+  {
+    capability: 'View gym register',
+    /*
+     * `SCR-ADM-004` and `SCR-ADM-002`, which read the same list. The other half of `BLK-10`.
+     *
+     * Worth stating what `SUPPORT_AGENT: 'READ'` exposes, because the owner was told and chose it:
+     * the register carries every tenant's commercial terms, including effective commission rates.
+     */
+    readKey: 'admin.gym_register.read',
+    writeKey: null,
+    description: 'The platform-wide gym register and the approval queue.',
+    grants: {
+      VISITOR: 'NONE',
+      USER: 'NONE',
+      MEMBER: 'NONE',
+      RECEPTIONIST: 'NONE',
+      TRAINER: 'NONE',
+      GYM_MANAGER: 'NONE',
+      GYM_OWNER: 'NONE',
+      SUPPORT_AGENT: 'READ',
+      VERIFICATION_OFFICER: 'NONE',
+      FINANCE: 'NONE',
+      MODERATOR: 'NONE',
+      SUPER_ADMIN: 'FULL',
+    },
+  },
 ];
 
 /**
@@ -953,9 +1081,12 @@ export const CAPABILITY_MATRIX: readonly CapabilityDefinition[] = [
  */
 export const PERMISSION_KEYS: readonly string[] = [
   ...new Set(
-    CAPABILITY_MATRIX.flatMap((c) => [c.readKey, c.writeKey, ...(c.extraReadKeys ?? [])]).filter(
-      (k): k is string => k !== null,
-    ),
+    CAPABILITY_MATRIX.flatMap((c) => [
+      c.readKey,
+      c.writeKey,
+      ...(c.extraReadKeys ?? []),
+      ...(c.extraWriteKeys ?? []),
+    ]).filter((k): k is string => k !== null),
   ),
 ].sort();
 
@@ -1002,6 +1133,9 @@ export function permissionsFor(role: PlatformRole): readonly string[] {
     // the three tests a key must pass before it may be attributed here.
     for (const extra of capability.extraReadKeys ?? []) keys.add(extra);
     if (grant !== 'READ' && capability.writeKey !== null) keys.add(capability.writeKey);
+    // Gated on the SAME `grant !== 'READ'` as `writeKey`. A `READ` cell reaching a write key would
+    // make `○` and `●` the same thing, which is the one distinction this whole matrix encodes.
+    if (grant !== 'READ') for (const extra of capability.extraWriteKeys ?? []) keys.add(extra);
   }
 
   return [...keys].sort();

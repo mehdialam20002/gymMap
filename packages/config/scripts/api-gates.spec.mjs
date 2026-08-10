@@ -539,12 +539,35 @@ test('the real registry contains the keys the shipped routes declare', () => {
   // removing the gate rather than the regex.
   const real = loadRealConfig(REPO_ROOT);
   assert.ok(real.permissionRegistry.has('catalog.branch.read'));
-  assert.ok(real.permissionRegistry.has('catalog.branch.write'));
+
+  /*
+   * ┌─ THE CANARY FIRED, AND IT SAID EXACTLY WHAT TO DO ───────────────────────────────────────────┐
+   * │ This block used to assert `catalog.branch.write` PRESENT and `catalog.branch.create` ABSENT, │
+   * │ with the message: *"catalog.branch.create is now registered — if that was a deliberate §C10  │
+   * │ decision, close BLK-19 in docs/PHASES.md and delete this assertion."*                         │
+   * │                                                                                              │
+   * │ That is what happened. `ADR-0047` records the owner's §C10 amendment and `BLK-19` is closed. │
+   * │ The assertions are inverted rather than deleted, because the direction of the change is      │
+   * │ itself worth pinning: `.write` appears on no route in `API_Catalog.md` and is gone, and the  │
+   * │ five strings the catalogue actually freezes are the ones that must resolve.                   │
+   * │                                                                                              │
+   * │ Note this also proves the loader reads `extraReadKeys` / `extraWriteKeys`. It has no special │
+   * │ handling for them — the pattern matches any quoted `<module>.<resource>.<action>` — and if   │
+   * │ that ever stopped being true, `.list`, `.update` and `.deactivate` would silently drop out    │
+   * │ of the registry and `PG-7` would refuse three shipped routes.                                 │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   assert.ok(
-    !real.permissionRegistry.has('catalog.branch.create'),
-    'catalog.branch.create is now registered — if that was a deliberate §C10 decision, close ' +
-      'BLK-19 in docs/PHASES.md and delete this assertion',
+    !real.permissionRegistry.has('catalog.branch.write'),
+    'catalog.branch.write is back. It is on no route in API_Catalog.md, and §5.6 calls a ' +
+      'permission with no endpoint an ungoverned grant',
   );
+  for (const key of ['catalog.branch.list', 'catalog.branch.create', 'catalog.branch.update']) {
+    assert.ok(
+      real.permissionRegistry.has(key),
+      `${key} is not in the registry, so PG-7 refuses it`,
+    );
+  }
 });
 
 test('AC-5 — the probes are unversioned and everything else is under /v1', () => {

@@ -292,18 +292,121 @@ test('an extra read key may only hang off a capability ONE role holds', () => {
    * └─────────────────────────────────────────────────────────────────────────────────────────────┘
    */
   for (const capability of CAPABILITY_MATRIX) {
-    if (capability.extraReadKeys === undefined) continue;
+    const extras = [...(capability.extraReadKeys ?? []), ...(capability.extraWriteKeys ?? [])];
+    if (extras.length === 0) continue;
 
     const holders = PLATFORM_ROLES.filter((r) => capability.grants[r] !== 'NONE');
-    assert.equal(
-      holders.length,
-      1,
-      `"${capability.capability}" carries extraReadKeys and is held by ${String(holders.length)} ` +
-        `roles (${holders.join(', ')}). Every one of them gains ${capability.extraReadKeys.join(', ')} ` +
-        `mechanically. If that is genuinely intended, cite the rank-2 source that names those ` +
-        `holders and relax this test deliberately — do not widen the row to fit a wanted key.`,
+    if (holders.length === 1) continue;
+
+    const justification = JUSTIFIED_MULTI_HOLDER[capability.capability];
+    assert.ok(
+      justification !== undefined,
+      `"${capability.capability}" carries extra keys and is held by ${String(holders.length)} ` +
+        `roles (${holders.join(', ')}). Every one of them gains ${extras.join(', ')} mechanically. ` +
+        `If that is genuinely intended, add a JUSTIFIED_MULTI_HOLDER entry citing the rank-2 source ` +
+        `that names those holders — do not widen the row to fit a wanted key.`,
     );
   }
+});
+
+/**
+ * Multi-holder rows that MAY carry extra keys, each with the rank-2 source that put the holders
+ * there. `ADR-0047`.
+ *
+ * ┌─ WHY AN ALLOWLIST RATHER THAN DELETING THE GATE ─────────────────────────────────────────────┐
+ * │ `ADR-0043` confined extra keys to singleton rows, because on a singleton the widening         │
+ * │ mechanism cannot fire — there is no second role to widen to. `ADR-0047` needs one multi-holder│
+ * │ row: `API_Catalog.md` freezes five strings for the five branch routes, and *Add / remove      │
+ * │ branch* is now held by five roles.                                                             │
+ * │                                                                                               │
+ * │ Deleting the gate would have been the easy move and would have thrown away the only thing     │
+ * │ standing between this matrix and capability shopping until `RB2` exists. An allowlist keeps    │
+ * │ the default strict and makes each exception a line somebody wrote, reviewed, and cited.        │
+ * └───────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+const JUSTIFIED_MULTI_HOLDER: Record<string, string> = {
+  'Add / remove branch':
+    'MASTER_PRD.md §B3.2 row 20, amended 2026-08-10 under Part C §C10 (ADR-0047). RECEPTIONIST, ' +
+    'TRAINER and GYM_MANAGER hold READ; GYM_OWNER and SUPER_ADMIN hold FULL. The three READ cells ' +
+    'reach catalog.branch.read and .list and CANNOT reach .create, .update or .deactivate, which ' +
+    'is asserted per role below — so the widening this gate exists to catch does not occur here.',
+};
+
+test('every JUSTIFIED_MULTI_HOLDER entry names a capability that still exists', () => {
+  // An allowlist keyed by a string drifts silently when the string changes: the entry stops
+  // matching, the gate goes back to strict, and the build fails somewhere else with a confusing
+  // message. This makes the stale key itself the failure.
+  for (const name of Object.keys(JUSTIFIED_MULTI_HOLDER)) {
+    assert.ok(
+      CAPABILITY_MATRIX.some((c) => c.capability === name),
+      `JUSTIFIED_MULTI_HOLDER names "${name}", which is in no §B3.2 row`,
+    );
+  }
+});
+
+test('ADR-0047 — a READ cell on Add / remove branch is the LIST, never a branch mutation', () => {
+  /*
+   * The single most consequential cell in this amendment. `BLK-19` was open on whether
+   * `RECEPTIONIST` and `TRAINER` may see the branch list; the owner said yes. What they must NOT
+   * gain in the same stroke is the power to create, rename or deactivate a branch — and the only
+   * thing separating those is the `READ` grant, three characters in one cell.
+   *
+   * Asserted per role and per key rather than as a spot check, because the failure is silent: a
+   * `READ` quietly becoming `OWN` reads as a small edit and hands a receptionist branch deletion.
+   */
+  const READ_ONLY: PlatformRole[] = ['RECEPTIONIST', 'TRAINER', 'GYM_MANAGER'];
+  const MUTATIONS = ['catalog.branch.create', 'catalog.branch.update', 'catalog.branch.deactivate'];
+
+  for (const role of READ_ONLY) {
+    const held = permissionsFor(role);
+    assert.ok(held.includes('catalog.branch.list'), `${role} cannot list branches`);
+    assert.ok(held.includes('catalog.branch.read'), `${role} cannot read a branch`);
+    for (const mutation of MUTATIONS) {
+      assert.ok(!held.includes(mutation), `${role} can ${mutation} — a READ cell reached a write`);
+    }
+  }
+
+  // And the owner keeps all five, or the amendment has taken something away rather than added.
+  const owner = permissionsFor('GYM_OWNER');
+  for (const key of ['catalog.branch.list', 'catalog.branch.read', ...MUTATIONS]) {
+    assert.ok(owner.includes(key), `GYM_OWNER lost ${key}`);
+  }
+});
+
+test('ADR-0047 — SUPER_ADMIN may review an application but never author one', () => {
+  /*
+   * `BR-GYM-03` requires a human approval. A platform actor who can AUTHOR an application can
+   * approve an artefact they wrote themselves, and the approval stops meaning anything.
+   *
+   * This is the cell most likely to be "corrected" by someone who assumes SUPER_ADMIN holds
+   * everything — so it is asserted in both directions: the write is absent, the review is present.
+   */
+  const superAdmin = permissionsFor('SUPER_ADMIN');
+  assert.ok(
+    !superAdmin.includes('onboarding.application.submit'),
+    'SUPER_ADMIN can submit a gym application, so it could approve one it wrote (BR-GYM-03)',
+  );
+  assert.ok(
+    superAdmin.includes('onboarding.application_decision.create'),
+    'SUPER_ADMIN has lost the reviewing half, which is the half it is supposed to have',
+  );
+
+  const owner = permissionsFor('GYM_OWNER');
+  assert.ok(
+    owner.includes('onboarding.application.submit'),
+    'GYM_OWNER cannot submit its own form',
+  );
+  assert.ok(
+    !owner.includes('onboarding.application_decision.create'),
+    'GYM_OWNER can decide its own application',
+  );
+});
+
+test('catalog.branch.write is gone — a key on no route is an ungoverned grant', () => {
+  // `Security.md` §3.3.1 gives row 20 exactly one write string, `catalog.branch.write`, and it
+  // appears on no route in `API_Catalog.md`. §5.6: "a permission with no capability row is an
+  // ungoverned grant" — the converse is just as true, and PG-7 cannot see a key no route declares.
+  assert.ok(!PERMISSION_KEYS.includes('catalog.branch.write'));
 });
 
 test('FR-RBAC-05 — the effective-permission inspector reaches SUPER_ADMIN and nobody else', () => {
