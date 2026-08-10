@@ -46,6 +46,7 @@
     "ci:elevation-inventory": "node packages/config/scripts/elevation-inventory.mjs --check",
     "ci:isolation-coverage": "node packages/config/scripts/isolation-coverage.mjs",
     "ci:reference-drift": "node packages/config/scripts/reference-data-drift.mjs",
+    "ref:generate": "node packages/config/scripts/reference-generate.mjs",
     "ci:tailwind-tokens": "node packages/config/scripts/tailwind-tokens.mjs"
   },
   "devDependencies": {

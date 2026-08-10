@@ -5956,11 +5956,97 @@ the five around what they already have, not to rewrite them.
 cannot be machine-read reliably across documents that also carry narrative, the exclusivity question
 returns — and the answer then is a stricter heading convention, not a looser one.
 
+---
+
+## ADR-0042 — the platform taxonomy ships as a placeholder, because the backlog says to
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-10 |
+| **Decided by** | Project owner, delegated to this session on the analysis below |
+| **Supersedes** | Nothing. Adds the display layer over keys `SeedStrategy.md` §3.7 already fixes |
+| **Tracked as** | `BLK-21` in `PHASES.md` — now resolved |
+| **Related PRD ids** | `NFR-DQ-06` · `FR-GYM-03` · `FR-SRCH-03` · `AC-GYM-04.3` · `SeedStrategy.md` §3.7, §1.4, `RD2`, `RD4` |
+
+**Decision.** Adopt the display layer now — `name`, `icon`, `slug` and `sort_order` for all 59
+amenities and all 15 gym categories — with every `key` and `display_group` byte-identical to §3.7.
+Ship as `prisma/reference/{amenities,gym-categories}.csv` and a migration **generated** from them
+by `pnpm ref:generate`.
+
+**Context, and the fourth time I mis-framed a blocker.** `BLK-21` said the content was an unmade
+client decision and rested that entirely on `Epic_04.md` line 349. Read in full, that row says the
+opposite:
+
+> **Client decision** | Amenity taxonomy content — the actual list of amenity terms and their
+> display priority for the top-three card slots | *Search filters ship with a **placeholder
+> taxonomy**; retrofitting terms is cheap, retrofitting **ids** is not, so the id scheme is fixed in
+> Sprint 2 regardless*
+
+It asks for a placeholder and says the ids are what must be right. Against it, `SeedStrategy.md`
+§1.4 — **rank 3** — states a requirement: `amenities.csv` 59 rows, `gym-categories.csv` 15 rows.
+`docs/backlog/` is rank 4, and `CLAUDE.md` §2 calls it *"a plan of work, never a source of
+requirements"*. A rank-4 document cannot hold a rank-3 requirement hostage, and this one was not
+even trying to.
+
+**Why this was safe to decide when the permission vocabulary was not.** `RD2` derives every `id`
+from the **key**, and §3.7 fixes every key. So the permanent part was never in question, and the
+part being decided — four display columns — is editable through the `FR-ADMN-06` path without
+touching a single foreign key. Compare `BLK-19`, where the thing being decided *was* the permanent
+part and a wrong answer widened access. Reversibility is what separates them.
+
+**Three drafting rules, because no document states them and one has to.**
+
+| Rule | Evidence |
+| :--- | :--- |
+| **Sentence case** | No `docs/ui/*.md` file contains "sentence case", "title case" or "capitalisation" — all eight grepped. The product voice is in `en.ts` ('Group classes', 'Strength') and `catalogue.ts` ('Free weights', 'Women-only hours'), uniformly sentence case. 20-to-1 against the single Title Case outlier |
+| **≤ 18 characters** | `ResponsiveBehavior.md` puts the amenity chip row in a horizontal scroller at 320 px, where three long chips push the third off-screen. `DV2` forbids fixed-height chips and `DV6` forbids JS slicing, so a long label wraps rather than clips — 18 keeps the top three visible |
+| **One global `sort_order` 1..59** | `AC-GYM-04.3`: *"exactly the top three by platform-defined display priority appear, and the detail page shows all twelve grouped by amenity category."* A per-group order cannot answer "top three across groups"; a global one answers both |
+
+**Three `IC4` glyph collisions, resolved against the existing concept map.** `dumbbell` is already
+*Trainer*, so it goes to `PERSONAL_TRAINING` and `FREE_WEIGHTS` takes `weight`. `lock` is already
+*Permission denied*, so `LOCKER_ROOM` takes `vault`. `clock` is already *Open now*, so
+`OPEN_24_HOURS` takes `clock-12`. All 59 icons are distinct — asserted, because two amenities that
+look identical in a chip row are two a member cannot tell apart.
+
+**The caveat that matters most, stated plainly.** `lucide-react` is **not installed** — no
+`package.json` reference and nothing in `node_modules`. Every icon name was chosen against knowledge
+of the library and **could not be verified against the package**. The likeliest failures, in order:
+
+1. `PARKING_TWO_WHEELER` → `scooter`. Lucide has no scooter or motorcycle glyph; `bike` is a bicycle
+   and is spent on `SPIN_BIKES`. `AM3` calls two-wheeler parking *"a top-three decision factor for
+   an Indian gym member"* and `DesignSystem.md` permits a custom icon *"only where Lucide has no
+   equivalent"* — but this would take Phase 1's custom-icon count from three to four and needs a §12
+   amendment. Fallback if refused: `bike` here, `disc-3` for `SPIN_BIKES`.
+2. `venus`, `biceps-flexed`, `land-plot`, `user-round-check`, `concierge-bell`, `vault`, `clock-12`,
+   `stretch-horizontal` — all real but comparatively recent additions.
+3. `OLYMPIC_PLATFORM` → `rectangle-horizontal` is literal and mute; `BOXING_BAG` → `cylinder` and
+   `SPINNING` → `gauge` are shape metaphors, because Lucide has neither object.
+
+The day `lucide-react` is installed, an unknown export must fail the build rather than render
+nothing. That check is owed and is recorded as part of this decision's follow-through.
+
+**Two names exceed 18 characters and are kept.** "Two-wheeler parking" (19) because
+`Marketplace.md` already fixes that exact string, and "Resistance machines" (19) because "Machines"
+alone is meaningless beside "Cardio zone". Both sit at `sort_order` ≥ 3, so the pair never shares a
+top-three at 320 px.
+
+**One thing the owner should see.** `Epic_04.md` names the `SCR-WEB-001` tile set as *"24-hour,
+women-only, budget, premium, CrossFit, yoga"*. Five are categories in this table; **"24-hour" is
+not — it is the `OPEN_24_HOURS` amenity.** So that tile strip is not a straight category render, and
+whoever builds it will need both sources.
+
+**Revisit trigger.** The first real gym owner completing the amenity step and not finding a term
+they expect. That is a content change — one CSV row and a regenerated migration — and it is
+deliberately cheap. If instead the trigger is a *key* nobody anticipated, that is a new row in §3.7
+first, because the id derives from it and ids are permanent.
 
 
 
 
-**End of decision log.** Forty-one ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
+
+
+**End of decision log.** Forty-two ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.
 

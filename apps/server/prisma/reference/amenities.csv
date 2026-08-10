@@ -1,0 +1,60 @@
+key,name,icon,display_group,sort_order
+OPEN_24_HOURS,Open 24 hours,clock-12,Hours,1
+PARKING_CAR,Car parking,car,Facilities,2
+PARKING_TWO_WHEELER,Two-wheeler parking,scooter,Facilities,3
+SWIMMING_POOL,Swimming pool,waves,Facilities,4
+WOMEN_ONLY_HOURS,Women-only hours,venus,Accessibility,5
+TRIAL_SESSION,Trial session,gift,Services,6
+POWER_BACKUP,Power backup,battery-charging,Facilities,7
+DRINKING_WATER_RO,RO drinking water,glass-water,Facilities,8
+PERSONAL_TRAINING,Personal training,dumbbell,Services,9
+AIR_CONDITIONING,Air conditioning,air-vent,Facilities,10
+GROUP_CLASSES_INCLUDED,Group classes,calendar-days,Services,11
+SAUNA,Sauna,flame,Facilities,12
+STEAM_ROOM,Steam room,droplets,Facilities,13
+LOCKER_ROOM,Lockers,vault,Facilities,14
+SHOWERS,Showers,shower-head,Facilities,15
+CAFE,Cafe,coffee,Facilities,16
+WIFI,Wi-Fi,wifi,Facilities,17
+FREE_WEIGHTS,Free weights,weight,Equipment,18
+CARDIO_ZONE,Cardio zone,heart-pulse,Equipment,19
+RESISTANCE_MACHINES,Resistance machines,layers,Equipment,20
+FUNCTIONAL_TRAINING_ZONE,Functional zone,move,Equipment,21
+CROSSFIT_RIG,CrossFit rig,frame,Equipment,22
+OLYMPIC_PLATFORM,Olympic platform,rectangle-horizontal,Equipment,23
+TURF_AREA,Turf area,land-plot,Equipment,24
+BOXING_BAG,Boxing bags,cylinder,Equipment,25
+RECOVERY_ZONE,Recovery zone,armchair,Equipment,26
+STRETCHING_ZONE,Stretching zone,person-standing,Equipment,27
+SMITH_MACHINE,Smith machine,columns-2,Equipment,28
+CABLE_CROSSOVER,Cable crossover,cable,Equipment,29
+TREADMILL,Treadmills,footprints,Equipment,30
+ELLIPTICAL,Ellipticals,orbit,Equipment,31
+ROWING_MACHINE,Rowing machines,sailboat,Equipment,32
+SPIN_BIKES,Spin bikes,bike,Equipment,33
+YOGA,Yoga,flower-2,Classes,34
+CROSSFIT_CLASS,CrossFit classes,timer,Classes,35
+HIIT,HIIT,zap,Classes,36
+SPINNING,Spinning,gauge,Classes,37
+ZUMBA,Zumba,music-4,Classes,38
+PILATES,Pilates,stretch-horizontal,Classes,39
+STRENGTH_CLASS,Strength classes,biceps-flexed,Classes,40
+AEROBICS,Aerobics,activity,Classes,41
+MMA,MMA,swords,Classes,42
+KICKBOXING,Kickboxing,target,Classes,43
+DANCE_FITNESS,Dance fitness,disc-3,Classes,44
+MEDITATION,Meditation,brain,Classes,45
+PHYSIOTHERAPY,Physiotherapy,stethoscope,Services,46
+DIET_CONSULTATION,Diet consultation,salad,Services,47
+BODY_COMPOSITION_ANALYSIS,Body composition,percent,Services,48
+WHEELCHAIR_ACCESS,Wheelchair access,accessibility,Accessibility,49
+LIFT_ACCESS,Lift access,arrow-up-down,Accessibility,50
+GROUND_FLOOR,Ground floor,door-open,Accessibility,51
+WOMEN_TRAINER_AVAILABLE,Women trainers,user-round-check,Accessibility,52
+CHILDCARE,Childcare,baby,Accessibility,53
+EARLY_MORNING_OPENING,Early opening,sunrise,Hours,54
+LATE_NIGHT_CLOSING,Late closing,moon-star,Hours,55
+TOWEL_SERVICE,Towel service,concierge-bell,Facilities,56
+CHANGING_ROOM,Changing room,shirt,Facilities,57
+JUICE_BAR,Juice bar,cup-soda,Facilities,58
+PRO_SHOP,Pro shop,shopping-bag,Facilities,59

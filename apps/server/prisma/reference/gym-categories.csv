@@ -1,0 +1,16 @@
+key,name,slug,sort_order
+GYM,Gym,gym,1
+FITNESS_STUDIO,Fitness studio,fitness-studio,2
+CROSSFIT_BOX,CrossFit box,crossfit-box,3
+YOGA_STUDIO,Yoga studio,yoga-studio,4
+PILATES_STUDIO,Pilates studio,pilates-studio,5
+MARTIAL_ARTS,Martial arts,martial-arts,6
+BOXING_MMA,Boxing & MMA,boxing-mma,7
+DANCE_STUDIO,Dance studio,dance-studio,8
+SWIMMING_ACADEMY,Swimming academy,swimming-academy,9
+SPORTS_COMPLEX,Sports complex,sports-complex,10
+WOMEN_ONLY_GYM,Women-only gym,women-only-gym,11
+PREMIUM_CLUB,Premium club,premium-club,12
+BUDGET_GYM,Budget gym,budget-gym,13
+PT_STUDIO,Personal training studio,personal-training-studio,14
+WELLNESS_CENTRE,Wellness centre,wellness-centre,15

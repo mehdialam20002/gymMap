@@ -1,10 +1,18 @@
 {
-  "version": 1,
+  "version": 2,
   "namespace": "3f8a2d10-0000-5000-b000-000000000000",
   "files": {
     "countries.csv": {
       "sha256": "f2d80e1803380c58d666e3adb1aa4873f2e7065fe5439b4aee0d936aaa57092f",
       "rows": 1
+    },
+    "amenities.csv": {
+      "sha256": "c20413b50cea38afa2edd2d9516462221271cd3d1c0d5eee7f5685bb96712a23",
+      "rows": 59
+    },
+    "gym-categories.csv": {
+      "sha256": "4506ec5f2ecd4e6469613cdc83446f008722dc499be24d72be3ac3a7642c82d9",
+      "rows": 15
     }
   },
   "tables": {
@@ -21,12 +29,12 @@
       "rows": 0
     },
     "amenities": {
-      "hash": "",
-      "rows": 0
+      "hash": "692137378d3d833dfcac3db045aceb5e",
+      "rows": 59
     },
     "gym_categories": {
-      "hash": "",
-      "rows": 0
+      "hash": "22f6c01f70c6c5131e85b3d5f8f273d8",
+      "rows": 15
     },
     "reason_codes": null,
     "help_articles": null,
