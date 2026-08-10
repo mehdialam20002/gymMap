@@ -6321,7 +6321,212 @@ sells placement is the trust failure `BR-GYM-*` exists to prevent.
 
 ---
 
-**End of decision log.** Forty-five ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
+## ADR-0047 — the owner's decision session of 2026-08-10: seven answers, and what each costs
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-10 |
+| **Decided by** | **Project owner**, directly, in session |
+| **Closes** | `BLK-14` · `BLK-17` · `BLK-19` |
+| **Advances** | `BLK-16` · `BLK-22` · `BLK-08` |
+| **Amends** | `MASTER_PRD.md` §B3.2 under Part C §C10 — see §1 and §7 below |
+| **Related** | `ADR-0043` (the anti-capability-shopping gate) · `TD-045` |
+
+Seven questions were put to the owner in plain language, with the consequence of each option stated.
+All seven were answered. **The direction of each is settled and is not re-opened below.** What this
+ADR records is the direction *and* what an adversarial design pass found it actually costs — because
+four of the four designs came back **PROCEED WITH CHANGES**, and one came back **feature-dead as
+drafted**.
+
+### The seven answers
+
+| # | Question | The owner's answer |
+| :-: | :--- | :--- |
+| 1 | Should permissions be configurable — a gym owner ticking what their own staff may do, and an admin creating roles? | **Phase 2. Leave room in Phase 1** |
+| 2 | Do all six `BR-GYM-09` pre-checks run instantly at submission? | **Yes**, via a platform-global duplicate register |
+| 3 | How long does a KYC document link live? | **Single-use** — it dies on first click |
+| 4 | May a gym owner submit their own onboarding application? | **Yes** — a new `§B3.2` row, `GYM_OWNER` only |
+| 5 | Is a `job_runs` table added now? | **No** — log lines for now |
+| 6 | Which audit shape for a KYC document access? | **`ELEVATE`** |
+| 7 | Do `RECEPTIONIST` and `TRAINER` see the branch list, and may Support read the two admin screens? | **All three branches** · **Support may read** |
+
+---
+
+### 1. "Leave room" does NOT mean moving authorisation into the database
+
+**This is the most important line in this ADR, and it reverses the intuitive reading — including
+mine when I framed the question.**
+
+Today `permits()` resolves a principal's permissions from the **compiled** `CAPABILITY_MATRIX`
+(`iam/domain/effective-permissions.ts` → `permissionsFor(grant.role)`), not from the
+`role_permissions` **table**. The table is written by the seed and read by nothing on the request
+path. The obvious "leave room" move is to repoint the guard at the table.
+
+**That would be a security regression, and three rank-3 rules forbid it:**
+
+- `Security.md` `RB1` — *"The grant table is data, not control flow: a frozen map from
+  `(role, permission)` to a qualifier."*
+- `RB2` — the `rbac-matrix-drift` CI job parses `§B3.2` out of `MASTER_PRD.md` and fails the build
+  on any difference, *"so a permission cannot be widened by editing code"*.
+- `RB5` — the `FR-RBAC-05` inspector is served by *"the SAME compiled map"* the guard uses.
+
+A database-reading guard turns a privilege change into an `UPDATE` — no code review, no drift check,
+no diff. Phase 2's tenant overlay must sit **beside** the compiled baseline as a **subtract-only**
+layer, never replace it.
+
+**So "leave room" costs four small things, all of which are owed anyway:**
+
+| What | Why it is owed regardless of Phase 2 |
+| :--- | :--- |
+| **One resolution seam** in `iam/domain` — every call site goes through it, returning `permissionsFor(grant.role)` verbatim today | Seven call sites resolve permissions independently today. A Phase-2 change that patches `permits()` and misses `effectiveGrants()` is a silent escalation — the `AC-5` union-by-omission the file's own header warns about |
+| **`PermissionsGuard.canActivate` returns a Promise** | `FR-RBAC-04` already requires a role change to land within 60s without re-authentication, and `PermissionCache.read()` is async. Free today: `TD-045` means the guard has zero production call sites |
+| **A written `NON_DELEGABLE` list** — the keys that must never appear on any tick list, in any phase | `FEATURE_FLAGS.md` §6.3 and `CLAUDE.md` §9.7 — money, tenancy and review-integrity rules are never disableable, and a per-tenant permission toggle is a flag over the authorisation path by another name |
+| **`is_active` on `roles`, `permissions`, `role_permissions`** | `SeedStrategy.md` §2.5 already prescribes exactly this shape and `SoftDeleteStrategy.md` forbids deleting from these tables. A rank-3 conformance gap owed today, at its cheapest now: 12 / 64 / 191 rows and no dependants |
+
+**And it costs nothing else.** Explicitly *not* built: a nullable `tenant_id` on `role_permissions`
+(its per-tenant successor is a new tenant-class table, not this global one), any change to
+`platform_role_enum`, any custom-role table, any tick screen.
+
+**Three corrections the adversary made to the design, all mandatory:**
+
+1. A drafted rule `RB7` — *"a tenant-side list may contain only keys `§B3.2` already grants to at
+   least one tenant- or branch-scoped role"* — **authorises ticking
+   `settlements.payout_account.update` for `RECEPTIONIST`.** It must be per-role: *only keys the
+   role being narrowed already holds, removal only.*
+2. `iam.impersonation.manage` is in the proposed `NON_DELEGABLE` list and **is not in
+   `PERMISSION_KEYS`** — the accompanying spec fails on day one.
+3. `NON_DELEGABLE` must be **inert**. Wiring it into `permits()` as a denylist is the next reader's
+   instinct and it removes `VERIFICATION_OFFICER`'s own onboarding access.
+
+---
+
+### 2. All six pre-checks run instantly — and the drafted register is currently feature-dead
+
+The owner's direction reconciles a rank-1/rank-3 collision correctly. `PROJECT_CONSTITUTION.md`
+`PE6` forbids a user request fanning out across tenants synchronously **and names the remedy**: a
+pre-aggregated platform projection. A single indexed read of one platform-scoped register *is* that
+remedy, not the fan-out it forbids. `BLK-22`'s conflict dissolves.
+
+**Two findings block the drafted design, both verified:**
+
+- **It would see zero rows.** The design puts `ENABLE` + `FORCE ROW LEVEL SECURITY` on the register
+  and reads it through a `SECURITY DEFINER` function — but a function created in a migration is
+  owned by `app_migrator`, and `FORCE` applies to the owner too. The probe returns nothing, always,
+  and every duplicate check silently reports `PASS`. **A fraud control that looks like it works.**
+- **The drafted function signature is a cross-tenant geolocation oracle.**
+  `fn_count_other_premises_claimants(value_hash, point, radius)` binds the self-claim guard to
+  `value_hash` only, so any tenant can ask *"is there a gym within N metres of this point"* about
+  anywhere. That is invariant 1, breached through a function designed to protect it.
+
+Both are fixable and neither reverses the decision. Recorded here so the next attempt does not
+re-make them.
+
+**The separation the owner specified stands and must be structural, not conventional:** a reviewer
+may see *which* gym holds a duplicate; the submitting owner sees only *"this number is already
+registered"*. `precheck_results` is inside the submitting tenant's own RLS row **and** is returned
+in the tenant-facing `202` body, so the tenant-side read must be an explicit allowlisted
+projection — never the stored object.
+
+---
+
+### 3. The KYC link is single-use, and the audit row is `ELEVATE`
+
+Both halves of `BLK-16`'s TTL conflict become true at once, which is why the two-hop shape was the
+only reconciliation that ever worked: the platform mints a **15-minute single-use** token on its own
+origin, consumes it atomically on redirect (`GETDEL`), and mints a **300-second** presigned GET at
+that moment. `Admin.md`'s 15 minutes times the token; `Security.md` `KY2`'s 300 seconds times the
+object. `BLK-17` closes with `ELEVATE` / `elevation_scope = 'KYC_DOCUMENT_ACCESS'`.
+
+`AC-8`'s ordering guarantee — *"no signed URL is issued unless the audit row committed first"* —
+needs a new **throwing** writer (`appendOrThrow`), because `AuditPrismaRepository.append()` swallows
+failures by design under `BR-DAT-01`. That is a deliberate, narrow exception to an availability
+trade-off, and it applies to this path only.
+
+**Not built, and the migration must say so:** no malware scanner (`A-31`, unapproved), no PDF
+rasteriser, no new table, no new error code. `KL-104` quarantines every document as `UNSCANNED`, so
+the redirect endpoint must **refuse** an unscanned document — the route becomes legal and stays
+non-functional until `A-31` is approved. Anyone reading *"`BLK-16` resolved"* as *"reviewers can now
+open documents"* will make the one-word change that turns this into a breach.
+
+---
+
+### 4. The gym owner may submit their own application — and there is a deadlock behind it
+
+One new `§B3.2` row, **"Submit own gym application"**, `GYM_OWNER ●` and eleven `—` including
+`SUPER_ADMIN` (a platform actor must not be able to author the artefact they later approve —
+`BR-GYM-03`). It carries five permission strings already frozen verbatim in `API_Catalog.md` §3.9.
+
+The holder set is **read off** `FR-ONB-08`, not chosen — `ADR-0043`'s rule.
+
+**The deadlock, found by the adversary and settled by precedence rather than by a new decision:**
+`Gym.md` §9.2 refuses submission until `BR-GYM-02` holds, which includes *"≥1 **published** plan"* —
+but publishing requires an **approved** tenant, and approval requires submission. Every gym owner
+would deadlock at step 4 forever. Rank-2 `FR-ONB-05` says *"at least one plan **created** before
+submission"*, and §9.2's own side-effects paragraph says *"**Nothing is published**"*. Rank 2 wins:
+the predicate is **created**, not published.
+
+**Two things this does not do.** It does not make KYC upload work (`ObjectStoragePort` and
+`MalwareScanPort` both answer `UNAVAILABLE`/`UNSCANNED` by design). And **it resolves none of the
+seven permission keys `TD-045` names** — those are `admin.*`, `iam.*` and `tenancy.*`, not
+`onboarding.*` — so binding `PermissionsGuard` still `403`s every authenticated route. `TD-045`'s
+order stands: **resolve the keys, then register.** No guard is bound in the same change.
+
+---
+
+### 5. `job_runs` stays out
+
+`BLK-08` is unchanged and `TD-032` remains open. Single-execution is already guaranteed by Postgres
+advisory locks; what is deferred is only the `AC-FND-12.2` overrun alert. Revisit before launch.
+
+---
+
+### 6. `ELEVATE`, not `EXPORT`
+
+Recorded in §3. The deciding reason is that an elevation is what this *is* — a platform actor
+reading a tenant's private document — and `runElevated()` already carries the audit-before-work
+discipline the requirement needs.
+
+---
+
+### 7. `RECEPTIONIST` and `TRAINER` see all three branches; Support may read the two admin screens
+
+**`BLK-19` closes.** `§B3.2` rows 19 and 20 gain `RECEPTIONIST` and `TRAINER`, and the two
+platform-admin capabilities of `BLK-10` gain `SUPPORT_AGENT ○`. `SCR-DASH-004` can be built as
+designed and `M-031`'s five branch routes are unblocked.
+
+**Scope, stated because the owner's answer did not distinguish it and the difference is large:**
+*"all three branches"* is read as **read only**. A receptionist and a trainer may see the branch
+list; creating, editing and deactivating a branch stay with the owner. If that is wrong it is a
+one-line change to this row — but widening a write is not something to infer from an answer about
+seeing a list.
+
+**Both answers widen access, and both were the owner's to widen.** They are recorded as such rather
+than argued: `ADR-0043`'s rule refuses *me* widening access without a document forcing it; the owner
+is the `§C10` authority and this ADR is that authority being exercised. The narrower option was put
+first in both cases with its reasoning, and was not taken.
+
+---
+
+### What is now open, honestly
+
+Closed: `BLK-14`, `BLK-17`, `BLK-19`. Advanced but not closed: `BLK-16` (the route is legal and
+non-functional until `A-31`), `BLK-22` (the register design needs its two critical fixes), `BLK-08`
+(deferred by decision).
+
+Still open and untouched by this session: `BLK-03`, `BLK-04`, `BLK-05`, `BLK-09`, `BLK-10`'s
+remaining half, and — surfaced by this pass — **six reviewer-side `onboarding.*` strings that exist
+in `API_Catalog.md` and in no matrix row**, which is `BLK-10`'s family and blocks `M-036`. And
+`POST /tenants` (wizard step 1) declares `tenancy.tenant.create`, which is in no matrix row either:
+a second `BLK-14`-shaped hole that nobody had raised.
+
+**`TD-045` is the gate on all of it.** Four guards are built and registered nowhere; until the key
+set is complete, binding them `403`s the application.
+
+---
+
+**End of decision log.** Forty-seven ADRs, all `Accepted`, numbered `ADR-0001` … `ADR-0047` with no
+gaps. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.
 
