@@ -568,6 +568,79 @@ export const ERROR_REGISTRY = {
     detailsShape: '{ branch_id: string; member_count: number; }',
   },
 
+  /*
+   * ┌─ THREE CODES `Gym.md` §12.3 EMITS THAT THE REGISTRY DID NOT CARRY ──────────────────────────┐
+   * │ Found while writing `M-031`'s branch routes. Each has a FULL row in `API_Catalog.md`'s error │
+   * │ catalogue — status, message guidance, retryability, enforcing rule — and no entry here, so   │
+   * │ `PG-5` would fail the moment a handler threw one and `PATCH /tenant/branches/:id` could not  │
+   * │ emit the errors its own contract promises.                                                    │
+   * │                                                                                              │
+   * │ Transcribed, not invented, and the distinction is the one this file already draws twenty     │
+   * │ lines below: `LAST_ACTIVE_BRANCH` is REFUSED registration because it appears only in rank-4  │
+   * │ documents with no status attached. These three are rank-3 catalogue rows with every column   │
+   * │ filled. Same test, opposite answer.                                                            │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+
+  GEO_ADDRESS_MISMATCH: {
+    module: 'catalog',
+    class: 'Business',
+    // 422 per `API_Catalog.md` §6.6 line 1629: the body is well-formed and the caller permitted;
+    // the DOMAIN refuses the pin.
+    httpStatus: 422,
+    messageKey: 'error.catalog.geo_address_mismatch',
+    enforces: ['BR-GYM-08', 'FR-ONB-12'],
+    // Retryable once the pin moves, which is the whole point of naming the distance.
+    retryable: false,
+    /*
+     * Both numbers, because the catalogue's guidance is *"state the measured distance AND the
+     * tolerance"*. An owner told only "too far" has no way to know whether they are out by five
+     * metres or five kilometres, and the two need different actions.
+     *
+     * `Gym.md` §12.3 is also explicit that this one REFUSES on PATCH where creation only warns:
+     * *"an approved gym's pin moving 3 km is either an error or a relocation, and both need a
+     * human"*.
+     */
+    detailsShape: '{ measured_metres: number; tolerance_metres: number; }',
+  },
+
+  BRANCH_NOT_ASSIGNED_TO_STAFF: {
+    module: 'catalog',
+    class: 'Authorisation',
+    // 403 and not 404. The branch is one the caller may SEE — a `▪` role holds the tenant's list —
+    // so hiding it would contradict a read they can already perform. What is refused is the WRITE.
+    httpStatus: 403,
+    messageKey: 'error.catalog.branch_not_assigned_to_staff',
+    enforces: ['FR-RBAC-03', 'AZ8', 'BR-TEN-03'],
+    retryable: false,
+    /*
+     * The branch id and nothing else. Naming which branches the caller IS assigned to would be
+     * more helpful and would also enumerate the tenant's estate to a role scoped away from it.
+     */
+    detailsShape: '{ branch_id: string; }',
+  },
+
+  RESOURCE_VERSION_CONFLICT: {
+    /*
+     * Owned by `common` rather than `catalog`: `API_Catalog.md` §15 defines optimistic
+     * concurrency for every mutable resource, and branches are the first caller rather than the
+     * subject. A `catalog`-owned code would have to be duplicated by the second module to need it,
+     * and `§6.1`'s uniqueness rule forbids two codes for one condition.
+     */
+    module: 'common',
+    class: 'Conflict',
+    httpStatus: 409,
+    messageKey: 'error.common.resource_version_conflict',
+    enforces: ['NFR-DQ-01'],
+    /*
+     * NOT retryable unchanged — `Fix` in the catalogue. Re-sending the same body with the same
+     * stale version repeats the conflict forever; the caller has to re-read first. Marking it
+     * retryable would invite exactly that loop.
+     */
+    retryable: false,
+    detailsShape: '{ expected_version: number; actual_version: number; }',
+  },
+
   CONFIG_VALIDATION_FAILED: {
     /*
      * Owned by `admin`, and the row is here because `catalog` needs to EMIT it.

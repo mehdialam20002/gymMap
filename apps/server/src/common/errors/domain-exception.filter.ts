@@ -212,6 +212,21 @@ export const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
     'Members can still check in at this branch, so it cannot be closed yet. Move them to another ' +
     'branch, or wait for their memberships to expire.',
 
+  /*
+   * The three added with their registry rows in the same change. `API_Catalog.md`'s message
+   * guidance is quoted in each registry entry; these are that guidance written as a sentence a
+   * member or an owner actually reads.
+   */
+  GEO_ADDRESS_MISMATCH:
+    'The map pin is too far from the address you entered. Move the pin, or correct the address ' +
+    'so the two agree.',
+  BRANCH_NOT_ASSIGNED_TO_STAFF:
+    'You can view this branch but not change it. Ask an owner to assign you to it, or to make ' +
+    'the change for you.',
+  RESOURCE_VERSION_CONFLICT:
+    'Someone else changed this while you were editing. Reload to see their version, then apply ' +
+    'your change again.',
+
   // Names the shape of the problem without naming the field, because the field is per-request and
   // arrives through `clientMessage`. "Configuration is inconsistent" alone would fail NFR-USE-05,
   // so the fallback at least says which two things have to agree.
