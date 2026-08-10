@@ -13,7 +13,14 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { VERBS, PHASES, HEADER_KEYS, lintMigration, lintAll } from './migration-lint.mjs';
+import {
+  VERBS,
+  PHASES,
+  HEADER_KEYS,
+  REFERENCE_DML_TABLES,
+  lintMigration,
+  lintAll,
+} from './migration-lint.mjs';
 
 /**
  * Derived from this file's own location, NOT from `process.cwd()`.
@@ -339,4 +346,85 @@ test('the closed verb list and phase list match the specification', () => {
     'seed',
   ]);
   assert.deepEqual(PHASES, ['expand', 'migrate', 'contract']);
+});
+
+// ---------------------------------------------------------------------------
+// RD3 / SEP10 — DML is permitted against the sixteen reference tables and nothing else
+// ---------------------------------------------------------------------------
+
+test('RD3 · an INSERT into a reference table is permitted', () => {
+  const { name, sql } = migration(
+    `INSERT INTO countries (code, name, default_currency, calling_code, fy_start_month, is_active)
+     VALUES ('IN', 'India', 'INR', '+91', 4, true);`,
+  );
+  assert.deepEqual(rules(lintMigration(name, sql)), []);
+});
+
+test('RD3 · an INSERT into a BUSINESS table is refused', () => {
+  /*
+   * The hazard, concretely. A migration runs in EVERY environment including production, under
+   * `app_migrator`, with none of `SEP3`'s environment assertion in front of it — the seeder's
+   * first statement reads `current_setting('app.environment')` and aborts on `production`; a
+   * migration has no such guard. A test tenant reaching production this way is a data incident.
+   */
+  const { name, sql } = migration(
+    `INSERT INTO tenants (id, legal_name, entity_type)
+     VALUES ('00000000-0000-4000-8000-000000000001', 'Test Gym', 'COMPANY');`,
+  );
+  const problems = lintMigration(name, sql);
+  assert.ok(rules(problems).includes('RD3'), 'a migration seeded a tenant and nothing objected');
+  assert.match(problems.find((p) => p.rule === 'RD3').message, /tenants/);
+  assert.match(problems.find((p) => p.rule === 'RD3').message, /sixteen reference tables/);
+});
+
+test('RD3 · UPDATE and DELETE against a business table are refused too', () => {
+  // RD3 names INSERT and UPDATE; SEP10 says a migration never WRITES those rows. A DELETE that
+  // removes business rows is the same class of statement and the same production hazard.
+  for (const body of [
+    `UPDATE memberships SET status = 'EXPIRED';`,
+    `DELETE FROM orders WHERE created_at < now();`,
+  ]) {
+    const { name, sql } = migration(body);
+    assert.ok(rules(lintMigration(name, sql)).includes('RD3'), `not caught: ${body}`);
+  }
+});
+
+test('RD3 · a referential action inside CREATE TABLE is NOT mistaken for DML', () => {
+  /*
+   * The false positive that would have made this rule unshippable. Every FK in the repository
+   * carries `ON DELETE RESTRICT` or `ON UPDATE CASCADE`, and a naive /UPDATE|DELETE/ would fire on
+   * all twenty-two migrations at once — which is how a rule gets deleted rather than fixed.
+   *
+   * The anchor is start-of-statement: UPDATE must follow `;` or the start of the file, and DELETE
+   * must be followed by FROM.
+   */
+  const { name, sql } = migration(
+    `ALTER TABLE branches ADD CONSTRAINT fk_branches__gyms FOREIGN KEY (gym_id)
+       REFERENCES gyms (id) ON DELETE RESTRICT ON UPDATE CASCADE;`,
+  );
+  // Asserting RD3's ABSENCE rather than an empty list: a CREATE TABLE fixture would also trip
+  // MG10 and P10 for having no RLS block, and this test is not about those.
+  assert.ok(!rules(lintMigration(name, sql)).includes('RD3'));
+});
+
+test('RD3 · a GRANT that includes UPDATE is not DML', () => {
+  // Same anchor does the work. Every G-CRUD migration in the repo issues one of these.
+  const { name, sql } = migration(`GRANT SELECT, INSERT, UPDATE ON gyms TO app_rw;`);
+  assert.deepEqual(rules(lintMigration(name, sql)), []);
+});
+
+test('RD3 · DML mentioned only in a COMMENT does not fire', () => {
+  // `executableOnly` strips `--` lines. A rule that fires on prose discussing itself is a rule
+  // people stop writing comments to avoid.
+  const { name, sql } = migration(`-- INSERT INTO tenants (id) VALUES ('x');  -- explaining why not
+ALTER TABLE gyms ADD COLUMN IF NOT EXISTS note text;`);
+  assert.deepEqual(rules(lintMigration(name, sql)), []);
+});
+
+test('RD3 · the allow-list is exactly SeedStrategy.md §2.1, and all sixteen are accepted', () => {
+  assert.equal(REFERENCE_DML_TABLES.length, 16, 'RD3 calls the exception CLOSED at sixteen');
+  for (const table of REFERENCE_DML_TABLES) {
+    const { name, sql } = migration(`INSERT INTO ${table} (id) VALUES (gen_random_uuid());`);
+    assert.deepEqual(rules(lintMigration(name, sql)), [], `${table} was refused`);
+  }
 });

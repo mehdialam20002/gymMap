@@ -164,6 +164,63 @@ function toMs(raw) {
   return m[2] === 'ms' ? n : m[2] === 's' ? n * 1000 : n * 60_000;
 }
 
+/**
+ * `SeedStrategy.md` §2.1 — the sixteen tables a migration may write rows into, in document order.
+ *
+ * Transcribed from the table at §2.1 lines 149–166, not inferred. `§C2.3` names eleven and
+ * `Schema.md` §2.6's closed exemption list adds five more that are equally platform-owned; all
+ * sixteen are `GLOBAL` tenancy with no `tenant_id`.
+ *
+ * Adding a name here is not an implementation decision. `RD3` calls the exception CLOSED, and
+ * `SEP10` repeats it — so a seventeenth table is an owner amendment to §2.1 first, and an edit to
+ * this array second.
+ */
+export const REFERENCE_DML_TABLES = [
+  'countries',
+  'cities',
+  'localities',
+  'amenities',
+  'gym_categories',
+  'reason_codes',
+  'help_articles',
+  'subscription_tiers',
+  'tax_profiles',
+  'kyc_checklists',
+  'commission_rules',
+  'feature_flags',
+  'notification_templates',
+  'roles',
+  'permissions',
+  'role_permissions',
+];
+
+/**
+ * Every `INSERT INTO <t>` / `UPDATE <t>` / `DELETE FROM <t>` a migration executes.
+ *
+ * ┌─ WHAT THIS DELIBERATELY DOES NOT MATCH ──────────────────────────────────────────────────────┐
+ * │ `ON UPDATE CASCADE` and `ON DELETE RESTRICT` inside a `CREATE TABLE` are referential-action   │
+ * │ clauses, not statements — matching them would fail every migration in the repository. The     │
+ * │ anchor is therefore start-of-statement: `UPDATE` must be preceded by `;` or the start of the  │
+ * │ file, and `DELETE` must be followed by `FROM`.                                                 │
+ * │                                                                                              │
+ * │ `GRANT ... UPDATE ON <t>` is likewise not DML. It is excluded by the same anchor, because a   │
+ * │ GRANT's `UPDATE` never begins a statement.                                                     │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+function dmlTargets(code) {
+  const found = [];
+  const patterns = [
+    [/(?:^|;)\s*INSERT\s+INTO\s+"?([a-z_][a-z0-9_]*)"?/gi, 'INSERT'],
+    [/(?:^|;)\s*UPDATE\s+(?:ONLY\s+)?"?([a-z_][a-z0-9_]*)"?/gi, 'UPDATE'],
+    [/(?:^|;)\s*DELETE\s+FROM\s+"?([a-z_][a-z0-9_]*)"?/gi, 'DELETE'],
+  ];
+
+  for (const [pattern, verb] of patterns) {
+    for (const match of code.matchAll(pattern)) found.push({ verb, table: match[1].toLowerCase() });
+  }
+  return found;
+}
+
 /** Strips `--` comments so a rule never fires on prose that merely discusses it. */
 function executableOnly(sql) {
   return sql
@@ -430,6 +487,42 @@ export function lintMigration(name, sql) {
       `"timestamp without time zone". India is UTC+05:30 with no DST, so a naive timestamp is ` +
         `ambiguous the moment it crosses a process boundary. Use timestamptz.`,
     );
+  }
+
+  /*
+   * --- RD3 / SEP10: DML is permitted against the sixteen reference tables and NOTHING else ----
+   *
+   * ┌─ `MigrationStrategy.md` `P6`: A MIGRATION PERFORMS DDL AND A JOB PERFORMS DML ────────────┐
+   * │ Reference data is the single exception, and `RD3` closes it with an allow-list: *"a        │
+   * │ migration may `INSERT`/`UPDATE` only into the sixteen tables of §2.1. `migration-lint`     │
+   * │ fails on DML against any other table."* `SEP10` states the other half — *"a migration      │
+   * │ never inserts `K2`/`K3`/`K4`/`K5` rows"* — and names this linter and this allow-list as    │
+   * │ what enforces it.                                                                          │
+   * │                                                                                            │
+   * │ Specified since the document was written, and absent until now. The first reference DML in │
+   * │ the repository shipped one commit ago, so the rule now has something to be wrong about.    │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   *
+   * ┌─ WHY THE HAZARD IS REAL RATHER THAN THEORETICAL ───────────────────────────────────────────┐
+   * │ A migration that inserts a tenant, a user or a plan runs in EVERY environment including    │
+   * │ production, under `app_migrator`, with no `SEP3` environment assertion in front of it — the │
+   * │ seeder's first statement checks `current_setting('app.environment')` and a migration has no │
+   * │ such guard. `SEP5` then makes the row detectable only by a monitoring query that fires an   │
+   * │ S1 alert. A test tenant reaching production this way is a data incident, not a bug.        │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  for (const { verb, table } of dmlTargets(code)) {
+    if (!REFERENCE_DML_TABLES.includes(table)) {
+      fail(
+        'RD3',
+        `${verb} into "${table}", which is not one of the sixteen reference tables of ` +
+          `SeedStrategy.md §2.1. MigrationStrategy.md P6: a migration performs DDL and a job ` +
+          `performs DML, and reference data is the single closed exception. A migration that ` +
+          `writes business rows runs in production under app_migrator with none of SEP3's ` +
+          `environment assertion in front of it. If this really is reference data, the table ` +
+          `belongs on the §2.1 list — which takes an owner amendment, not an edit to this array.`,
+      );
+    }
   }
 
   return problems;
