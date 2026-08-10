@@ -739,6 +739,11 @@ export const en = {
   // The gym grid's own heading on both landings. Visually hidden: the h1 above it already says
   // what is being listed, but the outline needs a level 2 between that h1 and the cards' h3.
   'web.landing.listingsHeading': 'Listings',
+  // The two hub pages were a heading, one line and a grid of tiles - about 1,000px against the
+  // home page's 11,000. These name the cross-link band each one gained: from cities you want
+  // to know what is on offer, and from an activity you want to know where it is.
+  'web.landing.cities.activities': 'What you can do',
+  'web.landing.explore.cities': 'Where to find them',
   'web.landing.city.activities': 'Activities in {city}',
   'web.landing.city.otherCities': 'Other cities',
   'web.landing.city.seeAll': 'See all {count} in search',
