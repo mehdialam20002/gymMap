@@ -1093,6 +1093,52 @@ export const PERMISSION_KEYS: readonly string[] = [
   ),
 ].sort();
 
+/** Does this `§B3.2` row declare this permission string, through ANY of its four key fields? */
+export function capabilityDeclares(entry: CapabilityDefinition, permission: string): boolean {
+  return (
+    entry.readKey === permission ||
+    entry.writeKey === permission ||
+    (entry.extraReadKeys?.includes(permission) ?? false) ||
+    (entry.extraWriteKeys?.includes(permission) ?? false)
+  );
+}
+
+/**
+ * The permission string a module's `permissions.ts` may declare — naming BOTH the `§B3.2` row and
+ * the key, and refusing unless the row actually declares it.
+ *
+ * ┌─ WHY BOTH, WHEN `readKeyFor(label)` ALONE WOULD BE SHORTER ──────────────────────────────────┐
+ * │ `onboarding/permissions.ts` pioneered reading keys out of the matrix by label, which catches │
+ * │ the `BLK-10` failure — a key invented by its module, which `PermissionsGuard` then refuses as │
+ * │ `UNKNOWN_PERMISSION` at request time rather than at build time.                                │
+ * │                                                                                              │
+ * │ It does not catch the next failure along: asking for the read key of the WRONG row. That     │
+ * │ returns a real, resolvable key attributed to a capability nobody checked, and it is exactly  │
+ * │ the shape of `ADR-0043`'s capability shopping. Naming both makes the attribution reviewable  │
+ * │ in the same line it is used, and a mismatch throws at import.                                 │
+ * │                                                                                              │
+ * │ It also reaches `extraReadKeys` and `extraWriteKeys`, which the two older helpers cannot —    │
+ * │ and since `ADR-0047` those carry five of the eight newest keys.                                │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export function permissionOf(capability: string, permission: string): string {
+  const entry = CAPABILITY_MATRIX.find((row) => row.capability === capability);
+  if (entry === undefined) {
+    throw new Error(
+      `§B3.2 has no capability labelled "${capability}". A module must not invent one — that is ` +
+        'BLK-10, and PermissionsGuard would refuse the key as UNKNOWN_PERMISSION at request time.',
+    );
+  }
+  if (!capabilityDeclares(entry, permission)) {
+    throw new Error(
+      `"${capability}" does not declare "${permission}". Attributing a key to the wrong row is ` +
+        "capability shopping (ADR-0043): it resolves, and it grants the row's holders rather " +
+        'than the ones the requirement names.',
+    );
+  }
+  return permission;
+}
+
 /** `<module>.<resource>.<action>` — the shape `api-gates` PG-3 enforces on every route. */
 const KEY_SHAPE = /^([a-z][a-z0-9]*)\.([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)$/;
 

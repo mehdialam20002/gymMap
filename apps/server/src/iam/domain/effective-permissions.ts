@@ -33,9 +33,10 @@ import {
   CAPABILITY_MATRIX,
   PERMISSION_KEYS,
   ROLE_DEFINITIONS,
+  capabilityDeclares,
   permissionsFor,
 } from '../permissions.js';
-import type { CapabilityDefinition, PlatformRole } from '../types/iam.types.js';
+import type { PlatformRole } from '../types/iam.types.js';
 
 /**
  * The scope a role was granted in, parsed from the token's `roles` claim.
@@ -326,10 +327,11 @@ export type PermissionInspection =
  * Reasons are sorted by role so two calls with the same grants in a different order agree — the
  * output is a diffable answer to a support question, not a stream.
  */
-/**
- * Does this `§B3.2` row declare this permission string — through ANY of its four key fields?
+/*
+ * `capabilityDeclares` now lives in `../permissions.js` beside the matrix it reads, because
+ * `permissionOf()` needs the same predicate and a second copy is how the two drift.
  *
- * ┌─ THIS EXISTS BECAUSE THE INSPECTOR SILENTLY DISAGREED WITH THE GUARD ────────────────────────┐
+ * ┌─ IT EXISTS BECAUSE THE INSPECTOR SILENTLY DISAGREED WITH THE GUARD ──────────────────────────┐
  * │ The check here read `entry.readKey !== permission && entry.writeKey !== permission`, and had │
  * │ done since before `extraReadKeys` existed. A key carried in `extraReadKeys` or                │
  * │ `extraWriteKeys` therefore matched NO row, `reasons` stayed empty, and `inspectPermission()`  │
@@ -341,18 +343,10 @@ export type PermissionInspection =
  * │ `admin.user.read_permissions`, held by `SUPER_ADMIN` alone, and the cross-check test resolves │
  * │ a `GYM_OWNER`. `ADR-0047` gave five more keys to five roles and the test went red at once.    │
  * │                                                                                              │
- * │ Every place that asks "which row declares this key" goes through here, so the next field      │
- * │ added to `CapabilityDefinition` is one edit rather than a hunt.                                │
+ * │ Every place that asks "which row declares this key" goes through it, so the next field added  │
+ * │ to `CapabilityDefinition` is one edit rather than a hunt.                                      │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
-function capabilityDeclares(entry: CapabilityDefinition, permission: string): boolean {
-  return (
-    entry.readKey === permission ||
-    entry.writeKey === permission ||
-    (entry.extraReadKeys?.includes(permission) ?? false) ||
-    (entry.extraWriteKeys?.includes(permission) ?? false)
-  );
-}
 
 export function inspectPermission(
   grants: readonly RoleGrant[],
