@@ -102,9 +102,9 @@ The guard is bound as of `c9c851e`, which was the hard part. What is left is all
 | `GET /admin/users/:id/permissions` (`FR-RBAC-05`) — a cross-tenant grants port, its Prisma adapter, a use case, the route | FREE. `annotatedEffectivePermissions()` and `inspectPermission()` exist and are tested; what is missing is a reader for one user's grants ACROSS tenants, which needs `runElevated()` |
 | `docs/features/rbac.md` — §21.3's five sections plus `DG3`'s sequence diagram | ✅ **DONE** 2026-08-10 — `cefea63` |
 | A `ResourceTenantGuard` unit spec | ✅ **DONE** 2026-08-10 — `324b8a2`. It had 126 lines and zero test references |
-| `rbac.contract-spec.ts` — 403 envelopes carry a registry code and a correlation id | FREE |
+| `rbac.contract-spec.ts` | ✅ **DONE** 2026-08-10 — `1addb62`. Found five guarded routes declaring no refusal code at all |
 
-**Exit:** `M-023` is `✅`. The nearest milestone to done in the project.
+**Exit:** `M-023` is `✅`. **3 of 4 done** — only the endpoint remains, and it waits on `TD-048`.
 
 > **Found while starting the endpoint, and it changes the estimate.** `ELEVATION_SCOPES`
 > (`tenancy/prisma/platform-elevation.ts`) is a **closed four-value list** — `READ_ALL_TENANTS`,
