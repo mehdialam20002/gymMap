@@ -10,6 +10,8 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   HASH_EXCLUDED_COLUMNS,
@@ -184,7 +186,22 @@ test('a data file absent from the manifest is caught', () => {
 test('the committed countries.csv holds one data row, and the header is not counted', () => {
   // A count that included the header would read as one row for an EMPTY file, which is the state
   // most of these files are in today (BLK-21) — so the off-by-one would hide the emptiness.
-  const digests = computeFileDigests('apps/server/prisma/reference');
+  /*
+   * ┌─ RESOLVED FROM THIS FILE, NOT FROM THE CWD ─────────────────────────────────────────────────┐
+   * │ This read `computeFileDigests('apps/server/prisma/reference')` — a CWD-relative literal that │
+   * │ resolves only when the runner happens to sit at the repo root. `turbo` runs `test:unit` from │
+   * │ `packages/config`, so the directory was not found, `computeFileDigests` returned `{}` at its │
+   * │ `existsSync` guard, and the assertion below failed with "the India CSV is missing" while the │
+   * │ CSV sat on disk with exactly the row it wanted.                                              │
+   * │                                                                                             │
+   * │ Worth stating plainly, because it is this gate's own subject matter: the CLI was never wrong │
+   * │ — it calls `repoRoot()` and passes an ABSOLUTE path. Only the test hard-coded a relative one,│
+   * │ so the failure was entirely an artefact of where the test ran. `reference-generate.spec.mjs` │
+   * │ already derives `ROOT` from `import.meta.url`; this now does the same.                       │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+  const digests = computeFileDigests(resolve(root, 'apps/server/prisma/reference'));
 
   assert.ok('countries.csv' in digests, 'the India CSV is missing');
   assert.equal(digests['countries.csv'].rows, 1);

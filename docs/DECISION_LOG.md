@@ -6046,7 +6046,134 @@ first, because the id derives from it and ids are permanent.
 
 
 
-**End of decision log.** Forty-two ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
+## ADR-0043 — `admin.user.read_permissions` joins *Manage platform users* as an extra READ key
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-10 |
+| **Closes** | `BLK-11` |
+| **Decided by** | Derived from `MASTER_PRD.md` `FR-RBAC-05` (rank 2) and `API_Catalog.md` §5.1/§5.6/§7.3.1 (rank 3) |
+| **Amends** | Nothing. `§B3.2` gains no row and no cell changes |
+| **Related** | `BLK-10` and `BLK-14` are **not** closed by this — see the boundary below |
+
+**What `BLK-11` said, and the one word in it that was wrong.** The row read: *"`API_Catalog.md` is
+rank-3 derived spec; the matrix is rank-2 PRD data and cannot **gain a capability** from it."* Every
+clause of that is true, and it does not apply, because no capability is being gained.
+
+`API_Catalog.md` line 1119 classifies this endpoint, in its own words, as a **derived row**:
+
+> `GET /admin/users/:id/permissions` (**`FR-RBAC-05` requires effective permissions to be
+> inspectable by Super Admin**; without an endpoint the requirement is unimplementable)
+
+So the capability arrives from **`FR-RBAC-05` itself** — `MASTER_PRD.md` line 1174, rank 2, *"A
+user's effective permissions are inspectable by **Super Admin** for support purposes."* Rank 3
+supplied the permission STRING, which §5.6 says in as many words is rank 3's job: *"the API is
+expressed as permissions by endpoint. The join is `permissions.ts`."*
+
+### The three tests, checked rather than asserted
+
+`§5.6`'s column header is **"Permission string(s)"**, plural, and its own rows carry three keys for
+*Scan / record check-in* and two for *View audit log*. Many-keys is the documented shape. What it
+does not license is picking WHICH row — so:
+
+| Test | This attribution |
+| :--- | :--- |
+| **Resource and scope** match the row, not merely a plausible neighbour | The row governs platform-side accounts. `API_Catalog.md` 1077 gives the route `scope = platform`, and its subject is a platform user's own permission set — a property OF the entity the row administers, and the read half of re-roling them |
+| It is a **READ** | `read_permissions`, carried in `extraReadKeys`, which structurally cannot emit a write key |
+| A **rank-2** source names the holders, and the row's non-`NONE` grants match | `FR-RBAC-05` says Super Admin. The row is `SUPER_ADMIN: FULL` and eleven `NONE` |
+
+**Why the module prefix differs, and why that is correct.** The row's other two keys are
+`iam.platform_user.*`; this one is `admin.*`. §5.1 constrains `<module>` to be one of `§C1.3`'s 23
+and states nothing further, and §7.3.1 makes it **the module that owns the endpoint** —
+`/admin/users/:id/permissions` is served by `admin/`. No rule anywhere requires a capability's keys
+to share a prefix. §5.6's rows happen to be single-module because each row's endpoints happen to sit
+in one module; *View audit log* already shows one capability spanning two audiences and two scopes.
+
+### Why this was safe to decide when `BLK-19` was not
+
+`BLK-19`'s refused draft produced four latent privilege escalations, and every one shared a
+mechanism: `permissionsFor()` emits a capability's read key for **every** grant that is not `NONE`,
+so attributing a key to a row with several holders widens it to all of them silently. Each of the
+four landed on a multi-holder row — `SUPPORT ○`, `VERIF ○`, `GYM_MANAGER ▪`.
+
+**This row has exactly one non-`NONE` grant.** There is no second role to widen to. The escalation
+mechanism is not avoided here by care; it is structurally absent — and that is a property a test can
+hold, so a test holds it:
+
+- `an extra read key may only hang off a capability ONE role holds` — a **general** gate. Any future
+  attribution to a multi-holder row fails the build and has to be argued here first. That converts
+  capability shopping from an invisible consequence of an edit into something somebody wrote down.
+  `RB2` is the real answer to over-granting and `RB2` is unbuilt; this stands in until it exists.
+- `FR-RBAC-05 — the effective-permission inspector reaches SUPER_ADMIN and nobody else` — all twelve
+  roles asserted, because the failure that matters is a role quietly GAINING the key, and a test
+  checking only `SUPER_ADMIN` passes just as happily when `SUPPORT_AGENT` gains it too.
+
+### The boundary — what this does not touch
+
+`BLK-10` and `BLK-14` stay **OPEN**, and this ADR is not a precedent for closing them:
+
+| Blocker | Why the same reasoning does not reach it |
+| :--- | :--- |
+| `BLK-10` — `admin.platform_overview.read`, `admin.gym_register.read` | Neither has a rank-2 requirement naming its holders. They were invented by the module, which is the opposite of a derived row. They keep `PlatformRoleGuard` and `TD-034` |
+| `BLK-14` — a tenant submitting its own onboarding application | The matrix holds **no** row for it at any holder set. There is nothing to attribute a key to; this needs a genuinely new `§B3.2` row under `§C10` |
+
+The distinction that matters: a derived row **reaches an existing capability**; `BLK-10` and
+`BLK-14` need a capability that does not exist. Only the second is a `§C10` change.
+
+---
+
+## ADR-0044 — `BLK-13` is closed: a rank-3 specification never conflicted with a test file
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-10 |
+| **Closes** | `BLK-13` |
+| **Decided by** | Precedence — `CLAUDE.md` §2 |
+| **Amends** | Nothing |
+
+**Fifth blocker mis-framed the same way, and this one the most plainly.** The row recorded a
+conflict between `CustomerApp.md` line 447 (*"The hero image carries an empty `alt`"*) and
+`apps/customer-web/test/hero.spec.ts` line 104, and sent it to Project owner + Accessibility.
+
+`CustomerApp.md` is rank 3. **A test file is rank 5** — `CLAUDE.md` §2 puts *"code, tests,
+migrations, IaC, comments"* at the bottom of the ladder and calls code *"evidence of intent, never a
+statement of intent."* Two documents of different rank do not conflict; the higher one wins and the
+lower one is corrected. This never needed an owner, and it never needed eight days.
+
+**What the row should have recorded is worse than what it did.** For those eight days the shipped
+component followed the test and not the specification. The defect was not an ambiguity — it was a
+rank-5 artefact overriding a rank-3 rule, unrecorded, which is the same class of drift `ADR-0041`
+found in `docs/features/`.
+
+**Both halves are now moot, and for a legitimate reason.** The "Chalk & Iron" rebuild (`e4b7144`,
+`42a5b1b`) removed the hero photograph: the background is two radial washes, a masked rule grid,
+three rings and ~300 bytes of SVG grain, inside `<div aria-hidden="true">`. Verified — `hero.tsx`
+contains no `<Image`, no `<img` and no `alt=` at all, and the five tests that guarded the photograph
+were replaced by one asserting its absence.
+
+| Clause of `CustomerApp.md` 447 | State |
+| :--- | :--- |
+| *"The hero image carries an empty `alt` because it is decorative"* | **Vacuous, and honoured in substance.** There is no hero image. `aria-hidden="true"` on the drawn background is the same accessibility semantics `alt=""` would give: removed from the accessibility tree |
+| *"every gym cover carries the API's `alt` text"* | **Binding, and honoured** — `gym-photo.tsx` 60, `gallery.tsx` 60 and 92 |
+
+**Removing the photograph was permitted.** `ADR-0037` made the layouts, wireframes and card anatomy
+of `CustomerApp.md` §6.x advisory. Whether the hero holds a photograph is a layout decision and sits
+inside that. What `ADR-0037` explicitly did **not** lift is the accessibility floor — `AX2`, `AX4`,
+`AX8`, `AX9`, `NFR-USE-02`, `NFR-USE-04` — so the alt-text policy remained binding throughout and is
+satisfied, rather than escaped.
+
+**The lasting lesson, since this is the fifth.** Four of the six blockers closed on 2026-08-10 were
+not conflicts between peers: `BLK-12` (rank 1 vs two non-conforming files), `BLK-18` (the grants
+already said it), `BLK-21` (a rank-4 backlog file asking for the placeholder it was supposedly
+withholding), and now this one. **The rank check belongs BEFORE the word "conflict" is written
+down**, not after — because a blocker costs more than the reading it was avoiding, and a blocker
+that should not exist is itself a defect, exactly as `BLK-20` turned out to be.
+
+---
+
+**End of decision log.** Forty-four ADRs, all `Accepted`. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.
 

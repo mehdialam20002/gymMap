@@ -841,6 +841,31 @@ export const CAPABILITY_MATRIX: readonly CapabilityDefinition[] = [
     capability: 'Manage platform users',
     readKey: 'iam.platform_user.read',
     writeKey: 'iam.platform_user.write',
+    /*
+     * `FR-RBAC-05`'s effective-permission inspector — `BLK-11`, resolved by `ADR-0043`.
+     *
+     * `API_Catalog.md` 1077 freezes `GET /admin/users/:id/permissions` with this key, and 1119
+     * marks the route a **derived row**: *"`FR-RBAC-05` requires effective permissions to be
+     * inspectable by Super Admin; without an endpoint the requirement is unimplementable."* So the
+     * capability does not arrive from a rank-3 document — it arrives from `FR-RBAC-05` itself
+     * (`MASTER_PRD.md` 1174, rank 2), which names its own holder: **Super Admin**. Rank 3 supplied
+     * only the string, which §5.6 says is exactly rank 3's job.
+     *
+     * The three tests in the type's header, checked rather than asserted:
+     *   1. Resource and scope — the row governs platform-side accounts; the route's `scope` column
+     *      is `platform` and its subject is a platform user's own permission set.
+     *   2. Read — `read_permissions`, and it rides in `extraReadKeys`, which cannot emit a write.
+     *   3. Holder set — this row's only non-`NONE` grant is `SUPER_ADMIN`, and `FR-RBAC-05` says
+     *      Super Admin. Because the row is a SINGLETON, no attribution to it can widen anything to
+     *      any other role; the escalation mechanism behind all four `BLK-19` findings is not
+     *      merely avoided here, it is structurally absent. `rbac-matrix.spec.ts` pins all twelve.
+     *
+     * The module segment differs from this row's other two (`admin` vs `iam`) and that is correct,
+     * not an oversight: §5.1 constrains `<module>` to be one of `§C1.3`'s 23 and nothing more, and
+     * §7.3.1 makes it the module that OWNS THE ENDPOINT — which for `/admin/users/:id/permissions`
+     * is `admin/`. No rule anywhere requires a capability's keys to share a prefix.
+     */
+    extraReadKeys: ['admin.user.read_permissions'],
     description: 'Create, suspend and re-role platform-side accounts.',
     grants: {
       VISITOR: 'NONE',
@@ -928,7 +953,7 @@ export const CAPABILITY_MATRIX: readonly CapabilityDefinition[] = [
  */
 export const PERMISSION_KEYS: readonly string[] = [
   ...new Set(
-    CAPABILITY_MATRIX.flatMap((c) => [c.readKey, c.writeKey]).filter(
+    CAPABILITY_MATRIX.flatMap((c) => [c.readKey, c.writeKey, ...(c.extraReadKeys ?? [])]).filter(
       (k): k is string => k !== null,
     ),
   ),
@@ -973,6 +998,9 @@ export function permissionsFor(role: PlatformRole): readonly string[] {
     if (grant === 'NONE') continue;
 
     if (capability.readKey !== null) keys.add(capability.readKey);
+    // Reads, so a `READ` cell holds them exactly as it holds `readKey`. See the type's header for
+    // the three tests a key must pass before it may be attributed here.
+    for (const extra of capability.extraReadKeys ?? []) keys.add(extra);
     if (grant !== 'READ' && capability.writeKey !== null) keys.add(capability.writeKey);
   }
 

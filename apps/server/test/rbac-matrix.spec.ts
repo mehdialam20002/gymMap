@@ -271,6 +271,68 @@ test('keys are unique, and a capability never reuses its read key as its write k
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// `extraReadKeys` — §5.6's plural, and the guard that keeps it from being abused.
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('an extra read key may only hang off a capability ONE role holds', () => {
+  /*
+   * ┌─ THIS IS THE ANTI-CAPABILITY-SHOPPING GATE, AND IT IS DELIBERATELY STRICT ──────────────────┐
+   * │ `permissionsFor()` emits a capability's read keys for every grant that is not `NONE`. With  │
+   * │ 42 rows available, any desired holder set can be legalised by naming whichever row happens  │
+   * │ to contain it — which is how a `BLK-19` draft produced four latent privilege escalations,   │
+   * │ every one of them on a row with SEVERAL non-`NONE` holders (`SUPPORT ○`, `VERIF ○`,         │
+   * │ `GYM_MANAGER ▪`).                                                                            │
+   * │                                                                                             │
+   * │ On a SINGLETON row the mechanism cannot fire: there is exactly one role to widen to, and it │
+   * │ already holds the row. So `extraReadKeys` is confined to singletons, and an attribution to  │
+   * │ a multi-holder row has to come here and change this test — which is the point. The widening │
+   * │ stops being a silent consequence of an edit elsewhere and becomes something somebody wrote  │
+   * │ down. `RB2` is the real answer and `RB2` is unbuilt; this is what stands in until it exists.│
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  for (const capability of CAPABILITY_MATRIX) {
+    if (capability.extraReadKeys === undefined) continue;
+
+    const holders = PLATFORM_ROLES.filter((r) => capability.grants[r] !== 'NONE');
+    assert.equal(
+      holders.length,
+      1,
+      `"${capability.capability}" carries extraReadKeys and is held by ${String(holders.length)} ` +
+        `roles (${holders.join(', ')}). Every one of them gains ${capability.extraReadKeys.join(', ')} ` +
+        `mechanically. If that is genuinely intended, cite the rank-2 source that names those ` +
+        `holders and relax this test deliberately — do not widen the row to fit a wanted key.`,
+    );
+  }
+});
+
+test('FR-RBAC-05 — the effective-permission inspector reaches SUPER_ADMIN and nobody else', () => {
+  /*
+   * `MASTER_PRD.md` 1174 is rank 2 and names the holder: *"A user's effective permissions are
+   * inspectable by **Super Admin** for support purposes."* `ADR-0043` (`BLK-11`).
+   *
+   * All twelve roles are asserted rather than the one that should hold it, because the failure
+   * that matters is a role QUIETLY GAINING it — and a test that checks only `SUPER_ADMIN` passes
+   * just as happily when `SUPPORT_AGENT` gains it too.
+   */
+  const KEY = 'admin.user.read_permissions';
+  assert.ok(
+    PERMISSION_KEYS.includes(KEY),
+    `${KEY} is in no capability row, so no route can use it`,
+  );
+
+  for (const role of PLATFORM_ROLES) {
+    const held = permissionsFor(role).includes(KEY);
+    assert.equal(
+      held,
+      role === 'SUPER_ADMIN',
+      held
+        ? `${role} can inspect any user's effective permissions; FR-RBAC-05 says Super Admin only`
+        : `SUPER_ADMIN has lost ${KEY}, so FR-RBAC-05 has no reachable endpoint`,
+    );
+  }
+});
+
 test('a capability with a `○` cell MUST have a read key', () => {
   // Otherwise `READ` resolves to nothing and the role silently holds no permission — which
   // fails closed, so it is not a security hole, but it IS a capability the matrix grants and

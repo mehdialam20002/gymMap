@@ -76,6 +76,27 @@ export interface CapabilityDefinition {
   readonly readKey: string | null;
   /** `<module>.<resource>.<action>` for the WRITE half. `null` for read-only capabilities. */
   readonly writeKey: string | null;
+  /**
+   * Further READ keys this capability is reached by — `API_Catalog.md` §5.6, whose column header
+   * is **"Permission string(s)"**, plural, and whose own rows carry three keys for one capability
+   * (*Scan / record check-in*) and two for another (*View audit log*).
+   *
+   * ┌─ WHY THIS IS DANGEROUS, AND WHAT MAKES A GIVEN USE OF IT SAFE ───────────────────────────────┐
+   * │ `permissionsFor()` emits a capability's read key for EVERY grant that is not `NONE`. So      │
+   * │ attributing a key here hands it, mechanically, to every role holding the row — and with 42   │
+   * │ rows to choose from, any desired holder set can be legalised by naming whichever row happens │
+   * │ to contain it. That is **capability shopping**, and it is how a `BLK-19` draft produced four │
+   * │ latent privilege escalations.                                                                │
+   * │                                                                                              │
+   * │ A key belongs here only when all three hold, and the third is the one that actually bites:   │
+   * │   1. it addresses the same RESOURCE and SCOPE as the row (not merely a plausible neighbour); │
+   * │   2. it is a READ — a write key must never ride in on a read attribution;                    │
+   * │   3. a **rank-2** source names the holder set, and the row's non-`NONE` grants match it.     │
+   * │      The holder set is READ OFF the requirement and CHECKED against the row — never chosen   │
+   * │      by finding the row that yields the holders somebody wanted.                             │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  readonly extraReadKeys?: readonly string[];
   readonly description: string;
   /** Every role's cell. All twelve are listed; `NONE` is written out, never omitted. */
   readonly grants: Readonly<Record<PlatformRole, MatrixGrant>>;
