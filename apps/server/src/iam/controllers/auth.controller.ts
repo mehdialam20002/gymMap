@@ -24,17 +24,7 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import {
-  Body,
-  Controller,
-  Delete,
-  HttpCode,
-  HttpStatus,
-  Ip,
-  Post,
-  Req,
-  Res,
-} from '@nestjs/common';
+import { Body, Controller, Delete, HttpCode, HttpStatus, Ip, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import {
   ApiAcceptedResponse,
@@ -550,15 +540,15 @@ export class AuthController {
 
   @Post('impersonate')
   @MfaExempt()
-  @RequiredPermission(IAM_PERMISSIONS.IMPERSONATION_MANAGE)
+  @RequiredPermission(IAM_PERMISSIONS.IMPERSONATION_START)
   @RateLimit('RL-AUTH')
   @HttpCode(HttpStatus.OK)
   @EmitsErrors('IMPERSONATION_REFUSED')
   @ApiOperation({
     summary: 'Act as another user, briefly and with a reason',
     description:
-      'Returns a token of a DISTINCT type that carries the intersection of the agent\'s and the ' +
-      'subject\'s permissions, expires within 30 minutes, and can execute no financial mutation.',
+      "Returns a token of a DISTINCT type that carries the intersection of the agent's and the " +
+      "subject's permissions, expires within 30 minutes, and can execute no financial mutation.",
   })
   async impersonate(
     @Req() request: Request,
@@ -594,7 +584,7 @@ export class AuthController {
 
   @Post('impersonate/end')
   @MfaExempt()
-  @RequiredPermission(IAM_PERMISSIONS.IMPERSONATION_MANAGE)
+  @RequiredPermission(IAM_PERMISSIONS.IMPERSONATION_END)
   @RateLimit('RL-AUTH')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({

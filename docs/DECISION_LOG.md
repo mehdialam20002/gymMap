@@ -6525,7 +6525,71 @@ set is complete, binding them `403`s the application.
 
 ---
 
-**End of decision log.** Forty-seven ADRs, all `Accepted`, numbered `ADR-0001` … `ADR-0047` with no
+## ADR-0048 — ClamAV is approved as `A-42`, and `A-31` is left where it lies
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-10 |
+| **Decided by** | **Project owner**, directly |
+| **Adds** | `STACK_ADDITIONS.md` **`A-42`** — ClamAV, `APPROVED` |
+| **Closes** | `KL-104`, once the adapter lands |
+| **Does NOT close** | `BLK-09` — the `A-31`…`A-39` numbering collision is untouched |
+
+**The engineering decision was already made and written down; what was missing was the approval.**
+`Security.md` §0.4 has carried ClamAV as the recommended engine at `PROPOSED` all along, with both
+alternatives already rejected and reasoned:
+
+| Rejected | Why, in the document's own terms |
+| :--- | :--- |
+| A cloud provider's object-scanning service | Adds a **sub-processor** under `NFR-PRV-06` and raises a residency question under `NFR-PRV-05`. The files are gym owners' PAN cards, passports and bank proofs, and `OQ-16` keeps them in India |
+| A commercial engine | Cost, against `CON-05` |
+
+ClamAV is free, runs as a sidecar on the estate's own hardware, and no byte of a customer's identity
+document leaves it. `CLAUDE.md` §5 is why this ADR exists rather than a commit: *"Adding one
+requires a new row and the owner's approval **first**."*
+
+### Why `A-42` and not `A-31`
+
+`A-31` is the number `Security.md` §0.4 uses, and taking it would look like the tidy choice. It sits
+inside a **contested block**: `CI_CD.md` §13 claims `A-31`…`A-39` as a range, `A-32` is claimed
+three times over (breach corpus, artefact signing, log store) and `A-33` three times again. That is
+`BLK-09`, it is open, and it is the owner's to resolve.
+
+`STACK_ADDITIONS.md` already set the precedent in writing when `A-40` skipped the block: *"taking
+another number inside the contested block would have made it worse while looking like progress."*
+So this takes `A-42`, the next free number after `A-41`, and `BLK-09` is left exactly as it was —
+smaller by nothing, but not larger either.
+
+**What this does not mean.** `Security.md` §0.4's `A-31` row is not renumbered here. Rewriting a
+rank-3 document's identifier to match a decision is how the collision got this bad; the row is
+cross-referenced instead, and the reconciliation belongs to `BLK-09`'s resolution.
+
+### What it unblocks, and what it does not
+
+`KL-104` records that every uploaded document is quarantined as `UNSCANNED` and *"therefore never
+served"* — `MALWARE_SCAN_PORT` is bound to `UnavailableMalwareScanAdapter`, which never answers
+`CLEAN`. That is deliberate and it is the reason **no gym can currently be approved**: `BR-GYM-02`
+needs a human to have seen the documents, and no human can open one.
+
+A real adapter closes that, and with it the last hard stop on `E2E-01`. It does not make the flow
+work on its own — `M-032`, `M-033`, `M-035` and `M-036` are unbuilt and `M-027` is at 20% — but it
+is the one item on that path that no amount of engineering could have removed.
+
+**Stated because it will be tempting later:** the one-word change that makes
+`UnavailableMalwareScanAdapter` answer `CLEAN` is a security breach, not a shortcut.
+`storage-ports.spec.ts` exists specifically to fail it. The adapter is replaced, never edited.
+
+### The honest limitation, recorded rather than glossed
+
+ClamAV is not the strongest engine available; commercial products detect more. The trade is
+deliberate and proportionate: the inputs here are documents attached to a phone-verified, registered
+tenant account, not arbitrary files from the open internet. `MalwareScanPort` is the seam that makes
+this reversible — a stronger engine is a new adapter behind the same port, with no caller changed.
+
+---
+
+**End of decision log.** Forty-eight ADRs, all `Accepted`, numbered `ADR-0001` … `ADR-0048` with no
 gaps. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.

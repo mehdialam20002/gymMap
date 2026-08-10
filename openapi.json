@@ -138,7 +138,7 @@
         "x-gymmap-error-codes": [
           "IMPERSONATION_REFUSED"
         ],
-        "x-gymmap-permission": "iam.impersonation.manage",
+        "x-gymmap-permission": "iam.impersonation.start",
         "x-gymmap-rate-limit": "RL-AUTH"
       }
     },
@@ -156,7 +156,7 @@
         "tags": [
           "iam"
         ],
-        "x-gymmap-permission": "iam.impersonation.manage",
+        "x-gymmap-permission": "iam.impersonation.end",
         "x-gymmap-rate-limit": "RL-AUTH"
       }
     },

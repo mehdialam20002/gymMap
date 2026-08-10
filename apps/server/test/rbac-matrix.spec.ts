@@ -325,6 +325,12 @@ test('an extra read key may only hang off a capability ONE role holds', () => {
  * └───────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 const JUSTIFIED_MULTI_HOLDER: Record<string, string> = {
+  'Impersonate user':
+    'MASTER_PRD.md §B3.2 row 38, unamended — SUPPORT_AGENT and SUPER_ADMIN, both FULL, exactly as ' +
+    'they were. The extra key is `iam.impersonation.end`, which API_Catalog.md 724 freezes on the ' +
+    'route that ENDS a session the same two roles started. Widening is not possible in a ' +
+    'meaningful sense: whoever may begin an impersonation must be able to end it, and MAY_IMPERSONATE ' +
+    'in impersonation.policy.ts is the real control on who that is (Security.md IM-1).',
   'Add / remove branch':
     'MASTER_PRD.md §B3.2 row 20, amended 2026-08-10 under Part C §C10 (ADR-0047). RECEPTIONIST, ' +
     'TRAINER and GYM_MANAGER hold READ; GYM_OWNER and SUPER_ADMIN hold FULL. The three READ cells ' +
@@ -509,7 +515,10 @@ test('SUPER_ADMIN holds every key the matrix grants anyone except the tenant-sid
 
 test('only SUPPORT_AGENT and SUPER_ADMIN may impersonate', () => {
   const holders = ROLE_DEFINITIONS.filter((r) =>
-    permissionsFor(r.key).includes('support.impersonation.create'),
+    // `iam.impersonation.start` since ADR-0047's companion fix. `support.impersonation.create`
+    // was this row's writeKey and appeared on no route in API_Catalog.md — the same disposition
+    // as `catalog.branch.write`.
+    permissionsFor(r.key).includes('iam.impersonation.start'),
   ).map((r) => r.key);
   assert.deepEqual(holders, ['SUPER_ADMIN', 'SUPPORT_AGENT']);
 });

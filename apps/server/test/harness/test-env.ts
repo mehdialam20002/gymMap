@@ -49,6 +49,7 @@ export function applyTestEnv(overrides: Record<string, string> = {}): void {
     S3_SECRET_ACCESS_KEY: 'minioadmin',
     S3_MEDIA_BUCKET: 'gymmap-media',
     S3_KYC_BUCKET: 'gymmap-kyc',
+    CLAMAV_HOST: 'localhost',
     CDN_BASE_URL: 'http://localhost:9000/gymmap-media',
 
     JWT_ACCESS_SECRET: TEST_JWT_SECRET,

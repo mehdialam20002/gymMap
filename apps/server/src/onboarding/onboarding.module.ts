@@ -28,6 +28,10 @@ import { OBJECT_STORAGE_PORT } from '../common/storage/object-storage.port.js';
 import { MALWARE_SCAN_PORT } from '../common/storage/malware-scan.port.js';
 import { UnavailableObjectStorageAdapter } from '../common/storage/unavailable-object-storage.adapter.js';
 import { UnavailableMalwareScanAdapter } from '../common/storage/unavailable-malware-scan.adapter.js';
+import { ClamAvMalwareScanAdapter } from '../common/storage/clamav-malware-scan.adapter.js';
+import type { MalwareScanPort } from '../common/storage/malware-scan.port.js';
+import { APP_CONFIG } from '../common/config/app-config.schema.js';
+import type { AppConfig } from '../common/config/app-config.schema.js';
 import { RunPrechecksProcessor, PRECHECK_RESULT_STORE } from './jobs/run-prechecks.processor.js';
 import { PrecheckResultPrismaStore } from './infrastructure/precheck-result.prisma-store.js';
 import { RegistrationDuplicatePrismaProbe } from './infrastructure/registration-duplicate.prisma-probe.js';
@@ -52,7 +56,30 @@ import { DUPLICATE_ADDRESS_PROBE } from './application/ports/duplicate-address.p
     UnavailableObjectStorageAdapter,
     UnavailableMalwareScanAdapter,
     { provide: OBJECT_STORAGE_PORT, useExisting: UnavailableObjectStorageAdapter },
-    { provide: MALWARE_SCAN_PORT, useExisting: UnavailableMalwareScanAdapter },
+
+    /*
+     * ┌─ THE SCANNER IS REAL SINCE `A-42` / `ADR-0048`, AND THE REFUSING ONE STAYS ────────────────┐
+     * │ `UnavailableMalwareScanAdapter` is still a provider above and is still the correct binding │
+     * │ for any environment with no clamd. It is not deleted and it is never edited —              │
+     * │ `storage-ports.spec.ts` exists to fail the one-word change that would make it answer       │
+     * │ `CLEAN`, and that guard should outlive this adapter.                                        │
+     * │                                                                                            │
+     * │ `CLAMAV_HOST` has no default in the schema, so a deployment cannot come up pointed at       │
+     * │ nothing. The alternative — default to `localhost` — produces a system where every document │
+     * │ silently stays quarantined, which is indistinguishable from "the reviewer has not looked    │
+     * │ yet" and would be found weeks later.                                                        │
+     * └────────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    {
+      provide: MALWARE_SCAN_PORT,
+      inject: [APP_CONFIG],
+      useFactory: (config: AppConfig): MalwareScanPort =>
+        new ClamAvMalwareScanAdapter({
+          host: config.CLAMAV_HOST,
+          port: config.CLAMAV_PORT,
+          timeoutMs: config.CLAMAV_TIMEOUT_MS,
+        }),
+    },
     // The use case depends on the PORT, never on the Prisma class. Binding here rather than
     // injecting the repository directly is what lets the unit tests drive it with an in-memory
     // store and no database — and what keeps `application/` free of a Prisma import.

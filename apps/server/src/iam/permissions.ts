@@ -848,8 +848,23 @@ export const CAPABILITY_MATRIX: readonly CapabilityDefinition[] = [
   },
   {
     capability: 'Impersonate user',
+    /*
+     * ┌─ THREE DIFFERENT STRINGS EXISTED FOR THIS ONE CAPABILITY, AND ONLY ONE PAIR IS REAL ────────┐
+     * │ `API_Catalog.md` 723-724 — the frozen endpoint contract, and what `PG-1` and `PG-7` check —  │
+     * │ names `iam.impersonation.start` and `iam.impersonation.end` on the two routes.                │
+     * │ `Security.md` row 38 agrees, giving `iam.impersonation.start`.                                │
+     * │ This row carried `support.impersonation.create`, which is on **no route anywhere**.           │
+     * │ `iam/permissions.ts` separately declared `iam.impersonation.manage`, which is in **neither** │
+     * │ the register nor the catalogue — invented by the module, exactly `BLK-10`'s shape.             │
+     * │                                                                                              │
+     * │ The catalogue wins on STRINGS: `§5.6` makes the join rank 3's job, and a permission on no    │
+     * │ route is what §5.6 itself calls an ungoverned grant. Same disposition as                      │
+     * │ `catalog.branch.write` under `ADR-0047`. The ROW and its holders are untouched — rank-2 data. │
+     * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+     */
     readKey: null,
-    writeKey: 'support.impersonation.create',
+    writeKey: 'iam.impersonation.start',
+    extraWriteKeys: ['iam.impersonation.end'],
     description: 'Act as another user. Always audited, never silent.',
     grants: {
       VISITOR: 'NONE',
@@ -1262,7 +1277,14 @@ export const IAM_PERMISSIONS = {
    *
    * The key exists so the route can declare one (`FR-RBAC-01`, `PG-1`); the POLICY is the control.
    */
-  IMPERSONATION_MANAGE: 'iam.impersonation.manage',
+  /**
+   * `POST /auth/impersonate` — `API_Catalog.md` 723. Was `iam.impersonation.manage`, a string in
+   * neither the register nor the catalogue; `ADR-0047`'s companion fix put the row on the two the
+   * catalogue actually freezes. See the `Impersonate user` row for the three-way history.
+   */
+  IMPERSONATION_START: permissionOf('Impersonate user', 'iam.impersonation.start'),
+  /** `POST /auth/impersonate/end` — `API_Catalog.md` 724, auth mode `support`. */
+  IMPERSONATION_END: permissionOf('Impersonate user', 'iam.impersonation.end'),
 } as const;
 
 export type IamPermission = (typeof IAM_PERMISSIONS)[keyof typeof IAM_PERMISSIONS];

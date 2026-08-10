@@ -109,6 +109,26 @@ export const appConfigSchema = z
     S3_KYC_BUCKET: z.string().min(1),
     CDN_BASE_URL: z.string().url(),
 
+    // --- malware scanning (A-42, ADR-0048) ---------------------------------
+    /**
+     * `clamd`'s TCP socket. `NFR-SEC-10` requires every upload to be scanned and §12.7 `UP3`
+     * requires it to happen before the object becomes retrievable.
+     *
+     * No default, on purpose. A default would let a deployment come up with a scanner pointed at
+     * nothing and discover it only when the first document silently stayed in quarantine — which
+     * looks identical to "the reviewer has not got to it yet". Absent config fails at boot.
+     */
+    CLAMAV_HOST: z.string().min(1),
+    CLAMAV_PORT: z.coerce.number().int().positive().default(3310),
+    /**
+     * How long a single scan may take before it is abandoned as `UNSCANNED`.
+     *
+     * A timeout is a REFUSAL, never a pass — see `malware-scan.port.ts`. Generous because clamd
+     * loading its signature set on a cold start can take minutes, and the correct behaviour then
+     * is a retryable quarantine rather than a served file.
+     */
+    CLAMAV_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
+
     // --- auth -------------------------------------------------------------
     JWT_ACCESS_SECRET: requiredSecret(32),
     JWT_ACCESS_TTL: durationString.default('15m'),

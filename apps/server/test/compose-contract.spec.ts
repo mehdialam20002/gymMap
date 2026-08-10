@@ -99,10 +99,13 @@ test('AC-5 — no transaction-mode pooler in the local path', () => {
   );
 });
 
-test('the four long-running services all declare a health check', () => {
-  // minio-init is a one-shot job and correctly has none.
+test('the five long-running services all declare a health check', () => {
+  // minio-init is a one-shot job and correctly has none. Five since `A-42` added clamav, whose
+  // check matters more than most: on a cold volume clamd refuses connections for minutes while it
+  // loads signatures, and without a healthcheck `infra:up` would report ready while every upload
+  // was still being quarantined.
   const healthchecks = compose.match(/healthcheck:/g) ?? [];
-  assert.equal(healthchecks.length, 4, 'each long-running service needs a health check');
+  assert.equal(healthchecks.length, 5, 'each long-running service needs a health check');
 });
 
 // ---------------------------------------------------------------------------

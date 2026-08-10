@@ -56,6 +56,7 @@ test('the worker bootstrap returns a context with no getHttpServer', async () =>
     S3_MEDIA_BUCKET: 'gymmap-media',
     S3_KYC_BUCKET: 'gymmap-kyc',
     CDN_BASE_URL: 'http://localhost:9000/gymmap-media',
+    CLAMAV_HOST: 'localhost', // A-42 — required, no default (ADR-0048)
     JWT_ACCESS_SECRET: 'a'.repeat(48),
     JWT_REFRESH_SECRET: 'b'.repeat(48),
     QR_SIGNING_PRIVATE_KEY: 'c'.repeat(48),

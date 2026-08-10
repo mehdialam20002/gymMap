@@ -23,6 +23,9 @@ function validEnv(): Record<string, string> {
     S3_MEDIA_BUCKET: 'gymmap-media',
     S3_KYC_BUCKET: 'gymmap-kyc',
     CDN_BASE_URL: 'http://localhost:9000/gymmap-media',
+    // A-42 / ADR-0048. Required with no default on purpose: a deployment pointed at nothing
+    // would quarantine every document silently, which looks exactly like a slow reviewer.
+    CLAMAV_HOST: 'localhost',
     JWT_ACCESS_SECRET: 'a'.repeat(48),
     JWT_REFRESH_SECRET: 'b'.repeat(48),
     QR_SIGNING_PRIVATE_KEY: 'c'.repeat(48),
@@ -50,6 +53,7 @@ const REQUIRED = [
   'S3_MEDIA_BUCKET',
   'S3_KYC_BUCKET',
   'CDN_BASE_URL',
+  'CLAMAV_HOST',
   'JWT_ACCESS_SECRET',
   'JWT_REFRESH_SECRET',
   'QR_SIGNING_PRIVATE_KEY',

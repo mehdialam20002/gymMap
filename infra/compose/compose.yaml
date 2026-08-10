@@ -206,8 +206,51 @@ services:
       retries: 20
       start_period: 5s
 
+  # ---------------------------------------------------------------------------
+  # ClamAV — A-42, approved 2026-08-10 (ADR-0048)
+  #
+  # NFR-SEC-10 requires every upload to be virus-scanned, and §12.7 UP3 requires
+  # the scan to finish BEFORE the object becomes retrievable. Until this landed,
+  # MALWARE_SCAN_PORT was bound to an adapter that answers UNSCANNED and never
+  # CLEAN, so no reviewer could open a KYC document and therefore no gym could be
+  # approved (KL-104). This is the last hard stop on E2E-01.
+  #
+  # Self-hosted on purpose. Security.md §0.4 rejected a cloud scanning service
+  # because it adds a sub-processor (NFR-PRV-06) and a residency question
+  # (NFR-PRV-05) — the files are PAN cards and passports, and OQ-16 keeps them in
+  # India. Nothing leaves this container.
+  # ---------------------------------------------------------------------------
+  clamav:
+    image: clamav/clamav:1.4@sha256:7173cd3d57a839c6fee673b07246301e0d1f68f5a14a5ca063f502323bf1cc61
+    container_name: gymmap-clamav
+    restart: unless-stopped
+    environment:
+      # The daemon only. `freshclam` still runs, but on its own schedule rather
+      # than blocking startup — see the start_period note below.
+      CLAMAV_NO_MILTERD: "true"
+      TZ: Asia/Kolkata
+    ports:
+      - "3310:3310" # clamd TCP — the INSTREAM socket the upload pipeline writes to
+    volumes:
+      # The signature database, ~250 MB. Persisted so a restart does not re-download
+      # it — without this every `pnpm infra:up` costs several minutes and a lot of
+      # bandwidth, and a developer offline gets a scanner that can never become ready.
+      - clamav-data:/var/lib/clamav
+    healthcheck:
+      # `clamdcheck.sh` ships in the image and PINGs the daemon.
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      # Deliberately long, and the reason is worth knowing: on a cold volume clamd
+      # will not accept connections until it has loaded the full signature set, which
+      # takes minutes rather than seconds. A short start_period here does not make it
+      # faster — it makes `infra:up` report a failure that is really just patience.
+      start_period: 240s
+
 volumes:
   postgres-data:
   redis-data:
   minio-data:
   mailpit-data:
+  clamav-data:
