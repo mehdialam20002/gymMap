@@ -25,6 +25,8 @@ import { permissionOf } from '../iam/permissions.js';
 
 /** `§B3.2` row 20 — verbatim, because `permissionOf()` matches the label exactly. */
 const BRANCH = 'Add / remove branch';
+/** `§B3.2` row 19. `Gym.md` 171 puts a branch EDIT here — see that row's header for why. */
+const PROFILE = 'Edit gym profile';
 
 export const CATALOG_PERMISSIONS = {
   /**
@@ -44,7 +46,7 @@ export const CATALOG_PERMISSIONS = {
   /** `POST /v1/tenant/branches`. */
   BRANCH_CREATE: permissionOf(BRANCH, 'catalog.branch.create'),
   /** `PATCH /v1/tenant/branches/:id`. */
-  BRANCH_UPDATE: permissionOf(BRANCH, 'catalog.branch.update'),
+  BRANCH_UPDATE: permissionOf(PROFILE, 'catalog.branch.update'),
   /**
    * `DELETE /v1/tenant/branches/:id` — a deactivation, never a row deletion.
    *
@@ -59,28 +61,22 @@ export const CATALOG_PERMISSIONS = {
 export type CatalogPermission = (typeof CATALOG_PERMISSIONS)[keyof typeof CATALOG_PERMISSIONS];
 
 /*
- * ┌─ ONE DIVERGENCE FROM `Gym.md`, TAKEN DELIBERATELY AND RECORDED HERE ─────────────────────────┐
- * │ `Gym.md` 167-172 attributes these five strings PER ROUTE, and not all to row 20:              │
+ * ┌─ THE FIVE KEYS SIT ON TWO ROWS, WHICH IS WHAT `Gym.md` ACTUALLY SAYS ────────────────────────┐
+ * │     GET  /tenant/branches      row 20   `.list`         OWNER ● MGR ○ RCP ○ TRN ○            │
+ * │     GET  /tenant/branches/:id  row 20   `.read`         same                                  │
+ * │     POST /tenant/branches      row 20   `.create`       OWNER ● S.ADMIN ● only                │
+ * │     DELETE …/:id               row 20   `.deactivate`   OWNER ● S.ADMIN ● only                │
+ * │     PATCH …/:id                row 19   `.update`       OWNER ● MGR ▪ — `Gym.md` line 171     │
  * │                                                                                              │
- * │     GET  /tenant/branches      -> "Edit gym profile (read half)"   OWNER ● MGR ▪ RCP ▪ TRN ▪  │
- * │     POST /tenant/branches      -> "Add / remove branch"            OWNER ● and nobody else    │
- * │     PATCH /tenant/branches/:id -> "Edit gym profile"               OWNER ● MGR ▪              │
- * │     DELETE …/:id               -> "Add / remove branch"            OWNER ● and nobody else    │
+ * │ I first put all five on row 20, to keep `SUPPORT ○` and `VERIFICATION_OFFICER ○` on row 19    │
+ * │ from acquiring a branch key. The fear was right about the READ half and wrong about this one: │
+ * │ `permissionsFor()` emits write keys only for a grant that is not `READ`, so a `○` cell can    │
+ * │ never reach `.update`. Putting it on row 19 reproduces `Gym.md` exactly — a manager may edit  │
+ * │ a branch, and may not open or close one — and needed no `§C10` change, because rank 2 had     │
+ * │ already given `GYM_MANAGER ▪` there.                                                           │
  * │                                                                                              │
- * │ Followed literally, `.list`, `.read` and `.update` belong to **row 19**, *Edit gym profile*.  │
- * │ Row 19 holds `SUPPORT ○` and `VERIFICATION_OFFICER ○` — two PLATFORM roles — and              │
- * │ `permissionsFor()` emits a row's read keys to every non-`NONE` grant. Attributing the branch  │
- * │ list there hands it to both, on a route `API_Catalog.md` tags `BR-TEN-03`. That is escalation │
- * │ (4) of the four an adversarial pass found in the refused `BLK-19` draft, arrived at from the  │
- * │ other direction.                                                                               │
- * │                                                                                              │
- * │ So all five sit on row 20, whose holders are tenant-side only. **The cost is real and is not  │
- * │ hidden:** `GYM_MANAGER` is `○` there, so it can list and read a branch and CANNOT update one, │
- * │ where `Gym.md` line 171 gives it `▪`. The owner's `ADR-0047` answer settled who sees the      │
- * │ LIST; it did not reach manager updates, and widening a write is not inferable from it.         │
- * │                                                                                              │
- * │ Resolving it properly needs either a `§C10` cell on row 20 for `GYM_MANAGER`, or the          │
- * │ scope/module clause `BLK-19` says any future attribution needs. Recorded, not guessed.         │
+ * │ Editing a branch's address or capacity is profile maintenance. Opening and closing one is a   │
+ * │ different act with a different holder set, and the two row labels say so.                      │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ WHAT IS STILL ABSENT FROM THIS MODULE, NAMED RATHER THAN INVENTED ──────────────────────────┐

@@ -80,11 +80,11 @@ test('every catalog and onboarding key is in PERMISSION_KEYS, so PG-7 can see it
   }
 });
 
-test('the three branch-scoped roles hold the two reads and none of the three writes', () => {
+test('a receptionist and a trainer may SEE a branch and may not touch one', () => {
   /*
-   * `ADR-0047` in one assertion. The owner's answer was that a receptionist and a trainer SEE the
-   * branch list; the scope I wrote down was that seeing is all they do. `○` is what enforces it,
-   * and `○` is three characters that a later edit could turn into `▪` without looking like much.
+   * `ADR-0047`'s scope decision, asserted per role. The owner's answer was that these two see the
+   * branch list; the scope written down was that seeing is all they do. `○` on row 20 is what
+   * enforces it — three characters a later edit could turn into `▪` without looking like much.
    */
   const READS = [CATALOG_PERMISSIONS.BRANCH_LIST, CATALOG_PERMISSIONS.BRANCH_READ];
   const WRITES = [
@@ -93,10 +93,45 @@ test('the three branch-scoped roles hold the two reads and none of the three wri
     CATALOG_PERMISSIONS.BRANCH_DEACTIVATE,
   ];
 
-  for (const role of ['RECEPTIONIST', 'TRAINER', 'GYM_MANAGER'] as const) {
+  for (const role of ['RECEPTIONIST', 'TRAINER'] as const) {
     const held = permissionsFor(role);
     for (const key of READS) assert.ok(held.includes(key), `${role} cannot ${key}`);
     for (const key of WRITES) assert.ok(!held.includes(key), `${role} can ${key}`);
+  }
+});
+
+test('a manager may EDIT a branch but may not open or close one — Gym.md 169/171/172', () => {
+  /*
+   * The distinction the two rows encode, and the reason `.update` sits on row 19 rather than 20.
+   * `Gym.md` line 171 gives `PATCH /tenant/branches/:id` to *Edit gym profile* with `MANAGER ▪`;
+   * lines 169 and 172 give `POST` and `DELETE` to *Add / remove branch*, owner only.
+   *
+   * Editing a branch's address or capacity is profile maintenance. Opening and closing one is a
+   * different act — and a manager who could close a branch could close the last one.
+   */
+  const held = permissionsFor('GYM_MANAGER');
+
+  assert.ok(held.includes(CATALOG_PERMISSIONS.BRANCH_LIST));
+  assert.ok(held.includes(CATALOG_PERMISSIONS.BRANCH_READ));
+  assert.ok(held.includes(CATALOG_PERMISSIONS.BRANCH_UPDATE), 'a manager cannot edit a branch');
+
+  assert.ok(!held.includes(CATALOG_PERMISSIONS.BRANCH_CREATE), 'a manager can open a branch');
+  assert.ok(!held.includes(CATALOG_PERMISSIONS.BRANCH_DEACTIVATE), 'a manager can close a branch');
+});
+
+test('the two platform READ cells on row 19 reach no branch write — the structural reason', () => {
+  /*
+   * `.update` sits on *Edit gym profile*, which also carries `SUPPORT_AGENT ○` and
+   * `VERIFICATION_OFFICER ○`. Those two must not acquire it, and what stops them is not care —
+   * `permissionsFor()` emits write keys only for a grant that is not `READ`.
+   *
+   * This is what makes a write key safe on a multi-holder row where a read key would not be, so
+   * it is pinned rather than left as a property somebody re-derives.
+   */
+  for (const role of ['SUPPORT_AGENT', 'VERIFICATION_OFFICER'] as const) {
+    const held = permissionsFor(role);
+    assert.ok(!held.includes(CATALOG_PERMISSIONS.BRANCH_UPDATE), `${role} can edit a branch`);
+    assert.ok(held.includes('catalog.gym_profile.read'), `${role} lost row 19's read key`);
   }
 });
 

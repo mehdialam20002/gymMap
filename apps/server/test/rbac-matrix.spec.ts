@@ -325,6 +325,13 @@ test('an extra read key may only hang off a capability ONE role holds', () => {
  * └───────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 const JUSTIFIED_MULTI_HOLDER: Record<string, string> = {
+  'Edit gym profile':
+    'Gym.md line 171 attributes PATCH /tenant/branches/:id to THIS row with OWNER ● and ' +
+    'MANAGER ▪, and §B3.2 row 19 already carries exactly those grants — so nothing widens; the ' +
+    'key follows the holders rather than the holders following the key. The two platform cells, ' +
+    'SUPPORT ○ and VERIFICATION_OFFICER ○, cannot reach it: permissionsFor() emits write keys ' +
+    'only for a grant that is not READ. That is the whole reason a write key is safe on a ' +
+    'multi-holder row where a read key would not be.',
   'Impersonate user':
     'MASTER_PRD.md §B3.2 row 38, unamended — SUPPORT_AGENT and SUPER_ADMIN, both FULL, exactly as ' +
     'they were. The extra key is `iam.impersonation.end`, which API_Catalog.md 724 freezes on the ' +
@@ -360,8 +367,21 @@ test('ADR-0047 — a READ cell on Add / remove branch is the LIST, never a branc
    * Asserted per role and per key rather than as a spot check, because the failure is silent: a
    * `READ` quietly becoming `OWN` reads as a small edit and hands a receptionist branch deletion.
    */
-  const READ_ONLY: PlatformRole[] = ['RECEPTIONIST', 'TRAINER', 'GYM_MANAGER'];
+  const READ_ONLY: PlatformRole[] = ['RECEPTIONIST', 'TRAINER'];
   const MUTATIONS = ['catalog.branch.create', 'catalog.branch.update', 'catalog.branch.deactivate'];
+
+  /*
+   * `GYM_MANAGER` is NOT in that list, and the exclusion is deliberate rather than an oversight.
+   * `Gym.md` line 171 gives it `PATCH /tenant/branches/:id` at `▪`, so `catalog.branch.update`
+   * lives on row 19 *Edit gym profile* where rank 2 already grants it. It still holds neither
+   * `.create` nor `.deactivate`: opening and closing a branch is row 20's, owner-only, and a
+   * manager who could close one could close the last one.
+   */
+  const managerHeld = permissionsFor('GYM_MANAGER');
+  assert.ok(managerHeld.includes('catalog.branch.update'), 'a manager cannot edit a branch');
+  for (const key of ['catalog.branch.create', 'catalog.branch.deactivate']) {
+    assert.ok(!managerHeld.includes(key), `GYM_MANAGER holds ${key}`);
+  }
 
   for (const role of READ_ONLY) {
     const held = permissionsFor(role);

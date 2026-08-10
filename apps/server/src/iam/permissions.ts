@@ -444,7 +444,25 @@ export const CAPABILITY_MATRIX: readonly CapabilityDefinition[] = [
     capability: 'Edit gym profile',
     readKey: 'catalog.gym_profile.read',
     writeKey: 'catalog.gym_profile.update',
-    description: 'Change gym-level profile content.',
+    /*
+     * ┌─ `catalog.branch.update` LIVES HERE, NOT ON ROW 20, AND `Gym.md` IS WHY ────────────────────┐
+     * │ `Gym.md` line 171 attributes `PATCH /tenant/branches/:id` to *Edit gym profile* — this row —│
+     * │ with `OWNER ●` and `MANAGER ▪`. Line 169 attributes `POST` and line 172 `DELETE` to row 20, │
+     * │ *Add / remove branch*, `OWNER ●` and nobody else. Editing a branch's address or capacity is │
+     * │ profile maintenance; opening and closing one is not.                                         │
+     * │                                                                                             │
+     * │ **`SUPPORT ○` and `VERIFICATION_OFFICER ○` do NOT acquire it, and that is structural.**      │
+     * │ `permissionsFor()` emits write keys only for a grant that is not `READ`, so a `○` cell       │
+     * │ reaches this row's read key and neither write key. My first attempt put all five branch     │
+     * │ strings on row 20 precisely to avoid handing those two platform roles a branch key — a      │
+     * │ correct fear about the READ half, applied to the wrong half.                                 │
+     * │                                                                                             │
+     * │ The result matches `Gym.md` exactly and needed no `§C10` change: rank 2 already gave         │
+     * │ `GYM_MANAGER ▪` here.                                                                        │
+     * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    extraWriteKeys: ['catalog.branch.update'],
+    description: 'Change gym-level profile content, and a branch’s own details.',
     grants: {
       VISITOR: 'NONE',
       USER: 'NONE',
@@ -477,7 +495,9 @@ export const CAPABILITY_MATRIX: readonly CapabilityDefinition[] = [
     readKey: 'catalog.branch.read',
     extraReadKeys: ['catalog.branch.list'],
     writeKey: 'catalog.branch.create',
-    extraWriteKeys: ['catalog.branch.update', 'catalog.branch.deactivate'],
+    // `.update` is row 19's — `Gym.md` 171 calls a branch edit profile maintenance. Only opening
+    // and closing a branch is this row's business, which is what its label says.
+    extraWriteKeys: ['catalog.branch.deactivate'],
     description:
       'Add a branch to the tenant, or retire one. Branch-scoped roles get the list only.',
     grants: {
