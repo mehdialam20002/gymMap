@@ -100,11 +100,22 @@ The guard is bound as of `c9c851e`, which was the hard part. What is left is all
 | Deliverable | State |
 | :--- | :--- |
 | `GET /admin/users/:id/permissions` (`FR-RBAC-05`) — a cross-tenant grants port, its Prisma adapter, a use case, the route | FREE. `annotatedEffectivePermissions()` and `inspectPermission()` exist and are tested; what is missing is a reader for one user's grants ACROSS tenants, which needs `runElevated()` |
-| `docs/features/rbac.md` — §21.3's five sections plus `DG3`'s sequence diagram | FREE since `ADR-0041` |
-| A `ResourceTenantGuard` unit spec | FREE. The file has 126 lines and **zero** test references |
+| `docs/features/rbac.md` — §21.3's five sections plus `DG3`'s sequence diagram | ✅ **DONE** 2026-08-10 — `cefea63` |
+| A `ResourceTenantGuard` unit spec | ✅ **DONE** 2026-08-10 — `324b8a2`. It had 126 lines and zero test references |
 | `rbac.contract-spec.ts` — 403 envelopes carry a registry code and a correlation id | FREE |
 
 **Exit:** `M-023` is `✅`. The nearest milestone to done in the project.
+
+> **Found while starting the endpoint, and it changes the estimate.** `ELEVATION_SCOPES`
+> (`tenancy/prisma/platform-elevation.ts`) is a **closed four-value list** — `READ_ALL_TENANTS`,
+> `READ_ONE_TENANT`, `READ_FINANCIAL_AGGREGATE`, `READ_AUDIT`. Reading one user's grants across
+> every tenant fits none of them: the first is about tenants, not users. So `FR-RBAC-05` needs a
+> **fifth scope value**, which is the same closed-list extension `BLK-17` already needs for
+> `KYC_DOCUMENT_ACCESS`.
+>
+> Two of the seven partials therefore turn on one small decision about the same list. Worth taking
+> together rather than twice, and worth checking whether `Security.md` mirrors the list before
+> either — if it does, the extension is a rank-3 edit and not a code change.
 
 ---
 
