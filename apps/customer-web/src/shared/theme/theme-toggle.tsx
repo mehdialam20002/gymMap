@@ -133,7 +133,7 @@ export function ThemeToggle() {
       onClick={choose}
       aria-label={label}
       title={label}
-      className="gm-hit-target gm-lift inline-flex h-[2rem] w-[2rem] items-center justify-center rounded-full border border-strong text-content transition-colors duration-fast ease-standard hover:border-brand"
+      className="gm-lift inline-flex h-[2.75rem] w-[2.75rem] items-center justify-center rounded-full border border-strong text-content transition-colors duration-fast ease-standard hover:border-brand"
     >
       <Glyph aria-hidden="true" className="h-[1rem] w-[1rem]" />
     </button>

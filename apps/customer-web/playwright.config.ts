@@ -84,7 +84,17 @@ export default defineConfig({
     url: BASE_URL,
     reuseExistingServer: !process.env['CI'],
     timeout: 240_000,
-    env: { NEXT_DIST_DIR: '.next-build' },
+    /*
+     * `NEXT_PUBLIC_SITE_URL` is pinned to the production origin for the suite, and that is not a
+     * convenience. `.env.local` sets it to `http://localhost:3001` because that is correct for a
+     * developer running the app - but `crawler.spec.ts` asserts that every `<loc>` in the sitemap
+     * is absolute, https, and not a local host, which is the check that catches a MISSING
+     * `metadataBase` (Next then silently resolves every absolute-URL field against localhost in a
+     * production build). Run against the local origin, that assertion cannot tell a correctly
+     * configured dev environment from the defect it exists for. Pinning it here means the suite
+     * always sees the shape that ships, whatever the developer's `.env.local` says.
+     */
+    env: { NEXT_DIST_DIR: '.next-build', NEXT_PUBLIC_SITE_URL: 'https://gymmap.in' },
     stdout: 'ignore',
     stderr: 'pipe',
   },

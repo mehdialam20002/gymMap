@@ -130,7 +130,7 @@ export function GymRail({ selected = [] }: { readonly selected?: readonly GymDet
                  */}
                 <GymPhoto
                   gym={gym}
-                  sizes="(min-width: 1080px) 33vw, (min-width: 760px) 50vw, 100vw"
+                  sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
                   className="gm-card-art"
                 />
 
@@ -575,7 +575,7 @@ export function CityGrid() {
               <Link href={`/gyms/${city.slug}`} className="gm-city">
                 <GymPhoto
                   gym={city.cover}
-                  sizes="(min-width: 1080px) 25vw, (min-width: 760px) 50vw, 100vw"
+                  sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw"
                   className="gm-city-art"
                 />
                 <span className="gm-city-t">

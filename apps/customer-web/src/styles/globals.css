@@ -391,6 +391,23 @@
     background-color: var(--gm-color-surface-default);
     color: var(--gm-color-content-primary);
     -webkit-text-size-adjust: 100%;
+    /*
+     * ┌─ EVERY IN-PAGE ANCHOR LANDED UNDER THE STICKY HEADER ────────────────────────────────────┐
+     * │ There was no `scroll-margin-top`, `scroll-mt` or `scroll-padding-top` anywhere in this    │
+     * │ app or in `packages/ui` - every anchor target computed `scroll-margin-top: 0px`. After a  │
+     * │ `scrollIntoView()`, `#main`'s first heading sat at top=31 with a 92px header over it: 61px │
+     * │ of the thing you asked for, hidden behind chrome. `/for-gyms#how` lost 50px the same way.  │
+     * │                                                                                           │
+     * │ `#main` is the SKIP LINK's target and the first focusable element on every route, so this │
+     * │ is `AX2`: the one control a keyboard user has for getting past the chrome delivered them  │
+     * │ behind it.                                                                                 │
+     * │                                                                                           │
+     * │ One declaration on the root covers every anchor on every page, including ones nobody has  │
+     * │ written yet. The precedent is in this file already - `html:has(.gm-rail)` sets            │
+     * │ `scroll-padding-bottom` for exactly the same reason at the other edge.                     │
+     * └───────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    scroll-padding-top: calc(var(--gm-chrome-height, 4.125rem) + var(--gm-space-inset-md));
   }
 
   body {
@@ -671,7 +688,7 @@
     text-transform: uppercase;
     line-height: 0.92;
     letter-spacing: -0.015em;
-    font-size: clamp(30px, 4.6vw, 58px);
+    font-size: clamp(1.875rem, 4.6vw, 3.625rem);
     margin: 0;
   }
 
@@ -680,7 +697,7 @@
     font-variation-settings:
       'wdth' 100,
       'wght' 700;
-    font-size: clamp(17px, 1.5vw, 21px);
+    font-size: clamp(1.0625rem, 1.5vw, 1.3125rem);
     line-height: 1.15;
     letter-spacing: -0.01em;
     margin: 0;
@@ -693,7 +710,7 @@
    */
   .gm-eyebrow-k {
     font-family: var(--gm-font-mono);
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 500;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -715,16 +732,90 @@
   .gm-lede {
     color: var(--gm-color-content-muted);
     max-width: 56ch;
-    font-size: clamp(15px, 1.3vw, 17px);
+    font-size: clamp(0.9375rem, 1.3vw, 1.0625rem);
     margin: 14px 0 0;
   }
 
   /* ── shell ─────────────────────────────────────────────────────────────── */
 
+  /*
+   * The gutter is a NAMED value, because things bleed against it.
+   *
+   * The search facet rows bleed to the page edge with `-mx-inset-md`, a `rem` negative margin set
+   * to match this `px` padding. They matched at 100% text and diverged at 200%, where the rem
+   * doubled to 32 and the clamp stayed at 18 - so every facet row started at x = -14 and hung 14px
+   * off both edges of a 320px phone. Two units describing one distance is the whole defect; one
+   * custom property is the fix.
+   */
+  :root {
+    --gm-wrap-inline: clamp(18px, 4vw, 44px);
+  }
+
   .gm-wrap {
     max-width: 1240px;
     margin-inline: auto;
-    padding-inline: clamp(18px, 4vw, 44px);
+    padding-inline: var(--gm-wrap-inline);
+  }
+
+  /*
+   * A row that runs to the page edge and pads itself back, in ONE unit.
+   *
+   * The pair it replaces was `-mx-inset-md px-inset-md`: a rem margin cancelling a rem padding,
+   * chosen to look like the wrapper's `px` gutter. At 200% browser text the rem doubled and the
+   * clamp did not, so the row started 14px off the left edge of a 320px phone and hung 14px off
+   * the right. Both halves now read the same custom property the wrapper uses, so they cannot
+   * diverge at any text size.
+   */
+  .gm-bleed {
+    margin-inline: calc(-1 * var(--gm-wrap-inline));
+    padding-inline: var(--gm-wrap-inline);
+  }
+
+  /*
+   * No breakpoint here on purpose. The two rows that bleed stop bleeding at DIFFERENT widths -
+   * the facet rail at `lg`, the sort bar at `sm` - so each cancels it with its own utility, which
+   * wins because Tailwind's utilities layer is emitted after this one.
+   */
+
+  /*
+   * ┌─ A LONG WORD MUST BREAK RATHER THAN PUSH THE PAGE ────────────────────────────────────────┐
+   * │ At 200% browser text on a 320px phone the display face's `clamp()` floor resolves to 60px, │
+   * │ and one word at 60px is wider than the viewport. Measured: `.gm-h2` rendering "FOUR RULES  │
+   * │ THE PRODUCT ENFORCES" forced its box to 396px inside 320, taking the whole section head    │
+   * │ with it, and the `/for-gyms` benefit cards to 329px inside a 284px track.                   │
+   * │                                                                                            │
+   * │ `WCAG 1.4.10` asks for reflow at exactly this size, and a headline is the element most     │
+   * │ likely to hold a word that cannot fit.                                                      │
+   * │                                                                                            │
+   * │ HEADINGS get `anywhere` and body copy gets `break-word`, and the difference is the whole    │
+   * │ reason this took two attempts. `break-word` breaks a word only when the LINE cannot hold    │
+   * │ it, and it does not participate in min-content sizing - so a grid item whose track is       │
+   * │ `1fr` (which is `minmax(auto, 1fr)`, and `auto` means min-content) still demands the width  │
+   * │ of its longest word and pushes the track out. That is exactly what was measured after the   │
+   * │ first attempt: `break-word` on `.gm-h2` changed nothing, and the section head stayed 396px  │
+   * │ wide inside 320. `anywhere` DOES feed min-content, so the track can finally shrink.          │
+   * │                                                                                            │
+   * │ Body copy keeps `break-word` because there the trade runs the other way: a paragraph in a   │
+   * │ narrow column should not hyphenate mid-word when the line could simply wrap.                 │
+   * │                                                                                            │
+   * │ Declared on the roles that carry long words rather than on `*`: a blanket rule would also   │
+   * │ break code, numbers and table cells, where a broken token is worse than a scroll.           │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  h1,
+  h2,
+  h3,
+  h4 {
+    overflow-wrap: anywhere;
+  }
+
+  p,
+  li,
+  dd,
+  dt,
+  figcaption,
+  blockquote {
+    overflow-wrap: break-word;
   }
 
   .gm-sec {
@@ -773,16 +864,15 @@
     align-items: center;
     justify-content: center;
     gap: 9px;
-    height: 44px;
+    min-height: 44px;
     padding-inline: 22px;
-    border-radius: 999px;
+    border-radius: var(--gm-radius-full);
     background: var(--gm-color-content-primary);
     color: var(--gm-color-surface-default);
     font-weight: 600;
-    font-size: 14.5px;
+    font-size: 0.90625rem;
     letter-spacing: -0.01em;
     position: relative;
-    overflow: hidden;
     isolation: isolate;
     transition:
       transform var(--gm-motion-duration-slow) var(--gm-motion-ease-standard),
@@ -795,12 +885,20 @@
     inset: 0;
     z-index: -1;
     background: var(--gm-color-brand-solid);
-    transform: translateY(101%);
+    /*
+     * `scaleY(0)` from the bottom edge, not `translateY(101%)`. The translated sheet sat a whole
+     * box-height BELOW the button, so the button needed `overflow: hidden` to hide it - and that
+     * clip cut the button's own label by 3px at 200% browser text and made every measurement of
+     * the page report 63px of phantom scroll height per button. Scaled, the sheet never leaves
+     * its own box, so nothing has to be clipped to hide it.
+     */
+    transform: scaleY(0);
+    transform-origin: 50% 100%;
     transition: transform var(--gm-motion-duration-slow) var(--gm-motion-ease-standard);
   }
 
   .gm-btn:hover::before {
-    transform: translateY(0);
+    transform: scaleY(1);
   }
 
   .gm-btn:hover {
@@ -854,9 +952,9 @@
    * compact dashboards use. Eleven links on this page were 36px targets before this.
    */
   .gm-btn-sm {
-    height: 36px;
+    min-height: 36px;
     padding-inline: 16px;
-    font-size: 13.5px;
+    font-size: 0.84375rem;
     position: relative;
   }
 
@@ -873,14 +971,14 @@
    */
   @media (pointer: coarse) {
     .gm-btn-sm {
-      height: 44px;
+      min-height: 44px;
     }
   }
 
   .gm-btn-lg {
-    height: 56px;
+    min-height: 56px;
     padding-inline: 30px;
-    font-size: 16px;
+    font-size: 1rem;
   }
 
   .gm-btn i {
@@ -911,14 +1009,27 @@
   .gm-hero {
     position: relative;
     /*
-     * Capped, so the slack can never grow without limit.
-     *
-     * A bare `100svh` on a 1200px screen leaves 340px of empty background under the category
-     * chips - the emptiness moved from above the headline to below the console rather than going
-     * away. The content needs about 815px; the cap gives it at most ~175px of air and then lets
-     * the next band peek in, which is a better scroll cue than a void.
+     * ┌─ NO FLOOR AT ALL BELOW `md`, AND THE CAP RE-DERIVED ABOVE IT ─────────────────────────────┐
+     * │ The rule here was `min-height: min(100svh, 62rem)` with a comment saying "the content     │
+     * │ needs about 815px; the cap gives it at most ~175px of air". Both halves were measured      │
+     * │ again and both were wrong at the ends:                                                     │
+     * │                                                                                           │
+     * │   at 768 and 834   content ends 520px in, so the floor leaves 372-388px of empty ground -  │
+     * │                    38% and 33% of the viewport, 2.2x the figure the rule was sized against │
+     * │   at 1680-2560     259-269px of the same                                                   │
+     * │   at 320 x 568     the floor does not bind at all: the content is 921px, 1.62 viewports,   │
+     * │                    and every control of the search console is below the fold               │
+     * │                                                                                           │
+     * │ So the floor is removed where it never binds and cannot help - below `md` the content is   │
+     * │ already taller than the viewport, and a `min-height` there only adds air a phone has no    │
+     * │ room for. Above `md` the cap comes down to the content's own measured height plus a band   │
+     * │ of air, rather than to a number chosen against a taller layout.                            │
+     * │                                                                                           │
+     * │ `svh`, not `vh`, throughout: on a phone `vh` is the height the viewport has when the       │
+     * │ browser chrome is retracted, which is not the height at first paint.                        │
+     * └───────────────────────────────────────────────────────────────────────────────────────────┘
      */
-    min-height: min(100svh, 62rem);
+    padding-bottom: clamp(32px, 5vh, 72px);
     display: flex;
     align-items: stretch;
     /*
@@ -931,6 +1042,24 @@
      * than from the header box.
      */
     padding-top: clamp(24px, 3.4vh, 46px);
+  }
+
+  /*
+   * The floor returns only where it can do its job: a viewport wide enough that the hero's content
+   * is SHORTER than the screen, which is the only case where filling it is worth anything. The cap
+   * is re-derived from the measured content height (about 520px at 768) plus a deliberate band of
+   * air, rather than from the 62rem the old comment was sized against.
+   */
+  @media (min-width: 768px) {
+    .gm-hero {
+      min-height: min(100svh, 46rem);
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .gm-hero {
+      min-height: min(100svh, 54rem);
+    }
   }
 
   /*
@@ -1060,9 +1189,9 @@
     align-items: center;
     gap: 9px;
     border: 1px solid var(--gm-color-border-subtle);
-    border-radius: 999px;
+    border-radius: var(--gm-radius-full);
     padding: 7px 15px 7px 11px;
-    font-size: 12.5px;
+    font-size: 0.78125rem;
     color: var(--gm-color-content-muted);
     font-family: var(--gm-font-mono);
     letter-spacing: 0.04em;
@@ -1108,7 +1237,7 @@
      * left the constellation fighting them for the same pixels; the owner asked for it smaller and
      * the composition wanted it too.
      */
-    font-size: clamp(40px, 7.6vw, 104px);
+    font-size: clamp(2.5rem, 7.6vw, 6.5rem);
     max-width: 16ch;
   }
 
@@ -1171,12 +1300,35 @@
   .gm-console {
     margin-top: 34px;
     display: grid;
-    grid-template-columns: 1.05fr 1fr 1.6fr auto;
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px;
     padding: 8px;
-    border-radius: 999px;
-    border: 1px solid var(--gm-color-border-subtle);
-    background: color-mix(in srgb, var(--gm-color-surface-subtle) 82%, transparent);
+    border-radius: 22px;
+    /*
+     * ┌─ THE PAGE'S PRIMARY CONTROL HAS TO OUTRANK THE PAGE ────────────────────────────────────┐
+     * │ This was `surface-subtle` at 82% on a hero whose ground is `surface-media` - two          │
+     * │ near-blacks, so the pill had almost no value separation from what it sits on and read as  │
+     * │ a painted stripe rather than something you can type into. Reported as "it looks very      │
+     * │ simple", which is exactly what a control with no elevation looks like.                    │
+     * │                                                                                          │
+     * │ `surface-overlay`, the TOP of this identity's surface scale and the role that means        │
+     * │ "floats above the page". `surface-raised` was tried first, on the reasoning that it is     │
+     * │ what every card uses - and measured on the running page it is DARKER than the ground the   │
+     * │ console already had. This theme's scale runs sunken .0028, default .0040, raised .0080,    │
+     * │ subtle .0097, overlay .0161 in relative luminance, so "raised" sits BELOW "subtle" and     │
+     * │ reasoning from the token's name produced a change that made the pill dimmer. Overlay is a  │
+     * │ 66% lift on what was there, and it is the only surface in the scale that is one.           │
+     * │                                                                                           │
+     * │ No amber here, deliberately, though the request was for something brighter. Amber on this  │
+     * │ page is the submit button and the focus ring, and a resting amber halo round the console   │
+     * │ would compete with both: a control that always looks focused cannot show that it IS.       │
+     * └───────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    border: 1px solid var(--gm-color-border-default);
+    background: color-mix(in srgb, var(--gm-color-surface-overlay) 92%, transparent);
+    box-shadow:
+      var(--gm-shadow-xl),
+      inset 0 1px 0 color-mix(in srgb, var(--gm-color-content-primary) 12%, transparent);
     backdrop-filter: blur(20px) saturate(150%);
     max-width: 960px;
     /*
@@ -1214,6 +1366,22 @@
    * │ center` on auto rows puts the pair in the middle of the field whatever the type does.        │
    * └──────────────────────────────────────────────────────────────────────────────────────────────┘
    */
+  /*
+   * ┌─ AND EACH FIELD IS ITS OWN CONTROL, WITH A RIM YOU CAN SEE ─────────────────────────────────┐
+   * │ The three fields used to be one continuous pill divided by hairlines at `border-subtle`, so │
+   * │ the only way to learn where a field began was to click and find out. Worse, that hairline    │
+   * │ WAS the boundary of the page's primary control, and measured against the ground behind it   │
+   * │ it came to 1.28:1 - `SC 1.4.11` asks 3:1 of the visual boundary of an input, so this was an │
+   * │ accessibility failure and not only a flat-looking one.                                       │
+   * │                                                                                             │
+   * │ Each field now carries the SAME pair the site's other search input already uses -            │
+   * │ `surface-raised` ground inside a `border-input` rim (see `.gm-search-slab` on `/search`) -   │
+   * │ so a member meets one input treatment on this site rather than two. Measured on the result:  │
+   * │ rim 3.75:1 against the field, label and placeholder 7.05:1, value 16.54:1.                    │
+   * │                                                                                             │
+   * │ Three slots inside a raised bar, rather than one bar pretending to be three.                 │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   .gm-field {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -1222,14 +1390,39 @@
     column-gap: 10px;
     row-gap: 3px;
     padding-inline: 18px;
-    height: 62px;
-    border-radius: 999px;
+    min-height: 62px;
+    border-radius: var(--gm-radius-full);
+    background: var(--gm-color-surface-raised);
+    border: 1px solid var(--gm-color-border-input);
     position: relative;
     min-width: 0;
+    /*
+     * `background-color` and `border-color` only. `MO4` bans animating geometry, and both of these
+     * are paint - the box does not move, so nothing reflows and nothing else on the row shifts.
+     */
+    transition:
+      background-color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard),
+      border-color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard);
   }
 
-  .gm-field + .gm-field {
-    box-shadow: inset 1px 0 0 var(--gm-color-border-subtle);
+  .gm-field:hover {
+    background-color: var(--gm-color-surface-overlay);
+  }
+
+  /* The glyph is a mark on a control, so it brightens with the control rather than staying dim. */
+  .gm-field:hover > svg,
+  .gm-field:focus-within > svg {
+    color: var(--gm-color-content-secondary);
+  }
+
+  /*
+   * `content-muted` with the opacity stated. Left alone, a placeholder is the engine's own colour
+   * at the engine's own opacity, which is a pairing nobody in this repository has proved against
+   * a ground that just changed. Naming the token puts it back under the contrast proof.
+   */
+  .gm-field input::placeholder {
+    color: var(--gm-color-content-muted);
+    opacity: 1;
   }
 
   /*
@@ -1241,21 +1434,30 @@
     grid-column: 1;
     grid-row: 2;
     align-self: center;
+    color: var(--gm-color-content-muted);
+    transition: color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard);
   }
 
   .gm-field label {
     grid-column: 2;
     grid-row: 1;
     font-family: var(--gm-font-mono);
-    font-size: 10px;
-    line-height: 15px;
+    font-size: 0.6875rem;
+    line-height: 1.4;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--gm-color-content-muted);
-    /* One line, always. A wrapped label would push the value out of the pill. */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /*
+     * It wraps rather than ellipsising, and that reverses an earlier decision here.
+     *
+     * The note used to read "one line, always - a wrapped label would push the value out of the
+     * pill". Measured, one line meant 39% of "Distance from centre" was hidden at 768 at 100%
+     * text ("DISTANCE FR..."), and 368px of "Search by city, area or gym name" was gone at 200%.
+     * The label names the control under it; a name nobody can read is not a smaller version of a
+     * name. And the premise expired when the pill became a `min-height`: a second line now makes
+     * the field taller instead of pushing anything out of it.
+     */
+    overflow-wrap: anywhere;
   }
 
   .gm-field input,
@@ -1273,8 +1475,8 @@
      * pinch their way out of - on the site's primary call to action. `TS2` fixes this as a floor
      * for exactly that reason. Half a pixel of the reference is not worth it.
      */
-    font-size: 16px;
-    line-height: 24px;
+    font-size: 1rem;
+    line-height: 1.5;
     font-weight: 500;
     padding: 0;
     appearance: none;
@@ -1314,10 +1516,18 @@
    * whatever the focus ROLE is - a component reaching past the role is how the site ends up with
    * two focus colours the day one of them moves.
    */
+  /*
+   * The focused field also stays LIT while it holds the caret, so a reader who has tabbed into the
+   * console can see which of the three has it rather than only that the console has focus. One
+   * rule, not two: a second `:focus-within` block further up the file would be a lint warning and,
+   * worse, a second place for the focus treatment to be edited in half.
+   */
   .gm-field:focus-within {
     outline: 2px solid var(--gm-color-border-focus);
     outline-offset: 2px;
-    border-radius: 999px;
+    border-radius: var(--gm-radius-full);
+    background-color: var(--gm-color-surface-overlay);
+    border-color: var(--gm-color-border-strong);
   }
 
   .gm-field input:focus-visible,
@@ -1375,7 +1585,9 @@
   }
 
   .gm-console .gm-btn {
-    height: 62px;
+    min-height: 62px;
+    /* Full width while the console is one column; back to intrinsic at `md`. */
+    width: 100%;
   }
 
   /*
@@ -1404,8 +1616,8 @@
       padding: 0 22px 0 0;
       color: var(--gm-color-content-primary);
       font: inherit;
-      font-size: 16px;
-      line-height: 24px;
+      font-size: 1rem;
+      line-height: 1.5;
       font-weight: 500;
       text-align: start;
     }
@@ -1493,7 +1705,7 @@
       border-radius: calc(var(--gm-radius-card) - 4px);
       background: none;
       color: var(--gm-color-content-secondary);
-      font-size: 15px;
+      font-size: 0.9375rem;
       font-weight: 500;
     }
 
@@ -1581,7 +1793,7 @@
     align-items: center;
     gap: 10px;
     font-family: var(--gm-font-mono);
-    font-size: 12px;
+    font-size: 0.75rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--gm-color-content-muted);
@@ -1597,7 +1809,7 @@
 
   .gm-cards {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
   }
 
@@ -1735,11 +1947,11 @@
     align-items: center;
     gap: 6px;
     padding: 6px 11px;
-    border-radius: 999px;
+    border-radius: var(--gm-radius-full);
     background: rgb(8 10 14 / 0.62);
     backdrop-filter: blur(10px);
     font-family: var(--gm-font-mono);
-    font-size: 10.5px;
+    font-size: 0.65625rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: #fff;
@@ -1771,14 +1983,14 @@
     font-variation-settings:
       'wdth' 96,
       'wght' 800;
-    font-size: 26px;
+    font-size: 1.625rem;
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
 
   .gm-card-price span {
     font-family: var(--gm-font-mono);
-    font-size: 10px;
+    font-size: 0.625rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     opacity: 0.72;
@@ -1805,7 +2017,7 @@
     gap: 6px 14px;
     margin: 10px 0 14px;
     font-family: var(--gm-font-mono);
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--gm-color-content-muted);
   }
 
@@ -1822,7 +2034,7 @@
   }
 
   .gm-tag {
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     padding: 4px 9px;
     border-radius: 6px;
     background: var(--gm-color-surface-overlay);
@@ -1841,26 +2053,40 @@
 
   .gm-note {
     font-family: var(--gm-font-mono);
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--gm-color-content-muted);
     border: 1px dashed var(--gm-color-border-default);
     border-radius: 10px;
     padding: 11px 14px;
     margin-bottom: 22px;
     display: flex;
+    flex-wrap: wrap;
     gap: 9px;
+    /*
+     * A measure, because it had none: 156 real characters on one line from 1366px up. `measure-ui`
+     * rather than `measure-prose` - this is a status line, not running copy, and the system has
+     * exactly three measures. Declared on the element that SETS the font size, since `ch` resolves
+     * against whatever carries the rule and a 68ch cap on a 16px ancestor caps 12px text at 90.
+     */
+    max-width: var(--gm-measure-ui);
   }
 
   .gm-note b {
     color: var(--gm-color-content-on-media-accent);
     font-weight: 500;
+    /*
+     * `flex: none`. As a plain flex item with a long label the `<b>` shrank to a 36px column and
+     * set "Where this is up to" as SEVEN line boxes at 320 and four at 390, one word each. The
+     * label is the shortest thing in the row and should never be the thing that wraps.
+     */
+    flex: none;
   }
 
   /* ── goals ─────────────────────────────────────────────────────────────── */
 
   .gm-goals {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
   }
 
@@ -1911,7 +2137,7 @@
   .gm-goal em {
     font-style: normal;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 1rem;
     flex: 1;
     text-align: left;
   }
@@ -1944,20 +2170,20 @@
    */
   .gm-promises {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     border-top: 1px solid var(--gm-color-border-subtle);
     margin-top: 4px;
   }
 
   .gm-promise {
     position: relative;
-    padding: 28px 26px 0;
-    border-left: 1px solid var(--gm-color-border-subtle);
+    /* Stacked is the base. The rule that divides two columns divides two rows here. */
+    padding: 24px 0 0;
+    border-top: 1px solid var(--gm-color-border-subtle);
   }
 
   .gm-promise:first-child {
-    padding-left: 0;
-    border-left: 0;
+    border-top: 0;
   }
 
   /* The same band at three across, so it divides evenly instead of leaving a fourth cell empty. */
@@ -1973,7 +2199,9 @@
   .gm-promise::after {
     content: '';
     position: absolute;
-    inset: -1px 0 auto 0;
+    /* Stacked: a 46px stub on the row's own top rule. Widened to the column at `md`. */
+    inset: -1px auto auto 0;
+    width: 46px;
     height: 2px;
     background: var(--gm-color-accent-solid);
     transform: scaleX(0);
@@ -1990,7 +2218,7 @@
     align-items: center;
     justify-content: center;
     width: 34px;
-    height: 34px;
+    min-height: 34px;
     border-radius: 10px;
     border: 1px solid var(--gm-color-border-subtle);
     color: var(--gm-color-accent-solid);
@@ -2001,7 +2229,7 @@
     font-family: var(--gm-font-display);
     font-variation-settings: 'wdth' 112;
     font-weight: 700;
-    font-size: 17px;
+    font-size: 1.0625rem;
     letter-spacing: -0.01em;
     margin: 0 0 8px;
     color: var(--gm-color-content-primary);
@@ -2009,7 +2237,7 @@
 
   .gm-promise p {
     margin: 0;
-    font-size: 14px;
+    font-size: 0.875rem;
     line-height: 1.6;
     color: var(--gm-color-content-muted);
   }
@@ -2018,7 +2246,7 @@
 
   .gm-steps {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     border: 1px solid var(--gm-color-border-subtle);
     border-radius: 22px;
     overflow: hidden;
@@ -2027,16 +2255,16 @@
   .gm-step {
     padding: 30px 26px 34px;
     position: relative;
-    border-right: 1px solid var(--gm-color-border-subtle);
+    border-bottom: 1px solid var(--gm-color-border-subtle);
   }
 
   .gm-step:last-child {
-    border-right: 0;
+    border-bottom: 0;
   }
 
   .gm-step-n {
     font-family: var(--gm-font-mono);
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--gm-color-content-on-media-accent);
     letter-spacing: 0.12em;
   }
@@ -2086,7 +2314,7 @@
 
   .gm-plans {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
   }
 
@@ -2109,7 +2337,7 @@
 
   .gm-plan-where {
     font-family: var(--gm-font-mono);
-    font-size: 10.5px;
+    font-size: 0.65625rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--gm-color-content-on-media-accent);
@@ -2120,14 +2348,14 @@
     font-variation-settings:
       'wdth' 92,
       'wght' 850;
-    font-size: clamp(34px, 3.4vw, 44px);
+    font-size: clamp(2.125rem, 3.4vw, 2.75rem);
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
 
   .gm-plan-sub {
     font-family: var(--gm-font-mono);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     color: var(--gm-color-content-muted);
     margin-top: 6px;
   }
@@ -2159,17 +2387,19 @@
 
   .gm-smallprint {
     font-family: var(--gm-font-mono);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     color: var(--gm-color-content-muted);
     margin-top: 20px;
+    /* 167 real characters on one line from 1280px up, uncapped. Same reasoning as `.gm-note`. */
+    max-width: var(--gm-measure-ui);
   }
 
   /* ── compare ───────────────────────────────────────────────────────────── */
 
   .gm-cmp {
     display: grid;
-    grid-template-columns: 0.9fr 1.35fr;
-    gap: 44px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 30px;
     align-items: center;
   }
 
@@ -2184,7 +2414,7 @@
   .gm-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14.5px;
+    font-size: 0.90625rem;
   }
 
   .gm-table th,
@@ -2203,17 +2433,18 @@
     font-variation-settings:
       'wdth' 100,
       'wght' 700;
-    font-size: 14px;
+    font-size: 0.875rem;
   }
 
   .gm-table tbody th {
     font-family: var(--gm-font-mono);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--gm-color-content-muted);
     font-weight: 400;
-    width: 120px;
+    min-width: 7.5rem;
+    width: auto;
   }
 
   .gm-table td {
@@ -2264,8 +2495,8 @@
 
   .gm-rev {
     display: grid;
-    grid-template-columns: 1.25fr 0.85fr;
-    gap: 14px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 30px;
   }
 
   .gm-rev-empty {
@@ -2333,7 +2564,7 @@
 
   .gm-cities {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
   }
 
@@ -2396,13 +2627,13 @@
       'wdth' 104,
       'wght' 780;
     text-transform: uppercase;
-    font-size: 22px;
+    font-size: 1.375rem;
     line-height: 1;
   }
 
   .gm-city-t span {
     font-family: var(--gm-font-mono);
-    font-size: 11px;
+    font-size: 0.6875rem;
     opacity: 0.85;
     letter-spacing: 0.08em;
   }
@@ -2435,14 +2666,14 @@
 
   .gm-owners-in {
     display: grid;
-    grid-template-columns: 1fr 1.05fr;
-    gap: 56px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 30px;
     align-items: center;
   }
 
   .gm-checks {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px 22px;
     margin: 26px 0 30px;
     padding: 0;
@@ -2453,7 +2684,7 @@
     display: flex;
     gap: 9px;
     align-items: center;
-    font-size: 14.5px;
+    font-size: 0.90625rem;
     color: #c3cad6;
   }
 
@@ -2469,8 +2700,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    /* At 200% text the label and the caption cannot share a line; wrapping is what 1.4.10 asks. */
+    flex-wrap: wrap;
+    gap: 4px 10px;
     font-family: var(--gm-font-mono);
-    font-size: 11px;
+    font-size: 0.6875rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: #98a0b1;
@@ -2493,7 +2727,7 @@
 
   .gm-dash-kpi span {
     font-family: var(--gm-font-mono);
-    font-size: 10.5px;
+    font-size: 0.65625rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #98a0b1;
@@ -2505,7 +2739,7 @@
     font-variation-settings:
       'wdth' 94,
       'wght' 800;
-    font-size: 30px;
+    font-size: 1.875rem;
   }
 
   /*
@@ -2561,7 +2795,7 @@
   .gm-dash-head,
   .gm-dash-row {
     display: grid;
-    grid-template-columns: 1.4fr 1fr 0.8fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
     align-items: center;
     margin: 0;
@@ -2569,7 +2803,7 @@
 
   .gm-dash-head span {
     font-family: var(--gm-font-mono);
-    font-size: 10px;
+    font-size: 0.625rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #98a0b1;
@@ -2579,7 +2813,7 @@
    * nothing about what the data is - which is the point, because there is no data yet. */
   .gm-dash-row span {
     height: 10px;
-    border-radius: 999px;
+    border-radius: var(--gm-radius-full);
     background: rgb(255 255 255 / 0.08);
   }
 
@@ -2644,7 +2878,7 @@
 
   .gm-faq-n {
     font-family: var(--gm-font-mono);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     color: var(--gm-color-content-muted);
     width: 28px;
     flex: none;
@@ -2652,8 +2886,8 @@
 
   .gm-faq-x {
     width: 30px;
-    height: 30px;
-    border-radius: 999px;
+    min-height: 30px;
+    border-radius: var(--gm-radius-full);
     border: 1px solid var(--gm-color-border-default);
     display: grid;
     place-items: center;
@@ -2685,7 +2919,7 @@
   }
 
   .gm-close .gm-display {
-    font-size: clamp(38px, 8.4vw, 116px);
+    font-size: clamp(2.375rem, 8.4vw, 7.25rem);
   }
 
   /*
@@ -2715,7 +2949,7 @@
       'wdth' 118,
       'wght' 850;
     text-transform: uppercase;
-    font-size: clamp(48px, 13vw, 190px);
+    font-size: clamp(3rem, 13vw, 11.875rem);
     line-height: 0.8;
     letter-spacing: -0.03em;
     color: transparent;
@@ -2735,10 +2969,10 @@
     display: inline-block;
     margin-left: 8px;
     padding: 2px 8px;
-    border-radius: 999px;
+    border-radius: var(--gm-radius-full);
     border: 1px solid color-mix(in srgb, var(--gm-color-accent-solid) 45%, transparent);
     font-family: var(--gm-font-mono);
-    font-size: 10.5px;
+    font-size: 0.65625rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--gm-color-content-on-media-accent);
@@ -2788,11 +3022,11 @@
     left: 10px;
     bottom: 10px;
     padding: 3px 8px;
-    border-radius: 999px;
+    border-radius: var(--gm-radius-full);
     background: color-mix(in srgb, var(--gm-color-surface-media) 82%, transparent);
     backdrop-filter: blur(4px);
     font-family: var(--gm-font-mono);
-    font-size: 9.5px;
+    font-size: 0.59375rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--gm-color-content-on-media);
@@ -2810,7 +3044,7 @@
     font-variation-settings:
       'wdth' 100,
       'wght' 800;
-    font-size: 20px;
+    font-size: 1.25rem;
     font-variant-numeric: tabular-nums;
     color: var(--gm-color-content-primary);
     margin: 0;
@@ -2818,7 +3052,7 @@
 
   .gm-card-per {
     font-family: var(--gm-font-mono);
-    font-size: 10.5px;
+    font-size: 0.65625rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--gm-color-content-muted);
@@ -2859,7 +3093,7 @@
     gap: 6px;
     flex-wrap: wrap;
     font-family: var(--gm-font-mono);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     letter-spacing: 0.04em;
     color: var(--gm-color-content-muted);
   }
@@ -2912,6 +3146,8 @@
    * constellation keeps its shape as the panel narrows instead of drifting off its own arcs.
    */
   .gm-orbit {
+    /* Hidden by default; the enhancement is declared at `min-width: 1280px` further down. */
+    display: none;
     position: absolute;
     /*
      * Inset, not flush. A node is centred on its coordinate with `translate(-50%, -50%)`, so the
@@ -2997,7 +3233,7 @@
     align-items: center;
     gap: 9px;
     transform: translate(-50%, -50%);
-    font-size: 13px;
+    font-size: 0.8125rem;
     font-weight: 600;
     color: var(--gm-color-content-primary);
     text-align: center;
@@ -3181,15 +3417,23 @@
     color: var(--gm-color-content-on-media-accent);
   }
 
-  @media (max-width: 1180px) {
-    /*
-     * Below this the headline and the constellation want the same pixels, and the headline wins.
-     * Hidden with `display: none` rather than opacity so the five links leave the tab order too -
-     * a control nobody can see and Tab can still reach is worse than one that is simply not there.
-     * The category row under the console carries the same destinations at every width.
-     */
+  /*
+   * The constellation is an enhancement, so it is declared as one.
+   *
+   * Below its threshold the headline and the constellation want the same pixels and the headline
+   * wins, and the category row under the console carries the same five destinations at every
+   * width. `display: none` rather than opacity, so the links leave the TAB ORDER too - a control
+   * nobody can see and Tab can still reach is worse than one that is simply not there.
+   *
+   * The threshold was `max-width: 1180px`, which is not a breakpoint (`BP4`) and was also written
+   * the wrong way round (`BP1`). 1280 rather than 1024: the orbit is a 500px box measured against
+   * a 1240px wrapper, so 1024 would put it back into the headline. Moving 1180 to 1280 shows it
+   * on strictly fewer screens than before, which is the safe direction for a mechanical
+   * re-pointing to be wrong in.
+   */
+  @media (min-width: 1280px) {
     .gm-orbit {
-      display: none;
+      display: block;
     }
   }
 
@@ -3226,7 +3470,7 @@
     font-variation-settings:
       'wdth' 104,
       'wght' 800;
-    font-size: 19px;
+    font-size: 1.1875rem;
     letter-spacing: -0.01em;
     color: var(--gm-color-content-primary);
   }
@@ -3236,12 +3480,12 @@
     align-items: center;
     justify-content: center;
     width: 26px;
-    height: 26px;
-    border-radius: 999px;
+    min-height: 26px;
+    border-radius: var(--gm-radius-full);
     background: var(--gm-color-brand-solid);
     color: var(--gm-color-content-on-brand);
     font-family: var(--gm-font-sans);
-    font-size: 13px;
+    font-size: 0.8125rem;
     font-weight: 700;
     flex: none;
   }
@@ -3250,7 +3494,7 @@
    * a section head and would read as five accents fighting each other down here. */
   .gm-foot-h {
     font-family: var(--gm-font-mono);
-    font-size: 11px;
+    font-size: 0.6875rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--gm-color-content-primary);
@@ -3267,7 +3511,7 @@
     padding-top: 22px;
     border-top: 1px solid var(--gm-color-border-subtle);
     font-family: var(--gm-font-mono);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     letter-spacing: 0.06em;
     color: var(--gm-color-content-muted);
   }
@@ -3289,21 +3533,68 @@
    * Where `:has()` is unsupported the rail simply overlaps the last few pixels of the footer,
    * which is a cosmetic cost on a browser two major versions behind - not a broken page.
    */
+  /*
+   * ┌─ 96px WAS A GUESS, AND THE RAIL IS 158 ────────────────────────────────────────────────────┐
+   * │ Measured at 320x568 the rail is 158px tall - it wraps to three rows there - and 115px from  │
+   * │ 360 to 640. Against a reserved 96px that leaves the reader at maximum scroll, with nothing  │
+   * │ left to scroll, looking at two footer lines sitting 36px INSIDE the rail: the copyright and │
+   * │ "India, English, INR" spanned y 429-446 while the rail's top edge was at 410. Shortfall 62px │
+   * │ at 320, 19px at 360-640.                                                                    │
+   * │                                                                                             │
+   * │ One number now, declared once and consumed three times, so the document's padding, the      │
+   * │ scroll's padding and the rail itself cannot drift apart - which is exactly how 96 and 112   │
+   * │ came to be two unrelated guesses at one measurement.                                         │
+   * │                                                                                             │
+   * │ `safe-area-inset-bottom` on top of it, because a fixed bar at the foot of an iPhone sits    │
+   * │ under the home indicator otherwise.                                                          │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   body:has(.gm-rail) {
-    padding-bottom: 96px;
+    padding-bottom: calc(var(--gm-rail-height) + env(safe-area-inset-bottom, 0px));
   }
 
   html:has(.gm-rail) {
-    scroll-padding-bottom: 112px;
+    scroll-padding-bottom: calc(
+      var(--gm-rail-height) + env(safe-area-inset-bottom, 0px) + var(--gm-space-inset-md)
+    );
   }
 
   /* `position: fixed` at the foot, over everything except a dialog. */
+  /*
+   * The rail's height, stated once.
+   *
+   * A `position: fixed` bar is out of flow, so nothing downstream can measure it - the document
+   * has to be TOLD how much room to leave, and every consumer has to be told the same number.
+   * Declared here beside the component it describes, and read by `body:has(.gm-rail)`,
+   * `html:has(.gm-rail)` and the rail's own `min-height` below.
+   *
+   * Two values, at the one breakpoint where the layout changes: below `md` the chip scroller takes
+   * a line of its own under the count and the actions, above it the whole rail is a single row.
+   * The `min-height` is what makes the number TRUE rather than aspirational - without it the rail
+   * is content-sized and the reservation is a guess again, which is the defect this replaces.
+   */
+  :root {
+    /* 7.5rem, not 7.25: measured at max scroll at 320 the footer's last line sat 1px inside. */
+    --gm-rail-height: 7.5rem;
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      --gm-rail-height: 4.75rem;
+    }
+  }
+
   .gm-rail {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 60;
+    /*
+     * `z-app-chrome`, not an invented 60. A bare 60 named a layer nothing else in the system
+     * knows about, and sat below the header's 200 while being the same kind of object.
+     */
+    z-index: var(--gm-z-app-chrome);
+    min-height: var(--gm-rail-height);
     padding: 12px clamp(14px, 4vw, 40px) calc(12px + env(safe-area-inset-bottom));
     background-color: color-mix(in srgb, var(--gm-color-surface-default) 82%, transparent);
     backdrop-filter: blur(16px) saturate(160%);
@@ -3316,7 +3607,8 @@
     margin: 0 auto;
     display: flex;
     align-items: center;
-    gap: 18px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .gm-rail-count {
@@ -3326,7 +3618,7 @@
     margin: 0;
     flex-shrink: 0;
     font-family: var(--gm-font-mono);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--gm-color-content-muted);
@@ -3337,13 +3629,16 @@
     font-variation-settings:
       'wdth' 100,
       'wght' 800;
-    font-size: 22px;
+    font-size: 1.375rem;
     color: var(--gm-color-content-on-media-accent);
   }
 
   .gm-rail-set {
     display: flex;
     align-items: center;
+    /* Below `md` the chips take a line of their own under the count and the actions. */
+    order: 3;
+    flex-basis: 100%;
     gap: 8px;
     margin: 0;
     padding: 0;
@@ -3375,10 +3670,10 @@
     min-width: 0;
     max-width: 190px;
     padding: 7px 7px 7px 13px;
-    border-radius: 999px;
+    border-radius: var(--gm-radius-full);
     border: 1px solid var(--gm-color-border-subtle);
     background: var(--gm-color-surface-raised);
-    font-size: 13px;
+    font-size: 0.8125rem;
     font-weight: 600;
   }
 
@@ -3406,13 +3701,13 @@
      * clip - which is the entire point.
      */
     width: 44px;
-    height: 44px;
+    min-height: 44px;
     padding: 12px;
     background-clip: content-box;
     /* The chip stays 36px tall; only the target reaches past it, into the row's own padding. */
     margin-block: -12px;
     flex-shrink: 0;
-    border-radius: 999px;
+    border-radius: var(--gm-radius-full);
     color: var(--gm-color-content-muted);
     background: color-mix(in srgb, var(--gm-color-content-primary) 8%, transparent);
     transition: color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard);
@@ -3426,7 +3721,7 @@
   .gm-rail-slot {
     flex: 0 0 46px;
     height: 34px;
-    border-radius: 999px;
+    border-radius: var(--gm-radius-full);
     border: 1px dashed var(--gm-color-border-subtle);
     opacity: 0.55;
   }
@@ -3434,13 +3729,14 @@
   .gm-rail-act {
     display: flex;
     align-items: center;
+    margin-left: auto;
     gap: 14px;
     margin: 0;
     flex-shrink: 0;
   }
 
   .gm-rail-clear {
-    font-size: 13px;
+    font-size: 0.8125rem;
     font-weight: 600;
     color: var(--gm-color-content-muted);
     transition: color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard);
@@ -3454,7 +3750,7 @@
     max-width: 1150px;
     margin: 8px auto 0;
     font-family: var(--gm-font-mono);
-    font-size: 11px;
+    font-size: 0.6875rem;
     letter-spacing: 0.06em;
     color: var(--gm-color-content-muted);
   }
@@ -3490,7 +3786,7 @@
     min-height: 44px;
     padding: 0 18px;
     border: 1px solid var(--gm-color-border-subtle);
-    border-radius: 999px;
+    border-radius: var(--gm-radius-full);
     color: var(--gm-color-content-secondary);
     transition:
       border-color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard),
@@ -3555,7 +3851,7 @@
         left: 0;
         right: 0;
         height: 3px;
-        z-index: 70;
+        z-index: var(--gm-z-app-chrome);
         transform-origin: 0 50%;
         transform: scaleX(0);
         background: linear-gradient(
@@ -3569,31 +3865,70 @@
     }
   }
 
-  /* ── responsive, at the design's own breakpoints ───────────────────────── */
+  /*
+   * ═══════════════════════════════════════════════════════════════════════════════════════════
+   * RESPONSIVE, AT THE PROJECT'S BREAKPOINTS RATHER THAN AT THE DESIGN'S PRIVATE ONES
+   *
+   * The heading above this block used to read "responsive, at the design's own breakpoints", and
+   * that sentence was the violation stated in prose. Every grid on this surface stepped down at
+   * 1180, 1080 and 760 - three widths that appear nowhere in the token set. `BP4`: "Breakpoints
+   * are the only permitted media-query widths in `apps/**`", and the set is 320 / 640 / 768 /
+   * 1024 / 1280 / 1536 / 1920.
+   *
+   * What that cost, measured rather than argued:
+   *   - `.gm-cards` went `319.5px x 3` at 1081 to `487.8px x 2` at 1080; `.gm-plans` `238.1 x 4`
+   *     to `489.8 x 2`. Nothing on the home page changed at 768 or at 1024 - the entire identity
+   *     ran a private ladder while the rest of the app ran the real one.
+   *   - The home console's four-field pill first appeared at 761px, SEVEN pixels below `md`.
+   *   - The compare rail's chip labels truncated NON-MONOTONICALLY: 21px at 320, 42 at 360, 57 at
+   *     390, 69 at 414, 102 at 480, and then back DOWN to 52 at 768 and 85 at 834 before settling
+   *     at 118 from 1024. A label that gets shorter as the screen gets wider is what a
+   *     760-vs-768 gap looks like from the reader's side.
+   *
+   * Inverted as well as re-pointed. `BP1` is mobile-first: the base rule states the 320px case and
+   * breakpoints widen it. These grids declared their WIDEST form in the base rule and stepped
+   * down, which is why `.gm-checks` - the one grid the `max-width` blocks simply forgot - was
+   * still two columns at 320 with 131px cells, rendering "Sell memberships online" as three lines
+   * of one word each. Under a mobile-first ladder a forgotten grid degrades to one column, which
+   * is the safe direction to be wrong in.
+   * ═══════════════════════════════════════════════════════════════════════════════════════════
+   */
 
-  @media (max-width: 1080px) {
+  @media (min-width: 768px) {
     .gm-cards,
-    .gm-goals {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
+    .gm-goals,
     .gm-plans,
     .gm-cities,
-    .gm-promises {
+    .gm-promises,
+    .gm-steps {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     /* Two up: the third starts a new row, so it takes the first column's flush-left treatment. */
+    .gm-promise {
+      padding: 0 0 0 22px;
+      border-left: 1px solid var(--gm-color-border-subtle);
+      border-top: 0;
+    }
+
+    .gm-promise:first-child,
     .gm-promise:nth-child(3) {
       padding-left: 0;
       border-left: 0;
     }
 
-    .gm-steps {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .gm-promise::after {
+      inset: -1px 0 auto 0;
+      width: auto;
     }
 
-    .gm-step:nth-child(2) {
+    .gm-step {
+      border-right: 1px solid var(--gm-color-border-subtle);
+      border-bottom: 0;
+    }
+
+    .gm-step:nth-child(2),
+    .gm-step:last-child {
       border-right: 0;
     }
 
@@ -3601,86 +3936,173 @@
       border-bottom: 1px solid var(--gm-color-border-subtle);
     }
 
-    .gm-cmp,
-    .gm-owners-in,
-    .gm-rev {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 30px;
-    }
-  }
-
-  @media (max-width: 760px) {
-    .gm-cards,
-    .gm-goals,
-    .gm-plans,
-    .gm-cities,
-    .gm-steps,
-    .gm-promises {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    /* The rail stacks: the count and the actions on one line, the chips scrolling under them. */
+    /* The rail is one row again, so the chip scroller stops taking a line of its own. */
     .gm-rail-in {
-      flex-wrap: wrap;
-      gap: 10px;
+      flex-wrap: nowrap;
     }
 
     .gm-rail-set {
-      order: 3;
-      flex-basis: 100%;
+      order: 0;
+      flex-basis: auto;
     }
 
     .gm-rail-act {
-      margin-left: auto;
-    }
-
-    /* Stacked, the vertical rules become horizontal ones and the first keeps the band's own top. */
-    .gm-promise {
-      padding: 24px 0 0;
-      border-left: 0;
-      border-top: 1px solid var(--gm-color-border-subtle);
-    }
-
-    .gm-promise:first-child {
-      border-top: 0;
-      padding-top: 24px;
-    }
-
-    .gm-promise::after {
-      inset: -1px auto auto 0;
-      width: 46px;
-    }
-
-    .gm-step {
-      border-right: 0;
-      border-bottom: 1px solid var(--gm-color-border-subtle);
-    }
-
-    .gm-step:last-child {
-      border-bottom: 0;
+      margin-left: 0;
     }
 
     .gm-console {
-      grid-template-columns: minmax(0, 1fr);
-      border-radius: 22px;
-    }
-
-    .gm-field + .gm-field {
-      box-shadow: inset 0 1px 0 var(--gm-color-border-subtle);
+      grid-template-columns: 1.05fr 1fr 1.6fr auto;
+      border-radius: var(--gm-radius-full);
     }
 
     .gm-console .gm-btn {
-      width: 100%;
+      width: auto;
     }
 
-    .gm-table tbody th {
-      width: 88px;
+    .gm-checks {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .gm-dash-row,
+    .gm-dash-head {
+      grid-template-columns: 1.4fr 1fr 0.8fr;
     }
   }
 
+  @media (min-width: 1024px) {
+    .gm-cmp,
+    .gm-owners-in {
+      grid-template-columns: 0.9fr 1.35fr;
+      gap: 44px;
+    }
+
+    .gm-owners-in {
+      grid-template-columns: 1fr 1.05fr;
+      gap: 56px;
+    }
+
+    .gm-rev {
+      grid-template-columns: 1.25fr 0.85fr;
+      gap: 14px;
+    }
+
+    .gm-steps {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .gm-step {
+      border-bottom: 0;
+    }
+
+    .gm-step:nth-child(2) {
+      border-right: 1px solid var(--gm-color-border-subtle);
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .gm-cards,
+    .gm-goals {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .gm-plans,
+    .gm-cities,
+    .gm-promises {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .gm-promise:nth-child(3) {
+      padding-left: 22px;
+      border-left: 1px solid var(--gm-color-border-subtle);
+    }
+  }
+
+  /*
+   * ┌─ THREE SCROLLERS THAT HID A QUARTER OF THEMSELVES AND SAID NOTHING ────────────────────────┐
+   * │ Measured on the running site:                                                              │
+   * │   the gym gallery       284 visible / 517 real at 320  -> the 4th photo is 0px wide         │
+   * │   the compare table     484px hidden at 320, 61px still hidden at 768                       │
+   * │   the account sub-nav   "Reviews" sits 170px past the right edge on its OWN page            │
+   * │                                                                                            │
+   * │ And every affordance was off: `scrollbar-width: none` plus a `::-webkit-scrollbar`          │
+   * │ suppression, scrollbar-gutter 0, `::before` and `::after` content `none`, no background     │
+   * │ image, no mask. On a trackpad or a phone the scrollbar is an overlay that paints nothing at │
+   * │ rest, so there was no moment at which the page admitted there was more to the right.        │
+   * │                                                                                            │
+   * │ A mask rather than a painted gradient: it fades the CONTENT itself, so it works over any    │
+   * │ ground and cannot be a colour that goes wrong in the other theme. `#000` here is a mask     │
+   * │ alpha stencil rather than a colour, which is the same sanctioned use as the four stencils   │
+   * │ already in this file. It is applied only while there IS something hidden - a permanent fade │
+   * │ on a row that fits is a lie in the other direction.                                         │
+   * │                                                                                            │
+   * │ `scroll-timeline` would let the fade follow the scroll position, but it is not the reason   │
+   * │ this exists: the reason is that at rest, before any interaction, the reader must be able to │
+   * │ see that the row continues.                                                                 │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   .gm-scroll-row,
   .gm-compare-scroll {
     position: relative;
+  }
+
+  /*
+   * The fade has to be CONDITIONAL, and this is the mechanism that makes it so with no script.
+   *
+   * A mask declared plainly would fade every one of these containers, including the ones that are
+   * not scrollers: `.gm-scroll-row` is also the gallery, which becomes `sm:grid sm:overflow-
+   * visible` at 640 and fits, and fading the right edge of a grid that fits is inventing a defect
+   * to fix one. CSS cannot ask whether a box currently overflows.
+   *
+   * A scroll-driven timeline can. `animation-timeline: scroll(self inline)` is INACTIVE on an
+   * element with no scrollable overflow, and an animation whose timeline is inactive produces no
+   * effect - so the mask appears exactly when there is something to the right and vanishes when
+   * there is not. `steps(1, end)` holds the `from` value across the whole range and switches at
+   * the very end, which is where the fade stops being true.
+   *
+   * (This behaviour is the point of the rule, so it is asserted rather than assumed - see the
+   * scroller checks in the e2e suite.)
+   *
+   * Engines without scroll-driven animations get no fade. They also get the rest of the fix, which
+   * is the part that matters: these containers are focusable, named regions in the markup, so the
+   * row can be reached and driven by a keyboard, and the compare table states in words that it
+   * scrolls sideways.
+   */
+  @supports (animation-timeline: scroll(self inline)) {
+    .gm-scroll-row,
+    .gm-compare-scroll {
+      animation: gm-scroll-fade steps(1, end) both;
+      animation-timeline: scroll(self inline);
+    }
+  }
+
+  /*
+   * `#000` is a mask alpha stencil, not a colour - the same sanctioned use as the four stencils
+   * already in this file. Masking the CONTENT rather than painting a gradient over it means the
+   * fade works on either theme's ground and cannot be a colour that goes wrong in one of them.
+   */
+  @keyframes gm-scroll-fade {
+    from {
+      -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 34px), transparent);
+      mask-image: linear-gradient(to right, #000 calc(100% - 34px), transparent);
+    }
+
+    to {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+  }
+
+  /*
+   * These containers become focusable in TSX (`tabindex="0"` with a `role` and a name), because a
+   * scroller with no focusable descendant cannot be reached or driven by a keyboard at all - the
+   * gallery had ZERO focusable children and no tab stop of its own, so photo four was unreachable
+   * without a mouse. Once focusable, it needs to say so.
+   */
+  .gm-scroll-row:focus-visible,
+  .gm-compare-scroll:focus-visible {
+    outline: 2px solid var(--gm-color-border-focus);
+    outline-offset: 3px;
+    border-radius: var(--gm-radius-card);
   }
 
   /*
@@ -3962,7 +4384,14 @@
      * It is a `min-height`, so a script whose glyphs need more room still gets it (see below),
      * Nothing derives a pull-up from it any more: the hero sits below the chrome in normal flow.
      */
-    --gm-chrome-height: 4.125rem;
+    /*
+     * `66px`, not `4.125rem`, and the unit is the point. This is a `min-height` FLOOR - the pill
+     * grows past it whenever its content needs to. Expressed in rem the floor itself doubled at
+     * 200% browser text, so a bar whose ink needed 88px was given a 132px minimum and the header
+     * ate 51% of a 740x360 viewport with nothing wrapped. A floor is a design constant; the text
+     * inside it is what has to scale, and it still does.
+     */
+    --gm-chrome-height: 66px;
   }
 
   .gm-app-chrome {
@@ -3983,7 +4412,7 @@
   .gm-compare-label {
     position: sticky;
     left: 0;
-    z-index: 1;
+    z-index: var(--gm-z-sticky-cell);
     background-color: var(--gm-color-surface-default);
     /* The cell border does not travel with a sticky element the way a normal one does, so the
      * right edge is drawn here instead of relying on `border-collapse`. */
@@ -4000,6 +4429,7 @@
     .gm-plan-card {
       position: sticky;
       top: calc(var(--gm-chrome-height) + var(--gm-space-inset-md));
+      z-index: var(--gm-z-sticky-section);
     }
   }
 
@@ -4015,6 +4445,7 @@
     .gm-filter-rail {
       position: sticky;
       top: calc(var(--gm-chrome-height) + var(--gm-space-inset-md));
+      z-index: var(--gm-z-sticky-section);
       max-height: calc(100vh - var(--gm-chrome-height) - var(--gm-space-inset-md) * 2);
       overflow-y: auto;
       overscroll-behavior-y: contain;

@@ -53,7 +53,7 @@ export function AnnouncementBar() {
          * standing claim strip nobody has to act on. It is deliberately NOT a size a member is
          * asked to read a number from.
          */}
-        <p className="truncate text-2xs font-medium tracking-wide text-content-on-media">
+        <p className="min-w-0 text-2xs font-medium tracking-wide text-content-on-media">
           {t('web.chrome.announce.claims')}
         </p>
         {/* Hidden on the narrowest screens rather than wrapped: two lines of chrome before the
@@ -61,7 +61,7 @@ export function AnnouncementBar() {
         <Link
           href="/how-it-works"
           data-on-media="true"
-          className="hidden shrink-0 text-2xs font-semibold text-content-on-media underline underline-offset-2 sm:inline"
+          className="my-[-0.875rem] hidden min-h-[2.75rem] shrink-0 items-center text-2xs font-semibold text-content-on-media underline underline-offset-2 sm:inline-flex"
         >
           {t('web.chrome.announce.link')}
         </Link>

@@ -130,7 +130,7 @@ function MembershipCard({
           <Heading className="text-lg font-semibold text-content">
             <Link
               href={`/gyms/${membership.gymCitySlug}/${membership.gymSlug}`}
-              className="gm-h3 rounded-control"
+              className="gm-h3 inline-flex min-h-[2.75rem] items-center rounded-control"
             >
               {membership.gymName}
             </Link>

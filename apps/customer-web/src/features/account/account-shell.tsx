@@ -35,7 +35,7 @@ export function AccountShell({
 }) {
   return (
     <div className="gm-wrap gm-sec gm-sec-tight">
-      <p className="rounded-card border border-warning bg-surface-warning-subtle px-inset-md py-inset-sm text-base text-content-warning">
+      <p className="max-w-prose rounded-card border border-warning bg-surface-warning-subtle px-inset-md py-inset-sm text-base text-content-warning">
         {t('web.account.demoNotice')}
       </p>
 
@@ -51,9 +51,38 @@ export function AccountShell({
         </div>
       </header>
 
-      {/* `BP2` — five entries wrap awkwardly on a phone, so the row scrolls inside itself. */}
+      {/*
+       * ┌─ IT WRAPS NOW, AND SCROLLING IT SIDEWAYS WAS THE WRONG CALL ────────────────────────────┐
+       * │ The note here used to read "five entries wrap awkwardly on a phone, so the row scrolls   │
+       * │ inside itself". Measured, the scrolling version was worse than awkward: `scrollLeft`     │
+       * │ stayed 0 on every load, so on `/account/reviews` the tab for the page you are ON sat     │
+       * │ 170px past the right edge at 320 - 130 at 360, 100 at 390, 76 at 414 - and on            │
+       * │ `/account/orders`, 90px. With `scrollbar-width: none` and no gradient, nothing on screen │
+       * │ said the row continued. Bringing it into view needs a client component and an effect,    │
+       * │ for five links whose labels are one word each.                                           │
+       * │                                                                                          │
+       * │ Wrapping to two lines at 320 costs one line of vertical space and removes the entire     │
+       * │ class of problem: nothing is hidden, nothing needs an affordance, nothing needs JS, and  │
+       * │ the clipped-pseudo trap below stops applying because the box is no longer a scroller.    │
+       * └──────────────────────────────────────────────────────────────────────────────────────────┘
+       *
+       * ┌─ `gm-hit-target` REPORTED 44px AND DELIVERED 34 ────────────────────────────────────────┐
+       * │ `gm-hit-target` reaches 44px by growing an `::after` outward, and a pseudo-element is    │
+       * │ the last child of its own box: it cannot escape an ancestor's clip. This `<ul>` is       │
+       * │ `overflow-x: auto`, and `overflow-x` on one axis forces `overflow-y` to compute to       │
+       * │ `auto` on the other - so the row is a scroll container that clips at its PADDING box,    │
+       * │ and the ul had bottom padding only. A 0.5px binary sweep put the real reachable band at  │
+       * │ 34.0px.                                                                                  │
+       * │                                                                                          │
+       * │ This is the FOURTH time this exact trap has been found in this codebase, and the class   │
+       * │ silently reported itself satisfied every time. So the height is real here: `min-h` on    │
+       * │ the control itself, which no ancestor can clip away and no measurement can be wrong      │
+       * │ about. `gm-hit-target` is dropped rather than kept alongside it - two mechanisms for one │
+       * │ requirement is how the wrong one goes unnoticed.                                         │
+       * └──────────────────────────────────────────────────────────────────────────────────────────┘
+       */}
       <nav aria-label={t('web.account.nav.label')} className="mt-stack-lg">
-        <ul className="gm-scroll-row -mx-inset-md flex gap-inline-xs overflow-x-auto border-b border-subtle px-inset-md pb-inset-sm sm:mx-0 sm:px-0">
+        <ul className="flex flex-wrap gap-inline-xs border-b border-subtle">
           {ACCOUNT_NAV.map((item) => {
             const active = item.href === current;
             return (
@@ -63,14 +92,14 @@ export function AccountShell({
                      the page you are on is a control that does nothing. */
                   <span
                     aria-current="page"
-                    className="gm-hit-target gm-pick-on block rounded-control px-inset-sm py-inset-2xs text-base font-semibold"
+                    className="gm-pick-on flex min-h-[2.75rem] items-center rounded-control px-inset-sm text-base font-semibold"
                   >
                     {t(item.label)}
                   </span>
                 ) : (
                   <Link
                     href={item.href}
-                    className="gm-hit-target block rounded-control px-inset-sm py-inset-2xs text-base text-content-secondary transition-colors duration-fast ease-standard hover:bg-surface-sunken hover:text-content"
+                    className="flex min-h-[2.75rem] items-center rounded-control px-inset-sm text-base text-content-secondary transition-colors duration-fast ease-standard hover:bg-surface-sunken hover:text-content"
                   >
                     {t(item.label)}
                   </Link>

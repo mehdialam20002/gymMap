@@ -24,6 +24,25 @@
  * │ A sheet becomes worth building when the facet list is long enough that a chip row is a worse │
  * │ answer. With five groups it is not.                                                           │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ EVERY LINK THAT STAYS ON `/search` CARRIES `scroll={false}` ───────────────────────────────┐
+ * │ Next's `<Link>` scrolls to the top of the document on navigation, which is right when the    │
+ * │ destination is a different page and wrong when it is this page with one facet changed.       │
+ * │ Measured on a 390px viewport: scrolled to 1400, tapped the Bengaluru facet, scrollY was 86.  │
+ * │ On a phone that is a scroll back past the fixture notice, the eyebrow, the h1, the count,    │
+ * │ the search field, the chip row and up to five facet rows to see what your own tap did.       │
+ * │                                                                                              │
+ * │ The two things a scroll reset normally buys are already paid for here, and both were         │
+ * │ measured rather than assumed: focus survives the navigation - `document.activeElement` was    │
+ * │ still the tapped link afterwards and the next Tab landed on the following facet - and the     │
+ * │ result count is announced by the `aria-live` region above. Nothing is left for the jump to    │
+ * │ do except undo the reader's place in the list they were reading.                              │
+ * │                                                                                              │
+ * │ It goes on the facets, the sort, the active-filter chips, the clear-all and the empty         │
+ * │ state's relaxations - every href in this file whose pathname is still `/search`. It does NOT  │
+ * │ go on `GymCard`, which leaves for a gym's page, where the top is exactly where you want to    │
+ * │ arrive.                                                                                       │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
 import Link from 'next/link';
@@ -78,8 +97,18 @@ export function SearchResults({ query }: { readonly query: SearchQuery }) {
       {/*
        * `aria-live` on the COUNT and not on the list. A member changing a filter wants "6 gyms",
        * not six cards read out; the region is the smallest thing that answers "did that work".
+       *
+       * `aria-atomic` because the region's whole text is one sentence and only the NUMBER in it
+       * changes. Without it a screen reader is free to announce the changed node alone, so going
+       * from "8 verified gyms" to "3 verified gyms" can be spoken as a bare "3" - which is the
+       * answer to a question nobody heard. The count and its noun are one announcement or neither.
+       *
+       * This region only fires on a CLIENT navigation. A stamped marker survived a facet click
+       * while the text went 8 -> 3, and was null after the search form's GET, because that loads a
+       * fresh document and a live region present at parse time announces nothing. `generateMetadata`
+       * in `app/search/page.tsx` carries the full-load half; this carries the in-page half.
        */}
-      <p className="gm-lede" aria-live="polite">
+      <p className="gm-lede" aria-live="polite" aria-atomic="true">
         {results.length === 0
           ? t('web.search.count.none')
           : `${String(results.length)} ${
@@ -133,9 +162,28 @@ export function SearchResults({ query }: { readonly query: SearchQuery }) {
   );
 }
 
+/**
+ * ┌─ THE ONE BLOCK ON THE PAGE WITH NO MEASURE, AND IT IS 181 CHARACTERS LONG ──────────────────┐
+ * │ Computed `max-width` was `none`. At 14px the content box measured 557px / 90ch at 640,      │
+ * │ 910px / 147ch at 1024, and 1120px / 181ch from 1280 all the way to 2560 - one single line,  │
+ * │ confirmed by `Range.getClientRects()` returning exactly 1. Its own sibling `.gm-lede` caps   │
+ * │ at 56ch and measures 634px. §5.4 exists because a line a reader cannot find the start of on  │
+ * │ the return sweep is not read, it is skipped, and this is the sentence that says the gyms     │
+ * │ below are invented.                                                                          │
+ * │                                                                                              │
+ * │ `max-w-prose` is the existing measure token (68ch) and not a new one. Because preflight sets │
+ * │ `box-sizing: border-box` the 68ch caps the BORDER box - 634px at this 14px face - so after   │
+ * │ `px-inset-md` and the 1px border the content box lands at 600px, and the string breaks to    │
+ * │ two lines from 430px up (measured: 4 lines at 320, 3 at 360-390, 2 from 430 to 2560).        │
+ * │                                                                                              │
+ * │ Seven routes render this: /checkout, /compare, /search, /cities, gym detail and both landing │
+ * │ views. `app/search/loading.tsx` renders this same component rather than a grey bar, so the   │
+ * │ height it reserves cannot drift away from the height it takes.                                │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
 export function FixtureNotice() {
   return (
-    <p className="rounded-card border border-warning bg-surface-warning-subtle px-inset-md py-inset-sm text-base text-content-warning">
+    <p className="max-w-prose rounded-card border border-warning bg-surface-warning-subtle px-inset-md py-inset-sm text-base text-content-warning">
       {t('web.fixtureNotice')}
     </p>
   );
@@ -291,6 +339,8 @@ function ActiveFilters({ query }: { query: SearchQuery }) {
         <li key={chip.key}>
           <Link
             href={chip.href}
+            // Removing a filter is the same in-page move as adding one. See the header.
+            scroll={false}
             className="gm-hit-target gm-tag gm-tag-on inline-flex items-center gap-inline-2xs"
           >
             {/*
@@ -309,6 +359,7 @@ function ActiveFilters({ query }: { query: SearchQuery }) {
             would undo a choice the member did not ask to undo. */}
         <Link
           href={toSearchParams({ ...EMPTY_QUERY, sort: query.sort })}
+          scroll={false}
           className="gm-hit-target inline-block rounded-control px-inset-sm py-inset-2xs gm-card-add text-sm font-semibold"
         >
           {t('web.search.filters.clearAll')}
@@ -389,11 +440,11 @@ function FacetGroup({
        * A ROW that scrolls below `lg`, a column at `lg` and up. One list, two layouts — the
        * mobile pattern is not a second component with its own copy of the links.
        *
-       * `-mx-inset-md px-inset-md` bleeds the scroll container to the page edge so the last chip
+       * `.gm-bleed` bleeds the scroll container to the page edge so the last chip
        * does not appear clipped by an invisible boundary, which is the usual tell that a row
        * scrolls at all.
        */}
-      <ul className="gm-scroll-row mt-stack-xs -mx-inset-md flex gap-inline-xs overflow-x-auto px-inset-md pb-inset-2xs lg:mx-0 lg:flex-col lg:gap-stack-2xs lg:overflow-visible lg:px-0 lg:pb-0">
+      <ul className="gm-scroll-row gm-bleed mt-stack-xs flex gap-inline-xs overflow-x-auto pb-inset-2xs lg:mx-0 lg:flex-col lg:gap-stack-2xs lg:overflow-visible lg:px-0 lg:pb-0">
         <li className="shrink-0">
           <Facet href={anyHref} active={anyActive} label={t(anyLabel)} />
         </li>
@@ -433,8 +484,21 @@ function Facet({
    */
   const unavailable = count === 0 && !active;
 
+  /*
+   * `min-h-[2.75rem]`, and NOT `gm-hit-target`.
+   *
+   * These chips live in a `.gm-scroll-row`, which is `overflow-x: auto` below `lg` - and
+   * `overflow-x` on one axis forces `overflow-y` to compute to `auto` on the other, making the
+   * row a scroll container that clips at its padding box. `gm-hit-target` grows a control by an
+   * absolutely positioned `::after`, and a pseudo-element is the last child of its own box: it
+   * cannot escape that clip. Measured with a coarse pointer at 320, every facet chip reported 44
+   * and delivered 36.
+   *
+   * Two mechanisms for one requirement is how the wrong one goes unnoticed, so the pseudo goes
+   * and the box is simply the size `AX3` asks for.
+   */
   const shared =
-    'gm-hit-target flex items-center justify-between gap-inline-sm rounded-control px-inset-sm py-inset-xs text-base';
+    'flex min-h-[2.75rem] items-center justify-between gap-inline-sm rounded-control px-inset-sm py-inset-xs text-base';
 
   if (unavailable) {
     return (
@@ -448,6 +512,8 @@ function Facet({
   return (
     <Link
       href={href}
+      // The measured case in the header box: 1400 -> 86 on a tap that changed one word of the URL.
+      scroll={false}
       // `aria-current` and not colour alone. A filter whose only "on" signal is a background
       // tint is invisible to a screen reader and to anyone who cannot distinguish it (AX2).
       {...(active ? { 'aria-current': 'true' as const } : {})}
@@ -490,18 +556,30 @@ function FacetCount({ count }: { count: number | undefined }) {
   );
 }
 
+/*
+ * A plain string, not part of the template below.
+ *
+ * `test/shell.spec.ts` failed the build on this exact line the first time it was written, and it
+ * is right: Tailwind's extractor does not reliably see an arbitrary utility inside a template
+ * literal that carries an interpolation. A `min-h-[2.75rem]` that never reaches the stylesheet
+ * fails silently - the control returns to 36px and a source review still reads 44.
+ */
+const SORT_LINK =
+  'inline-flex min-h-[2.75rem] shrink-0 items-center rounded-control px-inset-sm text-sm transition-colors duration-fast ease-standard';
+
 function SortBar({ query }: { query: SearchQuery }) {
   return (
     /*
-     * `py-inset-2xs` on the phone layout, not `pb-inset-sm` alone.
+     * The links carry a real `min-h`, not a grown pseudo-element.
      *
      * `overflow-x-auto` makes this a scroll container below `sm`, and a scroll container clips at
-     * its PADDING box - so the `gm-hit-target` expansion on each sort link was cut at the top,
-     * where there was no padding at all, leaving about 33px of reachable height against AX3's 44.
-     * Padding on both blocks sides gives the grown target somewhere to grow into. Above `sm` the
-     * row is `overflow-visible` and nothing was ever clipped, which is why this only bit the phone.
+     * its PADDING box - so a `gm-hit-target` expansion here was cut at the top, leaving about
+     * 33px of reachable height against `AX3`'s 44. That was first patched by padding the row on
+     * both block sides to give the pseudo somewhere to grow into, which worked and left the rule
+     * one layout change away from breaking again. A box that is 44px cannot be clipped into
+     * something smaller by an ancestor, so the block padding is now spacing rather than a fix.
      */
-    <div className="gm-scroll-row -mx-inset-md flex items-center gap-inline-xs overflow-x-auto border-b border-subtle px-inset-md py-inset-sm sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pt-0">
+    <div className="gm-scroll-row gm-bleed flex items-center gap-inline-xs overflow-x-auto border-b border-subtle py-inset-sm sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pt-0">
       <span className="shrink-0 text-sm font-medium text-content-muted">
         {t('web.search.sort.label')}
       </span>
@@ -509,8 +587,11 @@ function SortBar({ query }: { query: SearchQuery }) {
         <Link
           key={sort}
           href={toSearchParams({ ...query, sort })}
+          // Re-ordering a list you are reading and then throwing you above it is the worst case
+          // of the three: the reason to re-sort is to see the same set differently. See the header.
+          scroll={false}
           {...(query.sort === sort ? { 'aria-current': 'true' as const } : {})}
-          className={`gm-hit-target shrink-0 rounded-control px-inset-sm py-inset-2xs text-sm transition-colors duration-fast ease-standard ${
+          className={`${SORT_LINK} ${
             query.sort === sort
               ? 'gm-pick-on font-semibold'
               : 'text-content-secondary hover:text-content'
@@ -583,6 +664,7 @@ function EmptyState({ query }: { query: SearchQuery }) {
             <li key={relaxation.label}>
               <Link
                 href={relaxation.href}
+                scroll={false}
                 className="gm-hit-target inline-block rounded-control border border-subtle bg-surface px-inset-sm py-inset-xs text-base text-content-secondary transition-colors duration-fast ease-standard hover:border-strong hover:text-content"
               >
                 {relaxation.label}

@@ -14,6 +14,7 @@ import { themeScript } from '../src/shared/theme/theme-script.ts';
 // `app/` is routing only (`F1`). The chrome moved to `src/shared/chrome/` when it grew past two
 // links; a root layout may RENDER components, it may not be where they live.
 import { AnnouncementBar } from '../src/shared/chrome/announcement.tsx';
+import { RoutePending } from '../src/shared/chrome/route-pending.tsx';
 import { SiteHeader } from '../src/shared/chrome/site-header.tsx';
 import { SiteFooter } from '../src/shared/chrome/site-footer.tsx';
 import { SITE_URL } from '../src/shared/seo/site.ts';
@@ -86,10 +87,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // selection. A Devanagari gym name inside an English page will need `lang="hi"` on that
     // element specifically; the page-level value is the default, not the whole answer.
     //
+    // ┌─ `en-IN`, NOT `en` — `Accessibility.md` 2.3 ASKED FOR THE REGION "FROM THE FIRST COMMIT" ─┐
+    // │ The bare subtag shipped anyway, and it is not a cosmetic difference. The language tag is  │
+    // │ what a screen reader resolves its voice and its number reading against, and this is a     │
+    // │ rupee-denominated marketplace: under `en` a price is read in a US English voice, `₹` is    │
+    // │ announced from the generic-currency fallback rather than as rupees, and the Indian digit  │
+    // │ grouping this product's prices are written in (`1,20,000`) is read against a tag whose    │
+    // │ convention is `120,000`. It is also the tag `Intl` inherits from the document, so it is    │
+    // │ the default every date and number format in the app is measured against.                   │
+    // │                                                                                          │
+    // │ The language does NOT change: `en-IN` is still English, so no string moves and `ASM-07`'s │
+    // │ one launch language is intact. `openGraph.locale` above has said `en_IN` since it was     │
+    // │ written, so until now the document and its own metadata disagreed about where it was.      │
+    // └──────────────────────────────────────────────────────────────────────────────────────────┘
+    //
     // `data-density="comfortable"` — customer-web is comfortable everywhere (§7.1). It is on the
     // element rather than assumed, so a nested region can override it the way the check-in desk
     // does on the other surface.
-    <html lang="en" data-density="comfortable" suppressHydrationWarning>
+    <html lang="en-IN" data-density="comfortable" suppressHydrationWarning>
       <head>
         {/*
          * DM2 — before first paint, and not dependent on any React bundle. A `useEffect` would
@@ -128,6 +143,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a href="#main" className="gm-skip-link">
           {t('web.chrome.skipToContent')}
         </a>
+
+        {/*
+         * ┌─ THE ONLY THING ON THIS SITE THAT SAYS A NAVIGATION IS IN FLIGHT ────────────────────┐
+         * │ Mounted HERE, once, and not as a `loading.tsx` per route. Measured at 1,500 ms        │
+         * │ latency: home -> gym detail 3,744 ms, home -> /how-it-works 1,774 ms, /search -> gym  │
+         * │ detail 1,959 ms, and across all three the maximum `[aria-busy="true"]` count on the   │
+         * │ document was 0. The dead time is the RSC round trip and hydration, so it is the same  │
+         * │ whatever the destination is - which is exactly the shape a per-route fallback cannot  │
+         * │ serve and a single root-level affordance can.                                         │
+         * │                                                                                      │
+         * │ Directly below the skip link and above everything else, because it is the one element │
+         * │ that describes the state of the document rather than its contents. It is `fixed`, so  │
+         * │ its position here costs no layout; what the position buys is the live region's place  │
+         * │ near the top of the reading order.                                                    │
+         * └──────────────────────────────────────────────────────────────────────────────────────┘
+         */}
+        <RoutePending />
 
         {/*
          * Scroll progress. `aria-hidden`, because a `progressbar` role would put a value in the

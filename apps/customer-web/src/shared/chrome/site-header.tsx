@@ -1,9 +1,24 @@
+'use client';
+
 /**
  * The site header — `SCR-WEB-*` chrome. `AX2`, `NFR-USE-08`.
  *
- * A Server Component. The only client thing in the shell is the drawer's disclosure state, which
- * lives in `mobile-nav.tsx`; everything a crawler needs — brand, every primary link, the auth
- * entry points — is server-rendered, including inside the drawer.
+ * ┌─ IT WAS A SERVER COMPONENT, AND `aria-current` IS WHAT COST IT THAT ────────────────────────┐
+ * │ This note used to open "A Server Component". The reason it no longer can be one is the taste │
+ * │ skill §7: `aria-current` belongs on active navigation, not just a background tint — and the  │
+ * │ current route is not knowable on the server in the App Router. `usePathname` is a client     │
+ * │ hook and there is deliberately no server equivalent, because a Server Component is rendered  │
+ * │ per-segment rather than per-URL.                                                              │
+ * │                                                                                              │
+ * │ The SEO argument the old note rested on survives whole: a client component is still SERVER-  │
+ * │ RENDERED to HTML, so the brand, every primary link and the auth entry points are in the      │
+ * │ first response exactly as they were. What changed is that this markup now hydrates.           │
+ * │                                                                                              │
+ * │ The bundle cost was checked rather than assumed, and it is close to nothing. `theme-toggle`  │
+ * │ and `mobile-nav` are already client islands ON this bar, and between them they already pull  │
+ * │ `t()` (the whole `en.ts` catalogue), the icon map and `PRIMARY_NAV` into the browser. The    │
+ * │ only new bytes are this file's own JSX.                                                       │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ A FLOATING PILL, AND THE GLASS IS MEASURED ────────────────────────────────────────────────┐
  * │ The pane is `.gm-chrome-glass` - a LIGHT tint carrying DARK ink, which is the opposite of    │
@@ -33,6 +48,7 @@
  */
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 import { t } from '../i18n/index.ts';
 import { icon } from '../icons/index.tsx';
@@ -40,8 +56,21 @@ import { PRIMARY_NAV } from './nav-model.ts';
 import { MobileNav } from './mobile-nav.tsx';
 import { ThemeToggle } from '../theme/theme-toggle.tsx';
 
+/**
+ * Prefix matching, not equality.
+ *
+ * `/cities/mumbai` marks `/cities`; `/for-gyms/signup` marks `/for-gyms`. Every one of the six
+ * primary items has children, and a bar that forgets where you are the moment you go one level
+ * deeper is worse than no marker at all — the reader learns not to trust it. The trailing slash is
+ * what stops `/searchers` matching `/search`.
+ */
+function isCurrentRoute(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function SiteHeader() {
   const Place = icon.place;
+  const pathname = usePathname();
 
   return (
     /*
@@ -73,8 +102,43 @@ export function SiteHeader() {
      * │ the two cannot drift apart when the theme changes.                                          │
      * └────────────────────────────────────────────────────────────────────────────────────────────┘
      */
-    <header className="sticky top-0 z-app-chrome px-inset-md pb-inset-lg pt-inset-2xs">
-      <div className="gm-chrome-pill gm-app-chrome mx-auto flex max-w-[78rem] items-center gap-inline-lg rounded-full px-inset-xl py-inset-xs gm-chrome-glass">
+    /*
+     * ┌─ THE BAR REFLOWS AT 200% TEXT INSTEAD OF PUSHING ITS ONLY CONTROL OFF THE SCREEN ──────────┐
+     * │ WCAG 1.4.4 and 1.4.10, and it was a total failure rather than a rough edge. The pill was   │
+     * │ `flex` with no wrap, BOTH children `shrink-0`, and a `rem` gap and `rem` inline padding    │
+     * │ that double with the root font. Measured on the shipped build at Chrome font size 32px:     │
+     * │                                                                                            │
+     * │   390x844   scrollWidth 470 against innerWidth 390. "Open menu" at L420 R470 - it BEGAN    │
+     * │             30px past the right edge, 80px out in total.                                    │
+     * │   320x640   150px out, and a hit test at the clamped centre returned HEADER, not BUTTON.    │
+     * │                                                                                            │
+     * │ Below `lg` that button is the ONLY navigation control on the page. `body` is                │
+     * │ `overflow-x: hidden` and `html` is not, so the overflow propagates to the viewport: no      │
+     * │ scrollbar, no pan, no reachable menu. The site simply had no navigation at 200% text.       │
+     * │                                                                                            │
+     * │ Three utilities, each doing a different job:                                                │
+     * │                                                                                            │
+     * │   `flex-wrap`         a line that cannot fit becomes two. 1.4.10 explicitly allows the      │
+     * │                       page to get TALLER; what it forbids is the page getting WIDER.        │
+     * │   `min-[20rem]:`      the inline padding is the designed token above that width and a       │
+     * │                       tighter one below it. 20rem IS 320px - `screens.base`, not a new      │
+     * │                       number - but a media query resolves `rem` against the BROWSER's       │
+     * │                       default font size and never against anything the page sets. So it is │
+     * │                       false on a 390px phone at 200% text and true on every real viewport  │
+     * │                       at 100%. It asks how many lines of the reader's own text fit across,  │
+     * │                       which is the question; `min-width: 320px` asks how many CSS pixels,   │
+     * │                       which is not. `BP5`'s capability-query reasoning, one axis over.      │
+     * │   `gap-y-inline-2xs`  a row gap only exists once something has wrapped, so it is free at    │
+     * │                       100% and saves 28px per wrapped row at 200%.                          │
+     * │                                                                                            │
+     * │ Measured after, same build, same font size: 320x640 scrollWidth 320 = innerWidth, the menu │
+     * │ button at L237 R287 with 33px to spare, and the hit test returns the button. 390x844        │
+     * │ likewise. Every 100% measurement - 390, 1024, 1280, 2560 - is unchanged to the pixel,       │
+     * │ which is the whole point of anchoring the switch at `base` rather than at `sm`.             │
+     * └────────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    <header className="sticky top-0 z-app-chrome px-inset-xs pb-inset-lg pt-inset-2xs min-[20rem]:px-inset-md">
+      <div className="gm-chrome-pill gm-app-chrome mx-auto flex max-w-[78rem] flex-wrap items-center gap-x-inline-lg gap-y-inline-2xs rounded-full px-inset-xs py-inset-xs gm-chrome-glass min-[20rem]:px-inset-xl">
         <Link
           href="/"
           className="gm-hit-target flex shrink-0 items-center gap-inline-2xs text-lg font-bold tracking-tight"
@@ -94,15 +158,61 @@ export function SiteHeader() {
         </Link>
 
         {/* Desktop. The drawer below carries the same items on small screens. */}
-        <nav aria-label={t('web.chrome.nav.primary')} className="hidden min-w-0 flex-1 lg:block">
-          <ul className="flex flex-wrap items-center justify-center gap-inline-lg">
+        {/*
+         * ┌─ `flex-auto`, NOT `flex-1`, AND THE DIFFERENCE IS 270px OF STICKY HEADER ──────────────┐
+         * │ `flex-1` is `flex: 1 1 0%`, so this nav's hypothetical size is ZERO - it can never be  │
+         * │ the item that starts a new flex line, whatever it actually contains. At 1280x800 and   │
+         * │ font 32px that produced the measured shape: the brand (211px) and the right-hand       │
+         * │ controls (557px, both `shrink-0`) took the line, the nav was handed the 254px left     │
+         * │ over, and its own `flex-wrap` broke six items across SIX rows. Header height 534px on  │
+         * │ an 800px viewport - 67% of it, permanently, because this bar is sticky. At 1024 it     │
+         * │ was 822px, taller than the viewport.                                                    │
+         * │                                                                                        │
+         * │ `flex-auto` is `flex: 1 1 auto`: same growth, same shrink, but the basis is the        │
+         * │ CONTENT. When the six items no longer fit beside the brand the nav takes a line of its │
+         * │ own, where 1086px is plenty for the 945px it wants, and it is one row again.           │
+         * │                                                                                        │
+         * │ Measured, same build: 1280x800 at font 32 goes 534px -> 264px and six rows -> one.     │
+         * │ 1024x800 goes 822px -> 344px. At 100% nothing moves at all: 1024, 1280 and 2560 all    │
+         * │ measure identically before and after, because with a single growable item on a line    │
+         * │ that already fits, `1 1 0%` and `1 1 auto` resolve to the same width.                   │
+         * │                                                                                        │
+         * │ This does NOT finish `1.4.10` at 200% - 264px is still a third of the viewport. The    │
+         * │ rest of it is the drawer hand-over, which cannot be done from this file alone; the     │
+         * │ note is in the return value of the audit rather than invented here.                     │
+         * └────────────────────────────────────────────────────────────────────────────────────────┘
+         */}
+        <nav aria-label={t('web.chrome.nav.primary')} className="hidden min-w-0 flex-auto lg:block">
+          {/*
+           * The column gap is the designed one; the ROW gap only ever applies to a wrapped line,
+           * which at 100% never happens. Splitting the axes costs nothing and stops a second row
+           * from arriving with 32px of air above it at 200%.
+           */}
+          <ul className="flex flex-wrap items-center justify-center gap-x-inline-lg gap-y-inline-2xs">
             {PRIMARY_NAV.map((item) => (
               <li key={item.href}>
                 {item.built ? (
+                  /*
+                   * ┌─ `aria-current`, AND THE UNDERLINE IT ALREADY HAD ─────────────────────────┐
+                   * │ Taste skill §7: `aria-current` on active nav, not just a tint. It is also  │
+                   * │ the reason this file gives up being a Server Component - see the header.   │
+                   * │                                                                            │
+                   * │ The sighted half costs no CSS. `.gm-nav-link::before` is the brand         │
+                   * │ underline, parked at `scaleX(0)` and grown from the left on hover and      │
+                   * │ focus; `before:scale-x-100` simply pins it open for the current route.     │
+                   * │ Tailwind emits `@tailwind utilities` BEFORE `globals.css` opens its        │
+                   * │ `@layer base`, and unlayered beats layered whatever the order, so this     │
+                   * │ wins over the `scaleX(0)` in the component rule without touching it.        │
+                   * │                                                                            │
+                   * │ Word AND shape, never one of the two - the attribute is what a screen      │
+                   * │ reader announces, the underline is what everyone else sees, and neither is │
+                   * │ carrying the state on its own.                                             │
+                   * └────────────────────────────────────────────────────────────────────────────┘
+                   */
                   <Link
                     href={item.href}
-
-                    className="gm-hit-target gm-nav-link text-sm font-semibold"
+                    aria-current={isCurrentRoute(pathname, item.href) ? 'page' : undefined}
+                    className="gm-hit-target gm-nav-link text-sm font-semibold aria-[current=page]:before:scale-x-100"
                   >
                     {t(item.label)}
                   </Link>

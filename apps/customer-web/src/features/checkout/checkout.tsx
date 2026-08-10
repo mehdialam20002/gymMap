@@ -46,7 +46,28 @@ export function Checkout({ selection }: { readonly selection: CheckoutSelection 
             {t('web.checkout.section.membership')}
           </h2>
 
-          <div className="gm-card mt-stack-md flex flex-wrap gap-inline-lg rounded-card p-inset-lg">
+          {/*
+           * ┌─ `flex-wrap` NEVER FIRED, SO THIS PANEL WAS THE SITE'S ONLY PAGE OVERFLOW ─────────┐
+           * │ It was `flex flex-wrap` with a `w-[12rem] shrink-0` cover beside a `min-w-0        │
+           * │ flex-1` column. `flex-1` is `flex: 1 1 0%`, so that column's basis is ZERO and it  │
+           * │ absorbs every deficit by shrinking. The line therefore never overflows, `wrap` has │
+           * │ nothing to wrap, and the column just disappears.                                   │
+           * │                                                                                    │
+           * │ Measured at 320: `gm-wrap`'s 18px inset leaves a 284px card, `p-inset-lg` and the  │
+           * │ hairline leave 234px of content, the cover takes 192 and the gap 16 — the text     │
+           * │ column resolved to 26.0px. `.gm-card-badge` is a 102.8px pill that cannot break,   │
+           * │ so it reached x=353.8 against a 320px viewport: +34px, and the only page-level     │
+           * │ horizontal overflow in the app. At 360 the page did not overflow but the same pill │
+           * │ still crossed the card's own rounded border by 11.8px, and the gym's name rendered │
+           * │ as four one-word lines.                                                            │
+           * │                                                                                    │
+           * │ So it stacks below `sm` and is side by side only from `sm` up, where the arithmetic│
+           * │ actually works: 330.8px of text column at 640, and 276.1px at 1024 where the       │
+           * │ summary rail takes its 24rem. Below `sm` the column is the full content width -    │
+           * │ 234px at 320, with the badge now ending at x=219.3. Page overflow at 320 is 0.     │
+           * └────────────────────────────────────────────────────────────────────────────────────┘
+           */}
+          <div className="gm-card mt-stack-md flex flex-col gap-inline-lg rounded-card p-inset-lg sm:flex-row">
             {/*
              * The cover is not a link. It pointed at the same gym page as the name three lines
              * below it, so the panel shipped two anchors to one destination and the first was
@@ -54,12 +75,33 @@ export function Checkout({ selection }: { readonly selection: CheckoutSelection 
              * sample image as the label of a link to a gym. Same defect as the one removed from
              * `gym-card.tsx`; the name below is the one anchor, and it always was the useful one.
              */}
-            <span className="relative block aspect-video w-[12rem] shrink-0 overflow-hidden rounded-card bg-surface-sunken">
+            {/*
+             * `self-start`, because `aspect-video` here was INERT. A flex item takes its cross
+             * size from the container's default `align-items: stretch`, and a definite height
+             * beats a declared ratio: the box measured 192x426.3 at 320 (0.45) and 192x207.8 from
+             * 640 up (0.92), never 1.78. `align-self: flex-start` returns the height to `auto`, so
+             * the ratio computes it. Measured after: 1.78 at every width tested, 234x131.6 at 320
+             * and 192x108 from 640 up.
+             *
+             * `max-w-[20rem]` caps the stacked cover. It is full bleed at 320, but a 639px phone
+             * would otherwise be handed a 537.9x303.4 photograph of somebody else's gym on a page
+             * whose subject is a total. From `sm` the 12rem width is under the cap anyway.
+             */}
+            <span className="relative block aspect-video w-full max-w-[20rem] shrink-0 self-start overflow-hidden rounded-card bg-surface-sunken sm:w-[12rem]">
               {/* Cover plus its own disclosure - see `gym-photo.tsx`. */}
-              <GymPhoto gym={gym} sizes="12rem" className="h-full w-full" />
+              <GymPhoto
+                gym={gym}
+                sizes="(min-width: 640px) 12rem, 20rem"
+                className="h-full w-full"
+              />
             </span>
 
-            <div className="min-w-0 flex-1">
+            {/*
+             * `sm:flex-1`, not `flex-1`. In the stacked column the item is already full width from
+             * `stretch`, and a `flex-basis: 0%` main size in an auto-height column flex container
+             * is the same zero-basis trap this panel was just dug out of.
+             */}
+            <div className="min-w-0 sm:flex-1">
               <h3 className="text-lg font-semibold text-content">
                 <Link href={`/gyms/${gym.citySlug}/${gym.slug}`} className="hover:underline">
                   {gym.name}

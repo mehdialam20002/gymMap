@@ -194,7 +194,7 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
                     <p className="text-base font-medium text-content">
                       <Link
                         href={checkoutHref(gym, plan)}
-                        className="rounded-control hover:underline"
+                        className="inline-flex min-h-[2.75rem] items-center rounded-control hover:underline"
                       >
                         {plan.name}
                       </Link>

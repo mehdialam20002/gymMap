@@ -101,80 +101,119 @@ export function ForGymsPage() {
        * The owner band's colours, on the surface that band was advertising. `surface-media` is
        * theme-invariant and opaque, so the pairing is one `contrast.proof.ts` can measure.
        */}
-      <section className="relative border-b border-subtle bg-surface-media">
-        <div className="gm-wrap gm-sec gm-sec-tight">
-          {/*
-           * `content-on-media`, not the accent.
-           *
-           * Measured two ways on the rendered page - by compositing the cascade and by reading the
-           * screenshot's pixels - the amber came to 3.94:1 and 3.98:1 on `surface-media`, against
-           * `SC 1.4.3`'s 4.5 for 12px at weight 500. Two independent methods agreeing within 0.04
-           * is what made this one worth acting on while the rest of the light-theme list stayed
-           * unsettled: the others sit on gradients and pseudo-element scrims that neither method
-           * can read honestly.
-           *
-           * The accent is for emphasis at a size that can carry it. This is an eyebrow.
-           */}
-          <p className="text-xs font-medium uppercase tracking-wide text-content-on-media">
-            {t('web.forGyms.hero.eyebrow')}
-          </p>
-          <h1 className="mt-stack-sm max-w-prose gm-h2">{t('web.forGyms.title')}</h1>
-          <p className="mt-stack-md max-w-prose text-lg text-content-on-media">
-            {t('web.forGyms.hero.body')}
-          </p>
-
-          <div className="mt-stack-xl flex flex-wrap gap-inline-md">
-            <Link
-              href="/for-gyms/signup"
-              data-on-solid="true"
-              className="gm-hit-target inline-block rounded-control bg-brand-solid px-inset-xl py-inset-sm text-base font-semibold text-content-on-brand transition-colors duration-fast ease-standard hover:bg-brand-solid-hover"
-            >
-              {t('web.forGyms.hero.cta')}
-            </Link>
+      {/*
+       * ┌─ THE SIGN-IN CARD IS A GRID COLUMN, NOT AN ABSOLUTE PANEL ─────────────────────────────┐
+       * │ It used to be `lg:absolute lg:inset-y-0 lg:right-0 lg:w-[26rem]`, and NOTHING reserved  │
+       * │ the 26rem it took. The h1 and the lede were bounded by `max-w-prose` inside a           │
+       * │ full-width `gm-wrap`, so they ran straight under an opaque `gm-card` and were painted   │
+       * │ over. Range-measured on the built page, glyph runs against the card's rect:             │
+       * │                                                                                        │
+       * │   1024 -> 130px of the h1 covered plus 215px of the lede · 1100 -> 108 + 90             │
+       * │   1180 -> 86 + 10 · 1280 -> 64 · 1366 -> 21 · clean only at 1440                        │
+       * │                                                                                        │
+       * │ `elementFromPoint` at the h1's right edge returned the CARD's body copy at 1024. The    │
+       * │ headline on screen read "LIST YOUR GYM ON GYM".                                          │
+       * │                                                                                        │
+       * │ The measure could not have saved it: `max-w-prose` is 68ch, and 68ch of the h1's 58px   │
+       * │ display face measures 2618px, so the cap never bound at any width the page is used at.  │
+       * │ A max-width that only avoids a collision at the widths where it happens to be smaller   │
+       * │ than the gap is not a layout, it is a coincidence. A grid TRACK cannot overlap its      │
+       * │ sibling at ANY width, which is the entire reason to use one here.                        │
+       * │                                                                                        │
+       * │ 22rem from `lg`, the card's intended 26rem from `xl` where there is room for it. The    │
+       * │ text column then measures 566px at 1024 and 776px at 1279; a 26rem track from `lg` up   │
+       * │ would leave 502px there for a headline set at 47px, which trades this defect for a      │
+       * │ worse one. Same idiom and same gap token as `checkout.tsx` and `gym-detail.tsx`, the    │
+       * │ other two sidebar layouts on this surface.                                              │
+       * └────────────────────────────────────────────────────────────────────────────────────────┘
+       */}
+      <section className="border-b border-subtle bg-surface-media">
+        <div className="gm-wrap gm-sec gm-sec-tight lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center lg:gap-inline-xl xl:grid-cols-[minmax(0,1fr)_26rem]">
+          <div>
             {/*
-             * `data-on-media` and not `data-on-solid`: the focus ring resolves to
-             * `content-inverse` under `on-solid`, which goes near-black in dark theme and all but
-             * vanishes on this band. See `focus.css`.
+             * `content-on-media`, not the accent.
+             *
+             * Measured two ways on the rendered page - by compositing the cascade and by reading
+             * the screenshot's pixels - the amber came to 3.94:1 and 3.98:1 on `surface-media`,
+             * against `SC 1.4.3`'s 4.5 for 12px at weight 500. Two independent methods agreeing
+             * within 0.04 is what made this one worth acting on while the rest of the light-theme
+             * list stayed unsettled: the others sit on gradients and pseudo-element scrims that
+             * neither method can read honestly.
+             *
+             * The accent is for emphasis at a size that can carry it. This is an eyebrow.
              */}
-            <a
-              href="#how"
-              data-on-media="true"
-              className="gm-hit-target inline-block rounded-control border border-strong px-inset-xl py-inset-sm text-base font-semibold text-content-on-media"
-            >
-              {t('web.forGyms.hero.secondary')}
-            </a>
-          </div>
-        </div>
+            <p className="text-xs font-medium uppercase tracking-wide text-content-on-media">
+              {t('web.forGyms.hero.eyebrow')}
+            </p>
+            {/*
+             * No `max-w-prose` on the headline. It measured 2618px against a 1152px container, so
+             * it never capped anything and only made the h1 LOOK bounded while the grid column is
+             * what actually bounds it now. The lede keeps its measure because at 18px the same
+             * 68ch resolves to 815px, which does bind below `lg` where there is no second column.
+             */}
+            <h1 className="mt-stack-sm gm-h2">{t('web.forGyms.title')}</h1>
+            <p className="mt-stack-md max-w-prose text-lg text-content-on-media">
+              {t('web.forGyms.hero.body')}
+            </p>
 
-        {/*
-         * ┌─ THE DOOR FOR AN OWNER WHO ALREADY JOINED ─────────────────────────────────────────────┐
-         * │ The reference page carries a sign-in panel in the hero, and it is the single biggest    │
-         * │ thing this page was missing: every route on it pointed at APPLYING. An owner who had    │
-         * │ already applied, or who came back a week later, had nowhere to go - the only mention    │
-         * │ of the dashboard anywhere on the site is an unlinked word in the footer.                 │
-         * │                                                                                        │
-         * │ It is not a login, because there is nothing to log into: `apps/gym-dashboard` holds     │
-         * │ one file. A form that took a password and did nothing with it would be worse than the   │
-         * │ gap it fills - and would be the first thing an owner tried. So it states where the      │
-         * │ dashboard is in the plan, and which email will open it, which is what somebody          │
-         * │ returning to this page actually needs to know.                                          │
-         * └────────────────────────────────────────────────────────────────────────────────────────┘
-         */}
-        <aside
-          aria-label={t('web.forGyms.signin.title')}
-          className="gm-wrap pb-region-sm lg:absolute lg:inset-y-0 lg:right-0 lg:flex lg:w-[26rem] lg:items-center lg:pb-0"
-        >
-          <div className="gm-card rounded-card border-strong p-inset-lg">
-            <h2 className="text-lg font-semibold text-content">{t('web.forGyms.signin.title')}</h2>
-            <p className="mt-stack-xs text-base text-content-secondary">
-              {t('web.forGyms.signin.body')}
-            </p>
-            <p className="mt-stack-md flex items-center gap-inline-xs">
-              <span className="gm-card-add opacity-60">{t('web.forGyms.signin.cta')}</span>
-              <span className="gm-tag text-xs">{t('web.chrome.nav.soon')}</span>
-            </p>
+            <div className="mt-stack-xl flex flex-wrap gap-inline-md">
+              <Link
+                href="/for-gyms/signup"
+                data-on-solid="true"
+                className="gm-hit-target inline-block rounded-control bg-brand-solid px-inset-xl py-inset-sm text-base font-semibold text-content-on-brand transition-colors duration-fast ease-standard hover:bg-brand-solid-hover"
+              >
+                {t('web.forGyms.hero.cta')}
+              </Link>
+              {/*
+               * `data-on-media` and not `data-on-solid`: the focus ring resolves to
+               * `content-inverse` under `on-solid`, which goes near-black in dark theme and all
+               * but vanishes on this band. See `focus.css`.
+               */}
+              <a
+                href="#how"
+                data-on-media="true"
+                className="gm-hit-target inline-block rounded-control border border-strong px-inset-xl py-inset-sm text-base font-semibold text-content-on-media"
+              >
+                {t('web.forGyms.hero.secondary')}
+              </a>
+            </div>
           </div>
-        </aside>
+
+          {/*
+           * ┌─ THE DOOR FOR AN OWNER WHO ALREADY JOINED ───────────────────────────────────────────┐
+           * │ The reference page carries a sign-in panel in the hero, and it is the single biggest  │
+           * │ thing this page was missing: every route on it pointed at APPLYING. An owner who had  │
+           * │ already applied, or who came back a week later, had nowhere to go - the only mention  │
+           * │ of the dashboard anywhere on the site is an unlinked word in the footer.               │
+           * │                                                                                      │
+           * │ It is not a login, because there is nothing to log into: `apps/gym-dashboard` holds   │
+           * │ one file. A form that took a password and did nothing with it would be worse than the │
+           * │ gap it fills - and would be the first thing an owner tried. So it states where the    │
+           * │ dashboard is in the plan, and which email will open it, which is what somebody        │
+           * │ returning to this page actually needs to know.                                        │
+           * └──────────────────────────────────────────────────────────────────────────────────────┘
+           *
+           * It is a grid child now, so it drops its own `gm-wrap` - it sits inside the shared one,
+           * and a second copy would apply the gutter twice - and `pb-region-sm`, because the band's
+           * `gm-sec-tight` padding now closes the section below the card. `mt-stack-xl` is the
+           * stacked-order gap the hero's bottom padding used to provide, and it goes away at `lg`
+           * where the column gap takes over.
+           */}
+          <aside aria-label={t('web.forGyms.signin.title')} className="mt-stack-xl lg:mt-0">
+            <div className="gm-card rounded-card border-strong p-inset-lg">
+              <h2 className="text-lg font-semibold text-content">
+                {t('web.forGyms.signin.title')}
+              </h2>
+              <p className="mt-stack-xs text-base text-content-secondary">
+                {t('web.forGyms.signin.body')}
+              </p>
+              <p className="mt-stack-md flex flex-wrap items-center gap-inline-xs">
+                <span className="gm-card-add opacity-60">{t('web.forGyms.signin.cta')}</span>
+                <span className="gm-tag text-xs">{t('web.chrome.nav.soon')}</span>
+              </p>
+            </div>
+          </aside>
+        </div>
       </section>
 
       {/*
@@ -336,7 +375,22 @@ export function ForGymsPage() {
       </section>
 
       <section className="gm-wrap gm-sec gm-sec-tight">
-        <div className="max-w-prose">
+        {/*
+         * ┌─ THE MEASURE HAS TO SIT ON THE ELEMENT THAT SETS THE SIZE ────────────────────────────┐
+         * │ `ch` is the advance of "0" in the font of the element CARRYING the max-width, not of   │
+         * │ the text inside it. This wrapper inherited 16px while every paragraph in it is         │
+         * │ `text-base`, which is 14px on this scale, so `max-w-prose` resolved to 724.6px -       │
+         * │ 68 characters of a font nothing here is set in. Measured on the built page at 1440,    │
+         * │ the longest line of the commission body ran 117 characters, against the 68 the token   │
+         * │ names.                                                                                 │
+         * │                                                                                       │
+         * │ `text-base` on the wrapper is the whole fix: the carrier now sets the size it is       │
+         * │ measuring, 68ch resolves at 14px (9.324px per ch, so 634.0px), and the children keep   │
+         * │ their own explicit sizes - `gm-h2` and `text-lg` are unaffected because they declare   │
+         * │ theirs. No new measure was invented; the system has three and this is still one.       │
+         * └───────────────────────────────────────────────────────────────────────────────────────┘
+         */}
+        <div className="max-w-prose text-base">
           <h2 className="gm-h2">{t('web.forGyms.commission.title')}</h2>
           <p className="mt-stack-md text-base text-content-secondary">
             {t('web.forGyms.commission.body')}
@@ -376,7 +430,12 @@ export function ForGymsPage() {
          * └─────────────────────────────────────────────────────────────────────────────────────┘
          */}
         <section className="mt-region-sm">
-          <div className="gm-card max-w-prose rounded-card border-strong p-inset-xl">
+          {/* Same `ch` correction as the block above, and the card is the tighter case: it carries
+              `p-inset-xl`, so its 724.6px cap left a 659px line that measured 102 characters. With
+              the carrier set to 14px the cap is 634px and the text inside it 568px, which is under
+              the measure rather than over it - the padding is inside the cap, and erring short is
+              the only direction that cannot hurt reading. */}
+          <div className="gm-card max-w-prose rounded-card border-strong p-inset-xl text-base">
             <h2 className="gm-h3">{t('web.forGyms.partners.title')}</h2>
             <p className="mt-stack-sm text-base text-content-secondary">
               {t('web.forGyms.partners.body')}
@@ -391,7 +450,10 @@ export function ForGymsPage() {
          * operable and announced correctly with no work, and a search engine reads the answers
          * whether or not it expands them.
          */}
-        <ul className="mt-stack-lg max-w-prose">
+        {/* `text-base` on the list for the `ch` reason above: the answers are 14px, and at the
+            inherited 16px this cap ran the longest answer line to 108 characters. It also pulls
+            the `border-b` rules in with the text, so the dividers still end where the answers do. */}
+        <ul className="mt-stack-lg max-w-prose text-base">
           {FAQ.map((item) => (
             <li key={item.q}>
               <details className="border-b border-subtle py-inset-md">
@@ -486,13 +548,28 @@ export function ForGymsSignup() {
               <label htmlFor={field.id} className="block text-sm font-medium text-content">
                 {t(field.label)}
               </label>
+              {/*
+               * ┌─ `text-md`, AND IT IS THE `TS2` FLOOR RATHER THAN A SIZE PREFERENCE ───────────┐
+               * │ `text-base` is 14px on this scale - the DASHBOARD body step - and all six      │
+               * │ controls on this form measured 14px at every width, including under            │
+               * │ `hasTouch` + `isMobile`, so the coarse-pointer promotion never reached them.   │
+               * │ `INPUT_FONT_FLOOR_PX` fixes 16px as a FLOOR on every form input on every       │
+               * │ surface: below 16px iOS Safari zooms the viewport on focus and does not zoom   │
+               * │ back, which is the horizontal scroll `NFR-USE-07` forbids.                     │
+               * │                                                                               │
+               * │ It reads as harmless today only because every control here carries `disabled`  │
+               * │ and Safari will not focus a disabled control. That is a stay of execution, not │
+               * │ a defence: the day `FR-ONB-*` has an endpoint and `disabled` comes off, the    │
+               * │ zoom lands with it. Fixed now, while the fix is one token.                     │
+               * └───────────────────────────────────────────────────────────────────────────────┘
+               */}
               <input
                 id={field.id}
                 name={field.id}
                 type={field.type}
                 autoComplete={field.autoComplete}
                 disabled
-                className="mt-stack-2xs w-full rounded-control border border-input bg-surface-disabled px-inset-md py-inset-sm text-base text-content-disabled"
+                className="mt-stack-2xs w-full rounded-control border border-input bg-surface-disabled px-inset-md py-inset-sm text-md text-content-disabled"
               />
             </div>
           ))}
@@ -501,11 +578,13 @@ export function ForGymsSignup() {
             <label htmlFor="city" className="block text-sm font-medium text-content">
               {t('web.forGyms.signup.field.city')}
             </label>
+            {/* `text-md` for the same `TS2` reason as the inputs above: a `<select>` is a form
+                control, and Safari zooms on its focus at 14px exactly as it does on a text field. */}
             <select
               id="city"
               name="city"
               disabled
-              className="mt-stack-2xs w-full rounded-control border border-input bg-surface-disabled px-inset-md py-inset-sm text-base text-content-disabled"
+              className="mt-stack-2xs w-full rounded-control border border-input bg-surface-disabled px-inset-md py-inset-sm text-md text-content-disabled"
             >
               {CITIES.map((city) => (
                 <option key={city.slug} value={city.slug}>
@@ -519,12 +598,14 @@ export function ForGymsSignup() {
             <label htmlFor="about" className="block text-sm font-medium text-content">
               {t('web.forGyms.signup.field.about')}
             </label>
+            {/* `text-md`, `TS2` again. A textarea is the one an owner types the most into, so it
+                is the one where a viewport that zoomed in and stayed there costs the most. */}
             <textarea
               id="about"
               name="about"
               rows={4}
               disabled
-              className="mt-stack-2xs w-full rounded-control border border-input bg-surface-disabled px-inset-md py-inset-sm text-base text-content-disabled"
+              className="mt-stack-2xs w-full rounded-control border border-input bg-surface-disabled px-inset-md py-inset-sm text-md text-content-disabled"
             />
           </div>
         </div>

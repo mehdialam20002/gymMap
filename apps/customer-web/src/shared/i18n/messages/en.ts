@@ -1054,6 +1054,33 @@ export const en = {
   'web.state.notFound.body':
     'The link may be old, or the gym may no longer be listed. Search for what you were looking for.',
   'web.state.notFound.action': 'Back to search',
+
+  // --- pending, and the regions that were scrolling silently ----------------
+  //
+  // `web.chrome.navPending` is the site's only progress affordance and it is NOT a skeleton.
+  // Measured: there is no async work anywhere in this app, so a route fallback has nothing to
+  // suspend on. What is genuinely slow is the client transition itself - 268-505 ms on a throttled
+  // connection, 3,744 ms at 1,500 ms latency - during which the count of `aria-busy` nodes on the
+  // whole document was zero. This is the string that closes that window.
+  'web.chrome.navPending': 'Loading the next page',
+
+  // Three horizontal scrollers that hid a quarter of their content with no scrollbar, no keyboard
+  // path and no accessible name. Naming them is half of what makes them reachable.
+  'web.gym.gallery.region': 'Gym photos, scroll sideways for more',
+  'web.compare.table.region': 'Comparison table, scroll sideways for more',
+  'web.compare.table.scrollHint': 'Scroll sideways to see every gym',
+
+  // The title is the first thing a screen reader speaks on a full page load, and every filtered
+  // search rendered the identical one.
+  'web.search.title.filtered': '{n} gyms in {city}',
+  'web.search.title.filteredOne': '1 gym in {city}',
+  'web.search.title.term': '{n} gyms matching {q}',
+  'web.search.title.termOne': '1 gym matching {q}',
+  'web.search.title.none': 'No gyms match these filters',
+  'web.search.loading.region': 'Loading search results',
+  'web.search.loading.status': 'Searching',
+
+  'web.gym.backToResults': 'Back to results',
 } as const;
 
 export type MessageKey = keyof typeof en;
