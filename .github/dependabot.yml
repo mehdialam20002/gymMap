@@ -42,44 +42,45 @@ updates:
       # TypeScript 7 removed the public compiler API, which `nest build`
       # consumes. Held until NestJS publishes a supported path.
       # See docs/setup/INSTALLATION_REPORT.md.
+      #
+      # Subsumed by the wildcard below, and kept anyway: this hold has a reason
+      # of its own that outlives the blanket rule, and deleting it would leave
+      # nothing to re-read on the day somebody lifts the wildcard.
       - dependency-name: typescript
         versions: ["7.x"]
 
-      # ── The locked stack: MAJOR bumps only. Minors and patches still flow. ──
+      # ── A MAJOR IS AN OWNER DECISION. MINORS AND PATCHES STILL FLOW. ─────────
       #
       # STACK_ADDITIONS.md Part 1: "Substitution = forbidden." A major version of
-      # a locked selection IS a substitution — Next 14 -> 16 is not the same
-      # framework, and the comment at the top of this file ("Dependabot may only
+      # an approved selection IS a substitution — Next 14 -> 16 is not the same
+      # framework — and the comment at the top of this file ("Dependabot may only
       # ever *update* an already-approved dependency") did not previously say so
       # in a way Dependabot could read.
       #
-      # It opened `chore(deps): Bump next from 14.2.35 to 16.3.0` on the day this
-      # repository went public. The build failed on
-      # `app/layout.tsx: Property 'get' does not exist on type
-      # 'Promise<ReadonlyHeaders>'` — Next 15 made `headers()` async — which is a
-      # clear signal and an expensive way to receive it.
+      # This began as an enumerated list — next, react, @nestjs/*, prisma, zod —
+      # written from memory of which selections were "locked". Within the hour
+      # Dependabot opened SIX more majors that list did not name: pino-http 10->11
+      # (A-14), react-router-dom 6->7, jest 29->30 (A-06), eslint 9->10 (A-21),
+      # and two GitHub Actions. The enumeration was the wrong SHAPE, not merely
+      # incomplete, and lengthening it would fail again the same way.
       #
-      # These are ignored for MAJORS ONLY. A security patch on 14.x still opens a
-      # PR, which is the whole point of A-25 and NFR-SEC-07. Raising any of these
-      # majors is an owner decision under STACK_ADDITIONS.md, recorded in
-      # DECISION_LOG.md, and then this row is removed in the same change.
-      - dependency-name: next
-        update-types: ["version-update:semver-major"]
-      - dependency-name: react
-        update-types: ["version-update:semver-major"]
-      - dependency-name: react-dom
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@types/react"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@types/react-dom"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@nestjs/*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: prisma
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@prisma/*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: zod
+      # The general rule was already written down. Every dependency in this
+      # repository either carries an approved `A-NN` row or is, per the
+      # STACK_ADDITIONS.md standing rule, a review blocker. There is no third
+      # kind. So there is no package here whose major belongs to Dependabot
+      # rather than to the owner, and the correct predicate is the wildcard.
+      #
+      # What this does NOT do: it does not silence the scanner. A security patch
+      # on 14.x, or any minor, still opens a PR — that is the whole point of A-25
+      # and NFR-SEC-07, and constitution DP4 leans on exactly that flow. It also
+      # does not contradict VD2 ("Dependabot raises upgrades; each is reviewed
+      # like any other PR"): a major raised deliberately still gets the full
+      # pipeline. It only stops the bot from proposing one unprompted.
+      #
+      # Raising any major is an owner decision under STACK_ADDITIONS.md, recorded
+      # in DECISION_LOG.md, and taken by adding a temporary `allow` here in the
+      # same change.
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
@@ -92,6 +93,13 @@ updates:
     labels: ["dependencies", "ci"]
     commit-message:
       prefix: "ci(deps)"
+    ignore:
+      # An action's major is a breaking change to the release gate itself —
+      # `actions/upload-artifact` v4 -> v7 changes how artifacts are named and
+      # retrieved, and NFR-SEC-08's "critical vulnerabilities block release"
+      # depends on that gate still running. Pinned majors, floating minors.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /infra/compose
@@ -103,3 +111,11 @@ updates:
     labels: ["dependencies", "infrastructure"]
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # The strongest case of the three. `postgis/postgis:16-3.4` -> `17-...` is
+      # not an upgrade of a locked selection, it IS the substitution Part 1
+      # forbids: "PostgreSQL 16 + PostGIS". Same for Redis 7. A major here also
+      # changes the on-disk format, so an accepted PR would take the dev
+      # database with it — and TD-041 already shows what that costs.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
