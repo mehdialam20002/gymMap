@@ -38,11 +38,11 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.66.0",
-    "@types/react": "^18.3.18",
-    "react": "^18.3.1"
+    "@types/react": "^19.2.18",
+    "react": "^19.2.8"
   },
   "//lint": "R1a keeps the ROOT devDependencies to seven packages, and eslint is not one of them - so each workspace that lints declares its own runner. @gymmap/config is deliberately ABSENT here: DesignSystem.md 2.4 puts the Tailwind preset re-export in packages/config, which makes config depend on ui, and turbo refuses the resulting build cycle. The shared rule set still reaches this package - eslint walks up to the root eslint.config.mjs, which resolves ./packages/config/eslint/index.mjs by relative path and needs no dependency edge.",
   "peerDependencies": {
-    "react": "^18.3.1"
+    "react": "^19.2.8"
   }
 }
