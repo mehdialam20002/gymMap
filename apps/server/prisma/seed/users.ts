@@ -220,10 +220,41 @@ export function seedUsersSql(now = 'now()'): string {
     '                   password_hash)',
     'VALUES',
     userValues,
-    'ON CONFLICT (id) DO NOTHING;',
+    /*
+     * ┌─ `DO UPDATE`, NOT `DO NOTHING`, AND THE DIFFERENCE IS WHETHER A RE-SEED CAN CORRECT ────┐
+     * │ `DO NOTHING` makes a seed idempotent by SKIPPING, which is not the same as converging.  │
+     * │ It shipped the eleven principals with `password_hash` NULL, and when that was fixed the │
+     * │ fix reached a fresh database and no existing one — the rows were already there, so the  │
+     * │ seeder ran green and changed nothing. `SEED_VERSION` flagged the divergence and could   │
+     * │ not repair it, and `MfaGuard` stayed unbindable on every machine that had ever seeded.   │
+     * │                                                                                         │
+     * │ `SEP9` is what makes `DO UPDATE` correct rather than merely convenient: the seed is     │
+     * │ *"identical in every environment"*, so for THESE eleven rows the seed IS the source of  │
+     * │ truth and a local edit to one is drift, not data. Converging on re-run is the behaviour │
+     * │ the rule already implies.                                                                │
+     * │                                                                                         │
+     * │ `id` is the conflict target and is never in the SET list. Nothing outside these eight   │
+     * │ columns is touched, and no row outside the eleven can match — every id is                │
+     * │ `uuid_v5(NS_SEED, 'user:<handle>')`, so a real account cannot collide with a fixture.    │
+     * └─────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    'ON CONFLICT (id) DO UPDATE SET',
+    '  email             = EXCLUDED.email,',
+    '  phone             = EXCLUDED.phone,',
+    '  full_name         = EXCLUDED.full_name,',
+    '  status            = EXCLUDED.status,',
+    '  email_verified_at = EXCLUDED.email_verified_at,',
+    '  phone_verified_at = EXCLUDED.phone_verified_at,',
+    '  password_hash     = EXCLUDED.password_hash;',
     '',
     '-- The tenant_id is NULL for every platform- and self-scoped role. That nullable column is',
     '-- the discriminator (ERD.md §3.1), and it is why user_roles carries no RLS policy.',
+    /*
+     * `DO NOTHING` stays here, and the asymmetry with `users` above is deliberate: every column
+     * of this table is part of the grant's identity. There is nothing to converge on — a row
+     * that exists is already right, and one that differs would be a different grant with a
+     * derived id that cannot collide.
+     */
     'INSERT INTO user_roles (id, user_id, role_id, tenant_id)',
     'VALUES',
     grantValues,
