@@ -649,6 +649,90 @@ export const en = {
   'web.forGyms.scope.body':
     'Everything above covers the members GymMap sends you: they find your listing, they pay online, they check in, and you see what settled. Running your whole gym is a separate subscription, priced on your branches, members and staff. You do not need it to be listed here, and listing costs nothing until you make a sale.',
 
+  /*
+   * ┌─ THE OWNER PAGE, REBUILT AGAINST A REFERENCE THAT HAS THINGS WE DO NOT ────────────────────┐
+   * │ The reference is MakeMyTrip's partner page, and the shape is right: a hero with a way IN    │
+   * │ for owners who already joined, proof, what you get, how it works, the money, answers.       │
+   * │                                                                                             │
+   * │ Three of its sections cannot be copied, and saying so is the point:                          │
+   * │                                                                                             │
+   * │   "48.2 Cr+ annual visitors"     we have none, and a marketplace with no listings that      │
+   * │                                  prints a traffic number is the first lie an owner catches  │
+   * │   "15,00,000+ listings"          nine fixtures                                              │
+   * │   a partner's photo and quote    no gym has partnered yet, so no owner has said anything    │
+   * │                                                                                             │
+   * │ `ai-tells.md` bans invented testimonials and fake-perfect numbers outright, and `BR-REV-01` │
+   * │ already applies the same rule to members: what was not earned is not shown. An owner        │
+   * │ testimonial is a review by another name.                                                    │
+   * │                                                                                             │
+   * │ So the slots those occupy are filled with what IS true and is worth more to a gym owner     │
+   * │ deciding today: the four rules this product enforces in code, the money broken to the       │
+   * │ paise, and a rate guarantee that survives a later price change. A new marketplace's honest  │
+   * │ pitch is its terms, not its traffic.                                                        │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  'web.forGyms.hero.lead': 'List your gym.',
+  'web.forGyms.hero.accent': 'Get paid for members, not for months.',
+
+  // The door that did not exist. An owner who has already applied had nowhere to go from this page.
+  'web.forGyms.signin.title': 'Already listed?',
+  'web.forGyms.signin.body':
+    'Your owner dashboard is where plans, photos, payouts and check-ins live. It opens when gym onboarding goes live, and the email you applied with is the one that will sign you in.',
+  'web.forGyms.signin.cta': 'Owner dashboard',
+
+  // The four rules, in an owner's terms rather than a member's. Each one is enforced in code, and
+  // each is a reason a member trusts what they find, which is what the gym is actually buying.
+  'web.forGyms.rules.title': 'Four rules that protect your listing',
+  'web.forGyms.rules.body':
+    'These are not positioning. Each one is a check in the code, and the page cannot show a member something that breaks it.',
+  'web.forGyms.rules.verified.title': 'Nobody is listed without a person checking',
+  'web.forGyms.rules.verified.body':
+    'A human reads every application before it goes live. That is the reason a member believes the listing next to yours, and the reason yours is worth being in.',
+  'web.forGyms.rules.price.title': 'The price a member sees is the price they pay',
+  'web.forGyms.rules.price.body':
+    'Your prices are yours. The site never computes a discount, never rounds, and revalidates the figure at checkout, so a member cannot be charged something you did not set.',
+  'web.forGyms.rules.reviews.title': 'A review needs a recorded check-in',
+  'web.forGyms.rules.reviews.body':
+    'Nobody can review a gym they never entered. A new listing shows as new rather than as badly rated, so you do not start at zero.',
+  'web.forGyms.rules.money.title': 'Money is a ledger, not a balance',
+  'web.forGyms.rules.money.body':
+    'Nothing that affected a payout is edited or deleted. A correction is a new entry, so a statement you already have cannot change under you.',
+
+  // The dashboard, shown rather than promised. Drawn from tokens; labelled as an illustration
+  // because it is one, and `A-08` forbids presenting a drawing as live figures.
+  'web.forGyms.preview.title': 'What you will work in',
+  'web.forGyms.preview.body':
+    'One screen for the things you do every week: what sold, who came in, and what is due to land in your account.',
+  'web.forGyms.preview.caption':
+    'An illustration of the owner dashboard. Your own figures appear here once your gym is listed.',
+  'web.forGyms.preview.kpi.sales': 'Memberships sold',
+  'web.forGyms.preview.kpi.visits': 'Check-ins this week',
+  'web.forGyms.preview.kpi.settle': 'Next settlement',
+  'web.forGyms.preview.row.plan': 'Plan',
+  'web.forGyms.preview.row.member': 'Member',
+  'web.forGyms.preview.row.status': 'Status',
+
+  // The money, in the detail an owner asks for and most marketplaces will not put in writing.
+  'web.forGyms.money.title': 'Where every rupee goes',
+  'web.forGyms.money.body':
+    'A statement is only useful if it reconciles. Every sale is broken down to the paise, and the figures are stored with the order rather than recalculated later.',
+  'web.forGyms.money.breakdown.title': 'On every sale',
+  'web.forGyms.money.breakdown.body':
+    'What the member paid, the tax, our commission, the payment gateway fee, and what settles to you. Nothing is rounded away and nothing is summarised.',
+  'web.forGyms.money.rate.title': 'The rate that applied is the rate that stays',
+  'web.forGyms.money.rate.body':
+    'Your commission rate is agreed before you list. If it changes later, the change applies to new sales only. A settlement you already have is never rewritten.',
+  'web.forGyms.money.cycle.title': 'Paid on a fixed cycle',
+  'web.forGyms.money.cycle.body':
+    'Payouts land on a schedule you know in advance, each one with a statement that reconciles to the sales behind it.',
+
+  // The slot a testimonial would occupy. It says why it is empty, which is the same answer this
+  // product gives a member looking at an unrated gym.
+  'web.forGyms.partners.title': 'No partner quotes yet',
+  'web.forGyms.partners.body':
+    'We could write one. Every marketplace does, and most of the time nobody checks. On GymMap a member cannot review a gym they never visited, and the same rule applies to us: when a gym owner has something to say about working with us, it will be their words and their name, and they will have earned the right to say it.',
+  'web.forGyms.partners.note': 'First listings are being onboarded now.',
+
   'web.forGyms.faq.title': 'Questions owners ask',
   'web.forGyms.faq.control.q': 'Do I lose control of my prices?',
   'web.forGyms.faq.control.a':
@@ -659,6 +743,24 @@ export const en = {
   'web.forGyms.faq.data.q': 'Whose members are they?',
   'web.forGyms.faq.data.a':
     'Yours. You see who holds a membership at your gym and when they came, and you can export it.',
+  /*
+   * Four more, and every answer is a rule that exists somewhere rather than a reassurance written
+   * for this page. The reference's FAQ answers the same shape of question - when do I go live, how
+   * much is the commission, how do payments work - and an owner deciding today asks these first.
+   */
+  'web.forGyms.faq.live.q': 'How long until my listing is live?',
+  'web.forGyms.faq.live.a':
+    'A person reads your application before anything appears. That is the step with a human in it, so it is the step that takes time, and it is the reason a member trusts what they find. You will know the outcome either way.',
+  'web.forGyms.faq.software.q': 'Do I have to take the software to be listed?',
+  'web.forGyms.faq.software.a':
+    'No. Listing costs a commission on what you sell and nothing else. The management software, for running your whole gym rather than the members we send you, is a separate subscription you can take or leave.',
+  'web.forGyms.faq.cancel.q': 'What if I want to leave?',
+  'web.forGyms.faq.cancel.a':
+    'Your listing comes down and no further commission is charged. Memberships a member already bought are theirs, and they run to their end date, because they paid you for them.',
+  'web.forGyms.faq.rate.q': 'Can the commission rate change after I join?',
+  'web.forGyms.faq.rate.a':
+    'The rate is agreed before you list. If it ever changes, the new rate applies to new sales only, and a settlement you already have is never recalculated. That is a rule in the ledger, not a policy in a document.',
+
   'web.forGyms.faq.exclusive.q': 'Do I have to be exclusive to GymMap?',
   'web.forGyms.faq.exclusive.a':
     'No. Listing here does not stop you selling memberships at the door, on your own site, or anywhere else.',

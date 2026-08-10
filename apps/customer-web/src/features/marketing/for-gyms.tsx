@@ -42,6 +42,25 @@ const VALUE = [
   { title: 'web.forGyms.value.money.title', body: 'web.forGyms.value.money.body', glyph: 'secure' },
 ] as const satisfies readonly { title: MessageKey; body: MessageKey; glyph: keyof typeof icon }[];
 
+const RULES = [
+  {
+    title: 'web.forGyms.rules.verified.title',
+    body: 'web.forGyms.rules.verified.body',
+    glyph: 'verified',
+  },
+  {
+    title: 'web.forGyms.rules.price.title',
+    body: 'web.forGyms.rules.price.body',
+    glyph: 'pricing',
+  },
+  {
+    title: 'web.forGyms.rules.reviews.title',
+    body: 'web.forGyms.rules.reviews.body',
+    glyph: 'reviews',
+  },
+  { title: 'web.forGyms.rules.money.title', body: 'web.forGyms.rules.money.body', glyph: 'secure' },
+] as const satisfies readonly { title: MessageKey; body: MessageKey; glyph: keyof typeof icon }[];
+
 const STEPS = [
   { title: 'web.forGyms.steps.apply.title', body: 'web.forGyms.steps.apply.body' },
   { title: 'web.forGyms.steps.verify.title', body: 'web.forGyms.steps.verify.body' },
@@ -49,11 +68,30 @@ const STEPS = [
   { title: 'web.forGyms.steps.paid.title', body: 'web.forGyms.steps.paid.body' },
 ] as const satisfies readonly { title: MessageKey; body: MessageKey }[];
 
+const DASH_KPIS = [
+  'web.forGyms.preview.kpi.sales',
+  'web.forGyms.preview.kpi.visits',
+  'web.forGyms.preview.kpi.settle',
+] as const satisfies readonly MessageKey[];
+
+const MONEY = [
+  {
+    title: 'web.forGyms.money.breakdown.title',
+    body: 'web.forGyms.money.breakdown.body',
+  },
+  { title: 'web.forGyms.money.rate.title', body: 'web.forGyms.money.rate.body' },
+  { title: 'web.forGyms.money.cycle.title', body: 'web.forGyms.money.cycle.body' },
+] as const satisfies readonly { title: MessageKey; body: MessageKey }[];
+
 const FAQ = [
   { q: 'web.forGyms.faq.control.q', a: 'web.forGyms.faq.control.a' },
   { q: 'web.forGyms.faq.reviews.q', a: 'web.forGyms.faq.reviews.a' },
   { q: 'web.forGyms.faq.data.q', a: 'web.forGyms.faq.data.a' },
   { q: 'web.forGyms.faq.exclusive.q', a: 'web.forGyms.faq.exclusive.a' },
+  { q: 'web.forGyms.faq.live.q', a: 'web.forGyms.faq.live.a' },
+  { q: 'web.forGyms.faq.software.q', a: 'web.forGyms.faq.software.a' },
+  { q: 'web.forGyms.faq.rate.q', a: 'web.forGyms.faq.rate.a' },
+  { q: 'web.forGyms.faq.cancel.q', a: 'web.forGyms.faq.cancel.a' },
 ] as const satisfies readonly { q: MessageKey; a: MessageKey }[];
 
 export function ForGymsPage() {
@@ -63,7 +101,7 @@ export function ForGymsPage() {
        * The owner band's colours, on the surface that band was advertising. `surface-media` is
        * theme-invariant and opaque, so the pairing is one `contrast.proof.ts` can measure.
        */}
-      <section className="border-b border-subtle bg-surface-media">
+      <section className="relative border-b border-subtle bg-surface-media">
         <div className="gm-wrap gm-sec gm-sec-tight">
           {/*
            * `content-on-media`, not the accent.
@@ -106,6 +144,69 @@ export function ForGymsPage() {
               {t('web.forGyms.hero.secondary')}
             </a>
           </div>
+        </div>
+
+        {/*
+         * ┌─ THE DOOR FOR AN OWNER WHO ALREADY JOINED ─────────────────────────────────────────────┐
+         * │ The reference page carries a sign-in panel in the hero, and it is the single biggest    │
+         * │ thing this page was missing: every route on it pointed at APPLYING. An owner who had    │
+         * │ already applied, or who came back a week later, had nowhere to go - the only mention    │
+         * │ of the dashboard anywhere on the site is an unlinked word in the footer.                 │
+         * │                                                                                        │
+         * │ It is not a login, because there is nothing to log into: `apps/gym-dashboard` holds     │
+         * │ one file. A form that took a password and did nothing with it would be worse than the   │
+         * │ gap it fills - and would be the first thing an owner tried. So it states where the      │
+         * │ dashboard is in the plan, and which email will open it, which is what somebody          │
+         * │ returning to this page actually needs to know.                                          │
+         * └────────────────────────────────────────────────────────────────────────────────────────┘
+         */}
+        <aside
+          aria-label={t('web.forGyms.signin.title')}
+          className="gm-wrap pb-region-sm lg:absolute lg:inset-y-0 lg:right-0 lg:flex lg:w-[26rem] lg:items-center lg:pb-0"
+        >
+          <div className="gm-card rounded-card border-strong p-inset-lg">
+            <h2 className="text-lg font-semibold text-content">{t('web.forGyms.signin.title')}</h2>
+            <p className="mt-stack-xs text-base text-content-secondary">
+              {t('web.forGyms.signin.body')}
+            </p>
+            <p className="mt-stack-md flex items-center gap-inline-xs">
+              <span className="gm-card-add opacity-60">{t('web.forGyms.signin.cta')}</span>
+              <span className="gm-tag text-xs">{t('web.chrome.nav.soon')}</span>
+            </p>
+          </div>
+        </aside>
+      </section>
+
+      {/*
+       * Where the reference prints its traffic, because a marketplace with no listings that
+       * prints a traffic number is the first lie an owner catches. These are the four rules the
+       * product enforces in code, which is the thing a gym is actually buying: a page that cannot
+       * show a member something untrue about it.
+       */}
+      <section className="gm-sec gm-sec-paper">
+        <div className="gm-wrap">
+          <h2 className="gm-h2">{t('web.forGyms.rules.title')}</h2>
+          <p className="gm-lede">{t('web.forGyms.rules.body')}</p>
+
+          <ul className="mt-stack-xl grid gap-stack-md sm:grid-cols-2">
+            {RULES.map((rule) => {
+              const Glyph = icon[rule.glyph];
+              return (
+                <li key={rule.title} className="gm-card gm-lift rounded-card p-inset-lg">
+                  <span className="flex h-[2.75rem] w-[2.75rem] items-center justify-center rounded-full gm-glyph-ring">
+                    <Glyph
+                      aria-hidden="true"
+                      className="h-[1.375rem] w-[1.375rem] text-content-on-media-accent"
+                    />
+                  </span>
+                  <h3 className="mt-stack-md text-base font-semibold text-content">
+                    {t(rule.title)}
+                  </h3>
+                  <p className="mt-stack-2xs text-base text-content-secondary">{t(rule.body)}</p>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </section>
 
@@ -150,6 +251,90 @@ export function ForGymsPage() {
         </div>
       </section>
 
+      {/*
+       * ┌─ THE DASHBOARD, DRAWN, AND SAID TO BE DRAWN ───────────────────────────────────────────┐
+       * │ The reference shows a phone with its real product on it. Ours does not exist yet -      │
+       * │ `apps/gym-dashboard` holds a single file - so this is an illustration and the caption   │
+       * │ says so, in the same words the home page's preview uses.                                 │
+       * │                                                                                        │
+       * │ `A-08` is the rule that matters here: a figure presented as current must be current.    │
+       * │ Every number below is a shape rather than a claim - no counts, no currency, no dates -  │
+       * │ because a drawn "₹48,200 this week" would be exactly the fake-perfect number this whole │
+       * │ page is built to avoid, and the one an owner would remember.                             │
+       * └────────────────────────────────────────────────────────────────────────────────────────┘
+       */}
+      <section className="gm-sec gm-sec-tight">
+        <div className="gm-wrap grid items-center gap-inline-xl lg:grid-cols-2">
+          <div>
+            <h2 className="gm-h2">{t('web.forGyms.preview.title')}</h2>
+            <p className="gm-lede">{t('web.forGyms.preview.body')}</p>
+          </div>
+
+          <figure className="m-0">
+            <div aria-hidden="true" className="gm-dash">
+              <div className="gm-dash-bar">
+                <span className="gm-dash-dot" />
+                <span className="gm-dash-dot" />
+                <span className="gm-dash-dot" />
+              </div>
+              <div className="gm-dash-body">
+                <div className="gm-dash-kpi">
+                  {DASH_KPIS.map((kpi) => (
+                    <p key={kpi} className="m-0">
+                      <span>{t(kpi)}</span>
+                      {/* `gm-dash-slot`, which already exists for the home page's preview and is
+                          documented there as "the figure's SLOT, never a figure". A drawn number
+                          on a marketing page is the fake-perfect number `ai-tells.md` bans, and
+                          `A-08` forbids presenting one as current. */}
+                      <span className="gm-dash-slot" />
+                    </p>
+                  ))}
+                </div>
+                <div className="gm-dash-table">
+                  <p className="gm-dash-head">
+                    <span>{t('web.forGyms.preview.row.plan')}</span>
+                    <span>{t('web.forGyms.preview.row.member')}</span>
+                    <span>{t('web.forGyms.preview.row.status')}</span>
+                  </p>
+                  {[0, 1, 2, 3].map((row) => (
+                    <p key={row} className="gm-dash-row">
+                      <span />
+                      <span />
+                      <span />
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <figcaption className="mt-stack-sm text-sm text-content-muted">
+              {t('web.forGyms.preview.caption')}
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      {/*
+       * The money, in the detail an owner asks for. Every line here is enforced somewhere: the
+       * breakdown by `MASTER_PRD.md` §A6.3, the rate guarantee by `BR-FIN-05`, and the ledger by
+       * invariant 2. No settlement cycle LENGTH is printed - `OQ-04` is open, and a number stated
+       * here would become the number an owner holds us to.
+       */}
+      <section className="gm-sec gm-sec-paper">
+        <div className="gm-wrap">
+          <h2 className="gm-h2">{t('web.forGyms.money.title')}</h2>
+          <p className="gm-lede">{t('web.forGyms.money.body')}</p>
+
+          <ul className="mt-stack-xl grid gap-stack-md md:grid-cols-3">
+            {MONEY.map((item) => (
+              <li key={item.title} className="gm-card gm-lift rounded-card p-inset-lg">
+                <h3 className="text-base font-semibold text-content">{t(item.title)}</h3>
+                <p className="mt-stack-2xs text-base text-content-secondary">{t(item.body)}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       <section className="gm-wrap gm-sec gm-sec-tight">
         <div className="max-w-prose">
           <h2 className="gm-h2">{t('web.forGyms.commission.title')}</h2>
@@ -172,6 +357,33 @@ export function ForGymsPage() {
             {t('web.forGyms.scope.body')}
           </p>
         </div>
+
+        {/*
+         * ┌─ WHERE THE TESTIMONIAL GOES, AND WHY IT IS NOT ONE ─────────────────────────────────┐
+         * │ The reference has a partner's photograph, name, hotel and a quote about growth. It   │
+         * │ is the most persuasive block on that page and it is the one thing here that would    │
+         * │ have to be invented: no gym has partnered yet, so no owner has said anything.        │
+         * │                                                                                     │
+         * │ `ai-tells.md` bans invented testimonials and generic names outright. More to the     │
+         * │ point, `BR-REV-01` already applies exactly this rule to members - a review needs a   │
+         * │ recorded check-in - and an owner testimonial is a review by another name. A product  │
+         * │ that refuses to fake a member's five stars and then fakes an owner's quote has not   │
+         * │ got a rule, it has got a marketing exception.                                       │
+         * │                                                                                     │
+         * │ So the slot says why it is empty, in the same voice the site uses for an unrated     │
+         * │ gym. It is a weaker sell than a quote and a stronger argument than one, and it is    │
+         * │ the only version that is still true tomorrow.                                       │
+         * └─────────────────────────────────────────────────────────────────────────────────────┘
+         */}
+        <section className="mt-region-sm">
+          <div className="gm-card max-w-prose rounded-card border-strong p-inset-xl">
+            <h2 className="gm-h3">{t('web.forGyms.partners.title')}</h2>
+            <p className="mt-stack-sm text-base text-content-secondary">
+              {t('web.forGyms.partners.body')}
+            </p>
+            <p className="gm-eyebrow-k mt-stack-lg">{t('web.forGyms.partners.note')}</p>
+          </div>
+        </section>
 
         <h2 className="mt-region-sm gm-h2">{t('web.forGyms.faq.title')}</h2>
         {/*

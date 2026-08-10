@@ -2335,6 +2335,72 @@
     background: rgb(255 255 255 / 0.1);
   }
 
+  /*
+   * ┌─ THE OWNER DASHBOARD, AS A DRAWING ────────────────────────────────────────────────────────┐
+   * │ The reference page shows a photograph of its real product on a phone. `apps/gym-dashboard`  │
+   * │ holds one file, so there is nothing to photograph, and a screenshot of something unbuilt is │
+   * │ the `ai-tells.md` "div-based fake product UI" in its purest form.                            │
+   * │                                                                                            │
+   * │ What is drawn instead is the SHAPE of the screen and nothing else: a window bar, three      │
+   * │ figures that are slots rather than numbers, and a table whose rows carry no text. It reads  │
+   * │ as "this is what you will work in" without asserting a single fact, which is the whole      │
+   * │ difference between an illustration and a claim. The caption says it is an illustration.     │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  .gm-dash-bar {
+    display: flex;
+    gap: 7px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgb(255 255 255 / 0.1);
+  }
+
+  .gm-dash-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.16);
+  }
+
+  .gm-dash-body {
+    padding-top: 18px;
+  }
+
+  .gm-dash-table {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .gm-dash-head,
+  .gm-dash-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 0.8fr;
+    gap: 12px;
+    align-items: center;
+    margin: 0;
+  }
+
+  .gm-dash-head span {
+    font-family: var(--gm-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #98a0b1;
+  }
+
+  /* A row with no words in it. Three bars of different lengths read as "rows of data" and say
+   * nothing about what the data is - which is the point, because there is no data yet. */
+  .gm-dash-row span {
+    height: 10px;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.08);
+  }
+
+  .gm-dash-row span:first-child {
+    background: rgb(255 255 255 / 0.13);
+  }
+
   .gm-bars {
     display: flex;
     align-items: flex-end;
