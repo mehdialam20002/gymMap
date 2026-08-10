@@ -1,11 +1,12 @@
 /**
- * M-008 · CI job 8 `api-gates` — ONE reflection pass, four assertions.
+ * M-008 · CI job 8 `api-gates` — ONE reflection pass, six assertions.
  *
  *   PG-1  Every route declares a permission, or is `@Public()` AND on the reviewed allowlist.
  *   PG-2  Idempotency is declared wherever §14.2.1 says REQ.
  *   PG-3  Permission strings are `<module>.<resource>.<action>`, first segment a real module.
- *   PG-6  Every §14.2.1 money-affecting route carries `@FinancialMutation()`, and only those do.
  *   PG-5  Every route carries a rate-limit class, and every emitted error code is registered.
+ *   PG-6  Every §14.2.1 money-affecting route carries `@FinancialMutation()`, and only those do.
+ *   PG-7  The permission string is IN the registry, not merely well-formed (Security.md RB3).
  *
  * Plus AC-5: the five closed audience prefixes, and the two unversioned probes.
  *
@@ -51,6 +52,20 @@ export const MODULES = [
   'staff',
   'support',
   'tenancy',
+];
+
+/**
+ * Where `RB3`'s permission registry lives — every module that declares permission strings.
+ *
+ * Listed rather than globbed, so ADDING a module's `permissions.ts` is a visible edit to this
+ * file. A glob would silently widen the registry the moment somebody created a new one, which is
+ * the opposite of what a registry check is for.
+ */
+export const PERMISSION_REGISTRY_FILES = [
+  'apps/server/src/iam/permissions.ts',
+  'apps/server/src/admin/permissions.ts',
+  'apps/server/src/onboarding/permissions.ts',
+  'apps/server/src/tenancy/permissions.ts',
 ];
 
 /** API_Catalog.md §1.2 R7 — the five closed audience prefixes. */
@@ -104,7 +119,13 @@ export const MONEY_AFFECTING_PATTERNS = [
 
 const PERMISSION = /^([a-z]+)\.([a-z0-9_]+)\.([a-z0-9_]+)$/;
 
-export function runApiGates({ document, publicAllowlist, errorCodes, rateLimitClasses }) {
+export function runApiGates({
+  document,
+  publicAllowlist,
+  errorCodes,
+  rateLimitClasses,
+  permissionRegistry = null,
+}) {
   const problems = [];
   const fail = (gate, route, message) => problems.push({ gate, route, message });
 
@@ -217,6 +238,46 @@ export function runApiGates({ document, publicAllowlist, errorCodes, rateLimitCl
       }
     }
 
+    /*
+     * --- PG-7: the string is in the REGISTRY, not merely well-formed (Security.md RB3) ------
+     *
+     * ┌─ PG-3 CHECKS THE SHAPE OF THE KEY. NOTHING CHECKED THAT IT EXISTED. ──────────────────┐
+     * │ `RB3`: *"Every permission string referenced by a `@RequiredPermission()` must exist in │
+     * │ some module's `permissions.ts`; an unknown string fails CI."* Specified, and until now │
+     * │ absent — `PG-3` validates three lowercase dot-separated segments and that the first is │
+     * │ one of the 23 modules, which `catalog.branch.create` satisfies perfectly while being   │
+     * │ granted to nobody.                                                                      │
+     * │                                                                                        │
+     * │ The consequence of the gap is not subtle. `permits()` does not find the key in          │
+     * │ `PERMISSION_KEYS`, so the guard refuses EVERY caller with `UNKNOWN_PERMISSION` — and    │
+     * │ the route fails at request time, where it reads as a permissions bug rather than as a  │
+     * │ key nobody ever defined. This repository has now hit that shape four times: `BLK-10`,  │
+     * │ `BLK-11`, `BLK-14` and `BLK-19`, each found by a person reading two documents against  │
+     * │ each other rather than by a build.                                                      │
+     * └────────────────────────────────────────────────────────────────────────────────────────┘
+     *
+     * ┌─ WHAT THIS DOES *NOT* CATCH, SAID PLAINLY ─────────────────────────────────────────────┐
+     * │ A key that IS in a module's `permissions.ts` but that `§B3.2` never authorised. That is │
+     * │ `BLK-10`'s exact shape — `admin.platform_overview.read` is a literal in                 │
+     * │ `admin/permissions.ts` and passes this check — and catching it is `RB2`'s job           │
+     * │ (`rbac-matrix-drift`, which parses the matrix out of `MASTER_PRD.md`). `RB2` is also    │
+     * │ unbuilt. This gate is the cheaper half, and claiming it is both would be worse than     │
+     * │ not having it.                                                                           │
+     * └────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    if (permission && permissionRegistry !== null && !permissionRegistry.has(permission)) {
+      fail(
+        'PG-7',
+        route,
+        `declares "${permission}", which appears in no module's permissions.ts. Security.md ` +
+          `RB3: an unknown string fails CI. It is well-formed, so PG-3 passes it — and then ` +
+          `PermissionsGuard refuses every caller with UNKNOWN_PERMISSION at request time, where ` +
+          `it reads as a permissions bug rather than as a key nobody defined. If §B3.2 really ` +
+          `does authorise this capability, add the key to the owning module's permissions.ts; ` +
+          `if it does not, the answer is a §C10 change-control decision and not a new string.`,
+      );
+    }
+
     // --- PG-2: idempotency where §14.2.1 says REQ ---------------------------
     const mutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
     const requiresIdempotency = mutating && IDEMPOTENCY_REQUIRED_PATTERNS.some((p) => p.test(path));
@@ -321,12 +382,33 @@ export function loadRealConfig(root) {
   const registrySource = source('packages/types/src/errors/registry.ts');
   const rateLimitSource = source('apps/server/src/common/decorators/rate-limit.decorator.ts');
 
+  /*
+   * The permission registry — `RB3`'s *"some module's `permissions.ts`"*, read as text.
+   *
+   * Every string literal matching the permission grammar, from every module that has one. A
+   * module may declare its keys as literals (`admin/`) or read them out of `CAPABILITY_MATRIX`
+   * by label (`onboarding/`); `iam/permissions.ts` holds the matrix itself, so its 64
+   * `readKey`/`writeKey` literals are the bulk of the registry either way.
+   *
+   * Text, not an import, for the reason `loadRealConfig`'s own header gives: reading from source
+   * makes the gate and the application agree by construction. Importing the compiled module would
+   * also mean a gate that cannot run until the server builds, and the gates exist to run first.
+   */
+  const permissionSources = PERMISSION_REGISTRY_FILES.filter((relPath) =>
+    existsSync(resolve(root, relPath)),
+  ).map(source);
+
   return {
     publicAllowlist: new Set([...allowlistSource.matchAll(/route:\s*'([^']+)'/g)].map((m) => m[1])),
     errorCodes: new Set(
       [...registrySource.matchAll(/^\s{2}([A-Z][A-Z0-9_]*):\s*\{$/gm)].map((m) => m[1]),
     ),
     rateLimitClasses: new Set([...rateLimitSource.matchAll(/'(RL-[A-Z]+)'/g)].map((m) => m[1])),
+    permissionRegistry: new Set(
+      permissionSources.flatMap((text) =>
+        [...text.matchAll(/'([a-z]+\.[a-z0-9_]+\.[a-z0-9_]+)'/g)].map((m) => m[1]),
+      ),
+    ),
   };
 }
 
@@ -364,13 +446,24 @@ if (isMain) {
   }
 
   const document = JSON.parse(readFileSync(documentPath, 'utf8'));
-  const { publicAllowlist, errorCodes, rateLimitClasses } = loadRealConfig(root);
+  const { publicAllowlist, errorCodes, rateLimitClasses, permissionRegistry } =
+    loadRealConfig(root);
 
+  /*
+   * Spread, rather than four named fields.
+   *
+   * The first version of this call listed the three fields it knew about, so adding
+   * `permissionRegistry` to `loadRealConfig` left the CLI silently passing `undefined` — PG-7
+   * defaulted to "not checked", the gate printed OK, and it took reading this line to notice. The
+   * spec's `runApiGates({ document, ...real })` had it right all along; the CLI is the one that
+   * could drift, and now cannot.
+   */
   const { problems, operationCount } = runApiGates({
     document,
     publicAllowlist,
     errorCodes,
     rateLimitClasses,
+    permissionRegistry,
   });
 
   if (problems.length === 0) {
@@ -378,12 +471,16 @@ if (isMain) {
     console.log(
       operationCount === 0
         ? 'api-gates: 0 operations in openapi.json — nothing to check yet, and that is reported ' +
-            'rather than passed over. PG-1/2/3/5 are wired and will bite on the first endpoint.'
-        : `api-gates: OK — ${operationCount} operation(s) pass PG-1, PG-2, PG-3, PG-5, PG-6 and AC-5.`,
+            'rather than passed over. PG-1/2/3/5/6/7 are wired and will bite on the first endpoint.'
+        : `api-gates: OK — ${operationCount} operation(s) pass PG-1, PG-2, PG-3, PG-5, PG-6, ` +
+            `PG-7 and AC-5.`,
     );
     console.log(
       `  registry: ${errorCodes.size} error codes · ${rateLimitClasses.size} rate-limit classes · ` +
-        `${publicAllowlist.size} allowlisted public route(s)`,
+        `${publicAllowlist.size} allowlisted public route(s) · ` +
+        // Printed because PG-7 silently not-running is the failure mode it is easiest to ship:
+        // an empty or undefined registry reads identically to a clean pass in every other line.
+        `${permissionRegistry.size} permission key(s)`,
     );
     process.exit(0);
   }

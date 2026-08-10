@@ -38,12 +38,32 @@ function doc(path, method, extensions = {}, extra = {}) {
   };
 }
 
+/**
+ * The default driver leaves `permissionRegistry` unset, so PG-7 does not run.
+ *
+ * Deliberate. Every test below uses a permission string chosen to exercise PG-1, PG-2, PG-3, PG-5
+ * or PG-6, and none of them is in any real registry — feeding them one would make PG-7 fire on
+ * forty assertions that are about something else, and each would then be proved by the wrong
+ * failure. PG-7 gets its own driver and its own fixture, immediately below its tests.
+ */
 const gates = (document) =>
   runApiGates({
     document,
     publicAllowlist: ALLOWLIST,
     errorCodes: ERROR_CODES,
     rateLimitClasses: RATE_LIMITS,
+  });
+
+/** A fixture registry — `RB3`'s "some module's permissions.ts", stubbed to two real keys. */
+const PERMISSIONS = new Set(['ordering.order.create', 'catalog.branch.read']);
+
+const gatesWithRegistry = (document) =>
+  runApiGates({
+    document,
+    publicAllowlist: ALLOWLIST,
+    errorCodes: ERROR_CODES,
+    rateLimitClasses: RATE_LIMITS,
+    permissionRegistry: PERMISSIONS,
   });
 
 const codes = (problems) => problems.map((p) => p.gate);
@@ -430,8 +450,101 @@ test('the committed openapi.json passes both gates', () => {
   const real = loadRealConfig(REPO_ROOT);
 
   assert.ok(real.errorCodes.size > 10, 'the registry failed to load — this test proves nothing');
+  assert.ok(
+    real.permissionRegistry.size > 40,
+    `the permission registry loaded ${String(real.permissionRegistry.size)} keys — §B3.2 has 42 ` +
+      `capabilities, so anything this small means the regex stopped matching and PG-7 is now ` +
+      `passing every route by accident`,
+  );
   assert.deepEqual(runApiGates({ document, ...real }).problems, []);
   assert.deepEqual(runAbsenceAssertions(document).problems, []);
+});
+
+// ---------------------------------------------------------------------------
+// PG-7 · Security.md RB3 — the string must be IN the registry, not merely well-formed
+// ---------------------------------------------------------------------------
+
+test('PG-7 — a well-formed permission that exists nowhere is refused', () => {
+  /*
+   * `catalog.branch.create` is the real case, not an invented one. `API_Catalog.md` line 941
+   * freezes it for `POST /v1/tenant/branches`; the shipped `CAPABILITY_MATRIX` decomposes
+   * `§B3.2` row 20 into `catalog.branch.read` and `catalog.branch.write` and nothing else. That
+   * disagreement is `BLK-19`.
+   *
+   * PG-3 passes it — three lowercase segments, first segment a real module — and before this
+   * gate existed nothing else looked. The route would have shipped and refused every caller with
+   * UNKNOWN_PERMISSION at request time.
+   */
+  const { problems } = gatesWithRegistry(
+    doc('/v1/tenant/branches', 'post', {
+      'x-gymmap-permission': 'catalog.branch.create',
+      'x-gymmap-rate-limit': 'RL-WRITE',
+      'x-gymmap-idempotent': 'required',
+    }),
+  );
+
+  assert.ok(codes(problems).includes('PG-7'), 'an unregistered permission was accepted');
+  assert.ok(
+    !codes(problems).includes('PG-3'),
+    'PG-3 must NOT fire here — the whole point is that the string is well-formed, and if PG-3 ' +
+      'caught it then PG-7 is being proved by the wrong assertion',
+  );
+});
+
+test('PG-7 — the sibling key that IS registered passes', () => {
+  // The control. Without it, a PG-7 that refused everything would look identical above.
+  const { problems } = gatesWithRegistry(
+    doc('/v1/tenant/branches/abc', 'get', {
+      'x-gymmap-permission': 'catalog.branch.read',
+      'x-gymmap-rate-limit': 'RL-READ',
+    }),
+  );
+  assert.deepEqual(codes(problems), []);
+});
+
+test('PG-7 — a @Public() route with no permission is not dragged in', () => {
+  const { problems } = gatesWithRegistry(
+    doc('/healthz', 'get', { 'x-gymmap-public': true, 'x-gymmap-rate-limit': 'RL-READ' }),
+  );
+  assert.ok(!codes(problems).includes('PG-7'), 'PG-7 fired on a route with no permission at all');
+});
+
+test('PG-7 does not run at all when no registry is supplied, rather than passing silently', () => {
+  /*
+   * The default is `null`, and `null` means NOT CHECKED — which is a different thing from
+   * checked-and-clean. This file's own header states the principle: *"0 routes checked and
+   * everything checked and fine must never look the same in a log."*
+   *
+   * Pinned because the tempting default is an empty Set, and an empty Set would fail EVERY route
+   * — turning a missing argument into a hundred spurious failures that somebody would silence by
+   * deleting the gate.
+   */
+  const problems = runApiGates({
+    document: doc('/v1/tenant/branches', 'post', {
+      'x-gymmap-permission': 'catalog.branch.create',
+      'x-gymmap-rate-limit': 'RL-WRITE',
+      'x-gymmap-idempotent': 'required',
+    }),
+    publicAllowlist: ALLOWLIST,
+    errorCodes: ERROR_CODES,
+    rateLimitClasses: RATE_LIMITS,
+  }).problems;
+
+  assert.ok(!codes(problems).includes('PG-7'));
+});
+
+test('the real registry contains the keys the shipped routes declare', () => {
+  // Guards the regex itself. If `loadRealConfig`'s pattern stopped matching `readKey: '...'`,
+  // the set would be empty, PG-7 would refuse every route, and somebody would "fix" it by
+  // removing the gate rather than the regex.
+  const real = loadRealConfig(REPO_ROOT);
+  assert.ok(real.permissionRegistry.has('catalog.branch.read'));
+  assert.ok(real.permissionRegistry.has('catalog.branch.write'));
+  assert.ok(
+    !real.permissionRegistry.has('catalog.branch.create'),
+    'catalog.branch.create is now registered — if that was a deliberate §C10 decision, close ' +
+      'BLK-19 in docs/PHASES.md and delete this assertion',
+  );
 });
 
 test('AC-5 — the probes are unversioned and everything else is under /v1', () => {
