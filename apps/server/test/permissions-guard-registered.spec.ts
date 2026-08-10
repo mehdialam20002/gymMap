@@ -15,7 +15,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import {
@@ -26,6 +26,14 @@ import {
 import { permits } from '../dist/iam/domain/effective-permissions.js';
 
 const SRC = resolve('src');
+
+/** Every `<module>/permissions.ts`, found rather than listed. */
+function permissionFiles(): string[] {
+  return readdirSync(SRC, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => resolve(SRC, entry.name, 'permissions.ts'))
+    .filter((path) => existsSync(path));
+}
 
 /** Every `@RequiredPermission(X.Y)` in the tree, resolved to the string it names. */
 function declaredRouteKeys(): string[] {
@@ -111,10 +119,26 @@ test('every @RequiredPermission on a route resolves to something permits() can d
     ...SCOPED_NON_MATRIX_PERMISSIONS,
   ]);
 
-  const constants = readFileSync(resolve(SRC, 'iam/permissions.ts'), 'utf8')
-    .concat(readFileSync(resolve(SRC, 'admin/permissions.ts'), 'utf8'))
-    .concat(readFileSync(resolve(SRC, 'tenancy/permissions.ts'), 'utf8'))
-    .concat(readFileSync(resolve(SRC, 'onboarding/permissions.ts'), 'utf8'));
+  /*
+   * ┌─ THIS LIST WAS FOUR HARD-CODED PATHS, AND IT WENT STALE EXACTLY AS PREDICTED ──────────────┐
+   * │ The paragraph above says *"Scanned from the source rather than listed here: a list would go │
+   * │ stale the first time a route was added"* — and then listed `iam`, `admin`, `tenancy` and    │
+   * │ `onboarding` by hand. `M-031` added `catalog/permissions.ts` with five keys and five routes │
+   * │ on 2026-08-11, and the assertion fired with *"declared on a route and defined in no          │
+   * │ permissions.ts"* about keys that were sitting in one.                                        │
+   * │                                                                                             │
+   * │ A false failure is the better outcome of the two available: the same staleness in the other │
+   * │ direction — a module whose keys nobody checks — is silent. Discovered now, so neither.       │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const constants = permissionFiles()
+    .map((file) => readFileSync(file, 'utf8'))
+    .join('\n');
+
+  assert.ok(
+    permissionFiles().length >= 5,
+    `expected to find every module's permissions.ts, found ${String(permissionFiles().length)}`,
+  );
 
   const declared = declaredRouteKeys();
   assert.ok(

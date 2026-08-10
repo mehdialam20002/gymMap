@@ -21,7 +21,25 @@ import type { Brand } from './ids/branded.js';
  */
 export type Cursor = Brand<string, 'Cursor'>;
 
-/** §C3.1 default and ceiling. The ceiling is a denial-of-service control, not a preference. */
+/**
+ * The fallback default and the ceiling. The ceiling is a denial-of-service control, not a taste.
+ *
+ * ┌─ THIS COMMENT USED TO READ "§C3.1 default and ceiling", AND §C3.1 STATES NEITHER ────────────┐
+ * │ `MASTER_PRD.md` 3432 is the whole rule: *"Cursor-based: `?limit=&cursor=`; response includes  │
+ * │ `next_cursor`"*. No number. Both figures below were chosen here and then attributed upward,   │
+ * │ which is the shape recorded at `TD-048` and `TD-049` — rank-5 code citing a rank-2 source     │
+ * │ that does not say it, and nothing failing because the citation is never checked.               │
+ * │                                                                                              │
+ * │ The values are unchanged and they are reasonable; only the provenance was wrong. What the     │
+ * │ correction buys is the next reader: an API document that names its own default now visibly    │
+ * │ OUTRANKS this constant instead of appearing to contradict the PRD. `Gym.md` §12.1 does        │
+ * │ exactly that — *"Cursor-paginated, default `limit` 50"* — so `GET /v1/tenant/branches`        │
+ * │ defaults to 50 and is not in conflict with anything.                                           │
+ * │                                                                                              │
+ * │ `clampPageLimit()` therefore takes the route's default as an argument rather than assuming    │
+ * │ this one.                                                                                      │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
 export const DEFAULT_PAGE_LIMIT = 20;
 export const MAX_PAGE_LIMIT = 100;
 
@@ -55,9 +73,19 @@ export interface SortSpec<TField extends string = string> {
   readonly direction: SortDirection;
 }
 
-export function clampPageLimit(requested: number | undefined): number {
-  if (requested === undefined || !Number.isFinite(requested)) return DEFAULT_PAGE_LIMIT;
-  const floored = Math.floor(requested);
-  if (floored < 1) return DEFAULT_PAGE_LIMIT;
-  return Math.min(floored, MAX_PAGE_LIMIT);
+/**
+ * `fallback` lets a route whose own document names a default use it — see `DEFAULT_PAGE_LIMIT`.
+ *
+ * It is clamped to `MAX_PAGE_LIMIT` too. A route document may raise its default above 20; it may
+ * not raise it past the ceiling, because the ceiling is the control and not the preference.
+ */
+export function clampPageLimit(
+  requested: number | undefined,
+  fallback: number = DEFAULT_PAGE_LIMIT,
+): number {
+  const floor = Math.min(fallback, MAX_PAGE_LIMIT);
+  if (requested === undefined || !Number.isFinite(requested)) return floor;
+  const rounded = Math.floor(requested);
+  if (rounded < 1) return floor;
+  return Math.min(rounded, MAX_PAGE_LIMIT);
 }

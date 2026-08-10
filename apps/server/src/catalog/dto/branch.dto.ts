@@ -118,14 +118,34 @@ export const updateBranchRequestSchema = z
       ]),
     ),
     temporary_closure: temporaryClosure.optional(),
+    /**
+     * `Gym.md` §6.3 mechanism 2 — and it was MISSING from this schema until 2026-08-11.
+     *
+     * *"A `PATCH` that touches a `REQUIRES_REVIEW` field **without** `"acknowledge_review": true`
+     * is refused with `422 APPLICATION_PRECHECK_OVERRIDE_REQUIRED`"*, and §6.3's own illustrative
+     * schema carries the field. §12.3 does not repeat it — it only lists the resulting error —
+     * and this file was transcribed from §12.3, so the field was left out and the error it gates
+     * was unsatisfiable by any well-formed request: every material PATCH would have 422'd forever.
+     *
+     * The point of the flag is in §6.3's next sentence: a warning in the UI *"is true only for a
+     * client that chose to read it; the acknowledgement makes it true for every client, including
+     * a script."*
+     */
+    acknowledge_review: z.boolean().optional(),
   })
   .strict()
   /*
    * An empty PATCH is a client bug, not a no-op. Accepting it writes an audit row and an
    * `updated_at` for a change nobody made, and `AC-9`'s "who changed what" then has a row with no
    * what in it.
+   *
+   * `acknowledge_review` does not count as a field — `Gym.md` 767 spells the rule
+   * `Object.keys(o).some(k => k !== 'acknowledge_review')`. A body carrying only the flag
+   * acknowledges a change it is not making.
    */
-  .refine((body) => Object.keys(body).length > 0, { message: 'no fields to update' });
+  .refine((body) => Object.keys(body).some((key) => key !== 'acknowledge_review'), {
+    message: 'no fields to update',
+  });
 
 export type UpdateBranchRequest = z.infer<typeof updateBranchRequestSchema>;
 

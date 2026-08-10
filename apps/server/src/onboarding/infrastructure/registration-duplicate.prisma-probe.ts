@@ -25,8 +25,11 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { ElevatedTenantReader } from '../../tenancy/application/elevated-tenant-reader.js';
-import type { ElevationActor } from '../../tenancy/prisma/platform-elevation.js';
+import {
+  ElevatedTenantReader,
+  type ElevationActor,
+} from '../../tenancy/application/elevated-tenant-reader.js';
+
 import type {
   RegistrationDuplicateProbe,
   RegistrationProbeOutcome,

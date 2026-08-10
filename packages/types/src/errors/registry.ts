@@ -569,7 +569,7 @@ export const ERROR_REGISTRY = {
   },
 
   /*
-   * ┌─ THREE CODES `Gym.md` §12.3 EMITS THAT THE REGISTRY DID NOT CARRY ──────────────────────────┐
+   * ┌─ FOUR CODES `Gym.md` §12.3 EMITS THAT THE REGISTRY DID NOT CARRY ───────────────────────────┐
    * │ Found while writing `M-031`'s branch routes. Each has a FULL row in `API_Catalog.md`'s error │
    * │ catalogue — status, message guidance, retryability, enforcing rule — and no entry here, so   │
    * │ `PG-5` would fail the moment a handler threw one and `PATCH /tenant/branches/:id` could not  │
@@ -577,10 +577,60 @@ export const ERROR_REGISTRY = {
    * │                                                                                              │
    * │ Transcribed, not invented, and the distinction is the one this file already draws twenty     │
    * │ lines below: `LAST_ACTIVE_BRANCH` is REFUSED registration because it appears only in rank-4  │
-   * │ documents with no status attached. These three are rank-3 catalogue rows with every column   │
+   * │ documents with no status attached. These are rank-3 catalogue rows with every column         │
    * │ filled. Same test, opposite answer.                                                            │
+   * │                                                                                              │
+   * │ The fourth was added on 2026-08-11 when the PATCH handler was written and could not throw    │
+   * │ the error its own DTO gates on — see `APPLICATION_PRECHECK_OVERRIDE_REQUIRED` below.          │
    * └──────────────────────────────────────────────────────────────────────────────────────────────┘
    */
+
+  APPLICATION_PRECHECK_OVERRIDE_REQUIRED: {
+    /*
+     * ┌─ THE GAP THIS CLOSES WAS A COMPLETE ROUND TRIP OF SILENCE ────────────────────────────────┐
+     * │ `Gym.md` §6.3 mechanism 2 fixes the rule: *"A `PATCH` that touches a `REQUIRES_REVIEW`     │
+     * │ field **without** `"acknowledge_review": true` is refused with `422                        │
+     * │ APPLICATION_PRECHECK_OVERRIDE_REQUIRED`, whose `details` enumerate the material fields."*  │
+     * │ §12.3 lists it again for the branch route. `API_Catalog.md` line 790 carries the full      │
+     * │ catalogue row including the member-facing text.                                            │
+     * │                                                                                            │
+     * │ Three rank-3 statements, and no row here — so the code did not exist, the DTO that gates   │
+     * │ on it was ALSO missing `acknowledge_review`, and the branch PATCH could neither accept an  │
+     * │ acknowledgement nor refuse the absence of one. Both halves were found in the same hour     │
+     * │ because writing the handler needed both.                                                    │
+     * └────────────────────────────────────────────────────────────────────────────────────────────┘
+     *
+     * `module: 'onboarding'` because `APPLICATION_*` is that family's prefix and §6.3 is written
+     * about applications; `catalog` emits it, exactly as it emits `admin`'s
+     * `CONFIG_VALIDATION_FAILED`. `module` records who owns the vocabulary, not who throws.
+     */
+    module: 'onboarding',
+    class: 'Business',
+    // 422: the body is well-formed and the caller is permitted. What is refused is proceeding
+    // without an acknowledgement — a different CHOICE, not a different payload.
+    httpStatus: 422,
+    messageKey: 'error.onboarding.application_precheck_override_required',
+    enforces: ['BR-GYM-06', 'FR-GYM-11', 'FR-ONB-08'],
+    /*
+     * Retryable, and it is the only one in this block that is.
+     *
+     * The identical request plus `acknowledge_review: true` succeeds — nothing about the resource
+     * has to change first. `GEO_ADDRESS_MISMATCH` needs the pin moved and
+     * `BRANCH_HAS_ACTIVE_MEMBERSHIPS` needs the members moved; this one needs a confirmation the
+     * client already has everything it needs to send.
+     */
+    retryable: true,
+    /*
+     * The material fields, enumerated — §6.3 requires it in those words.
+     *
+     * `NFR-USE-05` is why it cannot be a bare code: the catalogue's own message is *"Changing your
+     * legal name sends your listing back for review"*, and a client can only name the field if the
+     * server tells it which one made the request material. A UI that hard-coded the list would be
+     * the second copy `Gym.md` 816 warns about — *"a client that hard-coded the material list
+     * would break, which is why the map exists"*.
+     */
+    detailsShape: '{ material_fields: string[]; }',
+  },
 
   GEO_ADDRESS_MISMATCH: {
     module: 'catalog',

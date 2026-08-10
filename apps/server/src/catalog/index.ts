@@ -2,12 +2,14 @@
  * `catalog/`'s public surface — `FolderStructure.md` §8.1 row 1.
  *
  * `README.md` §4 names six ports and calls this *"the most heavily consumed module in L3"*.
- * **M-031 delivers two of the six**, which is the milestone's own stated catalogue scope
- * (*"M-031 (`index.ts`, `GYM_TIMEZONE_PORT`)"*). The other four arrive with the milestones the
- * README names against them:
+ * **M-031 delivers three of the six**, one more than the milestone's own stated catalogue scope
+ * (*"M-031 (`index.ts`, `GYM_TIMEZONE_PORT`)"*). The extra one is `GYM_STATUS_PORT`, and it is not
+ * scope creep: `mayDeactivate()` takes `DeactivationFacts.gymStatus`, so `DELETE
+ * /v1/tenant/branches/:id` — an M-031 route — cannot run without it, and no other port answers the
+ * question. The README gives it to M-032 because M-032 is where `ordering/` needs it; the branch
+ * lifecycle needed it first.
  *
  *   `GYM_COMMAND_PORT`      M-032 — create the gym and branches inside the application transaction
- *   `GYM_STATUS_PORT`       M-032 — is this gym suspended
  *   `GYM_QUERY_PORT`        M-032 — the gym and its owner, for the review response path
  *   `OPERATING_HOURS_PORT`  M-034 — is this branch open now, in its own zone
  *   `GYM_SEARCH_VIEW_PORT`  the approved-gym read model carrying the rating projection
@@ -32,6 +34,13 @@ export {
   type GymTimezonePort,
   type IanaTimezone,
 } from './application/ports/gym-timezone.port.js';
+
+export {
+  GYM_STATUS_PORT,
+  isBlockedForOrdering,
+  type GymStatusOutcome,
+  type GymStatusPort,
+} from './application/ports/gym-status.port.js';
 
 export {
   AFFECTED_MEMBERSHIPS_PORT,

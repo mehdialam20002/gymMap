@@ -36,6 +36,24 @@ import {
   type HumanActor,
 } from '../prisma/platform-elevation.js';
 
+/**
+ * Re-exported so a consumer never has to import from `tenancy/prisma/`.
+ *
+ * ┌─ A TYPE-ONLY IMPORT STILL CROSSES THE BOUNDARY, AND `no-platform-prisma-outside-allowlist`   ┐
+ * │ IS RIGHT TO SAY SO                                                                            │
+ * │ `onboarding/infrastructure/registration-duplicate.prisma-probe.ts` imported                   │
+ * │ `type ElevationActor` straight out of `../../tenancy/prisma/platform-elevation.js` — no       │
+ * │ runtime edge, no `PlatformPrismaService`, and `f7b8062` had already moved the actual          │
+ * │ elevation into `ElevatedTenantReader` exactly as the rule requires.                            │
+ * │                                                                                              │
+ * │ Dependency-cruiser flagged it anyway, and exempting type-only edges would have been the wrong │
+ * │ fix: `prisma/` is this module's internals, and a consumer that can name a type in there can   │
+ * │ name the service beside it — the next edit is one autocomplete away from a real cross-tenant  │
+ * │ client. The type belongs on the public surface or nowhere.                                     │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export type { ElevationActor, HumanActor };
+
 /** One row of the platform's tenant list. A projection, not the row. */
 export interface TenantSummary {
   readonly id: string;

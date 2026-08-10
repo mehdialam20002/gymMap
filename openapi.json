@@ -642,6 +642,225 @@
         "x-gymmap-rate-limit": "RL-WRITE"
       }
     },
+    "/v1/tenant/branches": {
+      "get": {
+        "description": "INACTIVE branches are included — an owner must still see the branch they closed last month, or it has silently vanished from a screen that claims to list their estate. Soft-deleted rows are not. active_membership_count and hours_summary are ABSENT rather than zero: memberships arrive at M-046 and branch hours at M-034, and a zero on a dashboard is indistinguishable from a real one (KL-113, KL-119).",
+        "operationId": "listBranches",
+        "parameters": [
+          {
+            "description": "Opaque. Echo it back verbatim.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {}
+          },
+          {
+            "description": "Default 50, ceiling 100.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {}
+          },
+          {
+            "description": "name:asc | name:desc | created_at:desc",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {}
+          },
+          {
+            "in": "query",
+            "name": "city_id",
+            "required": false,
+            "schema": {}
+          },
+          {
+            "description": "ACTIVE | INACTIVE.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {}
+          },
+          {
+            "description": "Repeatable.",
+            "in": "query",
+            "name": "gym_id",
+            "required": false,
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Every branch of the tenant's estate, cursor-paginated.",
+        "tags": [
+          "tenant"
+        ],
+        "x-gymmap-error-codes": [
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED"
+        ],
+        "x-gymmap-permission": "catalog.branch.list",
+        "x-gymmap-rate-limit": "RL-READ",
+        "x-gymmap-tenant-scoped": true
+      },
+      "post": {
+        "description": "The first branch of a gym is is_primary regardless of the request, because gyms.city_id is denormalised from it to make uq_gyms__city_slug enforceable. geo_tolerance_metres is null rather than measured: BR-GYM-08 needs a geocoder and none is bound (KL-114). Null means \"not measured\", which is what an approval reviewer needs to see.",
+        "operationId": "createBranch",
+        "parameters": [
+          {
+            "description": "Client-chosen, unique per logical operation. Replaying it returns the stored response for 24 hours; a different body under the same key is 409 IDEMPOTENCY_KEY_MISMATCH.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Opens a branch.",
+        "tags": [
+          "tenant"
+        ],
+        "x-gymmap-error-codes": [
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED",
+          "VALIDATION_FAILED",
+          "RESOURCE_NOT_FOUND",
+          "IDEMPOTENCY_KEY_REQUIRED"
+        ],
+        "x-gymmap-idempotent": "required",
+        "x-gymmap-permission": "catalog.branch.create",
+        "x-gymmap-rate-limit": "RL-WRITE",
+        "x-gymmap-tenant-scoped": true
+      }
+    },
+    "/v1/tenant/branches/{id}": {
+      "delete": {
+        "description": "A branch is named by every historical attendance row and every invoice, so the row stays and takes status INACTIVE with deleted_at. Closing the primary promotes the next branch in the SAME transaction — uq_branches__one_primary_per_gym forbids two primaries and not zero, so a caller treating permission as a boolean leaves a gym with no primary and no error. Until M-046 this refuses every ACTIVE branch: NFR-USE-06 needs the real member count and nothing can supply it (KL-113).",
+        "operationId": "deactivateBranch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Client-chosen, unique per logical operation. Replaying it returns the stored response for 24 hours; a different body under the same key is 409 IDEMPOTENCY_KEY_MISMATCH.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Closes a branch. A soft deactivation, never a delete.",
+        "tags": [
+          "tenant"
+        ],
+        "x-gymmap-error-codes": [
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED",
+          "RESOURCE_NOT_FOUND",
+          "BRANCH_HAS_ACTIVE_MEMBERSHIPS",
+          "CONFIG_VALIDATION_FAILED"
+        ],
+        "x-gymmap-idempotent": "required",
+        "x-gymmap-permission": "catalog.branch.deactivate",
+        "x-gymmap-rate-limit": "RL-WRITE",
+        "x-gymmap-tenant-scoped": true
+      },
+      "get": {
+        "description": "field_change_classes tells the dashboard which fields send the gym back to review BEFORE the owner saves — FR-GYM-11 requires the UI to state it, and a UI holding its own copy of the list stops matching the server the first time either changes. hours[], hour_exceptions[] and the active closure are absent until M-034 (KL-119).",
+        "operationId": "readBranch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "One branch, with the material-field map.",
+        "tags": [
+          "tenant"
+        ],
+        "x-gymmap-error-codes": [
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED",
+          "RESOURCE_NOT_FOUND"
+        ],
+        "x-gymmap-permission": "catalog.branch.read",
+        "x-gymmap-rate-limit": "RL-READ",
+        "x-gymmap-tenant-scoped": true
+      },
+      "patch": {
+        "description": "BR-GYM-06 fires here: address_line1/2, city_id, state, state_code, postal_code and location are MATERIAL, and touching one without acknowledge_review: true is refused 422 with every material field named. A warning in the UI is true only for a client that chose to read it; the acknowledgement makes it true for every client, including a script.",
+        "operationId": "updateBranch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Client-chosen, unique per logical operation. Replaying it returns the stored response for 24 hours; a different body under the same key is 409 IDEMPOTENCY_KEY_MISMATCH.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Edits a branch. Material fields need an acknowledgement.",
+        "tags": [
+          "tenant"
+        ],
+        "x-gymmap-error-codes": [
+          "UNAUTHENTICATED",
+          "PERMISSION_DENIED",
+          "VALIDATION_FAILED",
+          "RESOURCE_NOT_FOUND",
+          "APPLICATION_PRECHECK_OVERRIDE_REQUIRED"
+        ],
+        "x-gymmap-idempotent": "required",
+        "x-gymmap-permission": "catalog.branch.update",
+        "x-gymmap-rate-limit": "RL-WRITE",
+        "x-gymmap-tenant-scoped": true
+      }
+    },
     "/v1/tenant/ping": {
       "get": {
         "description": "Proves the tenant context resolved and RLS is applying. The tenant is derived from the access token — there is no parameter, because there is nothing for a caller to choose.",

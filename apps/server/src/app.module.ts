@@ -10,6 +10,7 @@ import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/c
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 
 import { AuditModule } from './audit/audit.module.js';
+import { CatalogModule } from './catalog/catalog.module.js';
 import { CommonModule } from './common/common.module.js';
 import { IamModule } from './iam/iam.module.js';
 import { AdminModule } from './admin/index.js';
@@ -23,10 +24,22 @@ import { IdempotencyInterceptor } from './common/idempotency/idempotency.interce
 import { TenantGuard } from './tenancy/guards/tenant.guard.js';
 
 @Module({
-  // M-020 adds `IamModule` — the first module with a consumer, which is this file's
-  // standing rule for when a module gets wired in. The remaining nineteen §C1.3
-  // directories arrive with their own milestones.
-  imports: [CommonModule, TenancyModule, AuditModule, IamModule, AdminModule],
+  /*
+   * M-020 adds `IamModule` — the first module with a consumer, which is this file's standing rule
+   * for when a module gets wired in. The remaining §C1.3 directories arrive with their milestones.
+   *
+   * ┌─ `CatalogModule` WAS BUILT, TESTED AND NOT IMPORTED HERE FOR THREE COMMITS ────────────────┐
+   * │ `catalog-wiring.spec.ts` boots the module in isolation and passed throughout, which is what │
+   * │ made it invisible: the module's DI graph was provably sound and the application never       │
+   * │ constructed it. `TD-045` is the same failure one layer up — four guards built, unit-tested  │
+   * │ and registered nowhere — and the lesson transferred badly, because the guard version was    │
+   * │ caught by a test asserting REGISTRATION while this one was only ever asserted in isolation. │
+   * │                                                                                            │
+   * │ Added 2026-08-11 with the five branch routes, whose absence from the route table is what    │
+   * │ surfaced it. `catalog-routes-mapped.spec.ts` now asserts against THIS module.                │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  imports: [CommonModule, TenancyModule, AuditModule, IamModule, AdminModule, CatalogModule],
   providers: [
     // ── Global guards, in order ────────────────────────────────────────────────────────────
     //

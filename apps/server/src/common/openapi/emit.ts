@@ -9,8 +9,8 @@
 
 import 'reflect-metadata';
 
-import { writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 
 import { NestFactory } from '@nestjs/core';
 
@@ -37,25 +37,34 @@ const OUTPUT = resolve(process.cwd(), '../../openapi.json');
  * │ into an artefact would be unmistakable rather than plausible.                                │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
-const CONTRACT_ONLY_PLACEHOLDERS: Readonly<Record<string, string>> = {
+/**
+ * The secrets, and ONLY the secrets. Everything else is read from `.env.example`.
+ *
+ * ┌─ THIS MAP HELD EVERY VARIABLE UNTIL 2026-08-11, AND WENT STALE THE SAME WAY TWICE ───────────┐
+ * │ The comment below records the first time: *"it silently did from M-010 to M-020, leaving      │
+ * │ openapi.json eight milestones stale while every gate stayed green."* The second was           │
+ * │ `CLAMAV_HOST`, added as a required variable with `A-42` and absent from a hand-written list   │
+ * │ nobody thinks about when adding a config key.                                                  │
+ * │                                                                                              │
+ * │ A hand-maintained mirror of a schema is the failure this repository keeps finding — `TD-048`, │
+ * │ `TD-049`, `dependency-approval.mjs`'s allowlist. So the mirror is gone: `.env.example` is     │
+ * │ already the file that carries a valid local value for every variable, and                     │
+ * │ `env-example-parity.spec.ts` already proves it *"would actually get a running server"* by     │
+ * │ parsing it through the real Zod schema. Reading it here reuses that guarantee instead of      │
+ * │ restating it.                                                                                  │
+ * │                                                                                              │
+ * │ The secrets cannot come from there: `requiredSecret` refuses anything starting `CHANGEME`,    │
+ * │ which is exactly what `.env.example` holds and must hold. `env-example-parity.spec.ts`        │
+ * │ substitutes the same four for the same reason.                                                 │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+const SECRET_PLACEHOLDERS: Readonly<Record<string, string>> = {
   // Tells the three Prisma services and the Redis provider to build their clients and open
   // NOTHING. Without it this script dies on `Authentication failed against database server`
   // — which it silently did from M-010 to M-020, leaving openapi.json eight milestones
   // stale while every gate stayed green. See common/bootstrap/contract-only-mode.ts.
   [CONTRACT_ONLY_ENV]: '1',
-  APP_ENV: 'development',
-  APP_REGION: 'ap-south-1',
   LOG_LEVEL: 'error',
-  PORT: '3000',
-  DATABASE_URL: 'postgresql://openapi:openapi@127.0.0.1:5432/openapi?schema=public',
-  REDIS_URL: 'redis://127.0.0.1:6379',
-  S3_ENDPOINT: 'http://127.0.0.1:9000',
-  S3_REGION: 'ap-south-1',
-  S3_ACCESS_KEY_ID: 'OPENAPI-PLACEHOLDER-NOT-A-KEY',
-  S3_SECRET_ACCESS_KEY: 'OPENAPI-PLACEHOLDER-NOT-A-SECRET',
-  S3_MEDIA_BUCKET: 'gymmap-media',
-  S3_KYC_BUCKET: 'gymmap-kyc',
-  CDN_BASE_URL: 'http://127.0.0.1:9000',
   JWT_ACCESS_SECRET: 'openapi-placeholder-not-a-secret-0123456789abcd',
   JWT_REFRESH_SECRET: 'openapi-placeholder-not-a-secret-abcdef01234567',
   QR_SIGNING_PRIVATE_KEY: 'openapi-placeholder-not-a-key-0123456789abcdef',
@@ -67,19 +76,85 @@ const CONTRACT_ONLY_PLACEHOLDERS: Readonly<Record<string, string>> = {
   MFA_SECRET_KEY_ID: 'openapi-placeholder',
   // `stub`, never `razorpay` — the generator must not imply a provider is configured.
   PAYMENT_PROVIDER: 'stub',
-  SMTP_HOST: '127.0.0.1',
-  SMTP_PORT: '1025',
-  SMTP_FROM: 'openapi@localhost',
 };
 
+/**
+ * `.env.example`, found by walking up from this file rather than from `process.cwd()`.
+ *
+ * turbo runs a workspace script with the CWD set to that workspace, and `reference-data-drift`
+ * already shipped the CWD-relative version of this bug: the read returned nothing and the check
+ * reported OK on an empty set.
+ */
+function readEnvExample(): Record<string, string> {
+  /*
+   * `__dirname`, not `import.meta.url`.
+   *
+   * `apps/server` compiles to CommonJS — `tsc` refuses `import.meta` here outright — even though
+   * the source is written with ESM specifiers. `__dirname` is the CJS equivalent and is what this
+   * file actually has at runtime.
+   */
+  let dir = __dirname;
+
+  for (let hop = 0; hop < 8; hop += 1) {
+    const candidate = join(dir, '.env.example');
+    if (existsSync(candidate)) {
+      const values: Record<string, string> = {};
+      for (const line of readFileSync(candidate, 'utf8').split('\n')) {
+        const trimmed = line.trim();
+        if (trimmed === '' || trimmed.startsWith('#')) continue;
+        const at = trimmed.indexOf('=');
+        if (at === -1) continue;
+        // Strip the inline comment BEFORE trimming. Trimming first turns `KEY=   # note` into the
+        // string `# note`, because after the trim there is no ` #` left to find — the marker is at
+        // index 0, and the variable then looks set to comment text.
+        let value = trimmed.slice(at + 1);
+        const hash = value.search(/(^|\s)#/);
+        if (hash !== -1) value = value.slice(0, hash);
+        values[trimmed.slice(0, at).trim()] = value.trim().replace(/^["']|["']$/g, '');
+      }
+      return values;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  throw new Error(
+    'openapi:emit could not find .env.example by walking up from its own location. It supplies ' +
+      'a valid value for every configuration variable, and without it the emitter cannot boot ' +
+      'the application it is documenting.',
+  );
+}
+
+/**
+ * Fills every UNSET variable. `.env.example` first, then the secrets on top of it.
+ *
+ * Order matters: the example's `CHANGEME` placeholders are refused by `requiredSecret`, so
+ * `SECRET_PLACEHOLDERS` must overwrite them rather than the other way round. A real `.env.local`
+ * still wins over both — the emitter never overwrites a value the caller supplied, so running it
+ * with a filled environment behaves identically.
+ */
 function applyContractOnlyEnvironment(): string[] {
   const applied: string[] = [];
-  for (const [key, value] of Object.entries(CONTRACT_ONLY_PLACEHOLDERS)) {
-    if (process.env[key] === undefined || process.env[key] === '') {
+  const unset = (key: string): boolean => process.env[key] === undefined || process.env[key] === '';
+
+  for (const [key, value] of Object.entries(readEnvExample())) {
+    if (unset(key)) {
       process.env[key] = value;
       applied.push(key);
     }
   }
+
+  for (const [key, value] of Object.entries(SECRET_PLACEHOLDERS)) {
+    // `!applied.includes(key)` is NOT the test. A secret filled from the example is a CHANGEME
+    // that must still be replaced, so the override runs whenever the value is unset OR came from
+    // the example — anything except a value the caller genuinely supplied.
+    if (unset(key) || applied.includes(key)) {
+      process.env[key] = value;
+      if (!applied.includes(key)) applied.push(key);
+    }
+  }
+
   return applied;
 }
 

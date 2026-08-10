@@ -90,6 +90,21 @@ export const CLIENT_SAFE_MESSAGE: Partial<Record<ErrorCode, string>> = {
   APPLICATION_SNAPSHOT_IMMUTABLE:
     'A submitted application cannot be edited. Submit a new version instead.',
 
+  /*
+   * Reassurance FIRST, because the alarming part is not true.
+   *
+   * `API_Catalog.md` line 790 fixes the shape: *"Changing your legal name sends your listing back
+   * for review. Your gym stays visible and your sales continue. Confirm to save."* An owner who
+   * reads only "back for review" assumes their listing goes dark and their revenue stops, and
+   * `BR-GYM-06` says the opposite in as many words — *"while the listing stays live"*.
+   *
+   * Generic here rather than naming the field: `details.material_fields` carries the names, and
+   * this string is a static per-code message that cannot interpolate per-request values.
+   */
+  APPLICATION_PRECHECK_OVERRIDE_REQUIRED:
+    'Changing these details sends your listing back for review. Your gym stays visible and your ' +
+    'sales continue in the meantime. Confirm to save.',
+
   // --- M-029, the KYC checklist --------------------------------------------
 
   // Says plainly that it is not their fault, because the 503 alone will read as one. There is no
