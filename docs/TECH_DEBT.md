@@ -212,6 +212,7 @@ Full detail for each entry is in §4. `PRD id` shows the primary identifier; eac
 | **TD-039** | `reference-data-drift` cannot verify hashes in CI — the PR job has no Postgres service | Test | Medium | S | The first hand-edited reference migration that reaches `main`, which is the exact thing the check was built to stop | Engineering / DevOps | **OPEN** | `SeedStrategy.md` §2.7 · `CI_CD.md` · M-031 |
 | **TD-042** | `pnpm db:seed` points at a path that does not exist and cannot run at all | Test | **High** | S | Immediately — it is the command CLAUDE.md §8 and every onboarding document tell a new developer to run | Backend | **OPEN** | `SeedStrategy.md` §10 · CLAUDE.md §8 · M-031 |
 | **TD-043** | Two feature documents carry none of §21.3's five mandated sections, and CI job 22 checks only that a file exists | Docs | Medium | M | `FD2`'s CI report — every `BR-` must appear in exactly one *Business Rules* section, and neither file has one for it to read | Technical Lead | **OPEN** | ADR-0041 · `PROJECT_CONSTITUTION.md` §21.3 `FD1`–`FD4` · `DG3` · M-015 · M-022 |
+| **TD-044** | **Seventeen of the nineteen feature documents the roadmap names do not exist, and four are owed by milestones marked `✅ DONE`** | Docs | **High** | L | Immediately for the four `DONE` ones — a milestone cannot be `DONE` and owe a DoD item at the same time. `FD2`'s CI report for the rest | Technical Lead | **OPEN** | `PROJECT_CONSTITUTION.md` §21.3 `FD1`, DoD #23 · `DG3` · M-012 · M-020 · M-021 · M-028 |
 | **TD-041** | The dev database holds reference rows under the pre-ADR-0038 seed namespace; a reset and re-seed is owed | Data | Medium | S | Any run of `roles-seed.int-spec.ts`, which fails today and is a true positive | Backend | **OPEN** | `SeedStrategy.md` DT2 · §7.2 · M-031 |
 | **TD-040** | Two `@supports not (...)` fallbacks in `customer-web` were described in comments and never written | Code | Low | S | A target browser without `color-mix()` or `backdrop-filter` appears in analytics, or the veil's contrast is re-proved for any reason | Frontend Lead, customer site | ACCEPTED | `globals.css` · `DesignSystem.md` §6 · `SCR-WEB-001` |
 
@@ -1094,6 +1095,63 @@ entry, and it is closed.
 | **Owner** | QA Lead with Backend Lead, payments |
 | **Status** | SCHEDULED — sprint 5 or 6 |
 | **Related PRD id** | `BR-PAY-05`, `BR-PAY-07`, `FR-PAY-04`, `FR-PAY-12`, `BR-FIN-06`, `FR-RFND-08`, `E2E-02`, `E2E-08`, `KPI-19`, `KPI-21`, `C7` |
+
+---
+
+### TD-044 — seventeen feature documents do not exist, and four are owed by `DONE` milestones
+
+**What was taken.** `PROJECT_CONSTITUTION.md` §21.3 requires a feature document per feature, and
+DoD item 23 makes it a completion condition. The roadmap names **nineteen** of them by exact
+filename. **Two exist.**
+
+```text
+EXISTS   docs/features/session-lifecycle.md      docs/features/tenant-isolation.md
+
+MISSING  analytics-events · application-lifecycle · audit-log · commission-precedence
+         configuration-registry · dlt-approval · gym-catalogue · impersonation · mfa
+         onboarding-wizard · password-authentication · phone-otp · rbac · refunds
+         report-catalogue · tenant-ping · wallet-seam
+```
+
+**Four of the seventeen are owed by milestones marked `✅ DONE`**, and that is the part that is not
+merely unfinished work:
+
+| Milestone | Status in `PHASES.md` | Document its own roadmap entry names |
+| :--- | :--- | :--- |
+| **M-012** | ✅ `DONE` | `docs/features/tenant-ping.md` — *"the five §21.3 sections (DoD #23)"* |
+| **M-020** | ✅ `DONE` | `docs/features/password-authentication.md` |
+| **M-021** | ✅ `DONE` | `docs/features/phone-otp.md` |
+| **M-028** | ✅ `DONE` | `docs/features/application-lifecycle.md` |
+
+A milestone cannot be `DONE` and owe a Definition-of-Done item at the same time. Either those four
+are partial, or the criterion that makes `M-024` and `M-025` partial — each is partial *only*
+because its feature document is missing — is not being applied evenly. The inconsistency matters
+more than the documents: it means the `24 DONE / 7 partial` split in `PHASES.md` is not measuring
+one thing.
+
+**Why it was taken.** Not deliberately, which is the concerning part. `BLK-12` did block new feature
+documents for a period — the constitution and the two existing files disagreed about what a feature
+document *is*, and `ADR-0041` resolved that on 2026-08-10. But `M-012`, `M-020` and `M-021` closed
+**before** `BLK-12` was raised, so their documents were not blocked; they were skipped, and CI job
+22 could not object because it checks only that *some* file exists rather than that the file a
+milestone promised exists.
+
+**The interest.** Compounding, and highest on `FD2`: *"Every `BR-` in `MASTER_PRD.md` §A8 appears in
+exactly one feature document's Business Rules section."* With seventeen documents absent, that rule
+is unsatisfiable by construction, and the traceability CI report §22.1 makes a **BUILD FAILS** —
+so this is scheduled to stop the build rather than to be noticed. Each document also gets more
+expensive with time: written beside the code it describes it is a transcription, written a year
+later it is an archaeology exercise.
+
+**The payoff trigger.** Immediately for the four `DONE` ones, because their status is currently
+wrong either way. For the rest: with the milestone that delivers them, and `ADR-0041` settled the
+shape — the five sections are mandatory and ordered but **not exclusive**, so narrative prose around
+them conforms.
+
+**Distinct from `TD-043`.** That entry is about the two files that DO exist and carry none of the
+five sections. This one is about the seventeen that do not exist at all. Paying either does not pay
+the other, and a CI shape-check written for `TD-043` will report zero problems for a file that was
+never created — which is exactly how this survived.
 
 ---
 

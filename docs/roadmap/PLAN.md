@@ -25,8 +25,8 @@ Counted from `docs/PHASES.md` and the roadmap on 2026-08-10, not estimated.
 | Partial 🟨 | **7** |
 | Not started | **89** |
 | Blockers raised | 21 |
-| Blockers resolved | **10** |
-| Blockers open | **11** |
+| Blockers resolved | **11** |
+| Blockers open | **10** |
 | Known limitations · tech debt · ADRs | 111 · 71 · 11 sections |
 
 Documentation phases 0–7 and G are `DONE`. Phase 8 is the only one running.
@@ -54,25 +54,31 @@ question, and the two kinds have very different costs.
 **These four are the real ceiling.** `BLK-04` alone gates every invoice, every settlement and every
 payout — Sprints 5, 6, 11 and 12. No amount of engineering removes it.
 
-### 2b. Seven are document questions I can research and decide
+### 2b. Six are document questions I can research and decide
 
-`BLK-03` · `BLK-05` · `BLK-07` · `BLK-08` · `BLK-10` · `BLK-14` · `BLK-17`
+`BLK-03` · `BLK-05` · `BLK-08` · `BLK-10` · `BLK-14` · `BLK-17`
 
-Seven of this kind have now been closed — `BLK-12`, `BLK-15`, `BLK-18`, `BLK-20`, `BLK-21`, and on
-2026-08-10 also **`BLK-11`** (`ADR-0043`) and **`BLK-13`** (`ADR-0044`). **Five of the seven were
-mis-framed rather than genuinely contested.** Each had been recorded as "two documents disagree"
-when the two were not the same rank, or when one side was an example rather than a rule:
+Eight of this kind have now been closed — `BLK-12`, `BLK-15`, `BLK-18`, `BLK-20`, `BLK-21`, and on
+2026-08-10 also **`BLK-11`** (`ADR-0043`), **`BLK-13`** (`ADR-0044`) and **`BLK-07`** (`ADR-0045`).
+**Six of the eight were mis-framed rather than genuinely contested.** Each had been recorded as
+"two documents disagree" when the two were not the same rank, when one side was an example rather
+than a rule, or — twice now — when a search ran against the wrong file:
 
 | Blocker | What it was recorded as | What it actually was |
 | :--- | :--- | :--- |
 | `BLK-12` | Constitution vs two feature documents | Rank 1 vs two files not conforming to it |
 | `BLK-18` | A schema decision needing the owner | The grants already said what the policy should be |
-| `BLK-20` | Two rank-3 documents, two alphabets | Every alpha occurrence was inside `illustrative — not committed code` |
+| `BLK-20` | Two rank-3 documents, two alphabets | Every alpha occurrence was inside `illustrative — not committed code`; and a constraint recorded as absent existed under a reversed name |
 | `BLK-21` | A client decision withholding the taxonomy | A rank-4 backlog file **asking** for the placeholder |
 | `BLK-13` | Rank-3 spec vs a conflicting requirement | Rank-3 spec vs a **rank-5 test file** — precedence, not conflict |
+| `BLK-07` | Two documents citing a register that does not exist | It exists. **There are two files named `ERD.md`**, and the search ran against the other one |
 
 That is the single most useful fact in this plan: **the blocker list overstates how blocked the
-project is**, and the rank check belongs *before* the word "conflict" is written down.
+project is.** Two habits account for all six — the rank check belongs *before* the word "conflict"
+is written down, and **one spelling, or one file, is not a search.**
+
+**Closing a blocker is not bookkeeping.** `BLK-07`'s enum refused `KycDocument` on the day it
+landed — a value the shape `CHECK` had accepted for weeks, in committed code, pinned by a test.
 
 ---
 
