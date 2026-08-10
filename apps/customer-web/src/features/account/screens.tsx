@@ -42,10 +42,7 @@ export function AccountOverview() {
             <p className="max-w-prose text-base text-content-secondary">
               {t('web.account.overview.none')}
             </p>
-            <Link
-              href="/search"
-              className="gm-hit-target mt-stack-md inline-block gm-card-add text-base font-semibold"
-            >
+            <Link href="/search" className="mt-stack-md gm-card-add text-base font-semibold">
               {t('web.account.overview.findGym')}
             </Link>
           </div>
@@ -247,8 +244,23 @@ export function CheckInScreen({ membershipId }: { readonly membershipId: string 
              * │ screen than a square of noise would be.                                           │
              * └──────────────────────────────────────────────────────────────────────────────────┘
              */}
+            {/*
+             * The placeholder depends on the membership, because the promise does.
+             *
+             * It read "The code appears here when check-in goes live" for every membership - and
+             * this screen is reachable for an EXPIRED one, where no code will ever appear however
+             * live check-in becomes. A screen that says "not yet" about something that is actually
+             * "never" is the same shape as a status badge over a window that has closed: each half
+             * is true and the pair is not.
+             */}
             <div className="mx-auto flex aspect-square w-full max-w-[16rem] items-center justify-center rounded-card border border-dashed border-strong bg-surface-sunken p-inset-lg">
-              <p className="text-sm text-content-muted">{t('web.account.qr.placeholder')}</p>
+              <p className="text-sm text-content-muted">
+                {t(
+                  membership.status === 'ACTIVE'
+                    ? 'web.account.qr.placeholder'
+                    : 'web.account.qr.placeholderInactive',
+                )}
+              </p>
             </div>
 
             <p className="mt-stack-md text-base font-semibold text-content">{membership.gymName}</p>
@@ -272,7 +284,7 @@ export function CheckInScreen({ membershipId }: { readonly membershipId: string 
 
             <Link
               href="/account/attendance"
-              className="gm-hit-target mt-stack-lg inline-block gm-card-add text-base font-semibold"
+              className="mt-stack-lg gm-card-add text-base font-semibold"
             >
               {t('web.account.nav.attendance')}
             </Link>

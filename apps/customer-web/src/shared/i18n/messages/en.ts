@@ -829,6 +829,10 @@ export const en = {
     'A check-in code is issued once the membership is active. This one is still waiting on the payment confirmation.',
   'web.account.qr.expired': 'This membership has ended, so it no longer has a check-in code.',
   'web.account.qr.placeholder': 'The code appears here when check-in goes live.',
+  // The same panel on a membership that is not active. "When check-in goes live" is a promise
+  // this one will never be able to keep, whatever ships.
+  'web.account.qr.placeholderInactive':
+    'A check-in code belongs to an active membership. This one cannot show a code.',
   'web.account.qr.howTo':
     'Show it at the desk. The gym scans it, and the visit appears below within seconds.',
 
