@@ -30,21 +30,43 @@ import {
 } from '../../src/iam/permissions.ts';
 
 /**
- * The seed's uuid namespace. Fixed forever — changing it renumbers every seeded row and every
- * fixture that references one.
+ * `NS_SEED` — the `§C8.2` seed namespace, for `K3` test data.
+ *
+ * ┌─ THIS VALUE WAS WRONG FROM THE DAY IT WAS WRITTEN ───────────────────────────────────────────┐
+ * │ It read `6b1d5c2e-9f34-4a7d-8c15-2e0a7b3f6d81`, which appears in no document. Two binding     │
+ * │ rank-3 specifications fix it, agree with each other, and both say it is never changed:        │
+ * │                                                                                              │
+ * │   `SeedStrategy.md` §5.1 — `const NS_SEED = '6f2b7c1e-0000-5000-a000-000000000000';`          │
+ * │                            *"the §C8.2 seed namespace — NEVER changed"*                       │
+ * │   `TestingStrategy.md` §6.1 — the same literal, *"the GymMap seed namespace, never changed"*  │
+ * │                                                                                              │
+ * │ `DT2` and §7.2 both say changing a namespace *"is a coordinated migration of every committed  │
+ * │ expectation in the repository and requires the same review as a schema change"*. That rule is │
+ * │ the reason to correct it NOW rather than an argument against correcting it: the code never    │
+ * │ held the specified value, so every day it stands the migration gets larger. Today it costs a  │
+ * │ `pnpm db:seed` — every consumer computes ids through `roleId()` / `seedUuid()` and not one    │
+ * │ committed expectation hard-codes a derived literal, which was checked before changing it.     │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * `seed-namespaces.spec.ts` pins both literals against their citations so this cannot drift again.
  */
-export const SEED_NAMESPACE = '6b1d5c2e-9f34-4a7d-8c15-2e0a7b3f6d81';
+export const SEED_NAMESPACE = '6f2b7c1e-0000-5000-a000-000000000000';
 
 /**
- * A deterministic uuid for `<kind>:<key>`.
+ * `NS_REFERENCE` — for `K1` platform reference data. A DIFFERENT namespace, by rule.
  *
- * UUIDv5 (SHA-1, RFC 4122 §4.3) rather than a bare hash, so the value is a well-formed uuid with
- * the right version and variant bits — a `uuid` column accepts a malformed one from a text
- * literal and then sorts and indexes it strangely.
+ * `DT2a`: *"`NS_SEED` ≠ `NS_REFERENCE` … so a fixture id and a reference id can never collide, and
+ * a `SELECT` can tell them apart by regeneration."* `RD2` fixes the literal and the key format:
+ * `uuid_v5(NS_REFERENCE, '<table>:<business-key>')`, so `amenities.key = 'SWIMMING_POOL'` has the
+ * same uuid in every environment — which is what lets `SEP9`'s drift check be a set comparison
+ * rather than a semantic diff.
  */
-export function seedUuid(kind: string, key: string): string {
-  const namespaceBytes = Buffer.from(SEED_NAMESPACE.replace(/-/g, ''), 'hex');
-  const hash = createHash('sha1').update(namespaceBytes).update(`${kind}:${key}`, 'utf8').digest();
+export const REFERENCE_NAMESPACE = '3f8a2d10-0000-5000-b000-000000000000';
+
+/** UUIDv5 over an explicit namespace. Shared by both `seedUuid` and `referenceUuid`. */
+function uuidV5(namespace: string, name: string): string {
+  const namespaceBytes = Buffer.from(namespace.replaceAll('-', ''), 'hex');
+  const hash = createHash('sha1').update(namespaceBytes).update(name, 'utf8').digest();
 
   const bytes = Buffer.from(hash.subarray(0, 16));
   bytes[6] = (bytes[6]! & 0x0f) | 0x50; // version 5
@@ -58,6 +80,28 @@ export function seedUuid(kind: string, key: string): string {
     hex.slice(16, 20),
     hex.slice(20, 32),
   ].join('-');
+}
+
+/**
+ * A deterministic uuid for a `K3` seed row, as `<kind>:<key>`.
+ *
+ * UUIDv5 (SHA-1, RFC 4122 §4.3) rather than a bare hash, so the value is a well-formed uuid with
+ * the right version and variant bits — a `uuid` column accepts a malformed one from a text literal
+ * and then sorts and indexes it strangely. `DT4a`: v5 and never v7, because v7's value depends on
+ * WHEN it was generated, which is the opposite of what a seed needs.
+ */
+export function seedUuid(kind: string, key: string): string {
+  return uuidV5(SEED_NAMESPACE, `${kind}:${key}`);
+}
+
+/**
+ * A deterministic uuid for a `K1` reference row, as `<table>:<business-key>` — `RD2`.
+ *
+ * Note the key format differs from `seedUuid`'s: `RD2` fixes it as the TABLE name, not a "kind",
+ * because the drift check compares reference rows table by table.
+ */
+export function referenceUuid(table: string, businessKey: string): string {
+  return uuidV5(REFERENCE_NAMESPACE, `${table}:${businessKey}`);
 }
 
 export const roleId = (key: string): string => seedUuid('role', key);
