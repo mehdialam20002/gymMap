@@ -28,7 +28,7 @@
  * guesses was closest, and turns token forgery into a game with feedback.
  */
 
-import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Inject, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 
@@ -41,6 +41,8 @@ import {
   extractBearerToken,
   type AccessTokenClaims,
 } from '../auth/access-token.verifier.js';
+import { CLOCK, type Clock } from '../clock/clock.port.js';
+import { impersonationExpired } from '../../iam/domain/impersonation.policy.js';
 
 export interface AuthenticatedRequest extends Request {
   principal?: AccessTokenClaims;
@@ -54,6 +56,13 @@ export class JwtAuthGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly verifier: AccessTokenVerifier,
     private readonly denylist: FamilyDenylist,
+    /*
+     * Injected, and required — `AC-FND-13.3`, the same rule `AccessTokenVerifier` states at
+     * length. `AC-3`'s cap is thirty minutes, and proving a session expires after thirty minutes
+     * against `Date.now()` means either waiting thirty minutes or monkey-patching a global that
+     * leaks between suites.
+     */
+    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -96,6 +105,31 @@ export class JwtAuthGuard implements CanActivate {
     const family = request.principal.fam;
     if (family !== undefined && (await this.denylist.isRevoked(family))) {
       throw this.reject('the token family has been revoked');
+    }
+
+    /*
+     * ┌─ `M-025` `AC-3` · THE THIRTY-MINUTE CAP, RE-CHECKED AGAINST `imp_at` AND NOT `exp` ──────┐
+     * │ `exp` is already enforced by the verifier, and enforcing only `exp` would mean trusting   │
+     * │ the signer. A token is evidence of what the signer BELIEVED: a signer bug, a redeployment │
+     * │ with a different `IMPERSONATION_MAX_MINUTES`, or a clock that moved between mint and use  │
+     * │ all produce a well-formed token with an `exp` further out than the policy allows, and     │
+     * │ none of them is self-reporting.                                                            │
+     * │                                                                                          │
+     * │ `impersonationExpired()` is the same pure function `start-impersonation.use-case.ts`      │
+     * │ bounds the mint with, so the two cannot disagree about what thirty minutes means.          │
+     * │                                                                                          │
+     * │ In the GUARD rather than the middleware, deliberately. The middleware may not reject —    │
+     * │ it cannot read `@Public()` and would 401 a public route — and `AC-7` requires ONE          │
+     * │ rejection shape from ONE place. This file is that place.                                   │
+     * └──────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    const startedAtSeconds = request.principal.imp_at;
+    if (
+      request.principal.typ === 'IMPERSONATION' &&
+      typeof startedAtSeconds === 'number' &&
+      impersonationExpired(new Date(startedAtSeconds * 1000), this.clock.now())
+    ) {
+      throw this.reject('the impersonation session has passed its thirty-minute cap');
     }
 
     return true;

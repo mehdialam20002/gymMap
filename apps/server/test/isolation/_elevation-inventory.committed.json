@@ -10,21 +10,21 @@
     {
       "module": "tenancy",
       "file": "apps/server/src/tenancy/application/elevated-tenant-reader.ts",
-      "line": 80,
+      "line": 98,
       "scope": "READ_ALL_TENANTS",
       "permission": "UNKNOWN"
     },
     {
       "module": "tenancy",
       "file": "apps/server/src/tenancy/application/elevated-tenant-reader.ts",
-      "line": 128,
+      "line": 146,
       "scope": "READ_ALL_TENANTS",
       "permission": "UNKNOWN"
     },
     {
       "module": "tenancy",
       "file": "apps/server/src/tenancy/application/elevated-tenant-reader.ts",
-      "line": 179,
+      "line": 197,
       "scope": "READ_ALL_TENANTS",
       "permission": "UNKNOWN"
     }

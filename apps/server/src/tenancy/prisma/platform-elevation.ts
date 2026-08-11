@@ -29,7 +29,9 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Brand } from '@gymmap/types';
 
 import type { AuditEntry, AuditWritePort } from '../../audit/ports/audit-write.port.js';
+import { currentImpersonation } from '../../common/auth/impersonation.als.js';
 import { currentCorrelationId } from '../../common/logging/correlation.als.js';
+import { mayElevate } from '../../iam/domain/impersonation.policy.js';
 import { currentTenantContext } from '../context/tenant-context.als.js';
 import {
   isTenantScope,
@@ -156,12 +158,38 @@ export async function runElevated<T>(
     );
   }
 
-  // PE-T5 · and never during impersonation. Asserted here against the scaffolded principal and
-  // re-run against real roles in M-025. An agent acting AS a member must not be able to reach
-  // beyond that member's tenant: the member could not, and the agent is standing in for them.
+  /*
+   * ┌─ PE-T5 · NEVER DURING IMPERSONATION, AND THIS NOW ASKS THE RIGHT QUESTION ─────────────────┐
+   * │ An agent acting AS a member must not reach beyond that member's tenant: the member could    │
+   * │ not, and the agent is standing in for them. `AC-6` and `AC-AUTH-03.2`.                       │
+   * │                                                                                            │
+   * │ Until 2026-08-11 the only check was `options.actor.permission.startsWith('impersonation.')` │
+   * │ — a string prefix on a caller-supplied field, which the comment here honestly called         │
+   * │ *"the scaffolded principal … re-run against real roles in M-025"*. It answers a different    │
+   * │ question from the one that matters: not *"is this session impersonated"* but *"did the       │
+   * │ caller happen to name a permission beginning with those fourteen characters"*. Any elevation │
+   * │ made under a borrowed identity while citing, say, `admin.tenant.read` passed it cleanly.     │
+   * │                                                                                            │
+   * │ `currentImpersonation()` reads the `AsyncLocalStorage` frame the request opened, so it is a  │
+   * │ fact about the SESSION rather than about the argument. The prefix check is kept beneath it:  │
+   * │ it catches a caller who states an impersonation permission outside a frame, which is a       │
+   * │ differently-shaped mistake and still not something to elevate on.                            │
+   * │                                                                                            │
+   * │ `mayElevate()` is the pure predicate both halves come from, so `AC-6` has one definition.    │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const impersonation = currentImpersonation();
+  if (impersonation !== null && !mayElevate('IMPERSONATION')) {
+    throw new ElevationRefusedError(
+      `an impersonation session by ${impersonation.impersonatorId} is open. An agent acting AS a ` +
+        "member must not reach beyond that member's tenant — the member could not (AC-AUTH-03.2)",
+      options.scope,
+    );
+  }
+
   if (options.actor.kind === 'HUMAN' && options.actor.permission.startsWith('impersonation.')) {
     throw new ElevationRefusedError(
-      'the actor is inside an impersonation session. An agent acting AS a member must not reach ' +
+      'the actor states an impersonation permission. An agent acting AS a member must not reach ' +
         "beyond that member's tenant — the member could not (AC-AUTH-03.2)",
       options.scope,
     );

@@ -37,13 +37,7 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  Logger,
-  SetMetadata,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger, SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
 import { IS_PUBLIC } from '../decorators/public.decorator.js';
@@ -83,8 +77,7 @@ interface GuardedRequest {
  * `param` is the route parameter holding the id. Absent means the route acts on a collection.
  */
 export const ACTS_ON = 'gymmap:acts-on';
-export const ActsOn = (resource: string, param = 'id') =>
-  SetMetadata(ACTS_ON, { resource, param });
+export const ActsOn = (resource: string, param = 'id') => SetMetadata(ACTS_ON, { resource, param });
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {

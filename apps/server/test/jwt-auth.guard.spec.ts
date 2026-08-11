@@ -55,8 +55,17 @@ const verifier = new AccessTokenVerifier(config, new SystemClock());
 const denylist = (revoked: readonly string[] = []) =>
   ({ isRevoked: (family: string) => Promise.resolve(revoked.includes(family)) }) as never;
 
+/**
+ * `M-025` added a fourth constructor argument: the clock, for `AC-3`'s thirty-minute cap.
+ *
+ * Frozen rather than real, and required rather than defaulted — `AC-FND-13.3`. Every case in this
+ * file uses an ACCESS token, for which the cap is not consulted at all, so the value only has to
+ * exist; the cap itself is asserted in `impersonation-wiring.spec.ts` where it applies.
+ */
+const clock = { now: () => new Date('2026-08-11T10:00:00.000Z') } as never;
+
 const guard = (isPublic = false, revoked: readonly string[] = []) =>
-  new JwtAuthGuard(reflector(isPublic), verifier, denylist(revoked));
+  new JwtAuthGuard(reflector(isPublic), verifier, denylist(revoked), clock);
 
 // ---------------------------------------------------------------------------
 // Accept.
@@ -216,7 +225,7 @@ test('the guard does NOT re-verify a principal the middleware already resolved',
     // No `fam`, so the denylist is not consulted either — see the AC-10 cases below.
   };
 
-  const sut = new JwtAuthGuard(reflector(), counting, denylist());
+  const sut = new JwtAuthGuard(reflector(), counting, denylist(), clock);
   assert.equal(await sut.canActivate(context as never), true);
   assert.equal(verifications, 0, 'the guard verified a token the middleware had already verified');
 });
@@ -232,7 +241,7 @@ test('AC-10 · a revoked family is rejected even when the middleware resolved th
     fam: 'family-under-revocation',
   };
 
-  const sut = new JwtAuthGuard(reflector(), verifier, denylist(['family-under-revocation']));
+  const sut = new JwtAuthGuard(reflector(), verifier, denylist(['family-under-revocation']), clock);
   await assert.rejects(() => sut.canActivate(context as never));
 });
 

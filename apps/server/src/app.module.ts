@@ -17,6 +17,8 @@ import { AdminModule } from './admin/index.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { PlatformRoleGuard } from './common/guards/platform-role.guard.js';
 import { PermissionsGuard } from './common/guards/permissions.guard.js';
+import { ImpersonationRestrictionGuard } from './common/guards/impersonation-restriction.guard.js';
+import { ImpersonationContextMiddleware } from './common/auth/impersonation-context.middleware.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { TenancyModule } from './tenancy/tenancy.module.js';
 import { TenantContextMiddleware } from './tenancy/context/tenant-context.middleware.js';
@@ -85,6 +87,27 @@ import { TenantGuard } from './tenancy/guards/tenant.guard.js';
      */
     { provide: APP_GUARD, useClass: PermissionsGuard },
 
+    /*
+     * ┌─ `M-025` `AC-6` · LAST, BECAUSE IT REFUSES WHAT THE OTHERS HAVE ALREADY ALLOWED ─────────┐
+     * │ `ImpersonationRestrictionGuard` refuses a `@FinancialMutation()` route under an           │
+     * │ impersonation token. It has to run AFTER `PermissionsGuard`, and the reason is what a     │
+     * │ 403 MEANS: an agent who could not perform the action anyway should be told they lack the  │
+     * │ permission, not that impersonation forbids it. Reversed, the impersonation refusal would  │
+     * │ mask every ordinary authorisation failure on those routes and an operator debugging a     │
+     * │ role problem would be sent to the wrong place entirely.                                    │
+     * │                                                                                          │
+     * │ Built at `M-025`, registered nowhere until 2026-08-11 — `TD-045`'s list of four, of which │
+     * │ this is the third. Its unit tests passed throughout, because a guard's unit tests cannot  │
+     * │ notice that nothing calls it.                                                              │
+     * │                                                                                          │
+     * │ It is cheap to run globally: it reads one piece of route metadata and returns `true`      │
+     * │ immediately for every route that is not a financial mutation, which today is all of them. │
+     * │ Registering it per-route instead would make the control opt-IN, and the route somebody    │
+     * │ forgets to annotate is exactly the one that moves money.                                   │
+     * └──────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    { provide: APP_GUARD, useClass: ImpersonationRestrictionGuard },
+
     // ── Interceptor ORDER matters, and this is the order ──────────────────────────────────
     //
     // Nest runs global interceptors in registration order, outermost first. Idempotency must
@@ -143,6 +166,23 @@ export class AppModule implements NestModule {
     // │ `middleware-registration.int-spec.ts` now asserts over HTTP that this middleware     │
     // │ actually runs — a registration that matches nothing is invisible to every unit test. │
     // └──────────────────────────────────────────────────────────────────────────────────────┘
-    consumer.apply(TenantContextMiddleware).forRoutes({ path: '*', method: RequestMethod.ALL });
+    /*
+     * ┌─ IMPERSONATION FIRST, SO ITS FRAME CONTAINS THE TENANT FRAME ──────────────────────────┐
+     * │ Both wrap `next()`, so the order decides which `AsyncLocalStorage` frame encloses the   │
+     * │ other. Impersonation outermost is the one that survives a future change: `AC-7` wants   │
+     * │ the agent on EVERY write, and a write that happens outside the tenant frame — a         │
+     * │ platform-level audit row, a `runWithoutTenant` path — must still carry it.               │
+     * │                                                                                        │
+     * │ The reverse order works today and would stop working the first time something audited   │
+     * │ ran without a tenant, which is a class of bug that surfaces as a null column rather     │
+     * │ than as an error.                                                                        │
+     * │                                                                                        │
+     * │ `'*'`, not `'*path'`. Nest 10 runs Express 4, where `'*path'` matches NOTHING — the     │
+     * │ box above records what that cost when `TenantContextMiddleware` had it.                  │
+     * └────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    consumer
+      .apply(ImpersonationContextMiddleware, TenantContextMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }

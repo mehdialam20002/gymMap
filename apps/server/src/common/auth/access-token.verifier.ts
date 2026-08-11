@@ -51,8 +51,23 @@ export interface AccessTokenClaims {
   /** The tenant this session is acting within. Absent for a platform-staff session. */
   readonly tenant_id?: string;
   readonly roles: readonly string[];
-  /** `ACCESS`. A refresh token presented here is rejected — see the note on `typ` below. */
+  /** `ACCESS` or `IMPERSONATION`. A refresh token presented here is rejected — see `typ` below. */
   readonly typ: string;
+  /**
+   * `M-025` · The AGENT — present on an `IMPERSONATION` token and on nothing else.
+   *
+   * `audit_log.impersonated_by`, and the reason a borrowed session is attributable at all.
+   */
+  readonly imp?: string;
+  /**
+   * The AGENT's role claims, alongside the subject's in `roles`.
+   *
+   * Both travel because `AC-5`'s intersection is not expressible as a role claim — no `§B3.2` role
+   * has exactly those permissions — so `effectiveGrants()` computes it at the decision point.
+   */
+  readonly imp_roles?: readonly string[];
+  /** Seconds. `AC-3`'s server-side re-check reads THIS, never `exp`. */
+  readonly imp_at?: number;
   /**
    * M-022 · The token FAMILY, for the `AC-10` revocation denylist.
    *
@@ -163,18 +178,38 @@ export class AccessTokenVerifier {
     if (claims.iss !== TOKEN_ISSUER) throw new TokenRejected('wrong issuer');
     if (claims.aud !== TOKEN_AUDIENCE) throw new TokenRejected('wrong audience');
 
-    // ── `typ` ─────────────────────────────────────────────────────────────────────────────
-    //
-    // A REFRESH token is signed with a different secret, so it would fail above anyway. The
-    // check is here regardless, because the two secrets being different is a fact about M-022
-    // that this file should not depend on: if they were ever unified, a refresh token would
-    // otherwise become a valid access token with a 30-day lifetime.
-    if (claims.typ !== 'ACCESS')
+    /*
+     * ── `typ` ─────────────────────────────────────────────────────────────────────────────
+     *
+     * A REFRESH token is signed with a different secret, so it would fail above anyway. The check
+     * is here regardless, because the two secrets being different is a fact about M-022 that this
+     * file should not depend on: if they were ever unified, a refresh token would otherwise become
+     * a valid access token with a 30-day lifetime.
+     *
+     * ┌─ `IMPERSONATION` WAS REFUSED HERE UNTIL 2026-08-11, AND `TD-047` NAMES WHAT THAT COST ───┐
+     * │ The route `Authentication.md` §8.15 requires be called **with** the impersonation token — │
+     * │ `POST /auth/impersonate/end` — could not be called at all, because the global             │
+     * │ `JwtAuthGuard` rejected the token on every route. Meanwhile `POST /auth/impersonate` still│
+     * │ succeeded and wrote an `IMPERSONATE_START` audit row, so the log recorded sessions that   │
+     * │ never happened and could never be ended.                                                   │
+     * │                                                                                          │
+     * │ **The order in which this was safe to lift is the whole of `TD-047`.** Accepting the type │
+     * │ without `PermissionsGuard` bound would have handed the session the SUBJECT's full         │
+     * │ permission set — the union-by-omission `AC-5` forbids — because nothing would have        │
+     * │ narrowed it. `PermissionsGuard` was bound at `c9c851e` and calls `effectiveGrants()`,     │
+     * │ which intersects the two role sets and returns NOTHING when the agent's are missing.      │
+     * │ That is why this change comes second and not first.                                       │
+     * └──────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    if (claims.typ !== 'ACCESS' && claims.typ !== 'IMPERSONATION') {
       throw new TokenRejected(`token type ${String(claims.typ)} refused`);
+    }
 
     if (typeof claims.sub !== 'string' || claims.sub.length === 0) {
       throw new TokenRejected('no subject');
     }
+
+    if (claims.typ === 'IMPERSONATION') assertImpersonationClaims(claims);
 
     return claims;
   }
@@ -197,6 +232,65 @@ export class AccessTokenVerifier {
     } catch {
       return null;
     }
+  }
+}
+
+/**
+ * `M-025` · The three claims an `IMPERSONATION` token must carry, checked STRUCTURALLY.
+ *
+ * ┌─ A TRUNCATED CLAIM IS A REJECTED TOKEN, NOT A DEGRADED ONE ──────────────────────────────────┐
+ * │ Every one of these has a downstream consumer that fails OPEN if it is missing, and each        │
+ * │ failure is silent:                                                                             │
+ * │                                                                                              │
+ * │   `imp`        → `audit_log.impersonated_by` is `null`, so every action under the borrowed     │
+ * │                  identity is indistinguishable from the subject's own. `AC-7` requires the     │
+ * │                  agent on EVERY write, and an investigation would find exactly nothing.        │
+ * │   `imp_roles`  → `effectiveGrants()` returns `[]` and the request is refused — that one is     │
+ * │                  already fail-closed, and it is checked here anyway so the refusal is a 401    │
+ * │                  naming a malformed token rather than a 403 that reads like a role problem.    │
+ * │   `imp_at`     → `AC-3`'s server-side cap has nothing to re-check against, and the 30-minute   │
+ * │                  limit collapses to whatever `exp` the signer happened to write. The whole     │
+ * │                  point of `imp_at` is that a signer bug is not self-reporting.                  │
+ * │                                                                                              │
+ * │ Checking them at the verifier rather than at each consumer means a token that reaches any      │
+ * │ handler is complete by construction, and there is one place to read to know that.              │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * `roles` is deliberately NOT required to be non-empty. A subject with no roles is a legitimate
+ * thing to impersonate — a member who has just registered — and the intersection of their nothing
+ * with the agent's something is correctly nothing.
+ */
+function assertImpersonationClaims(claims: AccessTokenClaims): void {
+  if (typeof claims.imp !== 'string' || claims.imp.length === 0) {
+    throw new TokenRejected('impersonation token carries no agent');
+  }
+
+  if (!Array.isArray(claims.imp_roles) || claims.imp_roles.length === 0) {
+    throw new TokenRejected('impersonation token carries no agent roles');
+  }
+
+  // Element-wise, not just `Array.isArray`. `imp_roles: [null]` passes the array check and then
+  // `parseRoleGrants` skips the entry, leaving an agent with zero grants — which `effectiveGrants`
+  // treats as a forged token and refuses. Same outcome, and a 401 here says why.
+  if (claims.imp_roles.some((role) => typeof role !== 'string' || role.length === 0)) {
+    throw new TokenRejected('impersonation token has a malformed agent role');
+  }
+
+  if (typeof claims.imp_at !== 'number' || !Number.isFinite(claims.imp_at)) {
+    throw new TokenRejected('impersonation token carries no start time');
+  }
+
+  /*
+   * A start in the FUTURE is refused. `impersonationExpired()` computes elapsed minutes from it,
+   * and a future start yields a negative elapsed time — which is never "expired", so a token
+   * claiming to begin tomorrow would outlive the `AC-3` cap indefinitely.
+   *
+   * The comparison is against the token's own `iat` rather than the clock: the clock is already
+   * used for `exp` above, and re-reading it here would let a token pass or fail on a difference of
+   * milliseconds between two reads of the same instant.
+   */
+  if (typeof claims.iat === 'number' && claims.imp_at > claims.iat) {
+    throw new TokenRejected('impersonation start is after the token was issued');
   }
 }
 
