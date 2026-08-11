@@ -8,7 +8,7 @@ import { t } from '../../src/shared/i18n/index.ts';
 import { HowItWorksPage } from '../../src/features/marketing/how-it-works.tsx';
 
 export const metadata: Metadata = {
-  title: `${t('web.howItWorks.title')} · GymMap`,
+  title: `${t('web.howItWorks.title')} · GYM MAP`,
   description: t('web.howItWorks.metaDescription'),
   alternates: { canonical: '/how-it-works' },
 };

@@ -8,7 +8,7 @@ import { t } from '../../../src/shared/i18n/index.ts';
 import { Confirmation } from '../../../src/features/checkout/confirmation.tsx';
 
 export const metadata: Metadata = {
-  title: `${t('web.confirmation.title')} · GymMap`,
+  title: `${t('web.confirmation.title')} · GYM MAP`,
   description: t('web.confirmation.metaDescription'),
   robots: { index: false, follow: false },
 };

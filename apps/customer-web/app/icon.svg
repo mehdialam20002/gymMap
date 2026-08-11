@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="GymMap">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="GYM MAP">
   <!--
     The tab mark. `app/icon.svg` is the App Router convention: Next serves it and emits the
     <link rel="icon"> itself, which is why no manual tag exists in layout.tsx — and why the

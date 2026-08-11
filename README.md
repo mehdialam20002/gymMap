@@ -1,4 +1,4 @@
-# GymMap
+# GYM MAP
 
 **Gym Marketplace & Multi-Tenant Gym Management SaaS.**
 

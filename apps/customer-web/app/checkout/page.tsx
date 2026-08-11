@@ -10,7 +10,7 @@ import { parseCheckout } from '../../src/features/checkout/quote.ts';
 import { Checkout } from '../../src/features/checkout/checkout.tsx';
 
 export const metadata: Metadata = {
-  title: `${t('web.checkout.title')} · GymMap`,
+  title: `${t('web.checkout.title')} · GYM MAP`,
   description: t('web.checkout.metaDescription'),
   /*
    * A checkout is one member's transaction in progress. It has nothing to offer a search result

@@ -57,7 +57,7 @@ import { checkoutHref } from '../checkout/quote.ts';
  * │     "Explore by city"        over  "Where we have listings"       the same idea              │
  * │     "Find your fit"          over  "What are you training for?"   the same question          │
  * │     "Smarter decisions"      over  the comparison teaser          a mood, not a fact         │
- * │     "Simple by design"       over  "How GymMap works"             a claim about ourselves    │
+ * │     "Simple by design"       over  "How GYM MAP works"             a claim about ourselves    │
  * │     "Membership marketplace" over  "Plans from verified gyms"     positioning                │
  * │                                                                                             │
  * │ A structural device has to encode something true about the content or it is decoration, and  │

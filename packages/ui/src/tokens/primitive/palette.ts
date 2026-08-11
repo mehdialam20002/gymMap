@@ -96,9 +96,9 @@ export const palette = {
   },
 
   /**
-   * `brand` — GymMap wine. A deep red, and DEEP is the load-bearing word.
+   * `brand` — GYM MAP wine. A deep red, and DEEP is the load-bearing word.
    *
-   * ┌─ WHY NOT A BRIGHT RED, WHICH IS WHAT "GymMap red" SOUNDS LIKE ───────────────────────────────┐
+   * ┌─ WHY NOT A BRIGHT RED, WHICH IS WHAT "GYM MAP red" SOUNDS LIKE ───────────────────────────────┐
    * │ `danger` is red, and this console adjudicates businesses: an "Approve" primary sitting beside │
    * │ a "Reject" destructive is the single most consequential pair of buttons in the product. Two   │
    * │ reds at the same lightness there is not a taste problem, it is a mis-click.                    │
@@ -129,7 +129,7 @@ export const palette = {
     300: '#E28FA9',
     400: '#C55578',
     500: '#A02E54',
-    /** `GymMap wine`. The brand solid. White on it is 10.51:1. */
+    /** `GYM MAP wine`. The brand solid. White on it is 10.51:1. */
     600: '#7A1637',
     /** Brand text and links on a light canvas, and the solid's hover — 12.9:1 on white. */
     700: '#651230',
@@ -155,11 +155,11 @@ export const palette = {
    * +-------------------------------------------------------------------------------------------+
    */
   /**
-   * `brand` — GymMap green. The reference's emerald, and the ramp every piece of chrome reads from.
+   * `brand` — GYM MAP green. The reference's emerald, and the ramp every piece of chrome reads from.
    *
    * +- SUPERSEDES THE `wine` RAMP OF `ADR-0036`, BY THE OWNER'S INSTRUCTION ---------------------+
    * | `ADR-0036` made the brand a deep wine red, because an earlier brief said "Primary: deep red  |
-   * | / GymMap red". The owner then supplied an emerald reference and instructed that visual       |
+   * | / GYM MAP red". The owner then supplied an emerald reference and instructed that visual       |
    * | prescription must not block the design (`ADR-0037`). `wine` is kept below, unbound, because  |
    * | deleting a ramp a recorded decision names would leave the DECISION_LOG describing something  |
    * | that no longer exists.                                                                     |
@@ -199,7 +199,7 @@ export const palette = {
      * +-------------------------------------------------------------------------------------+
      */
     600: '#059669',
-    /** `GymMap green`. The brand solid, and brand ink on a light canvas. White on it: 5.48:1. */
+    /** `GYM MAP green`. The brand solid, and brand ink on a light canvas. White on it: 5.48:1. */
     700: '#047857',
     800: '#065F46',
     900: '#064E3B',

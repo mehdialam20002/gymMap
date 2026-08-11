@@ -53,7 +53,7 @@ flowchart TB
         SUP["Support agent"]
     end
 
-    subgraph Platform["GymMap platform — one deployable artefact, two roles"]
+    subgraph Platform["GYM MAP platform — one deployable artefact, two roles"]
         WEB["customer-web<br/>Next.js 14 App Router · SSR for SEO"]
         DASH["gym-dashboard<br/>React 18 + Vite SPA"]
         ADM["admin-dashboard<br/>React 18 + Vite SPA · MFA"]

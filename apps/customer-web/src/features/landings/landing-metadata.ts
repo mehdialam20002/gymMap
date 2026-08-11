@@ -28,7 +28,7 @@ export interface LandingMetadata {
 
 /** The title a slug that resolves to nothing gets, so a 404 is not an untitled tab. */
 function missing(): LandingMetadata {
-  return { title: `${t('web.gym.notFound.title')} · GymMap` };
+  return { title: `${t('web.gym.notFound.title')} · GYM MAP` };
 }
 
 export function cityLandingMetadata(citySlug: string): LandingMetadata {
@@ -36,7 +36,7 @@ export function cityLandingMetadata(citySlug: string): LandingMetadata {
   if (landing === null) return missing();
 
   return {
-    title: `${t('web.landing.city.title').replace('{city}', landing.name)} · GymMap`,
+    title: `${t('web.landing.city.title').replace('{city}', landing.name)} · GYM MAP`,
     description: t('web.landing.city.metaDescription').replace('{city}', landing.name),
     /*
      * One canonical per place. Without it `/gyms/bengaluru` and `/search?city=bengaluru` compete
@@ -51,7 +51,7 @@ export function activityLandingMetadata(activitySlug: string): LandingMetadata {
   if (landing === null) return missing();
 
   return {
-    title: `${t('web.landing.activity.title').replace('{activity}', landing.name)} · GymMap`,
+    title: `${t('web.landing.activity.title').replace('{activity}', landing.name)} · GYM MAP`,
     description: t('web.landing.activity.metaDescription').replace('{activity}', landing.name),
     canonical: `/explore/${landing.slug}`,
   };

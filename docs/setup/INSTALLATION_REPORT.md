@@ -236,7 +236,7 @@ Neither could be installed. Both are required before `pnpm infra:up` will work.
 
 ```powershell
 # In an ADMINISTRATOR PowerShell
-cd C:\Users\Mehdi\Desktop\GymMap
+cd C:\Users\Mehdi\Desktop\GYM MAP
 powershell -ExecutionPolicy Bypass -File docs\setup\elevated-setup.ps1
 ```
 

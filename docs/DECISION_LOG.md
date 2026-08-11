@@ -5503,7 +5503,7 @@ one entry and its acceptance criteria are otherwise untouched. Recorded in `PHAS
 | **Supersedes** | `pear` as the brand family in `packages/ui/src/tokens/primitive/palette.ts` |
 | **Tracked as** | Phase 1 of the console redesign |
 
-**The instruction.** The owner specified: *"GymMap's brand should use Primary: deep red / GymMap
+**The instruction.** The owner specified: *"GYM MAP's brand should use Primary: deep red / GYM MAP
 red"*, with red reserved for *"primary actions, active navigation, important metrics, critical
 states, selected controls"* and the explicit constraint that *"red must NOT dominate the whole
 dashboard"* — most surfaces stay neutral.
@@ -6304,7 +6304,7 @@ business on the software, and still pays for it.
 
 **Therefore the page's sentence was not false, it was unscoped**, and one clause fixes it:
 
-> Listing on GymMap costs a commission per membership sold, and nothing else: no listing fee, no
+> Listing on GYM MAP costs a commission per membership sold, and nothing else: no listing fee, no
 > monthly charge for your listing, and no fee for a month with no sales.
 
 The marketplace's strongest promise survives intact — a gym with no sales pays nothing to be
@@ -6766,7 +6766,66 @@ identity layer to scope out — every one of these rules applies there exactly a
 
 ---
 
-**End of decision log.** Fifty-two ADRs, all `Accepted`, numbered `ADR-0001` … `ADR-0052` with no
+## ADR-0053 — the product is called `GYM MAP`, in two words
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-11 |
+| **Decided by** | **Project owner**, directly |
+| **Amends** | The product's name, everywhere it is written as prose. `MASTER_PRD.md` Part C §C10 change control — the PRD itself never spells the name, so nothing in it moves |
+
+The owner's instruction: *"project ka naam GYM MAP hai, na ki GymMap — sab jagah, har jagah change kar do."*
+The name is **two words**, and it is written as the owner typed it: `GYM MAP`.
+
+**What changes: 120 occurrences of the exact string `GymMap`, in 56 tracked files.** The largest
+concentration is `apps/customer-web`'s message catalogue (29), which is every place a member reads
+the name; the rest is documentation prose and source comments.
+
+**What does NOT change, and why this was safe to do mechanically.**
+
+| Kept | Count | Why |
+| :--- | :-: | :--- |
+| `@gymmap/*` workspace scope | — | A package name is an npm identifier. Renaming it rewrites every import in the monorepo and every `pnpm-workspace` reference to buy nothing a reader sees |
+| `gm-` / `--gm-` class and token prefixes | — | Identifiers, and the prefix is an abbreviation rather than the name |
+| `gymmap.in`, the `gymmap` database, `.env` keys, file paths | — | Hostnames, a database name and paths. A domain is bought, not styled |
+
+All of those are spelled **lower-case `gymmap`** — 805 occurrences — and the brand is spelled
+`GymMap`, so a literal replacement of the second cannot reach the first. That is what made this a
+mechanical change rather than a careful one, and it was verified before it ran: `GymMap` is
+**never** part of a longer identifier anywhere in the repository. There is no `GymMapClient`, no
+`GymMapModule`, nothing to break.
+
+**Five places spelled it the brand's way and were not the brand.** The pass took all five, and each was put back by hand:
+
+| Restored | Why it is not a name |
+| :--- | :--- |
+| `.mcp.json`, pointing at `C:/Users/Mehdi/Desktop/GymMap` | A filesystem path. Renamed, it points at a directory that does not exist |
+| The same path in `docs/engineering/TestingStrategy.md` and `docs/setup/elevated-setup.ps1` | Twice more - and in a shell script the space would need quoting the line does not have |
+| The `otpauth://totp/…?issuer=…` label, in `apps/server/test/totp.spec.ts` and `docs/apis/Authentication.md` | An unencoded space is not valid in that URI, and the issuer is what an authenticator app has already ENROLLED. Changing it is a migration, not a rename |
+
+That is the shape of every mechanical rename: the string is right and the CONTEXT is not, and no search-and-replace knows the difference between a word and a path. All five were found by reading the diff for anything shaped like a URI, a path or an identifier - **not** by the tests, which passed either way.
+
+**And the rename rewrote its own record, which is worth keeping.** This ADR was written before the
+pass ran, so the pass found the old name inside it and duly replaced it: the sentence above read
+*"the name is GYM MAP, not GYM MAP"* and the identifier example read `GYM MAPClient`. A mechanical
+rename cannot tell a name being USED from a name being QUOTED, and the one document that must
+quote the old name is the one recording that it is old. Restored by hand.
+
+**The one thing to know if it reads wrong.** `GYM MAP` is upper-case because that is how the owner
+wrote it, and in running specification prose — *"Every gym on GYM MAP is verified before it is
+listed"* — it is louder than the sentence around it. If the intent was title case, `Gym Map`, the
+correction is the same single mechanical pass over the same 114 places and nothing else has to
+move. It is recorded here so the next reader knows the caps were chosen rather than inherited.
+
+Note that this is **not** in tension with `ADR-0052`, which forbids case-shifting *content*: that
+rule protects gym names, city names and member names — strings the platform receives. A product's
+own wordmark is the platform's to style, and it is written into the catalogue in the case it is
+meant to be read, rather than being shouted by a `text-transform` a translator cannot see.
+
+---
+
+**End of decision log.** Fifty-three ADRs, all `Accepted`, numbered `ADR-0001` … `ADR-0053` with no
 gaps. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.

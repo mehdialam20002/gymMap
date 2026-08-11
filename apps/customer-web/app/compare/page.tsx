@@ -16,7 +16,7 @@ export function generateMetadata({ searchParams }: { searchParams: RawParams }):
   const names = gyms.map((gym) => gym.name).join(' vs ');
 
   return {
-    title: names === '' ? `${t('web.compare.title')} · GymMap` : `${names} · GymMap`,
+    title: names === '' ? `${t('web.compare.title')} · GYM MAP` : `${names} · GYM MAP`,
     description: t('web.compare.metaDescription'),
     /*
      * A comparison is a member's working document, not a page anyone should land on from a

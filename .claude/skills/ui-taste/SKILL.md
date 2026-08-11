@@ -1,6 +1,6 @@
 ---
 name: ui-taste
-description: Design and animate GymMap UI without producing generic AI-looking output. Use when building or restyling any screen in customer-web, gym-dashboard or admin-dashboard, when adding motion or transitions, when a design "looks AI-generated" or needs taste, or when redesigning an existing surface. Adapted from leonxlnx/taste-skill and constrained by this repository's locked stack and design-token law.
+description: Design and animate GYM MAP UI without producing generic AI-looking output. Use when building or restyling any screen in customer-web, gym-dashboard or admin-dashboard, when adding motion or transitions, when a design "looks AI-generated" or needs taste, or when redesigning an existing surface. Adapted from leonxlnx/taste-skill and constrained by this repository's locked stack and design-token law.
 ---
 
 # ui-taste

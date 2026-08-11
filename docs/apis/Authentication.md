@@ -1481,7 +1481,7 @@ export const impersonateBody = z.object({
   "impersonator": { "id": "0199b0a7-…", "full_name": "Sameer Iqbal", "role": "SUPPORT_AGENT" },
   "reason": "Member reports her 3-month membership QR is rejected at the Kothrud branch; ticket SUP-4821.",
   "banner": { "required": true,
-              "text": "You are viewing GymMap as Priya Sharma. This session ends at 5:32 PM IST. Everything you do is recorded and visible to her." },
+              "text": "You are viewing GYM MAP as Priya Sharma. This session ends at 5:32 PM IST. Everything you do is recorded and visible to her." },
   "forbidden_actions": ["PAYMENT_INTENT", "PAYMENT_RETRY", "REFUND_REQUEST", "REFUND_DECISION",
                         "PAYOUT_ACCOUNT_UPDATE", "PAYOUT_APPROVAL", "OFFLINE_SALE",
                         "COUPON_CREATE", "COMMISSION_OVERRIDE"]
@@ -1962,7 +1962,7 @@ only allowed value; anything else is `400 SORT_FIELD_NOT_ALLOWED`).
 {
   "data": [
     { "id": "0199f411-6b7c-…", "type": "IMPERSONATION", "occurred_at": "2026-08-06T11:32:15Z",
-      "summary": "Sameer Iqbal from GymMap Support viewed your account for 12 minutes.",
+      "summary": "Sameer Iqbal from GYM MAP Support viewed your account for 12 minutes.",
       "detail": { "agent_name": "Sameer Iqbal", "agent_role": "SUPPORT_AGENT",
                   "duration_seconds": 742, "ended_at": "2026-08-06T11:44:37Z",
                   "reason": "Member reports her 3-month membership QR is rejected at the Kothrud branch; ticket SUP-4821." } },
@@ -2241,7 +2241,7 @@ stays effective until the new one is verified (`FR-USER-08`).
 
 | Code | HTTP | When | Message obligation | Retry |
 | :--- | :-: | :--- | :--- | :--- |
-| `PHONE_ALREADY_REGISTERED` **(new)** | 409 | The new number belongs to a live account | *"That mobile number is already on another GymMap account. Sign in to it, or use a different number."* | Fix |
+| `PHONE_ALREADY_REGISTERED` **(new)** | 409 | The new number belongs to a live account | *"That mobile number is already on another GYM MAP account. Sign in to it, or use a different number."* | Fix |
 | `VALIDATION_FAILED` | 400 | Not a `+91` mobile; same as the current number | *"That is already your number."* | Fix |
 | `OTP_RESEND_LIMIT_REACHED` | 429 | 4th send in 30 minutes | State the wait; **no SMS is sent** | Wait |
 | `IMPERSONATION_FORBIDS_FINANCIAL_MUTATION` | 403 | Attempted under an impersonation token | Not a financial mutation *literally*, but a contact change is an account-takeover primitive; the guard tags it. *"Ask the member to change their own number."* | No |
@@ -2397,7 +2397,7 @@ export const unsubscribeBody = z.object({
 ```
 
 **Response — `200 OK`.** `{ "applied": true, "channel": "EMAIL", "category": "MARKETING",
-"message": "You will no longer receive marketing email from GymMap. You will still get payment
+"message": "You will no longer receive marketing email from GYM MAP. You will still get payment
 receipts, membership updates and security alerts, because those affect memberships you have paid
 for. Sign in any time to change this." }`. **No profile data is returned** — not a name, not an
 address, not a masked one.

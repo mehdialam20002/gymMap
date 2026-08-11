@@ -155,7 +155,7 @@ including `/`, including a 404 page.
 illustrative — not committed code
 
               ┌──────────────────────────────────────────────────┐
-              │  GymMap · Platform Console                        │
+              │  GYM MAP · Platform Console                        │
               │                                                   │
               │  ▸ STATE A — UNAUTHENTICATED                      │
               │    Email · Password · [Sign in]                   │
@@ -1129,7 +1129,7 @@ method) · refunds · reviews (count, published, moderated) · tickets (open, cl
 ```text
 illustrative — not committed code
 
-┌─ View GymMap as Priya Sharma ─────────────────────────────────────────────┐
+┌─ View GYM MAP as Priya Sharma ─────────────────────────────────────────────┐
 │  You will see exactly what she sees. You will not be able to take          │
 │  payments, request or decide refunds, change payout details, approve       │
 │  payouts, record offline sales, create coupons, or change commission.      │
@@ -1147,7 +1147,7 @@ illustrative — not committed code
 … and for the whole session, on every screen, unremovable:
 
 ╔════════════════════════════════════════════════════════════════════════════╗
-║ ⚠ You are viewing GymMap as Priya Sharma. This session ends at 5:32 PM IST ║
+║ ⚠ You are viewing GYM MAP as Priya Sharma. This session ends at 5:32 PM IST ║
 ║   (28:14 remaining). Everything you do is recorded and visible to her.     ║
 ║                                                        [ End session now ] ║
 ╚════════════════════════════════════════════════════════════════════════════╝

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Completes the parts of the GymMap development environment that require
+    Completes the parts of the GYM MAP development environment that require
     administrator rights.
 
 .DESCRIPTION

@@ -1964,7 +1964,7 @@ There is exactly one, and it is not "add the directory and open a follow-up tick
 
 ## Closing
 
-This document fixes **where** every file in the GymMap monorepo lives: the eight workspace packages,
+This document fixes **where** every file in the GYM MAP monorepo lives: the eight workspace packages,
 the Turborepo task graph, the three surfaces' feature trees, the twenty-three backend modules'
 four-layer shape, the 136 files of a fully worked `memberships/`, the complete suffix registry, the
 placement decision tree, the twenty-four forbidden placements, and the fourteen assertions that make

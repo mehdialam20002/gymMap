@@ -1047,7 +1047,7 @@ including ids, timestamps relative to a fixed reference instant, and generated c
 // apps/server/prisma/seed/ids.ts
 // Every id in the seed is a UUIDv5 derived from a fixed namespace and a stable name.
 // Deterministic, human-traceable, and collision-free across entity types.
-const NS = '6f2b7c1e-0000-5000-a000-000000000000';   // the GymMap seed namespace, never changed
+const NS = '6f2b7c1e-0000-5000-a000-000000000000';   // the GYM MAP seed namespace, never changed
 
 export const id = (kind: string, key: string) => uuidv5(`${kind}:${key}`, NS);
 

@@ -14,7 +14,7 @@ import { t } from '../src/shared/i18n/index.ts';
  * The dead link used to announce itself as the front door.
  *
  * With no `metadata` export this file inherited the root layout's, so `/definitely-not-a-page`
- * answered 404 with `<title>GymMap: find and join a gym near you</title>` — measured on the
+ * answered 404 with `<title>GYM MAP: find and join a gym near you</title>` — measured on the
  * production build, alongside a correct body and a correct route out. On a full page load the
  * title is the first thing a screen reader speaks, and the only thing a tab, a bookmark or a
  * history entry ever shows. The one page whose entire job is to say "this is not what you asked
@@ -25,7 +25,7 @@ import { t } from '../src/shared/i18n/index.ts';
  * `.next/server/app/_not-found/page.js` loader tree — so an unmatched URL resolves it on the
  * ordinary layout-then-page path, not the error-convention one. A route that calls `notFound()`
  * itself has already resolved its own metadata by then and is untouched, which is why
- * `/gyms/nope/nope` keeps its more specific "Gym not found · GymMap" (measured, 404).
+ * `/gyms/nope/nope` keeps its more specific "Gym not found · GYM MAP" (measured, 404).
  *
  * `description` is not decoration on a page nobody indexes: the root layout's description is what
  * Next hands to `og:description` when a route supplies none, so without this a 404 URL pasted into
@@ -38,7 +38,7 @@ import { t } from '../src/shared/i18n/index.ts';
  * and should be crawled.
  */
 export const metadata: Metadata = {
-  title: `${t('web.state.notFound.title')} · GymMap`,
+  title: `${t('web.state.notFound.title')} · GYM MAP`,
   description: t('web.state.notFound.body'),
   robots: { index: false },
 };

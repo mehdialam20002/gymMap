@@ -11,7 +11,7 @@ export const en = {
   // --- chrome ---------------------------------------------------------------
   'adm.chrome.skipToContent': 'Skip to main content',
   'adm.chrome.mainLandmark': 'Main content',
-  'adm.chrome.brand': 'GymMap Admin',
+  'adm.chrome.brand': 'GYM MAP Admin',
   'adm.chrome.nav.label': 'Sections',
   'adm.chrome.nav.dashboard': 'Dashboard',
   'adm.chrome.nav.sessions': 'Your devices',
@@ -45,7 +45,8 @@ export const en = {
   'adm.plan.filtersRegion': 'Filters this screen will carry',
   'adm.plan.filterDisabled': 'Nothing to filter yet',
   'adm.plan.noRows': 'No rows. The columns above are what this screen will show.',
-  'adm.plan.notATable': 'This screen is not a table. Its shape follows the report catalogue in B5.20.',
+  'adm.plan.notATable':
+    'This screen is not a table. Its shape follows the report catalogue in B5.20.',
 
   // -- Column labels, shared across the planned screens ---------------------------------------
   'adm.plan.col.name': 'Name',
@@ -276,8 +277,7 @@ export const en = {
     'The structured checklist is snapshotted at submit, so adding a tenth required document in March cannot make a February application incomplete. It needs the applications table (M-036), and each item needs an evidence reference into the document viewer.',
 
   'adm.review.notes': 'Internal notes',
-  'adm.review.notesBody':
-    'Not shown to the gym owner. Needs somewhere to store them (M-036).',
+  'adm.review.notesBody': 'Not shown to the gym owner. Needs somewhere to store them (M-036).',
 
   'adm.review.history': 'History',
   'adm.review.historyEmpty': 'Nothing recorded yet.',
@@ -369,7 +369,7 @@ export const en = {
     'Arrows to move, Enter to open, Esc to close. This jumps between screens; searching gyms and accounts arrives with M-023.',
   'adm.chrome.search.placeholder': 'Search gyms, accounts, transactions… (arrives with M-023)',
   'adm.theme.label': 'Colour theme',
-  'adm.theme.switchTo': 'Switch to', 
+  'adm.theme.switchTo': 'Switch to',
   'adm.theme.system': 'Auto',
   'adm.theme.light': 'Light',
   'adm.theme.dark': 'Dark',

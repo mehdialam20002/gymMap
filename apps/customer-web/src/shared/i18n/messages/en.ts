@@ -19,7 +19,7 @@ export const en = {
   // --- chrome, shared across every page -------------------------------------
   'web.chrome.skipToContent': 'Skip to main content',
   'web.chrome.mainLandmark': 'Main content',
-  'web.chrome.brand': 'GymMap',
+  'web.chrome.brand': 'GYM MAP',
   'web.chrome.nav.search': 'Find a gym',
   'web.chrome.nav.forGyms': 'List your gym',
   'web.chrome.nav.account': 'My account',
@@ -46,7 +46,7 @@ export const en = {
   // Three claims, and each one is a rule the code enforces rather than a slogan: BR-GYM-01,
   // BR-PLN-03, BR-REV-01. A bar that says "50% OFF" is the version of this that gets ignored.
   'web.chrome.announce.claims': 'Verified gyms · Transparent pricing · Earned reviews',
-  'web.chrome.announce.link': 'How GymMap works',
+  'web.chrome.announce.link': 'How GYM MAP works',
 
   // --- footer ---------------------------------------------------------------
   'web.chrome.footer.landmark': 'Footer',
@@ -56,13 +56,13 @@ export const en = {
   'web.chrome.breadcrumb.landmark': 'Breadcrumb',
   'web.chrome.footer.tagline': 'Find a gym you can trust, at a price you can see.',
   /*
-   * No YEAR. The reference reads "© 2026 GymMap", and a year written into a string is wrong from
+   * No YEAR. The reference reads "© 2026 GYM MAP", and a year written into a string is wrong from
    * the first of January and wrong silently - nobody reviews a footer in the new year. The repo
    * also bans reading the ambient clock (`no-bare-date`, `AC-FND-13.3`), so a computed year would
    * need the `Clock` port injected into site chrome for a decoration. A notice with no year is
    * complete on its own.
    */
-  'web.chrome.footer.copyright': '© GymMap',
+  'web.chrome.footer.copyright': '© GYM MAP',
   // Stated, not offered - see the note beside the region line in `site-footer.tsx`.
   'web.chrome.footer.currency': '₹ INR',
   'web.chrome.footer.discover': 'Discover',
@@ -91,10 +91,10 @@ export const en = {
   // OQ-01 / OQ-16: India, and mandatory rather than configurable under RBI data localisation.
   'web.chrome.footer.region': 'India',
   'web.chrome.footer.language': 'English',
-  'web.chrome.footer.rights': 'GymMap',
+  'web.chrome.footer.rights': 'GYM MAP',
 
   // --- SCR-WEB-001 home -----------------------------------------------------
-  'web.home.meta.title': 'GymMap: find and join a gym near you',
+  'web.home.meta.title': 'GYM MAP: find and join a gym near you',
   'web.home.meta.description':
     'Compare gyms near you by price, distance and facilities. See the real price before you visit, and join online.',
   // Split so one phrase can carry the brand accent. Kept as two keys rather than markup inside
@@ -217,7 +217,7 @@ export const en = {
   // --- SCR-WEB-001 · categories ---------------------------------------------
 
   // --- SCR-WEB-001 · how it works -------------------------------------------
-  'web.home.how.title': 'How GymMap works',
+  'web.home.how.title': 'How GYM MAP works',
   'web.home.how.discover.title': 'Discover',
   'web.home.how.discover.body': 'Search gyms near you, filtered by what you actually need.',
   'web.home.how.compare.title': 'Compare',
@@ -344,7 +344,7 @@ export const en = {
   'web.search.empty.title': 'Nothing matched',
   // States the reason the catalogue is small, which is BR-GYM-01 working rather than a fault.
   'web.search.empty.body':
-    'Every gym on GymMap is verified before it is listed, so the catalogue is smaller than a directory that lists anyone. Try widening the search.',
+    'Every gym on GYM MAP is verified before it is listed, so the catalogue is smaller than a directory that lists anyone. Try widening the search.',
   'web.search.empty.removeCategory': 'Remove this activity',
   'web.search.empty.removeFacility': 'Remove this facility',
   'web.search.empty.raisePrice': 'Show any price',
@@ -357,7 +357,7 @@ export const en = {
   'web.search.empty.clearTerm': 'Clear the search term',
   'web.search.metaTitle.any': 'Verified gyms',
   'web.search.metaDescription':
-    'Every gym on GymMap is verified before it is listed, and every review comes from a member who actually checked in.',
+    'Every gym on GYM MAP is verified before it is listed, and every review comes from a member who actually checked in.',
 
   // --- the result card ------------------------------------------------------
   'web.gym.perMonthFrom': 'per month, from',
@@ -372,13 +372,13 @@ export const en = {
 
   // --- SCR-WEB-003 · the gym page -------------------------------------------
   'web.gym.breadcrumb.root': 'Gyms',
-  'web.gym.verifiedByPlatform': 'Verified by GymMap',
+  'web.gym.verifiedByPlatform': 'Verified by GYM MAP',
   'web.gym.section.about': 'About',
   'web.gym.section.amenities': 'Amenities',
   'web.gym.section.location': 'Where and when',
   'web.gym.section.reviews': 'Reviews',
   'web.gym.reviews.none':
-    'No reviews yet. On GymMap a review can only be written by a member who has checked in at this gym, so a new listing starts empty rather than starting with reviews nobody earned.',
+    'No reviews yet. On GYM MAP a review can only be written by a member who has checked in at this gym, so a new listing starts empty rather than starting with reviews nobody earned.',
   'web.gym.reviews.earned':
     'members have reviewed this gym, and every one of them checked in first. Individual reviews appear here once the reviews module is live.',
   /*
@@ -522,12 +522,12 @@ export const en = {
   'web.checkout.pay': 'Continue to payment',
   // Says exactly why the button does nothing, rather than looking broken.
   'web.checkout.payNotice':
-    'Payments are not live yet. When they are, this hands you to the payment provider. GymMap never sees your card details.',
+    'Payments are not live yet. When they are, this hands you to the payment provider. GYM MAP never sees your card details.',
   'web.checkout.changePlan': 'Choose a different plan',
 
   'web.confirmation.title': 'What happens after you pay',
   'web.confirmation.metaDescription':
-    'How a GymMap membership is activated, and why the confirmation comes from our server rather than from your browser.',
+    'How a GYM MAP membership is activated, and why the confirmation comes from our server rather than from your browser.',
   // Invariant 5, and the reason it exists, in one paragraph a member can act on.
   'web.confirmation.webhook.title': 'Your membership activates on our server, not in this tab',
   'web.confirmation.webhook.body':
@@ -541,7 +541,7 @@ export const en = {
     'An email, once the payment is confirmed rather than when it is started.',
   'web.confirmation.pending.title': 'If the confirmation is slow',
   // --- SCR-WEB-020 · how it works (members) --------------------------------
-  'web.howItWorks.title': 'How GymMap works',
+  'web.howItWorks.title': 'How GYM MAP works',
   'web.howItWorks.metaDescription':
     'Find a verified gym, see the real price, join online and check in with a code. Here is each step and what happens behind it.',
   'web.howItWorks.intro':
@@ -562,12 +562,12 @@ export const en = {
   'web.howItWorks.cta': 'Find a gym near you',
 
   // --- SCR-WEB-030 · for gyms ----------------------------------------------
-  'web.forGyms.title': 'List your gym on GymMap',
+  'web.forGyms.title': 'List your gym on GYM MAP',
   'web.forGyms.metaDescription':
     'Reach members searching for a gym near them, sell memberships online, take payments and track check-ins from one place.',
   'web.forGyms.hero.eyebrow': 'For gym owners',
   'web.forGyms.hero.body':
-    'People searching for a gym in your area are already looking. GymMap puts your listing in front of them with your real prices, and gives you the tools to turn a search into a member.',
+    'People searching for a gym in your area are already looking. GYM MAP puts your listing in front of them with your real prices, and gives you the tools to turn a search into a member.',
   'web.forGyms.hero.cta': 'Start listing',
   'web.forGyms.hero.secondary': 'How verification works',
 
@@ -606,7 +606,7 @@ export const en = {
   /*
    * ┌─ SCOPED TO LISTING, WHICH IS WHAT THIS PAGE SELLS ─────────────────────────────────────────┐
    * │ This read "A commission per membership sold, and nothing else: no listing fee, no monthly   │
-   * │ charge..." - an absolute claim about every fee GymMap would ever charge, and                │
+   * │ charge..." - an absolute claim about every fee GYM MAP would ever charge, and                │
    * │ `MASTER_PRD.md` §A6.1 lists a monthly SaaS subscription as Phase 1 revenue. Recorded as     │
    * │ `KL-112`, and the owner has now ruled.                                                      │
    * │                                                                                             │
@@ -615,7 +615,7 @@ export const en = {
    * │ Management SaaS". A gym pays COMMISSION for members this marketplace sends it, and pays a   │
    * │ SUBSCRIPTION for the management software it uses every day whether or not a member arrives. │
    * │ §A6.2's tiers are priced by branches, active members and staff seats - the gym's own        │
-   * │ operations, not anything GymMap delivers.                                                    │
+   * │ operations, not anything GYM MAP delivers.                                                    │
    * │                                                                                             │
    * │ So the sentence was not false, it was unscoped. One clause fixes it: the commission is what │
    * │ LISTING costs. The marketplace's strongest promise survives intact - a gym with no sales    │
@@ -624,7 +624,7 @@ export const en = {
    * └─────────────────────────────────────────────────────────────────────────────────────────────┘
    */
   'web.forGyms.commission.body':
-    'Listing on GymMap costs a commission per membership sold, and nothing else: no listing fee, no monthly charge for your listing, and no fee for a month with no sales. The rate is agreed before you list and is shown on every statement, and the rate that applied on the day of a sale is the rate that sale keeps. A later change never rewrites an old settlement.',
+    'Listing on GYM MAP costs a commission per membership sold, and nothing else: no listing fee, no monthly charge for your listing, and no fee for a month with no sales. The rate is agreed before you list and is shown on every statement, and the rate that applied on the day of a sale is the rate that sale keeps. A later change never rewrites an old settlement.',
 
   /*
    * ┌─ THE PAGE PROMISED THE SOFTWARE AND PRICED ONLY THE LISTING ───────────────────────────────┐
@@ -635,19 +635,19 @@ export const en = {
    * │ was fixed and the promise was left, which is half a fix and reads as a bargain.             │
    * │                                                                                             │
    * │ The line is NOT drawn by feature name, and that was the first instinct and the wrong one:   │
-   * │ check-in is how a GymMap member's visit is recorded, and `BR-REV-01` makes a review         │
+   * │ check-in is how a GYM MAP member's visit is recorded, and `BR-REV-01` makes a review         │
    * │ impossible without it; reconciliation is how a gym sees what settled after this platform    │
    * │ took its cut. Both are load-bearing for the marketplace and cannot be removed from it.      │
    * │                                                                                             │
    * │ It is drawn by SCALE, which is where §A6.2 already draws it - the tiers are priced by       │
-   * │ branches, active members and staff seats. Listing covers the members GymMap sends; the      │
+   * │ branches, active members and staff seats. Listing covers the members GYM MAP sends; the      │
    * │ subscription covers running the whole gym. That sentence is true today, needs no price      │
    * │ (`OQ-03` is open), and takes nothing away from what the page already offers.                │
    * └─────────────────────────────────────────────────────────────────────────────────────────────┘
    */
   'web.forGyms.scope.title': 'Listing, and the software',
   'web.forGyms.scope.body':
-    'Everything above covers the members GymMap sends you: they find your listing, they pay online, they check in, and you see what settled. Running your whole gym is a separate subscription, priced on your branches, members and staff. You do not need it to be listed here, and listing costs nothing until you make a sale.',
+    'Everything above covers the members GYM MAP sends you: they find your listing, they pay online, they check in, and you see what settled. Running your whole gym is a separate subscription, priced on your branches, members and staff. You do not need it to be listed here, and listing costs nothing until you make a sale.',
 
   /*
    * ┌─ THE OWNER PAGE, REBUILT AGAINST A REFERENCE THAT HAS THINGS WE DO NOT ────────────────────┐
@@ -730,13 +730,13 @@ export const en = {
   // product gives a member looking at an unrated gym.
   'web.forGyms.partners.title': 'No partner quotes yet',
   'web.forGyms.partners.body':
-    'We could write one. Every marketplace does, and most of the time nobody checks. On GymMap a member cannot review a gym they never visited, and the same rule applies to us: when a gym owner has something to say about working with us, it will be their words and their name, and they will have earned the right to say it.',
+    'We could write one. Every marketplace does, and most of the time nobody checks. On GYM MAP a member cannot review a gym they never visited, and the same rule applies to us: when a gym owner has something to say about working with us, it will be their words and their name, and they will have earned the right to say it.',
   'web.forGyms.partners.note': 'First listings are being onboarded now.',
 
   'web.forGyms.faq.title': 'Questions owners ask',
   'web.forGyms.faq.control.q': 'Do I lose control of my prices?',
   'web.forGyms.faq.control.a':
-    'No. You set the plans and the prices, and you change them when you like. What GymMap guarantees a member is that the price they were shown is the price they are charged.',
+    'No. You set the plans and the prices, and you change them when you like. What GYM MAP guarantees a member is that the price they were shown is the price they are charged.',
   'web.forGyms.faq.reviews.q': 'Can someone review my gym without visiting?',
   'web.forGyms.faq.reviews.a':
     'No. A review requires a recorded check-in at your gym. That protects you at least as much as it protects the member.',
@@ -761,7 +761,7 @@ export const en = {
   'web.forGyms.faq.rate.a':
     'The rate is agreed before you list. If it ever changes, the new rate applies to new sales only, and a settlement you already have is never recalculated. That is a rule in the ledger, not a policy in a document.',
 
-  'web.forGyms.faq.exclusive.q': 'Do I have to be exclusive to GymMap?',
+  'web.forGyms.faq.exclusive.q': 'Do I have to be exclusive to GYM MAP?',
   'web.forGyms.faq.exclusive.a':
     'No. Listing here does not stop you selling memberships at the door, on your own site, or anywhere else.',
 
@@ -843,7 +843,7 @@ export const en = {
   // version of this section that is true today.
   'web.home.reviews.title': 'Reviews you can trust, when there are reviews',
   'web.home.reviews.body':
-    'A review on GymMap requires a recorded check-in at that gym. Nobody can write about a gym they have never been to, and nobody can buy their way onto this page.',
+    'A review on GYM MAP requires a recorded check-in at that gym. Nobody can write about a gym they have never been to, and nobody can buy their way onto this page.',
   'web.home.reviews.emptyTitle': 'No reviews yet',
   'web.home.reviews.emptyBody':
     'Check-ins start when the first gyms finish onboarding. Until then this space stays empty rather than filling up with quotes we made up.',
@@ -881,7 +881,7 @@ export const en = {
   // able to move them, and several languages put the noun before the place.
   'web.landing.city.title': 'Gyms in {city}',
   'web.landing.city.metaDescription':
-    'Every verified gym in {city} on GymMap, with the price you actually pay. Compare by distance, facilities and monthly cost.',
+    'Every verified gym in {city} on GYM MAP, with the price you actually pay. Compare by distance, facilities and monthly cost.',
   'web.landing.city.intro':
     'Every listing in {city} has been checked by a person before it appeared, and the monthly price on each card is the price charged at checkout.',
   // The gym grid's own heading on both landings. Visually hidden: the h1 above it already says
@@ -910,7 +910,7 @@ export const en = {
 
   'web.landing.cities.title': 'Cities',
   'web.landing.cities.metaDescription':
-    'Every city where GymMap has verified listings, with how many gyms are in each.',
+    'Every city where GYM MAP has verified listings, with how many gyms are in each.',
   'web.landing.cities.intro':
     'A city appears here once it has a verified listing. The counts are what is actually listed, not what is planned.',
   'web.landing.explore.title': 'Explore by activity',
@@ -1023,7 +1023,7 @@ export const en = {
   'web.account.reviews.title': 'Reviews',
   // BR-REV-01 / BR-REV-03, as the reason the list is short rather than as an apology.
   'web.account.reviews.rule':
-    'You can review a gym you have checked in at. That is the whole rule, and it is why a review on GymMap means something: nobody can write one about a gym they have never been to.',
+    'You can review a gym you have checked in at. That is the whole rule, and it is why a review on GYM MAP means something: nobody can write one about a gym they have never been to.',
   'web.account.reviews.eligible': 'Gyms you can review',
   'web.account.reviews.none':
     'Once you have checked in somewhere, that gym appears here and you can write about it.',

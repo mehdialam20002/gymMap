@@ -11,7 +11,7 @@ import { t } from '../../src/shared/i18n/index.ts';
 import { ExploreIndex } from '../../src/features/landings/landing-views.tsx';
 
 export const metadata: Metadata = {
-  title: `${t('web.landing.explore.title')} · GymMap`,
+  title: `${t('web.landing.explore.title')} · GYM MAP`,
   description: t('web.landing.explore.metaDescription'),
   alternates: { canonical: '/explore' },
 };

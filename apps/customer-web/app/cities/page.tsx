@@ -11,7 +11,7 @@ import { t } from '../../src/shared/i18n/index.ts';
 import { CitiesIndex } from '../../src/features/landings/landing-views.tsx';
 
 export const metadata: Metadata = {
-  title: `${t('web.landing.cities.title')} · GymMap`,
+  title: `${t('web.landing.cities.title')} · GYM MAP`,
   description: t('web.landing.cities.metaDescription'),
   alternates: { canonical: '/cities' },
 };

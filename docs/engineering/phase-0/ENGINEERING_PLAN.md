@@ -76,7 +76,7 @@
 `illustrative — not committed code`
 
 ```text
-GymMap/
+GYM MAP/
 ├─ apps/
 │  ├─ customer-web/                 # `web` — Next.js 14 App Router · React 18 · TS · SSR for SEO (FR-SRCH-13, FR-NAV-05, FR-DETL-10)
 │  │  ├─ app/

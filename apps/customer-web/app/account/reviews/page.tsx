@@ -11,7 +11,7 @@ import { t } from '../../../src/shared/i18n/index.ts';
 import { Reviews } from '../../../src/features/account/screens.tsx';
 
 export const metadata: Metadata = {
-  title: `${t('web.account.reviews.title')} · GymMap`,
+  title: `${t('web.account.reviews.title')} · GYM MAP`,
   description: t('web.account.metaDescription'),
   robots: { index: false, follow: false },
 };

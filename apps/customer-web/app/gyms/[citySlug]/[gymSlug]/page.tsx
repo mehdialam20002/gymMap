@@ -33,10 +33,10 @@ interface RouteProps extends RouteParams {
 
 export function generateMetadata({ params }: RouteParams): Metadata {
   const gym = findGym(params.citySlug, params.gymSlug);
-  if (gym === null) return { title: `${t('web.gym.notFound.title')} · GymMap` };
+  if (gym === null) return { title: `${t('web.gym.notFound.title')} · GYM MAP` };
 
   return {
-    title: `${gym.name}, ${gym.locality} · GymMap`,
+    title: `${gym.name}, ${gym.locality} · GYM MAP`,
     description: gym.about.slice(0, 155),
     alternates: { canonical: `/gyms/${gym.citySlug}/${gym.slug}` },
   };

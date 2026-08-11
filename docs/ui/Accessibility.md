@@ -551,10 +551,10 @@ h1 Gyms in Andheri West         h1 Check-in — Bandra West       h1 Iron Temple
 
 | Rule | Statement |
 | :--- | :--- |
-| **PT1** | Every route sets a unique `<title>` with the **specific** part first: *"Settlements · Iron Temple · GymMap"*, not *"GymMap · Dashboard · Settlements"*. Screen readers and browser tabs both truncate from the right |
+| **PT1** | Every route sets a unique `<title>` with the **specific** part first: *"Settlements · Iron Temple · GYM MAP"*, not *"GYM MAP · Dashboard · Settlements"*. Screen readers and browser tabs both truncate from the right |
 | **PT2** | On the two Vite SPAs, `document.title` is set by an explicit route effect. A client-side navigation fires no document load and therefore no automatic title announcement — this is the single most-missed screen-reader defect in an SPA |
 | **PT3** | Alongside the title change, a polite live region in the shell announces the new screen name once. Title change alone is inconsistently announced across screen readers |
-| **PT4** | A screen in an error or permission-denied state says so in the title: *"Access denied · Settlements · GymMap"* |
+| **PT4** | A screen in an error or permission-denied state says so in the title: *"Access denied · Settlements · GYM MAP"* |
 | **PT5** | `customer-web` titles are also the SEO titles (`FR-NAV-05`, `NX2`). One string, two purposes, no divergence |
 
 ---

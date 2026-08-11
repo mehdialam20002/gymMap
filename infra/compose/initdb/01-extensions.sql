@@ -35,7 +35,7 @@ BEGIN
     IF major_version <> 16 THEN
         RAISE EXCEPTION
             E'\n\n'
-            '  GymMap requires PostgreSQL 16. This container is running PostgreSQL %.\n\n'
+            '  GYM MAP requires PostgreSQL 16. This container is running PostgreSQL %.\n\n'
             '  The image tag says 16 but the server disagrees — several PostGIS images ship a\n'
             '  different Postgres than their tag suggests.\n\n'
             '  This matters because Indexes.md GiST predicates and the NFR-DQ-* guarantees are\n'

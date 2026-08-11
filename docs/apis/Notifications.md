@@ -2613,14 +2613,14 @@ one path.
       },
       {
         "id": "01936b45-77c1-7a08-8e52-1d4b9f3a6c77",
-        "author": { "type": "AGENT", "display_name": "GymMap Support" },
+        "author": { "type": "AGENT", "display_name": "GYM MAP Support" },
         "body": "Hi Priya — thanks for the screenshot. Your plan is active, but this branch's 3 Month Unlimited has an access window of 06:00–22:00 on weekdays and 08:00–20:00 on Sundays, so 07:10 on a Sunday falls outside it. Could you confirm whether you were told about a Sunday timing change when you renewed? I have asked the gym in parallel.",
         "attachments": [],
         "created_at": "2026-08-05T07:48:02Z"
       },
       {
         "id": "01936b8c-2e40-7f93-9b21-6c5a8d1e4f30",
-        "author": { "type": "AGENT", "display_name": "GymMap Support" },
+        "author": { "type": "AGENT", "display_name": "GYM MAP Support" },
         "body": "Iron Works have confirmed the Sunday window was changed on 30 July without notifying members. They are extending your membership by two days and updating the plan description. Anything else you would like us to raise with them?",
         "attachments": [],
         "created_at": "2026-08-06T04:55:31Z"
@@ -2637,7 +2637,7 @@ one path.
 | Field | Notes |
 | :--- | :--- |
 | `can` | Server-computed capability hints — `post_message`, `reopen`, `rate`. **Presentation input, never a control** (`FR-RBAC-02`): the server refuses independently, and §16 does not consult `can` |
-| `author.type` | `REQUESTER` \| `AGENT` \| `TENANT_STAFF` \| `SYSTEM`. The agent's **personal** name is never returned to a customer — `"GymMap Support"` is the display name, because a named agent invites a member to contact them directly and exposes staff to pressure. `SCR-ADM-013` shows the real identity to other agents |
+| `author.type` | `REQUESTER` \| `AGENT` \| `TENANT_STAFF` \| `SYSTEM`. The agent's **personal** name is never returned to a customer — `"GYM MAP Support"` is the display name, because a named agent invites a member to contact them directly and exposes staff to pressure. `SCR-ADM-013` shows the real identity to other agents |
 | `messages.data[]` | **Oldest-first.** Cursor-paginated independently of the ticket itself |
 | `total_visible` | The count of messages **this caller may see** — internal notes are excluded from the count as well as from the list, or the count itself leaks their existence |
 | `attachments[].download_url` | A **short-lived signed URL**, minted per request, expiring in minutes; never a stable path. `download_url_expires_at` is present so a client re-fetches the ticket rather than serving a dead link |
@@ -2666,7 +2666,7 @@ contract test, not by inspection."*
 | IN2 | `total_visible` counts the same filtered set. A count of 7 beside a list of 3 tells a member there is something they are not being shown, which is both true and a disclosure |
 | IN3 | The **agent** projection is a different response type on an `API-ADM` route, not a widened version of this one. Two audiences, two DTOs, one table |
 | IN4 | The contract test posts an internal note through the agent route and asserts it is absent from **both** `messages.data[]` and `total_visible` on this route. It is a test, because `AC-EP20-12` says inspection is not evidence |
-| IN5 | `author.display_name` for an agent is a constant on this projection (`"GymMap Support"`), so an internal note's *author* cannot leak through a message the customer can see either |
+| IN5 | `author.display_name` for an agent is a constant on this projection (`"GYM MAP Support"`), so an internal note's *author* cannot leak through a message the customer can see either |
 
 ### 15.5 Business rules, validation, side effects, future compatibility
 

@@ -4,7 +4,7 @@
 # the binary is present locally. A finding fails the build; it is never
 # downgraded to a warning.
 
-title = "GymMap secret scanning"
+title = "GYM MAP secret scanning"
 
 [extend]
 # Start from the maintained upstream rule set, then narrow below.

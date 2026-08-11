@@ -8,7 +8,7 @@ import { t } from '../../../src/shared/i18n/index.ts';
 import { ForGymsSignup } from '../../../src/features/marketing/for-gyms.tsx';
 
 export const metadata: Metadata = {
-  title: `${t('web.forGyms.signup.title')} · GymMap`,
+  title: `${t('web.forGyms.signup.title')} · GYM MAP`,
   description: t('web.forGyms.signup.metaDescription'),
   alternates: { canonical: '/for-gyms/signup' },
 };

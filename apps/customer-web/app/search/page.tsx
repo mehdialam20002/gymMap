@@ -33,7 +33,7 @@ import { CompareRail } from '../../src/features/compare/compare-rail.tsx';
  * │                                                                                              │
  * │ On a fresh document the `<title>` is what a screen reader speaks first, so that is where the │
  * │ result of the search has to be. It was not: `/search`, `/search?city=bengaluru` and          │
- * │ `/search?city=bengaluru&rating=4.5` all shipped the identical "Verified gyms · GymMap" over  │
+ * │ `/search?city=bengaluru&rating=4.5` all shipped the identical "Verified gyms · GYM MAP" over  │
  * │ result sets of 8, 3 and 2.                                                                    │
  * │                                                                                              │
  * │ It is also what a person reads in a tab and in their own history, which is the same problem  │
@@ -49,7 +49,7 @@ export function generateMetadata({ searchParams }: { searchParams: RawParams }):
   const query = parseSearchQuery(searchParams);
 
   return {
-    title: `${resultScope(query)} · GymMap`,
+    title: `${resultScope(query)} · GYM MAP`,
     description: t('web.search.metaDescription'),
     /*
      * ┌─ ONE CANONICAL FOR EVERY FACET, AND THE NOTE ABOVE WAS HALF TRUE ───────────────────────┐

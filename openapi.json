@@ -13,7 +13,7 @@
   "info": {
     "contact": {},
     "description": "Gym Marketplace & Multi-Tenant Gym Management SaaS.\n\nErrors use the §C3.1 envelope: `{ error: { code, message, details[], correlation_id } }`.\n\nMoney crosses the wire as a STRING of integer minor units (paise for INR), never a JSON number — a JSON number loses integer precision above 2^53 (TR-38, BR-PAY-01).\n\nThe tenant is derived from the access token and is NEVER accepted from a client header, path, query or body (BR-TEN-01, §11.3).",
-    "title": "GymMap API",
+    "title": "GYM MAP API",
     "version": "1"
   },
   "openapi": "3.0.0",

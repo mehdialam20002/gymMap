@@ -59,7 +59,7 @@ export const metadata: Metadata = {
    */
   openGraph: {
     type: 'website',
-    siteName: 'GymMap',
+    siteName: 'GYM MAP',
     locale: 'en_IN',
   },
   twitter: {
