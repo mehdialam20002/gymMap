@@ -9,12 +9,26 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { t } from '../../../../src/shared/i18n/index.ts';
-import { findGym } from '../../../../src/features/discovery/search.ts';
+import { CompareRail } from '../../../../src/features/compare/compare-rail.tsx';
+import { parseCompare } from '../../../../src/features/compare/compare.ts';
+import { findGym, type RawParams } from '../../../../src/features/discovery/search.ts';
 import { GymDetail } from '../../../../src/features/gym-detail/gym-detail.tsx';
 import { toJsonLd } from '../../../../src/features/gym-detail/json-ld.ts';
 
 interface RouteParams {
   readonly params: { readonly citySlug: string; readonly gymSlug: string };
+}
+
+/**
+ * `?gym=` on a gym's own page: the "similar gyms" row compares, and the rail reports (ADR-0050).
+ *
+ * Measured on the served build, `/gyms/bengaluru/iron-house-indiranagar` with and without a `gym`
+ * parameter returned the identical canonical `https://gymmap.in/gyms/bengaluru/iron-house-indiranagar`,
+ * because `generateMetadata` below hardcodes it from `gym.citySlug` and `gym.slug` and reads no
+ * search parameter. It must not start (`FR-SRCH-13`).
+ */
+interface RouteProps extends RouteParams {
+  readonly searchParams: RawParams;
 }
 
 export function generateMetadata({ params }: RouteParams): Metadata {
@@ -28,11 +42,16 @@ export function generateMetadata({ params }: RouteParams): Metadata {
   };
 }
 
-export default function GymPage({ params }: RouteParams) {
+export default function GymPage({ params, searchParams }: RouteProps) {
   const gym = findGym(params.citySlug, params.gymSlug);
   // `notFound()` rather than an "unavailable" panel. A slug that resolves to nothing must answer
   // 404, or a crawler indexes a soft-404 and keeps returning to it.
   if (gym === null) notFound();
+
+  const { gyms: selected } = parseCompare(searchParams);
+  // The gym's own canonical path, from the RESOLVED gym rather than the raw slugs, so the base
+  // and the canonical this route emits are the same string by construction.
+  const base = { path: `/gyms/${gym.citySlug}/${gym.slug}` };
 
   return (
     <>
@@ -92,7 +111,9 @@ export default function GymPage({ params }: RouteParams) {
           }),
         }}
       />
-      <GymDetail gym={gym} />
+      <GymDetail gym={gym} selected={selected} base={base} />
+      {/* Last in the document. The similar-gyms row below the fold is what feeds it. */}
+      <CompareRail selected={selected} base={base} />
     </>
   );
 }

@@ -39,7 +39,7 @@ import { GymPhoto } from '../discovery/gym-photo.tsx';
 import { railToggleHref } from '../compare/compare-rail.tsx';
 import { CATALOGUE, type GymDetail } from '../discovery/fixtures/catalogue.ts';
 import { EMPTY_QUERY, formatMinor, search } from '../discovery/search.ts';
-import { teaserCompareHref, teaserGyms } from './teaser.ts';
+import { HOME_COMPARE_BASE, teaserCompareHref, teaserGyms } from './teaser.ts';
 import { checkoutHref } from '../checkout/quote.ts';
 
 /*
@@ -237,7 +237,9 @@ export function GymRail({ selected = [] }: { readonly selected?: readonly GymDet
                     </span>
                   ) : (
                     <Link
-                      href={railToggleHref(selected, gym)}
+                      /* The base is stated now rather than defaulted inside the rail - ADR-0050,
+                       * and `HOME_COMPARE_BASE` is `/` plus this section's own `#gyms`. */
+                      href={railToggleHref(selected, gym, HOME_COMPARE_BASE)}
                       className="gm-card-add text-sm font-semibold transition-colors duration-fast ease-standard"
                     >
                       {t(

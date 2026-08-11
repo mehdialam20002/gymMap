@@ -88,7 +88,7 @@ export function SiteHeader() {
      */
     /*
      * ┌─ SHORTER AND THICKER, AND A GLASS PANE ────────────────────────────────────────────────────┐
-     * │ 78rem (1248px) rather than the full 1440px container, and 66px tall. A bar that stops      │
+     * │ The PAGE measure rather than the full 1440px container, and 66px tall. A bar that stops    │
      * │ short of the page edges reads as an object floating ON the photograph; one that runs the   │
      * │ full width reads as a strip laid OVER it. The extra height also shows more of what is       │
      * │ behind it, which is the entire point of the glass.                                          │
@@ -138,7 +138,7 @@ export function SiteHeader() {
      * └────────────────────────────────────────────────────────────────────────────────────────────┘
      */
     <header className="sticky top-0 z-app-chrome px-inset-xs pb-inset-lg pt-inset-2xs min-[20rem]:px-inset-md">
-      <div className="gm-chrome-pill gm-app-chrome mx-auto flex max-w-[78rem] flex-wrap items-center gap-x-inline-lg gap-y-inline-2xs rounded-full px-inset-xs py-inset-xs gm-chrome-glass min-[20rem]:px-inset-xl">
+      <div className="gm-chrome-pill gm-app-chrome mx-auto flex max-w-[var(--gm-container-max)] flex-wrap items-center gap-x-inline-lg gap-y-inline-2xs rounded-full px-inset-xs py-inset-xs gm-chrome-glass min-[20rem]:px-inset-xl">
         <Link
           href="/"
           className="gm-hit-target flex shrink-0 items-center gap-inline-2xs text-lg font-bold tracking-tight"

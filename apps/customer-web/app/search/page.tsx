@@ -13,11 +13,14 @@ import {
   hasActiveFilters,
   parseSearchQuery,
   search,
+  toSearchParams,
   type RawParams,
   type SearchQuery,
 } from '../../src/features/discovery/search.ts';
 import { SearchResults } from '../../src/features/discovery/search-results.tsx';
 import { RestoreScroll } from '../../src/features/discovery/restore-scroll.tsx';
+import { parseCompare } from '../../src/features/compare/compare.ts';
+import { CompareRail } from '../../src/features/compare/compare-rail.tsx';
 
 /**
  * ┌─ THE TITLE IS THE ANNOUNCEMENT ON A FULL PAGE LOAD ─────────────────────────────────────────┐
@@ -121,6 +124,29 @@ function resultScope(query: SearchQuery): string {
 }
 
 export default function SearchPage({ searchParams }: { searchParams: RawParams }) {
+  const query = parseSearchQuery(searchParams);
+  /*
+   * ┌─ THE SELECTION AND THE PAGE TO COME BACK TO — ADR-0050 ────────────────────────────────────┐
+   * │ `parseSearchQuery` and `parseCompare` read the SAME `searchParams` and take disjoint halves │
+   * │ of it: the filters, and `gym`. Neither can see the other's parameters, which is why adding  │
+   * │ a comparison here changes no result set and why `toSearchParams(query)` cannot re-emit a    │
+   * │ `gym` - it writes only the filters it knows.                                                 │
+   * │                                                                                             │
+   * │ That is exactly what makes it the right base. Measured before this change, the results      │
+   * │ page's "Add to compare" went to `/compare?gym=<one gym>` from                                │
+   * │ `/search?city=bengaluru&sort=rating` - city gone, sort gone, rail absent, selection          │
+   * │ replaced. The base is now the reader's own query, so the toggle returns them to it.          │
+   * │                                                                                             │
+   * │ No fragment: this page has no anchor worth naming, and the cards carry `scroll={false}`      │
+   * │ instead, which is the rule every in-page link in `search-results.tsx` already follows.       │
+   * │                                                                                             │
+   * │ Computed once and given to both the results and the rail. Two calls would be two chances    │
+   * │ to disagree about which page the reader is on.                                               │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const { gyms: selected } = parseCompare(searchParams);
+  const base = { path: toSearchParams(query) };
+
   return (
     <>
       {/*
@@ -131,7 +157,10 @@ export default function SearchPage({ searchParams }: { searchParams: RawParams }
        * component that can scroll it wrong, so it runs on the one route that needs it.
        */}
       <RestoreScroll />
-      <SearchResults query={parseSearchQuery(searchParams)} />
+      <SearchResults query={query} selected={selected} base={base} />
+      {/* Last in the document, which is also where it sits on screen. A fixed bar declared early
+          would reach a screen reader before the results it is about. */}
+      <CompareRail selected={selected} base={base} />
     </>
   );
 }

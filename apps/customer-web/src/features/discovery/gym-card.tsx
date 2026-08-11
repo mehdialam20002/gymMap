@@ -27,18 +27,40 @@ import Link from 'next/link';
 
 import { t } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
-import { compareKey, toCompareParams } from '../compare/compare.ts';
+import { MAX_COMPARE, compareKey, toggleHref, type CompareBase } from '../compare/compare.ts';
 import { GymPhoto } from './gym-photo.tsx';
 import { formatMinor } from './search.ts';
-import type { SearchResult } from './fixtures/catalogue.ts';
+import type { GymDetail, SearchResult } from './fixtures/catalogue.ts';
 
 /** How many amenities fit before the row starts wrapping into noise. */
 const AMENITIES_SHOWN = 3;
 
-export function GymCard({ gym }: { readonly gym: SearchResult }) {
+export function GymCard({
+  gym,
+  selected,
+  base,
+}: {
+  readonly gym: SearchResult;
+  /**
+   * What is already being compared, read off this page's own `searchParams` — ADR-0050.
+   *
+   * A PROP and not a store. The selection is already in the URL, every route that renders this
+   * card is a Server Component that already reads `searchParams`, and a second copy in React
+   * state is the tray that cannot be shared, cannot be crawled, and disagrees with the address
+   * bar the moment anybody presses Back.
+   */
+  readonly selected: readonly GymDetail[];
+  /** The page this card is on, filters intact, so the toggle comes back here. */
+  readonly base: CompareBase;
+}) {
   const Verified = icon.verified;
   const Place = icon.place;
   const hidden = gym.amenities.length - AMENITIES_SHOWN;
+  const chosen = selected.some((entry) => compareKey(entry) === compareKey(gym));
+  // At the cap with this gym not in the set, there is no next selection to name. `MAX_COMPARE`
+  // is enforced in `toCompareParams`, so the "add" href would resolve to the URL the reader is
+  // already on: a control that looks live, announces itself as an add, and does nothing.
+  const atLimit = !chosen && selected.length >= MAX_COMPARE;
 
   return (
     <li className="gm-card gm-card-interactive group overflow-hidden rounded-card">
@@ -171,29 +193,74 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
         </ul>
 
         {/*
-         * ┌─ A LINK THAT STARTS A COMPARISON, NOT A TOGGLE THAT REMEMBERS ONE ───────────────────┐
-         * │ The card cannot know what is already being compared — the set lives in the compare    │
-         * │ page's URL, and this card is rendered on the home page, the results page and three    │
-         * │ gym pages. So it does the one thing it CAN state truthfully: it opens a comparison    │
-         * │ containing this gym, and the compare page's picker adds the rest.                      │
+         * ┌─ A TOGGLE THAT ACCUMULATES, AND IT USED TO BE A CONTROL THAT UNDID ITSELF ───────────┐
+         * │ ADR-0050. This was `toCompareParams([compareKey(gym)])`: an href to `/compare` naming │
+         * │ ONE gym, under the label "Add to compare". Measured from                              │
+         * │ `/search?city=bengaluru&sort=rating`, pressing it went to                             │
+         * │ `/compare?gym=bengaluru%2Firon-house-indiranagar` - the city gone, the sort gone, the │
+         * │ rail absent, and the selection replaced rather than added to. On the one surface      │
+         * │ where a person actually shortlists, the second click undid the first.                  │
          * │                                                                                       │
-         * │ The alternative is a checkbox backed by client state, which is the tray every other   │
-         * │ marketplace ships and the reason none of their comparisons can be shared.              │
+         * │ The card could not do better while it did not know the selection, and the note here   │
+         * │ used to say exactly that. It is a PROP now: the set is already in the URL and every   │
+         * │ route rendering this card reads `searchParams` already, so nothing was added to learn │
+         * │ it - no store, no context, no `'use client'`. The href names the NEXT selection on    │
+         * │ THIS page, which is what the home teaser has always done via `railToggleHref`.        │
+         * │                                                                                       │
+         * │ INDEXING (`FR-SRCH-13`): `?gym=` on `/gyms/[citySlug]` and `/explore/[activitySlug]`  │
+         * │ mints no second indexable address. Read out of the served build, both routes'         │
+         * │ `generateMetadata` takes `params` only and hardcodes its canonical - `/gyms/bengaluru` │
+         * │ and `/explore/yoga` came back byte-identical with and without two `gym` parameters -  │
+         * │ so every selection consolidates on the bare landing, the way `/?gym=a&gym=b` already  │
+         * │ consolidates on `/`.                                                                   │
          * └───────────────────────────────────────────────────────────────────────────────────────┘
          */}
-        {/*
-         * `gm-hit-target` is gone from here on purpose. It reaches 44px by growing an `::after`
-         * OUTWARD, and this card is `overflow: hidden` - the pseudo-element is clipped by the
-         * card, so the rule reported itself satisfied while the reachable area stayed at the
-         * padding's 40px. `.gm-card-add` now has 44px of real height, which nothing can clip.
-         */}
-        <Link
-          href={toCompareParams([compareKey(gym)])}
-          className="gm-card-add mt-stack-sm rounded-control text-sm font-semibold"
-        >
-          {t('web.gym.compare.add')}
-          <span className="gm-visually-hidden">: {gym.name}</span>
-        </Link>
+        {atLimit ? (
+          /*
+           * At the cap the control becomes a statement.
+           *
+           * A sentence and not a greyed pill: the copy is "That is the maximum. Remove one to
+           * swap in another.", which is a sentence rather than a button label, and a bordered
+           * 44px pill wrapped round it would be an affordance for a click that does nothing.
+           * `chalk.tsx` reaches the same conclusion on the home rail and dims a `.gm-card-add`;
+           * the dimming is what is not copied - `opacity` on `content-secondary` ink lands the
+           * one line a reader needs under `SC 1.4.3`'s 4.5:1, and there is nothing to press.
+           *
+           * A `<p>` also leaves the tab order, which is the honest half: at the limit this card
+           * offers nothing, and eight dead tab stops is worse than eight sentences.
+           */
+          <p className="mt-stack-sm text-sm text-content-secondary">
+            {t('web.compare.rail.full').replace('{max}', String(MAX_COMPARE))}
+          </p>
+        ) : (
+          /*
+           * `gm-hit-target` is gone from here on purpose. It reaches 44px by growing an `::after`
+           * OUTWARD, and this card is `overflow: hidden` - the pseudo-element is clipped by the
+           * card, so the rule reported itself satisfied while the reachable area stayed at the
+           * padding's 40px. `.gm-card-add` has 44px of real height and 18px of inline padding,
+           * which nothing can clip.
+           */
+          <Link
+            href={toggleHref(selected, gym, base)}
+            /*
+             * The toggle stays on this page, so the page must not jump. Same rule the facets, the
+             * sort and the active-filter chips follow in `search-results.tsx`, and the reason is
+             * measured there: at 390px, a tap at scrollY 1400 landed at 86. Focus survives the
+             * navigation on the link itself, which is what §3.2 asks for - the reader adds a
+             * second gym without leaving the card they were reading.
+             */
+            scroll={false}
+            className="gm-card-add mt-stack-sm rounded-control text-sm font-semibold"
+          >
+            {/*
+             * The label states what the click does, and `aria-pressed` would be wrong for the
+             * same reason it is wrong on the home rail: this is a link that navigates, not a
+             * control that holds state. So the WORD changes instead.
+             */}
+            {t(chosen ? 'web.gym.compare.remove' : 'web.gym.compare.add')}
+            <span className="gm-visually-hidden">: {gym.name}</span>
+          </Link>
+        )}
       </div>
     </li>
   );

@@ -22,9 +22,28 @@
  * ═══════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { compareKey, toCompareParams } from '../compare/compare.ts';
+import { compareKey, toCompareParams, type CompareBase } from '../compare/compare.ts';
 import type { GymDetail } from '../discovery/fixtures/catalogue.ts';
 import { EMPTY_QUERY, search } from '../discovery/search.ts';
+
+/**
+ * Where a compare toggle on the home page goes: back to the home page, at the gym rail.
+ *
+ * ┌─ IT LIVES HERE BECAUSE IT IS A FACT ABOUT THE HOME PAGE, NOT ABOUT THE RAIL ────────────────┐
+ * │ `compare-rail.tsx` used to own it as `RAIL_BASE = '/'` and `RAIL_FRAGMENT = '#gyms'`, which  │
+ * │ is how the rail came to be hard-wired to one surface: ADR-0050 mounts it on five, and four   │
+ * │ of them are not `/`. The component takes a base now, and each surface supplies its own.      │
+ * │                                                                                              │
+ * │ `#gyms` is the `id` on `GymRail`'s own `<section>` in `chalk.tsx`, three files from here and │
+ * │ two before this move - `compare.spec.ts` asserts the pair so the anchor cannot outlive the   │
+ * │ section it names.                                                                             │
+ * │                                                                                              │
+ * │ In a `.ts` rather than in `chalk.tsx` for the same reason `teaserCompareHref` is: the node    │
+ * │ test runner strips types but cannot load a `.tsx`, so a value the tests must read has to be  │
+ * │ importable.                                                                                   │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export const HOME_COMPARE_BASE: CompareBase = { path: '/', fragment: '#gyms' };
 
 /**
  * Three, because the teaser is a table a reader takes in at a glance and four columns is where it

@@ -39,9 +39,14 @@
  * │ do except undo the reader's place in the list they were reading.                              │
  * │                                                                                              │
  * │ It goes on the facets, the sort, the active-filter chips, the clear-all and the empty         │
- * │ state's relaxations - every href in this file whose pathname is still `/search`. It does NOT  │
- * │ go on `GymCard`, which leaves for a gym's page, where the top is exactly where you want to    │
- * │ arrive.                                                                                       │
+ * │ state's relaxations - every href in this file whose pathname is still `/search`.               │
+ * │                                                                                               │
+ * │ `GymCard` has one of each, which is why the rule is stated as "whose pathname is still        │
+ * │ /search" rather than "every link except the cards". The card's NAME leaves for the gym's own  │
+ * │ page, where the top is exactly where you want to arrive, and takes no `scroll={false}`. Its   │
+ * │ compare toggle stays on this page with one parameter changed (ADR-0050), so it carries the    │
+ * │ flag for the same reason a facet does - and the card declares it itself, because the card is  │
+ * │ also rendered on two landings and a gym page where the toggle stays put too.                  │
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
@@ -50,8 +55,9 @@ import Link from 'next/link';
 import type { MessageKey } from '../../shared/i18n/index.ts';
 import { t } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
+import type { CompareBase } from '../compare/compare.ts';
 import { GymCard } from './gym-card.tsx';
-import { CITIES } from './fixtures/catalogue.ts';
+import { CITIES, type GymDetail } from './fixtures/catalogue.ts';
 import {
   EMPTY_QUERY,
   facets,
@@ -72,7 +78,23 @@ const SORT_KEYS: Record<Sort, MessageKey> = {
   distance: 'web.search.sort.distance',
 };
 
-export function SearchResults({ query }: { readonly query: SearchQuery }) {
+export function SearchResults({
+  query,
+  selected,
+  base,
+}: {
+  readonly query: SearchQuery;
+  /** What is already being compared, from this page's own `?gym=` — ADR-0050. */
+  readonly selected: readonly GymDetail[];
+  /**
+   * This page, filters intact, so a card's compare toggle comes back to it.
+   *
+   * Computed by the route rather than here, because the rail at the foot of the page needs the
+   * identical value: two `toSearchParams(query)` calls would be two chances to disagree about
+   * which page the reader is on.
+   */
+  readonly base: CompareBase;
+}) {
   const results = search(query);
   const groups = facets(query);
 
@@ -152,7 +174,7 @@ export function SearchResults({ query }: { readonly query: SearchQuery }) {
              */
             <ul className="mt-stack-md grid gap-stack-md xl:grid-cols-2">
               {results.map((gym) => (
-                <GymCard key={gym.id} gym={gym} />
+                <GymCard key={gym.id} gym={gym} selected={selected} base={base} />
               ))}
             </ul>
           )}

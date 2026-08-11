@@ -749,10 +749,22 @@
    */
   :root {
     --gm-wrap-inline: clamp(18px, 4vw, 44px);
+    /*
+     * `ADR-0051`. One page measure, redefined for this identity rather than added beside the
+     * token that already means it. Four numbers described one thing - `.gm-wrap` 1240, the header
+     * 1248, the rail 1150 - and the token set's own 1440 was referenced nowhere. Measured at 2560,
+     * the header was eight pixels wider than everything it sat over.
+     *
+     * `.gm-console` keeps its own narrower 960 and is NOT a fifth value of this: a search form is
+     * not a page frame, and stretched to 1240 its three fields grow to widths nothing types into
+     * while the submit drifts a quarter of a screen from the query it submits. `BP3` forbids
+     * stretching; it does not ask every box to be one width.
+     */
+    --gm-container-max: 1240px;
   }
 
   .gm-wrap {
-    max-width: 1240px;
+    max-width: var(--gm-container-max);
     margin-inline: auto;
     padding-inline: var(--gm-wrap-inline);
   }
@@ -1054,6 +1066,16 @@
     .gm-hero {
       min-height: min(100svh, 46rem);
     }
+  }
+
+  /*
+   * `ADR-0050`. With a comparison in progress the hero stops claiming the whole viewport, so its
+   * own primary control is never under the rail. `:has()` rather than a class threaded through the
+   * layout, for the same reason the rail's own reservation uses it: the rail renders from the URL
+   * and nothing above it should have to be told.
+   */
+  body:has(.gm-rail) .gm-hero {
+    min-height: calc(min(100svh, 46rem) - var(--gm-rail-height));
   }
 
   @media (min-width: 1280px) {
@@ -2335,11 +2357,18 @@
     border-color: var(--gm-color-accent-solid);
   }
 
+  /*
+   * No `text-transform` here, and that is `DV4` under `ADR-0052` rather than a taste change.
+   * Three of this class's four call sites render `{gym.name} - {gym.city}`, so it was painting
+   * "NEIGHBOURHOOD GYM - DELHI" on every plan card on the home page: a business's own name,
+   * shouted, on the page asking a reader to trust it. In Devanagari the same declaration does
+   * nothing at all, so a Hindi listing would have rendered in a different case from an English
+   * one beside it. The tracking stays - it is what makes a small mono label read.
+   */
   .gm-plan-where {
     font-family: var(--gm-font-mono);
     font-size: 0.65625rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    letter-spacing: 0.1em;
     color: var(--gm-color-content-on-media-accent);
   }
 
@@ -2620,13 +2649,29 @@
     color: #fff;
   }
 
+  /*
+   * ┌─ THE OPT-OUT FOR ANYTHING THAT HOLDS A NAME ────────────────────────────────────────────────┐
+   * │ `.gm-display`, `.gm-h2` and `.gm-h3` are uppercase because that is the identity's voice, and │
+   * │ `ADR-0052` scopes `DV4` out of identity chrome for exactly that reason. What it does NOT     │
+   * │ scope out is content: a gym's name, a city's name, a locality, a member, a review.           │
+   * │                                                                                             │
+   * │ The gym listing's `<h1>` is where those two met. The file already knew it was a special      │
+   * │ case - its comment says it chose `.gm-h2` over `.gm-display` because "this is a NAME" - and  │
+   * │ `.gm-h2` uppercases too, so the page painted "IRON HOUSE STRENGTH CLUB". The care was real   │
+   * │ and it stopped one declaration short.                                                        │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  .gm-is-name {
+    text-transform: none;
+  }
+
+  /* A CITY NAME. `DV4` under `ADR-0052` - see `.gm-plan-where` for the same reasoning. */
   .gm-city-t strong {
     display: block;
     font-family: var(--gm-font-display);
     font-variation-settings:
       'wdth' 104,
       'wght' 780;
-    text-transform: uppercase;
     font-size: 1.375rem;
     line-height: 1;
   }
@@ -3550,7 +3595,16 @@
    * └─────────────────────────────────────────────────────────────────────────────────────────────┘
    */
   body:has(.gm-rail) {
-    padding-bottom: calc(var(--gm-rail-height) + env(safe-area-inset-bottom, 0px));
+    /*
+     * Plus a step of clearance, not just the bar's height. At the measured maximum the last footer
+     * line came to rest 1px inside the rail - sub-pixel rounding on a fractional layout - and a
+     * line of text touching the bar is not the outcome anybody wanted from an exact reservation
+     * anyway. The reservation is an upper bound by construction (see `--gm-rail-height`), so a
+     * step of space costs nothing it was not already spending.
+     */
+    padding-bottom: calc(
+      var(--gm-rail-height) + var(--gm-space-inset-sm) + env(safe-area-inset-bottom, 0px)
+    );
   }
 
   html:has(.gm-rail) {
@@ -3573,14 +3627,32 @@
    * The `min-height` is what makes the number TRUE rather than aspirational - without it the rail
    * is content-sized and the reservation is a guess again, which is the defect this replaces.
    */
+  /*
+   * ┌─ AN UPPER BOUND PER BAND, BECAUSE THE HEIGHT IS CONTENT-DEPENDENT ────────────────────────┐
+   * │ Measured across four selection sizes and eight widths: 76-94px from `md` up, 120-156px    │
+   * │ from 360 to 767, and 158-199px at 320. Two things move it and both are legitimate - the   │
+   * │ cap note renders only at four gyms, and at 320 the count and the actions cannot share a   │
+   * │ line - so no single number is exact and the only question is which way to be wrong.       │
+   * │                                                                                          │
+   * │ Over-reserving costs dead space at the end of the document while a comparison is open.    │
+   * │ Under-reserving puts the footer under the bar with nothing left to scroll, which is what  │
+   * │ the 96px guess did. Only one of those is a defect, so each band reserves its measured     │
+   * │ MAXIMUM and `responsive.spec.ts` asserts `reserved >= real` rather than `== real`.         │
+   * └──────────────────────────────────────────────────────────────────────────────────────────┘
+   */
   :root {
-    /* 7.5rem, not 7.25: measured at max scroll at 320 the footer's last line sat 1px inside. */
-    --gm-rail-height: 7.5rem;
+    --gm-rail-height: 12.5rem;
+  }
+
+  @media (min-width: 640px) {
+    :root {
+      --gm-rail-height: 9rem;
+    }
   }
 
   @media (min-width: 768px) {
     :root {
-      --gm-rail-height: 4.75rem;
+      --gm-rail-height: 6rem;
     }
   }
 
@@ -3603,7 +3675,7 @@
   }
 
   .gm-rail-in {
-    max-width: 1150px;
+    max-width: var(--gm-container-max);
     margin: 0 auto;
     display: flex;
     align-items: center;
@@ -3636,15 +3708,32 @@
   .gm-rail-set {
     display: flex;
     align-items: center;
-    /* Below `md` the chips take a line of their own under the count and the actions. */
+    /*
+     * Below `md` the chips take a line of their own under the count and the actions.
+     *
+     * `flex: 1 1 100%` as ONE declaration. Written as a separate `flex-basis: 100%` first, above a
+     * `flex: 1` further down the same rule - and the shorthand resets basis to 0, so the line
+     * never happened. A longhand above a shorthand it belongs to is a declaration that is not
+     * there.
+     */
     order: 3;
-    flex-basis: 100%;
     gap: 8px;
     margin: 0;
     padding: 0;
     list-style: none;
-    flex: 1;
+    flex: 1 1 100%;
     min-width: 0;
+    /*
+     * The chips scroll rather than wrapping, so a fifth gym could never add a row.
+     *
+     * Stated precisely because it was first written as the fix for the rail's varying height and
+     * it is not: measured, the rail is 158px at 320 with one gym and 199px with four, and the 41px
+     * is the CAP NOTE below the row, which renders only at four. The chips were already fitting.
+     * This is insurance against a future `MAX_COMPARE`, not a repair.
+     */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
     /*
      * 4px top and bottom, and it is load-bearing rather than decoration.
      *
@@ -3729,9 +3818,9 @@
   .gm-rail-act {
     display: flex;
     align-items: center;
-    margin-left: auto;
     gap: 14px;
-    margin: 0;
+    /* `margin: 0 0 0 auto`, not a `margin-left` above a `margin: 0` that erases it. */
+    margin: 0 0 0 auto;
     flex-shrink: 0;
   }
 
@@ -3747,7 +3836,7 @@
   }
 
   .gm-rail-note {
-    max-width: 1150px;
+    max-width: var(--gm-container-max);
     margin: 8px auto 0;
     font-family: var(--gm-font-mono);
     font-size: 0.6875rem;
@@ -3943,7 +4032,7 @@
 
     .gm-rail-set {
       order: 0;
-      flex-basis: auto;
+      flex: 1 1 auto;
     }
 
     .gm-rail-act {
@@ -4430,6 +4519,32 @@
       position: sticky;
       top: calc(var(--gm-chrome-height) + var(--gm-space-inset-md));
       z-index: var(--gm-z-sticky-section);
+    }
+  }
+
+  /*
+   * ┌─ A LANDSCAPE PHONE IS SHORT, NOT NARROW, AND THE RULE WAS KEYED TO THE WRONG ONE ──────────┐
+   * │ The plan panel is sticky from `lg` up. At 740x360 it is neither: it stacks below a 603px    │
+   * │ content column and "Join this gym" lands 1,536px down - 4.27 viewport heights. A reader     │
+   * │ holding a phone sideways cannot find the price.                                            │
+   * │                                                                                            │
+   * │ Making it sticky there does not help, and that is worth writing down: the panel is 430px    │
+   * │ tall against a 360px viewport, so pinning its top pins something taller than the screen.    │
+   * │ The panel has to be SHORTER first. Below 1024 and under a short viewport it caps its own    │
+   * │ height and scrolls the plan list inside itself, which keeps the join control in view.       │
+   * │                                                                                            │
+   * │ `(max-height: …)` is not a breakpoint and `BP4` does not reach it - `BP4` governs WIDTH.    │
+   * │ A viewport-height query is the capability question here, the same way `(pointer: coarse)`   │
+   * │ is under `BP5`: it asks how much vertical room the reader actually has.                     │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  @media (max-height: 500px) {
+    .gm-plan-card {
+      position: sticky;
+      top: var(--gm-space-inset-sm);
+      max-height: calc(100svh - var(--gm-space-inset-sm) * 2);
+      overflow-y: auto;
+      overscroll-behavior: contain;
     }
   }
 

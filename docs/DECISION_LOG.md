@@ -6627,7 +6627,146 @@ found this time only because `PermissionsGuard` was finally registered earlier t
 
 ---
 
-**End of decision log.** Forty-nine ADRs, all `Accepted`, numbered `ADR-0001` … `ADR-0049` with no
+## ADR-0050 — "Add to compare" accumulates everywhere, and the rail follows the reader
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-11 |
+| **Decided by** | **Project owner**, delegated to the implementing session and recorded here |
+| **Amends** | Nothing. `SCR-WEB-004`'s comparison is built as specified; this settles a question the screen document does not answer |
+
+**One label, two behaviours, and the wrong one is on the surface where the feature is used.**
+Measured on the built site: on the home page the control is `/?gym=<key>#gyms` and ACCUMULATES —
+the rail went 1 → 2 across two clicks. On `/search`, `/gyms/[citySlug]` and
+`/explore/[activitySlug]` the identically-labelled control is `/compare?gym=<this gym only>`, which
+**replaces the whole selection with one gym and leaves the page**. From
+`/search?city=bengaluru&sort=rating` the city and the sort were gone and the rail was absent.
+
+So on the one surface where a person actually shortlists — a list of results they have just
+filtered — a comparison cannot be built at all. The second click undoes the first.
+
+**Option A, and not the cheaper Option B.** The alternative was to rename the results-page control
+to "Compare this gym", which makes the label honest and leaves comparison impossible from search.
+Honesty about a broken feature is not a fix. The selection is already a URL parameter, and every
+one of these routes is a Server Component that already reads `searchParams` — so it is a **prop,
+not a store**, and Option A costs a prop and a mount rather than a state library.
+
+| Consequence | Detail |
+| :--- | :--- |
+| `GymCard` receives the current selection | and emits an accumulating `toggleHref`, the way the home teaser card already does via `railToggleHref` |
+| `RAIL_BASE` stops being `'/'` | the toggle keeps the reader on the page they are on |
+| The rail mounts on four more routes | `/search`, `/gyms/[citySlug]`, `/explore/[activitySlug]` and gym detail — and **not** in the root layout, because a rail on `/how-it-works` is chrome advertising a feature nobody asked for |
+| It never moves focus | `§3.2`. A bar that steals focus when the second checkbox is ticked makes ticking a third impossible without Shift+Tab |
+
+**And the geometry it forces.** A bottom-fixed bar eats the bottom band of the fold: measured, the
+rail covered **100% of the hero's 62px Search submit at 360x800**, 82% at 480, 88% at 640, and
+100% of the category chip row at 1366x768. That is not a stacking-order bug and no `z-index`
+fixes it.
+
+The three options offered were to accept it, to collapse the rail below `md`, or to make it a
+corner pill. **None of them is taken.** The rail is a full-width bar because it has to hold two
+gym names and two actions, and the hero's primary control must never be under it — so the HERO
+gives way instead: `body:has(.gm-rail) .gm-hero` loses exactly `--gm-rail-height` from its floor.
+The rail only exists once a gym is selected, so this shortens the hero only for a reader who is
+mid-comparison, and the console rises with it.
+
+`--gm-rail-height` stays a local custom property in the identity block rather than becoming a
+`packages/ui` token: it is one value, used three times, describing a component that exists on one
+surface. `TK4` is about a repeated measure with no name, and this one has a name.
+
+---
+
+## ADR-0051 — one page measure, and the console is deliberately not it
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-11 |
+| **Decided by** | **Project owner**, delegated to the implementing session and recorded here |
+| **Amends** | Nothing normative. `--gm-container-max` is redefined for the `customer-web` identity, which the identity block at `globals.css` is already sanctioned to do |
+
+`apps/customer-web` shipped **four** container measures, and the token set's own answer was used by
+none of them:
+
+| Where | Value | Verdict |
+| :--- | :-: | :--- |
+| `.gm-wrap` | 1240px | **The page measure.** Everything that frames the page aligns to it |
+| `site-header.tsx` `max-w-[78rem]` | 1248px | A bug. Measured at 2560, the chrome is **8px wider than everything it sits over** |
+| `.gm-rail-in` / `.gm-rail-note` | 1150px | A bar over the page that did not line up with the page |
+| `.gm-console` | 960px | **Kept, and it is not the same kind of thing** |
+| `--gm-container-max` | 1440px | Referenced nowhere |
+
+**The ruling: `--gm-container-max` is redefined to 1240px for this surface, and the wrapper, the
+header and the rail all read it.** One token, three consumers, no literals. This is `TK4` applied
+as written — a repeated measure is a missing token used several ways — and redefining an existing
+token is what the identity block is for, rather than inventing `--gm-chalk-container` beside it.
+
+**The console keeps 960px on purpose.** A search form is not a page frame. Stretched to 1240 its
+three fields grow to widths nothing types into, and the amber submit drifts a quarter of a screen
+from the query it submits. `BP3` forbids stretching; it does not require every box to be the same
+width. The exception is named here so that the next person to find a fifth number knows which four
+were one and which one was not.
+
+---
+
+## ADR-0052 — `DV4`, `DV5` and `TS4` are scoped to what they protect, and the identity keeps its voice
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-11 |
+| **Decided by** | **Project owner**, delegated to the implementing session and recorded here |
+| **Amends** | `DesignSystem.md` §5.6 `DV4` and `DV5`, and §5.3 `TS4` — each gains a scope clause. The rules are not weakened; they are pointed at what they were written for |
+
+Read literally, three rules delete the visual identity this branch exists to build.
+
+- **`DV4`** forbids `text-transform: uppercase` on any string that can hold user content or a
+  translated label. `globals.css` uppercases in **19 rules plus 4 call sites**, including the
+  `<h1>`, every section heading, the search console's field labels and the footer's column heads.
+- **`DV5`** caps positive letter-spacing at `+0.01em` below `text-lg`. The file carries **21
+  rules** from `+0.04em` to `+0.16em`, all under 18px, and every one of them is on a small
+  uppercase label where the tracking is what makes it legible rather than a decoration.
+- **`TS4`** closes the type scale at eleven steps. The identity ships **13 off-scale fixed sizes**
+  and **7 fluid `clamp()` ramps**.
+
+**But `DV4` is not a style rule, and applied where it belongs it found three real defects that
+nobody had reported.** Measured on the built site:
+
+| Painted | Source | Where |
+| :--- | :--- | :--- |
+| `IRON HOUSE STRENGTH CLUB` | `gym.name` | the `<h1>` of the gym's own listing |
+| `NEIGHBOURHOOD GYM · DELHI` | `gym.name` and `gym.city` | every plan card on the home page |
+| `BENGALURU` | `city.name` | every city tile |
+
+A gym owner's own business name, shouted, on the page they are being asked to trust. And in
+Devanagari — which the font stack already loads — `text-transform: uppercase` is inert, so a Hindi
+listing would render in a different case from an English one on the same page. That is the failure
+`DV4` describes, and the file's own comment beside the gym `<h1>` shows how it happened: it
+carefully chose `.gm-h2` over `.gm-display` because *"this is a NAME"*, and `.gm-h2` is uppercase
+too.
+
+**The ruling, in three parts:**
+
+1. **`DV4` applies in full to any string that carries tenant, member or catalogue content** — gym
+   names, city names, locality names, member names, review text, plan names. No exceptions,
+   including inside identity chrome. The three above are fixed in the same change as this ADR.
+2. **`DV4` and `DV5` are scoped OUT of identity chrome** — eyebrows, section headings, the display
+   headline, field labels, footer column heads, the marquee, the wordmark, badges and micro-labels
+   whose strings are fixed editorial copy from the catalogue. These are the design, they are
+   translated as whole phrases rather than assembled, and a translator sees the rendered result.
+3. **`TS4`'s eleven steps stand for every surface except this identity**, which extends the scale
+   rather than escaping it. The 13 off-scale steps are **debt, not licence**: they are recorded in
+   `TECH_DEBT.md` with a payoff trigger, because 13 unnamed numbers in a stylesheet is exactly the
+   condition `TK4` exists to prevent, and the fix is to name them, not to delete them.
+
+**What this deliberately does not do.** It does not touch the two dashboards. `DV4` and `DV5` were
+written for surfaces an operator reads for hours, and `admin-dashboard` and `gym-dashboard` have no
+identity layer to scope out — every one of these rules applies there exactly as written.
+
+---
+
+**End of decision log.** Fifty-two ADRs, all `Accepted`, numbered `ADR-0001` … `ADR-0052` with no
 gaps. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.

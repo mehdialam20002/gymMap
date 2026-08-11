@@ -22,6 +22,7 @@ import Link from 'next/link';
 
 import { t } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
+import type { CompareBase } from '../compare/compare.ts';
 import { FixtureNotice } from '../discovery/search-results.tsx';
 import { GymCard } from '../discovery/gym-card.tsx';
 import { checkoutHref } from '../checkout/quote.ts';
@@ -29,7 +30,29 @@ import { formatMinor, search, toSearchParams, EMPTY_QUERY } from '../discovery/s
 import type { GymDetail as Gym } from '../discovery/fixtures/catalogue.ts';
 import { Gallery } from './gallery.tsx';
 
-export function GymDetail({ gym }: { readonly gym: Gym }) {
+export function GymDetail({
+  gym,
+  selected,
+  base,
+}: {
+  readonly gym: Gym;
+  /**
+   * ┌─ THE SIMILAR-GYMS ROW TAKES THE SELECTION TOO, AND THAT IS THE WHOLE POINT ─────────────┐
+   * │ ADR-0050 asks whether these cards should. They must, for a reason specific to this page: │
+   * │ the three "similar gyms" are the ONLY compare controls on it - the gym being read has no │
+   * │ card of its own - and the rail now mounts here. A row of cards that each replaced the    │
+   * │ selection would leave the rail permanently showing one gym on the page where it is most  │
+   * │ obviously reporting on those very cards, which is the exact inconsistency this ADR is    │
+   * │ removing between the home page and the results page, reproduced inside a single screen.  │
+   * │                                                                                          │
+   * │ It also costs nothing: the row is already `GymCard`, and the selection is already in     │
+   * │ this page's URL.                                                                          │
+   * └──────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  readonly selected: readonly Gym[];
+  /** This gym's own page, so a toggle from the row below leaves the reader on it. */
+  readonly base: CompareBase;
+}) {
   const Verified = icon.verified;
   const Place = icon.place;
 
@@ -135,8 +158,13 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
          * gym's own name into a poster. The identity's largest voice belongs to the marketing
          * copy; a listing gets the section voice, which is the same distinction `.gm-h3` makes on
          * the cards.
+         *
+         * And `gm-is-name`, which is the rest of that same thought. `.gm-h2` also uppercases, so
+         * the reasoning above stopped one declaration short and this heading painted
+         * "IRON HOUSE STRENGTH CLUB" - a business's own name, shouted, on its own listing.
+         * `DV4` under `ADR-0052`: identity chrome may shift case, content may not.
          */}
-        <h1 className="gm-h2">{gym.name}</h1>
+        <h1 className="gm-h2 gm-is-name">{gym.name}</h1>
         <p className="gm-card-meta mt-stack-2xs">
           {gym.locality}, {gym.city}
         </p>
@@ -267,7 +295,7 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
         </div>
       </div>
 
-      <SimilarGyms gym={gym} />
+      <SimilarGyms gym={gym} selected={selected} base={base} />
     </article>
   );
 }
@@ -450,7 +478,15 @@ function AtAGlance({ gym }: { readonly gym: Gym }) {
  * Sorted nearest-first through the same `search()` every other surface uses, so the ordering here
  * cannot drift from the ordering on the results page.
  */
-function SimilarGyms({ gym }: { readonly gym: Gym }) {
+function SimilarGyms({
+  gym,
+  selected,
+  base,
+}: {
+  readonly gym: Gym;
+  readonly selected: readonly Gym[];
+  readonly base: CompareBase;
+}) {
   const others = search({ ...EMPTY_QUERY, city: gym.citySlug, sort: 'distance' })
     .filter((candidate) => candidate.id !== gym.id)
     .slice(0, 3);
@@ -462,7 +498,7 @@ function SimilarGyms({ gym }: { readonly gym: Gym }) {
       ) : (
         <ul className="grid gap-stack-md sm:grid-cols-2 xl:grid-cols-3">
           {others.map((other) => (
-            <GymCard key={other.id} gym={other} />
+            <GymCard key={other.id} gym={other} selected={selected} base={base} />
           ))}
         </ul>
       )}

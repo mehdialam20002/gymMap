@@ -16,6 +16,7 @@ import { Hero } from '../src/features/home/hero.tsx';
 import type { RawParams } from '../src/features/discovery/search.ts';
 import { parseCompare } from '../src/features/compare/compare.ts';
 import { CompareRail } from '../src/features/compare/compare-rail.tsx';
+import { HOME_COMPARE_BASE } from '../src/features/home/teaser.ts';
 import {
   CityGrid,
   ClosingBand,
@@ -111,7 +112,9 @@ export default function HomePage({ searchParams }: { readonly searchParams: RawP
        * would reach a screen reader before the page it is about, announcing a selection nobody has
        * made yet.
        */}
-      <CompareRail selected={selected} />
+      {/* The base is the home page and its own `#gyms` anchor. Stated, not defaulted: ADR-0050
+          mounts this rail on five surfaces and four of them are not `/`. */}
+      <CompareRail selected={selected} base={HOME_COMPARE_BASE} />
     </>
   );
 }

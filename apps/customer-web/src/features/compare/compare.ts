@@ -85,41 +85,87 @@ export function parseCompare(params: RawParams): CompareSelection {
 }
 
 /**
+ * Where a compare link points back to — ADR-0050.
+ *
+ * ┌─ ONE OBJECT, BECAUSE THE TWO HALVES ARE ONE FACT ───────────────────────────────────────────┐
+ * │ This was two positional parameters, `base` and `fragment`, each defaulted. Defaults are what │
+ * │ let the results page ship `toCompareParams([compareKey(gym)])`: a call that reads as "start   │
+ * │ a comparison", compiles, and silently means "throw away the reader's selection and leave     │
+ * │ the page". A single required object is what makes the caller state where the reader is.      │
+ * │                                                                                              │
+ * │ `path` carries the QUERY as well as the pathname. Measured from                              │
+ * │ `/search?city=bengaluru&sort=rating`, the old control resolved to `/compare?gym=<one gym>` — │
+ * │ the city and the sort were gone. The base for that page is the whole of                      │
+ * │ `toSearchParams(query)`, so a toggle keeps every filter the reader set.                       │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export interface CompareBase {
+  /**
+   * The pathname, plus any query string the page must keep. It never carries `gym` — that is the
+   * parameter this module writes, and a base holding one would double it on every click.
+   */
+  readonly path: string;
+  /**
+   * An in-page anchor, where the surface has one worth returning to. The home page has `#gyms`
+   * over its own gym rail. `/search` has none and does not need one: every link that stays on
+   * that page carries `scroll={false}` instead, which is the same promise without a target.
+   */
+  readonly fragment?: string;
+}
+
+/**
+ * The comparison page itself.
+ *
+ * The default for the surfaces whose control genuinely means "open the comparison" — the home
+ * teaser's two buttons and the rail's own call to action. It is NOT the default for a card's
+ * toggle, which is why `GymCard` takes its base as a required prop.
+ */
+export const COMPARE_PAGE: CompareBase = { path: '/compare' };
+
+/**
  * The URL for a given set, on a given page.
  *
  * ┌─ THE SELECTION IS THE URL, WHICH IS WHY IT WORKS EVERYWHERE ────────────────────────────────┐
- * │ `base` exists so a page other than `/compare` can carry a selection: the homepage rail adds │
- * │ and removes gyms by navigating to ITSELF with a different query, which needs no client       │
- * │ state, no store and no hydration. The same links work in a crawler, in a shared message, and │
- * │ with JavaScript switched off, and the back button undoes a selection because the selection   │
- * │ IS a history entry.                                                                          │
- * │                                                                                             │
+ * │ `base` exists so a page other than `/compare` can carry a selection: a page adds and removes │
+ * │ gyms by navigating to ITSELF with a different query, which needs no client state, no store   │
+ * │ and no hydration. The same links work in a crawler, in a shared message, and with JavaScript │
+ * │ switched off, and the back button undoes a selection because the selection IS a history      │
+ * │ entry.                                                                                        │
+ * │                                                                                              │
  * │ `fragment` keeps the reader where they were. Without it, adding the fourth gym on a page     │
  * │ nine screens long returns them to the top, which is how a control that works feels broken.   │
  * └─────────────────────────────────────────────────────────────────────────────────────────────┘
  */
-export function toCompareParams(keys: readonly string[], base = '/compare', fragment = ''): string {
+export function toCompareParams(keys: readonly string[], base: CompareBase = COMPARE_PAGE): string {
   const params = new URLSearchParams();
   for (const key of keys.slice(0, MAX_COMPARE)) params.append('gym', key);
   const encoded = params.toString();
-  const query = encoded === '' ? '' : `?${encoded}`;
-  return `${base}${query}${fragment}`;
+  /*
+   * `&` when the base already has a query, `?` when it does not.
+   *
+   * This is the line ADR-0050 turns on. `/search?city=bengaluru&sort=rating` is a legitimate base
+   * now, and the old `${base}?${encoded}` would have emitted
+   * `/search?city=bengaluru&sort=rating?gym=…` — a second `?` is not a delimiter, so the whole of
+   * `sort=rating?gym=bengaluru/iron-house-indiranagar` parses as ONE value of `sort`, the sort
+   * silently resets to relevance and the compare parameter never arrives at all.
+   *
+   * A string join and not `new URL()`: these are relative hrefs, and `URL` requires an origin
+   * this module has no business inventing.
+   */
+  const separator = base.path.includes('?') ? '&' : '?';
+  const query = encoded === '' ? '' : `${separator}${encoded}`;
+  return `${base.path}${query}${base.fragment ?? ''}`;
 }
 
 /** The URL that adds a gym to the current set — or removes it, if it is already there. */
 export function toggleHref(
   current: readonly GymDetail[],
   gym: { citySlug: string; slug: string },
-  base = '/compare',
-  fragment = '',
+  base: CompareBase = COMPARE_PAGE,
 ): string {
   const key = compareKey(gym);
   const keys = current.map(compareKey);
-  return toCompareParams(
-    keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key],
-    base,
-    fragment,
-  );
+  return toCompareParams(keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key], base);
 }
 
 /**

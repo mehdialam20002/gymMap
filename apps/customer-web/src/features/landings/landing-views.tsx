@@ -13,6 +13,7 @@ import Link from 'next/link';
 
 import { t } from '../../shared/i18n/index.ts';
 import { icon } from '../../shared/icons/index.tsx';
+import type { CompareBase } from '../compare/compare.ts';
 import { GymCard } from '../discovery/gym-card.tsx';
 import { FixtureNotice } from '../discovery/search-results.tsx';
 import { toSearchParams, EMPTY_QUERY } from '../discovery/search.ts';
@@ -42,7 +43,25 @@ function countLabel(count: number): string {
 // A city
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function CityLandingView({ landing }: { readonly landing: CityLanding }) {
+/**
+ * What a landing needs beyond its own copy, so the two views state it once.
+ *
+ * ADR-0050: the selection is a prop because it is already in the URL, and the base is the landing
+ * itself so a toggle returns the reader to the page they were reading. Neither route carries a
+ * filter of its own, so the base is the bare path - `/gyms/bengaluru`, `/explore/yoga` - and the
+ * canonical each route hardcodes is that same string, which is why `?gym=` adds no indexable
+ * address (`FR-SRCH-13`).
+ */
+interface LandingCompare {
+  readonly selected: readonly GymDetail[];
+  readonly base: CompareBase;
+}
+
+export function CityLandingView({
+  landing,
+  selected,
+  base,
+}: { readonly landing: CityLanding } & LandingCompare) {
   const others = cityIndex().filter((city) => city.slug !== landing.slug);
 
   return (
@@ -67,7 +86,12 @@ export function CityLandingView({ landing }: { readonly landing: CityLanding }) 
           {t('web.landing.city.intro').replace('{city}', landing.name)}
         </p>
 
-        <GymGrid gyms={landing.gyms} emptyKey="web.landing.city.empty" />
+        <GymGrid
+          gyms={landing.gyms}
+          emptyKey="web.landing.city.empty"
+          selected={selected}
+          base={base}
+        />
 
         {landing.gyms.length > 0 && (
           <p className="mt-stack-lg">
@@ -116,7 +140,11 @@ export function CityLandingView({ landing }: { readonly landing: CityLanding }) 
 // An activity
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function ActivityLandingView({ landing }: { readonly landing: ActivityLanding }) {
+export function ActivityLandingView({
+  landing,
+  selected,
+  base,
+}: { readonly landing: ActivityLanding } & LandingCompare) {
   const others = activityIndex().filter((activity) => activity.slug !== landing.slug);
 
   return (
@@ -141,7 +169,12 @@ export function ActivityLandingView({ landing }: { readonly landing: ActivityLan
           {t('web.landing.activity.intro').replace('{activity}', landing.name)}
         </p>
 
-        <GymGrid gyms={landing.gyms} emptyKey="web.landing.activity.empty" />
+        <GymGrid
+          gyms={landing.gyms}
+          emptyKey="web.landing.activity.empty"
+          selected={selected}
+          base={base}
+        />
 
         {landing.cities.length > 0 && (
           <ChipSection
@@ -376,10 +409,12 @@ function HubPage({
 function GymGrid({
   gyms,
   emptyKey,
+  selected,
+  base,
 }: {
   readonly gyms: readonly GymDetail[];
   readonly emptyKey: Parameters<typeof t>[0];
-}) {
+} & LandingCompare) {
   if (gyms.length === 0) {
     return (
       <p className="gm-card mt-stack-xl max-w-prose rounded-card p-inset-lg text-base text-content-secondary">
@@ -400,7 +435,7 @@ function GymGrid({
       <h2 className="gm-visually-hidden">{t('web.landing.listingsHeading')}</h2>
       <ul className="mt-stack-xl grid gap-stack-lg sm:grid-cols-2 xl:grid-cols-3">
         {gyms.map((gym) => (
-          <GymCard key={gym.id} gym={gym} />
+          <GymCard key={gym.id} gym={gym} selected={selected} base={base} />
         ))}
       </ul>
     </>
