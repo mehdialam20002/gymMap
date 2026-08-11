@@ -1337,8 +1337,11 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
-    padding: 8px;
-    border-radius: 22px;
+    /*
+     * `gap` and nothing else. The `padding: 8px` and the `border-radius: 22px` here belonged to
+     * the tray - with no ground to paint, an inset indents the fields from a box nobody can see
+     * and a radius rounds nothing. They went with it.
+     */
     /*
      * ┌─ THE PAGE'S PRIMARY CONTROL HAS TO OUTRANK THE PAGE ────────────────────────────────────┐
      * │ This was `surface-subtle` at 82% on a hero whose ground is `surface-media` - two          │
@@ -1359,12 +1362,44 @@
      * │ would compete with both: a control that always looks focused cannot show that it IS.       │
      * └───────────────────────────────────────────────────────────────────────────────────────────┘
      */
-    border: 1px solid var(--gm-color-border-default);
-    background: color-mix(in srgb, var(--gm-color-surface-overlay) 92%, transparent);
-    box-shadow:
-      var(--gm-shadow-xl),
-      inset 0 1px 0 color-mix(in srgb, var(--gm-color-content-primary) 12%, transparent);
-    backdrop-filter: blur(20px) saturate(150%);
+    /*
+     * ┌─ ONE FRAME, NOT TWO. THE TRAY IS GONE ───────────────────────────────────────────────────┐
+     * │ Reported as "it looks too highlighted", and the tray was the reason. Three bordered       │
+     * │ fields inside a bordered, filled, shadowed pill is TWO levels of containment for one      │
+     * │ control, and the site's other search input - the one on `/search` - has always been a     │
+     * │ single bordered field on the page. The hero was framing the same thing twice.             │
+     * │                                                                                          │
+     * │ Light made it obvious. `surface-overlay` and `surface-raised` are BOTH `#ffffff` there,   │
+     * │ so the tray and the wells were the same colour and every bit of the separation fell to    │
+     * │ three `border-input` rims at 4.76:1 on white - the design doing with hard lines what it   │
+     * │ should have been doing with a value step. The step could be fixed; the second frame       │
+     * │ could not, because it is the frame that is redundant rather than its colour.              │
+     * │                                                                                          │
+     * │ So the console keeps only what makes it a LAYOUT: the grid, the gap, the max-width and    │
+     * │ the stacking claim. Its ground, its border, its shadow and its `backdrop-filter` are all  │
+     * │ gone, and the fields are the only chrome. The rims stay exactly where they were, because  │
+     * │ `SC 1.4.11` asks 3:1 of a control's own boundary and the token scale has nothing between  │
+     * │ `border-strong` at 2.56:1 and `border-input` at 4.76:1 - softening them is not available   │
+     * │ without going under the floor, and it is not what was loud.                                │
+     * └──────────────────────────────────────────────────────────────────────────────────────────┘
+     */
+    /*
+     * ┌─ (KEPT FOR THE RECORD) THE STEP THAT WAS TRIED FIRST ────────────────────────────────────┐
+     * │ This was `surface-overlay`, chosen and measured in the DARK theme where it is the top of  │
+     * │ the scale and reads as a tray under three darker slots. In LIGHT, `surface-overlay` and    │
+     * │ `surface-raised` are BOTH `#ffffff` - so the tray and the wells were the same colour, the │
+     * │ layering collapsed, and every bit of the separation fell to three `border-input` rims at  │
+     * │ 4.76:1 on white. Reported as "it looks too highlighted", and it was: the design was doing  │
+     * │ with hard lines what it should have been doing with a value step.                          │
+     * │                                                                                           │
+     * │ `surface-subtle` steps the correct way on BOTH grounds - `#141924` in dark, LIGHTER than  │
+     * │ the fields' `#12161f`; `#f1f5f9` in light, DARKER than their `#ffffff`. Same relationship, │
+     * │ opposite direction, which is what a theme pair is supposed to do. The rims stay where they │
+     * │ are: `SC 1.4.11` asks 3:1 of a control's boundary and the token scale has nothing between  │
+     * │ `border-strong` at 2.56:1 and `border-input` at 4.76:1, so softening them is not available │
+     * │ without going under the floor.                                                             │
+     * └───────────────────────────────────────────────────────────────────────────────────────────┘
+     */
     max-width: 960px;
     /*
      * A control answers for its own surface. Unconditionally, not because the geometry happens to
@@ -4054,7 +4089,6 @@
 
     .gm-console {
       grid-template-columns: 1.05fr 1fr 1.6fr auto;
-      border-radius: var(--gm-radius-full);
     }
 
     .gm-console .gm-btn {
