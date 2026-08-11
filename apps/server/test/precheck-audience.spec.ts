@@ -22,6 +22,7 @@ import {
   suiteForTenant,
 } from '../dist/onboarding/domain/precheck-audience.js';
 import { PRECHECK_NAMES, precheck } from '../dist/onboarding/domain/precheck-result.vo.js';
+import { runDuplicateAddressCheck } from '../dist/onboarding/application/prechecks/duplicate-address.check.js';
 
 const RAN_AT = new Date('2026-08-11T10:00:00.000Z');
 const OTHER_TENANT = '01912f00-0000-7000-8000-00000000000b';
@@ -192,4 +193,64 @@ test('suiteForTenant projects every member, not the first', () => {
 
   assert.equal(projected.length, 2);
   assert.ok(!JSON.stringify(projected).includes(OTHER_TENANT));
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// The producer, not a hand-built result — the gap the tests above cannot see
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('the REAL address check, projected, carries the count Gym.md promises', async () => {
+  /*
+   * ┌─ WHY THIS ONE DRIVES THE CHECK INSTEAD OF CONSTRUCTING A RESULT ──────────────────────────────┐
+   * │ Every assertion above builds its own `precheck(...)` and hands it to `forTenant()`, which     │
+   * │ tests the MAP and cannot test the PIPELINE. It missed a real defect: the whitelist permitted  │
+   * │ `possibleDuplicateGymCount` and `runDuplicateAddressCheck` emitted `exactMatches` and         │
+   * │ `proximateMatches` and no count, so a flagged owner received `{}` where `Gym.md` line 1023    │
+   * │ promises `{ "status": "WARN", "possible_duplicate_gym_count": 1 }`. Both halves were          │
+   * │ internally consistent and the green suite said nothing.                                        │
+   * │                                                                                              │
+   * │ A whitelist can only pass through what the producer actually emits, so at least one assertion │
+   * │ has to start at the producer.                                                                 │
+   * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const probe = {
+    findApprovedNear: () =>
+      Promise.resolve({
+        ok: true as const,
+        matches: [
+          {
+            gymId: 'gym-of-another-tenant',
+            normalisedAddress: '4 darshan sai unit',
+            distanceMetres: 3,
+          },
+          { gymId: 'gym-nearby', normalisedAddress: '9 meera unit', distanceMetres: 90 },
+        ],
+      }),
+  };
+
+  const result = await runDuplicateAddressCheck(
+    probe as never,
+    {
+      address: 'Shop 4, Sai Darshan',
+      pin: { latitude: 19.076, longitude: 72.8777 },
+      radiusMetres: 150,
+    },
+    RAN_AT,
+  );
+
+  // The reviewer's copy names the gyms — that is the entire value of the flag.
+  assert.equal(result.outcome, 'FLAG');
+  assert.ok(JSON.stringify(forReviewer(result)).includes('gym-of-another-tenant'));
+
+  const owner = forTenant(result);
+  assert.equal(owner.outcome, 'FLAG');
+  assert.deepEqual(
+    owner.evidence,
+    { possibleDuplicateGymCount: 2 },
+    'the owner got something other than exactly the documented count',
+  );
+  assert.ok(
+    !JSON.stringify(owner).includes('gym-'),
+    'a gym id belonging to another tenant reached the submitting tenant',
+  );
 });

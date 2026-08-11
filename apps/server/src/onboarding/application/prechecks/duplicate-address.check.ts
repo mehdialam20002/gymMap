@@ -112,6 +112,25 @@ export async function runDuplicateAddressCheck(
         distanceMetres: m.distanceMetres,
       })),
       radiusMetres: input.radiusMetres,
+
+      /*
+       * The COUNT, and it is the only field of this evidence the SUBMITTING TENANT ever sees.
+       *
+       * ┌─ IT IS NOT REDUNDANT WITH THE TWO ARRAYS, BECAUSE THE ARRAYS DO NOT REACH THE TENANT ────┐
+       * │ `precheck-audience.ts` whitelists `possibleDuplicateGymCount` for this check and nothing  │
+       * │ else, because `Gym.md` line 1023's tenant-facing body is                                  │
+       * │ `{ "status": "WARN", "possible_duplicate_gym_count": 1 }` — a number, never a `gymId`.     │
+       * │                                                                                          │
+       * │ Without this field the projection had a rule for a key nobody wrote, so a flagged owner   │
+       * │ received `{}` where the document promises a count, and the whitelist test passed anyway   │
+       * │ because it asserted the MAP with a synthetic result rather than this function's output.    │
+       * │ A whitelist can only pass through what the producer actually emits.                        │
+       * │                                                                                          │
+       * │ Derived here rather than by the projection counting the arrays: `forTenant()` copies       │
+       * │ permitted keys and computes nothing, which is what makes it small enough to trust.         │
+       * └──────────────────────────────────────────────────────────────────────────────────────────┘
+       */
+      possibleDuplicateGymCount: found.matches.length,
     },
     ranAt,
   );

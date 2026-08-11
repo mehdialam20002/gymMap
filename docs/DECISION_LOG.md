@@ -6862,12 +6862,32 @@ So _"turant"_ and `PE6` are both satisfiable, and the owner's answer costs nothi
 
 | Checks | When | Audience |
 | :--- | :--- | :--- |
-| `GEO_DISTANCE`, `DUPLICATE_ADDRESS`, `IMAGE_QUALITY`, `PROFANITY` | **synchronously**, in the submission | the owner sees the blocking one immediately |
-| `DUPLICATE_REGISTRATION_ID`, `DUPLICATE_BANK_ACCOUNT` | elevated job, out of band | **reviewer only**, before the review |
+| `GEO_DISTANCE` | **synchronously**, in the submission transaction | the owner, immediately — it is the only check they can act on |
+| the other five | elevated out-of-band job, before the review | **reviewer signals** |
 
-`DUPLICATE_ADDRESS` stays synchronous deliberately: it is a PostGIS radius query over `branches`,
-which is tenant-scoped data reachable under the caller's own RLS, and `Gym.md` returns it to the owner
-as a COUNT. It fans out across no tenant.
+And that line is not one this ADR draws. `Gym.md` draws it, in the sentence directly beneath the same
+table, line 488:
+
+> Only check 1 blocks … **The other five are reviewer signals** — refusing on them would make the
+> platform the judge of ambiguous evidence, which `BR-GYM-03` reserves for a human.
+
+`GEO_DISTANCE` compares the owner's own typed address against the owner's own map pin. No other
+tenant's rows are read, so no elevation is involved and `PE6` is not engaged. Every check that reaches
+across tenants is now out of band, which is precisely what `PE6` asks for.
+
+> **Corrected the same day, before any of it was built.** The first version of this table put
+> `DUPLICATE_ADDRESS`, `IMAGE_QUALITY` and `PROFANITY` on the synchronous side, and justified
+> `DUPLICATE_ADDRESS` with the claim that a PostGIS radius over `branches` is _"tenant-scoped data
+> reachable under the caller's own RLS"_. **That claim is false.** The check searches for _approved_
+> gyms at an address — other tenants' gyms are the entire question, and
+> `duplicate-address.probe.ts`'s own docblock says so in a box: _"This is a cross-tenant read … the
+> adapter must therefore run it through `runElevated()` with a stated reason."_ Under the caller's own
+> RLS the query would see only the caller's own gyms and the check would be worthless.
+>
+> Left visible rather than rewritten away, because the error is instructive: the corrected split is
+> **simpler** than the one it replaces, and it was available in a sentence of `Gym.md` sitting three
+> lines under the table this ADR was already quoting. Reading one row of a table and stopping is how
+> the wrong line gets drawn confidently.
 
 **This is a reading of the documents, not a compromise between them.** Recorded as an ADR because the
 owner was asked and answered, and because `BLK-22` had been escalated — a row that says "only the
