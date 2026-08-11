@@ -6825,7 +6825,83 @@ meant to be read, rather than being shouted by a `text-transform` a translator c
 
 ---
 
-**End of decision log.** Fifty-three ADRs, all `Accepted`, numbered `ADR-0001` … `ADR-0053` with no
+## ADR-0054 — the six pre-checks are not one unit, and `BLK-22` dissolves when they are split
+
+| Field | Value |
+| :--- | :--- |
+| **Status** | `Accepted` |
+| **Date** | 2026-08-11 |
+| **Decided by** | **Project owner**, directly — _"2 turant hi kre"_ |
+| **Closes** | `BLK-22`, open since 2026-08-10 |
+
+The owner was asked whether the six `BR-GYM-09` pre-checks run synchronously at submission or out of
+band, and answered **"turant hi kre"** — immediately.
+
+### The conflict as recorded, and why it was not one
+
+`BLK-22` framed it as rank 1 against rank 3:
+
+| Rank | Document | Says |
+| :-: | :--- | :--- |
+| 1 | `PROJECT_CONSTITUTION.md` `PE6` | _"A user request never fans out across tenants synchronously"_ |
+| 3 | `apis/Gym.md` line 473 | the six checks run _"synchronously inside the submission transaction"_ |
+
+Two of the six — `DUPLICATE_REGISTRATION_ID` and `DUPLICATE_BANK_ACCOUNT` — are exactly cross-tenant
+fan-out, so on that framing the two rules want opposite things and only the owner could choose.
+
+**The framing treated the six as one unit, and `Gym.md`'s own table does not.** Its "Blocking for the
+owner?" column reads, for those two and only those two:
+
+> **No — reviewer-facing**
+
+Neither was ever going to appear in the owner's synchronous answer. The one check that IS blocking for
+the owner — `GEO_DISTANCE`, which raises `422 GEO_ADDRESS_MISMATCH` — is tenant-local and needs no
+elevation at all.
+
+So _"turant"_ and `PE6` are both satisfiable, and the owner's answer costs nothing:
+
+| Checks | When | Audience |
+| :--- | :--- | :--- |
+| `GEO_DISTANCE`, `DUPLICATE_ADDRESS`, `IMAGE_QUALITY`, `PROFANITY` | **synchronously**, in the submission | the owner sees the blocking one immediately |
+| `DUPLICATE_REGISTRATION_ID`, `DUPLICATE_BANK_ACCOUNT` | elevated job, out of band | **reviewer only**, before the review |
+
+`DUPLICATE_ADDRESS` stays synchronous deliberately: it is a PostGIS radius query over `branches`,
+which is tenant-scoped data reachable under the caller's own RLS, and `Gym.md` returns it to the owner
+as a COUNT. It fans out across no tenant.
+
+**This is a reading of the documents, not a compromise between them.** Recorded as an ADR because the
+owner was asked and answered, and because `BLK-22` had been escalated — a row that says "only the
+owner can decide" and is then resolved by re-reading a table should say so, or the next person
+inherits a blocker that was never one.
+
+### What this does not resolve
+
+**Constraint 2 of `BLK-22` still stands, and it gates the persistence rather than the shape.** Four of
+the six ports have no adapter, `precheck_results` is correctly outside `D-03`'s UPDATE grant, and
+`approval-override.policy.ts` demands a written reason for anything not `PASS`. Wiring persistence
+today would freeze four permanent `ERROR`s into every historical application with no re-run path, and
+every approval would acquire a boilerplate justification — the _"it flags, a human clicks Approve"_
+degradation that policy's own docblock exists to prevent. **The ports land first.**
+
+### The security signal `BLK-22` named, and its status
+
+Under the synchronous shape those two checks called `runElevated` inside a tenant scope, which
+`platform-elevation.ts` refuses — and the refusal throws **before** the `PE2` audit append, so every
+legitimate submission produced an unlogged refused elevation. `BLK-22` put it plainly: the condition
+the probe's own comment calls _"the shape of an accidental privilege escalation"_ would fire on 100% of
+legitimate traffic, making a genuine attempt indistinguishable from routine.
+
+With the two checks moved out of the request that stops firing on legitimate traffic, and
+`ElevationRefusedError` becomes a signal again rather than noise.
+
+Separately, `c087619` closed the `BR-TEN-01` leak the same row recorded as constraint 1: both
+cross-tenant checks were writing `otherTenants: [{ tenantId, status }]` into `precheck_results`, which
+`Gym.md` line 1023 puts in the tenant-facing `202` body. `Gym.md`'s own example body carries status
+alone for those two, so that was a code invention rather than a document conflict.
+
+---
+
+**End of decision log.** Fifty-four ADRs, all `Accepted`, numbered `ADR-0001` … `ADR-0054` with no
 gaps. ADR-0001…ADR-0030 recorded 2026-08-06
 against `MASTER_PRD.md` v2.0 (04 August 2026) and `/docs/engineering/STACK_ADDITIONS.md` as
 approved on 2026-08-06; ADR-0031…ADR-0035 recorded 2026-08-07 and ADR-0036…ADR-0037 on 2026-08-08, during Phase 8 implementation.
