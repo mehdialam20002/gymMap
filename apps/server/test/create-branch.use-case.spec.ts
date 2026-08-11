@@ -76,7 +76,7 @@ test('the FIRST branch of a gym is primary even when the request says otherwise'
     const { useCase, written } = build({ existingBranches: [] });
     await useCase.execute({ ...REQUEST, is_primary: false });
 
-    assert.equal(written[0]?.isPrimary, true, 'a first branch was written as non-primary');
+    assert.equal(written[0]?.['isPrimary'], true, 'a first branch was written as non-primary');
   })();
 });
 
@@ -99,7 +99,7 @@ test('a first branch that did not ask either way is primary, and nothing was ove
   const { useCase, written } = build({ existingBranches: [] });
   const outcome = await useCase.execute(REQUEST);
 
-  assert.equal(written[0]?.isPrimary, true);
+  assert.equal(written[0]?.['isPrimary'], true);
   assert.equal(outcome.ok, true);
   if (!outcome.ok) return;
   assert.equal(outcome.primaryForced, false);
@@ -110,11 +110,15 @@ test('a SECOND branch is written exactly as requested — the rule is about the 
 
   const nonPrimary = build({ existingBranches: existing });
   await nonPrimary.useCase.execute({ ...REQUEST, is_primary: false });
-  assert.equal(nonPrimary.written[0]?.isPrimary, false);
+  assert.equal(nonPrimary.written[0]?.['isPrimary'], false);
 
   const omitted = build({ existingBranches: existing });
   await omitted.useCase.execute(REQUEST);
-  assert.equal(omitted.written[0]?.isPrimary, false, 'an omitted flag must not default to primary');
+  assert.equal(
+    omitted.written[0]?.['isPrimary'],
+    false,
+    'an omitted flag must not default to primary',
+  );
 });
 
 test('a second branch asking to be primary is PASSED THROUGH for the index to refuse', async () => {
@@ -130,7 +134,7 @@ test('a second branch asking to be primary is PASSED THROUGH for the index to re
   const { useCase, written } = build({ existingBranches: [{ id: EXISTING, isPrimary: true }] });
   await useCase.execute({ ...REQUEST, is_primary: true });
 
-  assert.equal(written[0]?.isPrimary, true, 'the use case quietly demoted the request');
+  assert.equal(written[0]?.['isPrimary'], true, 'the use case quietly demoted the request');
 });
 
 test('a gym whose only branch was CLOSED gets a primary again', async () => {
@@ -144,7 +148,7 @@ test('a gym whose only branch was CLOSED gets a primary again', async () => {
   const { useCase, written } = build({ existingBranches: [] }); // the closed one is not active
   await useCase.execute(REQUEST);
 
-  assert.equal(written[0]?.isPrimary, true);
+  assert.equal(written[0]?.['isPrimary'], true);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -218,7 +222,7 @@ test('geoToleranceMetres is null — unmeasured, and never zero (KL-114)', async
   const { useCase, written } = build({});
   await useCase.execute(REQUEST);
 
-  assert.equal(written[0]?.geoToleranceMetres, null);
+  assert.equal(written[0]?.['geoToleranceMetres'], null);
 });
 
 test('landmark and parking_notes are accepted and DROPPED — no column exists', async () => {

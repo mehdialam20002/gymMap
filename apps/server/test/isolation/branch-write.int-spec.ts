@@ -279,17 +279,35 @@ it('an EMPTY gym filter returns every row, where a bare = ANY would return none'
    * the array is empty, so an unfiltered request would show an owner an empty estate — and look
    * exactly like a tenant with no branches.
    */
+  /*
+   * Compared against the table's own unfiltered count rather than a literal.
+   *
+   * The first version asserted `all=2`, which was true only while `branches` held nothing but this
+   * probe's two rows. Seed `v0.6` then committed five, `tenancy.isolation-spec.ts` applies it as a
+   * fixture, and the assertion started reporting `all=7` — a test that failed because the database
+   * gained legitimate data. Self-referential is the fix: the guard's job is that the two counts
+   * AGREE, whatever the number is.
+   */
   const result = withFixtures(`
     ${insertBranch('Andheri', 72.877, 19.076, true)}
     ${insertBranch('Powai', 72.905, 19.117, false)}
-    SELECT 'all=' || count(*)::text FROM branches
+    SELECT 'guarded=' || count(*)::text FROM branches
      WHERE deleted_at IS NULL
        AND (cardinality('{}'::uuid[]) = 0 OR gym_id = ANY('{}'::uuid[]));
+    SELECT 'unfiltered=' || count(*)::text FROM branches WHERE deleted_at IS NULL;
     SELECT 'bare=' || count(*)::text FROM branches
-     WHERE deleted_at IS NULL AND gym_id = ANY('{}'::uuid[]);`);
+     WHERE deleted_at IS NULL AND gym_id = ANY('{}'::uuid[]);
+    SELECT 'probe=' || count(*)::text FROM branches WHERE gym_id = '${GYM}';`);
 
   assert.equal(result.ok, true, result.err);
-  assert.match(result.out, /all=2/);
+
+  const guarded = /guarded=(\d+)/.exec(result.out)?.[1];
+  const unfiltered = /unfiltered=(\d+)/.exec(result.out)?.[1];
+  assert.equal(guarded, unfiltered, 'the empty-array guard did not return every row');
+
+  // Non-vacuous: the probe's own two rows are in there, so the counts above are not both zero.
+  assert.match(result.out, /probe=2/);
+
   // The control. If this ever reports anything but 0, the OR guard has stopped being necessary
   // and the comment above it has stopped being true.
   assert.match(result.out, /bare=0/);

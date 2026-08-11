@@ -47,18 +47,30 @@ import {
   type ProbeResponse,
 } from './_assertions.ts';
 import { TENANT_A, TENANT_B, seedTenantsSql } from '../../prisma/seed/tenants.ts';
+import { seedCatalogSql } from '../../prisma/seed/catalog.ts';
 import { mintAccessToken } from '../harness/mint-token.ts';
 import { applyTestEnv, TEST_JWT_SECRET } from '../harness/test-env.ts';
 
 /** Must match `SEED_TENANT_A_COUNTS` in the coverage gate; asserted below. */
 const EXPECTED_TENANT_A_COUNTS: Record<string, number> = {
   '/v1/tenant/ping': 1,
+  /*
+   * Seed `v0.6` · tenant A holds exactly ONE branch — `tenants.ts` has said *"single branch, the
+   * ordinary case"* since `M-009`, and as of `M-031` a row exists to match.
+   *
+   * One rather than three, deliberately. Tenant B holds three, so a globally broken tenant
+   * variable — the failure `A4` is the positive control for — yields four here rather than a
+   * plausible number. An expectation that happened to match the leak would be worthless.
+   */
+  '/v1/tenant/branches': 1,
 };
 
 /** The table each route's resource lives in, for A2's checksum. */
 const ROUTE_TABLE: Record<string, string> = {
   '/v1/tenant/{tenantRef}/ping': 'tenants',
   '/v1/tenant/ping': 'tenants',
+  '/v1/tenant/branches': 'branches',
+  '/v1/tenant/branches/{id}': 'branches',
 };
 
 let app: INestApplication | undefined;
@@ -124,6 +136,16 @@ const context: ProbeContext = {
 before(async () => {
   try {
     psql(seedTenantsSql());
+    /*
+     * The catalogue, from `M-031`. Without it the four `/v1/tenant/branches*` case groups would
+     * address rows that do not exist, and `A1` — *"tenant A cannot read tenant B"* — would pass
+     * against a 404 that means "there is nothing here" rather than "the policy filtered it".
+     *
+     * That is the `IG-3` shape the coverage gate refuses at the inventory level, arriving one
+     * layer down: a case group that runs against absent fixtures is indistinguishable from one
+     * that proves isolation.
+     */
+    psql(seedCatalogSql());
 
     applyTestEnv();
 

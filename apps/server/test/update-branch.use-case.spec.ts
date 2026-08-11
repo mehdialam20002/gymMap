@@ -97,7 +97,7 @@ test('the same request WITH acknowledge_review: true goes through', async () => 
   });
 
   assert.equal(outcome.ok, true);
-  assert.equal(patches[0]?.postalCode, '400076');
+  assert.equal(patches[0]?.['postalCode'], '400076');
 });
 
 test('acknowledge_review: FALSE is not an acknowledgement', async () => {
@@ -179,7 +179,7 @@ test('an explicit null is CARRIED, so a nullable field can be cleared', async ()
   await useCase.execute(BRANCH, { capacity: null } as never);
 
   assert.ok('capacity' in patches[0]!, 'the key was dropped, so the column keeps its old value');
-  assert.equal(patches[0]?.capacity, null);
+  assert.equal(patches[0]?.['capacity'], null);
 });
 
 test('wire names become column names — a rename cannot silently stop writing', async () => {

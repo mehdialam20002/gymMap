@@ -111,6 +111,24 @@ export function audienceOf(path) {
  */
 export const SEED_TENANT_B_IDS = {
   tenantRef: '01912f00-0000-7000-8000-00000000000b',
+
+  /*
+   * ┌─ `id` IS A GENERIC PARAMETER NAME, AND TODAY IT MEANS ONE THING ───────────────────────────┐
+   * │ Seed `v0.6` · `branchId('peak:koregaon-park')` — tenant B's primary branch, derived through │
+   * │ `seedUuid` and therefore stable across re-seeds.                                            │
+   * │                                                                                            │
+   * │ The three `/v1/tenant/branches/{id}` routes are the only `{id}` routes that exist. The      │
+   * │ moment a second resource uses the same parameter name — `/v1/tenant/plans/{id}` at `M-036` —│
+   * │ this map stops being able to express both, because it is keyed on the PARAMETER and not on  │
+   * │ the route. A branch id addressed to a plans route would 404 for the wrong reason and `A1`   │
+   * │ would pass having proved nothing.                                                           │
+   * │                                                                                            │
+   * │ Left as-is rather than pre-emptively re-keyed: the map is `IG-3`'s and changing its shape   │
+   * │ changes the gate. Recorded so the next milestone to add an `{id}` route finds the reason    │
+   * │ here instead of adding a second value and wondering why the first one moved.                 │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  id: '496d6f74-6de9-5f52-92ee-bf9904b3f682',
 };
 
 /**
@@ -124,6 +142,16 @@ export const SEED_TENANT_A_COUNTS = {
   // P-SELF: `tenants` has no tenant_id column, its PK IS the tenant id, so tenant A always sees
   // exactly itself.
   '/v1/tenant/ping': 1,
+
+  /*
+   * Seed `v0.6` gives tenant A exactly ONE branch, and `tenants.ts` has said so since `M-009`:
+   * *"Single branch, the ordinary case."*
+   *
+   * One rather than three is deliberate on the A4 side. Tenant B holds three, so a globally broken
+   * tenant variable — the failure `IG-4` exists to catch — produces the WRONG count here rather
+   * than a plausible one: A4 asserting `1` fails loudly against a leak that returns 4.
+   */
+  '/v1/tenant/branches': 1,
 };
 
 export function runGates({ inventory, exceptedRoutes = new Set(), env = process.env }) {

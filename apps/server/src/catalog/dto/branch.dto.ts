@@ -109,14 +109,31 @@ const temporaryClosure = z
   .strict()
   .nullable();
 
-export const updateBranchRequestSchema = z
-  .object({
-    ...Object.fromEntries(
-      Object.entries({ ...immediateFields, ...materialFields }).map(([key, schema]) => [
-        key,
-        (schema as z.ZodTypeAny).optional(),
-      ]),
-    ),
+/**
+ * ┌─ `.partial()`, AND THE `Object.fromEntries` VERSION THIS REPLACED WAS TYPE-BLIND ────────────┐
+ * │ The first version built the optional fields with                                              │
+ * │                                                                                              │
+ * │     ...Object.fromEntries(Object.entries({ ...immediateFields, ...materialFields })           │
+ * │          .map(([key, schema]) => [key, (schema as z.ZodTypeAny).optional()]))                 │
+ * │                                                                                              │
+ * │ — which TypeScript types as `{ [k: string]: ZodTypeAny }`, because `Object.fromEntries` over  │
+ * │ a mapped array cannot preserve keys. So `z.infer` produced a `UpdateBranchRequest` containing │
+ * │ **`temporary_closure` and `acknowledge_review` and nothing else**, and every one of the       │
+ * │ twelve real fields was invisible to the compiler.                                             │
+ * │                                                                                              │
+ * │ Runtime validation was correct throughout — Zod had the schemas, only the TYPE was empty —    │
+ * │ which is why nothing failed. It surfaced when a spec passed `{ postal_code: '400076' }` and   │
+ * │ `tsc` said the property *"does not exist"*: the handler had been accepting a body it could    │
+ * │ not describe, and a typo in `COLUMN_OF` would have been caught by no one.                     │
+ * │                                                                                              │
+ * │ `.partial()` does the same thing with the keys intact.                                        │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+const editableBranchFields = z.object({ ...immediateFields, ...materialFields });
+
+export const updateBranchRequestSchema = editableBranchFields
+  .partial()
+  .extend({
     temporary_closure: temporaryClosure.optional(),
     /**
      * `Gym.md` §6.3 mechanism 2 — and it was MISSING from this schema until 2026-08-11.

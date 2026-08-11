@@ -27,6 +27,57 @@ export const GENERATED_INVENTORY: Inventory = {
     },
     {
       "method": "GET",
+      "path": "/v1/tenant/branches",
+      "kind": "COLLECTION",
+      "permission": "catalog.branch.list",
+      "expectedRefusal": "EMPTY_SET",
+      "needsTenantBId": false,
+      "parameters": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenant/branches",
+      "kind": "ACTION",
+      "permission": "catalog.branch.create",
+      "expectedRefusal": 404,
+      "needsTenantBId": false,
+      "parameters": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenant/branches/{id}",
+      "kind": "ACTION",
+      "permission": "catalog.branch.deactivate",
+      "expectedRefusal": 404,
+      "needsTenantBId": true,
+      "parameters": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenant/branches/{id}",
+      "kind": "ITEM",
+      "permission": "catalog.branch.read",
+      "expectedRefusal": 404,
+      "needsTenantBId": true,
+      "parameters": [
+        "id"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/tenant/branches/{id}",
+      "kind": "ACTION",
+      "permission": "catalog.branch.update",
+      "expectedRefusal": 404,
+      "needsTenantBId": true,
+      "parameters": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/v1/tenant/ping",
       "kind": "COLLECTION",
       "permission": "tenancy.ping.read",
