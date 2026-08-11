@@ -72,7 +72,7 @@ export const FOOTER_NAV: readonly FooterColumn[] = [
   {
     heading: 'web.chrome.footer.company',
     items: [
-      { href: '/about', label: 'web.chrome.footer.about', built: false },
+      { href: '/about', label: 'web.chrome.footer.about', built: true },
       { href: '/contact', label: 'web.chrome.footer.contact', built: false },
     ],
   },

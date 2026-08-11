@@ -43,6 +43,7 @@ const ROUTES = [
   '/gyms/bengaluru/iron-house-indiranagar',
   '/how-it-works',
   '/for-gyms',
+  '/about',
   '/checkout',
   '/account/memberships',
 ] as const;

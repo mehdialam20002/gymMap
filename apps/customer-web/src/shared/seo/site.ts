@@ -55,6 +55,7 @@ export function indexablePaths(): readonly string[] {
     '/explore',
     '/how-it-works',
     '/for-gyms',
+    '/about',
     ...cityIndex().map((city) => `/gyms/${city.slug}`),
     ...activityIndex().map((activity) => `/explore/${activity.slug}`),
     ...CATALOGUE.map((gym) => `/gyms/${gym.citySlug}/${gym.slug}`),

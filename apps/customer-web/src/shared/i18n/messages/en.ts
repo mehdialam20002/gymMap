@@ -1104,6 +1104,62 @@ export const en = {
   'web.howItWorks.compare.link': 'Compare gyms side by side',
   'web.howItWorks.choose.link': 'Browse gyms by activity',
   'web.howItWorks.join.link': 'After you pay',
+
+  // --- SCR-WEB-021 · about, and the illustrative team -----------------------
+  'web.about.title': 'About GYM MAP',
+  // Just 'About': the route appends ' · GYM MAP', and 'About GYM MAP · GYM MAP' says it twice.
+  'web.about.metaTitle': 'About',
+  'web.about.metaDescription':
+    'What GYM MAP is, the four rules it enforces, and who is building it.',
+  'web.about.eyebrow': 'Who we are',
+  'web.about.lede':
+    'A marketplace for gyms that answers the two questions a directory cannot: is this place real, and is this the price I will actually pay.',
+
+  'web.about.why.eyebrow': 'Why it exists',
+  'web.about.why.title': 'A gym search that does not need a phone call',
+  'web.about.why.body':
+    'Finding a gym in India still means calling for a price, visiting to see the floor, and taking a stranger at their word about both. Every rule below exists because one of those steps went wrong for somebody.',
+
+  // The four are the product's own invariants, stated for a reader rather than for a spec. Each
+  // one is enforced in code and named in `CLAUDE.md`; none is a promise this page invented.
+  'web.about.rules.verified.title': 'A person checks every gym',
+  'web.about.rules.verified.body':
+    'No gym appears here before a human has approved it. Verification comes before visibility, and the badge means somebody looked.',
+  'web.about.rules.pricing.title': 'The price shown is the price charged',
+  'web.about.rules.pricing.body':
+    'Every figure is rechecked on the server at checkout. If it has moved, the purchase stops rather than quietly charging one of the two numbers.',
+  'web.about.rules.reviews.title': 'Only members who went can review',
+  'web.about.rules.reviews.body':
+    'A review needs a recorded check-in. A gym with no ratings says so plainly; it never shows a zero, because zero is a claim members never made.',
+  'web.about.rules.payments.title': 'A membership starts when the payment does',
+  'web.about.rules.payments.body':
+    'Activation waits for the payment provider to confirm, not for the browser to say it went well. That is the difference between a receipt and a promise.',
+
+  'web.about.team.eyebrow': 'The team',
+  'web.about.team.title': 'Who is building it',
+  'web.about.team.body': 'A small team, and a short list of things each person owns outright.',
+  // Said on the page AND on every card, for the reason `gym-art.ts` records: a screenshot of one
+  // card outlives the banner it was captured under.
+  'web.about.team.notice':
+    'Sample team. These people are illustrative, in the same way the listings are, so the page can be reviewed before the real names go in.',
+  'web.about.team.sample': 'Sample',
+  'web.about.team.founderLabel': 'Founder',
+  'web.about.team.role.product': 'Product',
+  'web.about.team.owns.product':
+    'What the marketplace promises a member, and what it refuses to claim.',
+  'web.about.team.role.engineering': 'Engineering',
+  'web.about.team.owns.engineering':
+    "The catalogue, the search, and the tenancy rules that keep one gym out of another gym's data.",
+  'web.about.team.role.verification': 'Verification',
+  'web.about.team.owns.verification':
+    'The human check every listing passes before a member can see it.',
+  'web.about.team.role.partnerships': 'Gym partnerships',
+  'web.about.team.owns.partnerships': 'Onboarding owners, and the pricing they publish here.',
+
+  'web.about.cta.title': 'Start with a gym near you',
+  'web.about.cta.body': 'Search the sample catalogue, or read how a join works end to end.',
+  'web.about.cta.search': 'Find a gym',
+  'web.about.cta.how': 'How GYM MAP works',
 } as const;
 
 export type MessageKey = keyof typeof en;

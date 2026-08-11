@@ -33,6 +33,7 @@ const ROUTES = [
   '/how-it-works',
   '/for-gyms',
   '/for-gyms/signup',
+  '/about',
   '/checkout',
   '/checkout/confirmation',
   '/account',
