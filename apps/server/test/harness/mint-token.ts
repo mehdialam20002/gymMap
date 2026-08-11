@@ -17,6 +17,8 @@
 
 import { createHmac } from 'node:crypto';
 
+import { ROLE_DEFINITIONS } from '../../dist/iam/permissions.js';
+
 /** Must match `JwtAuthGuard`. Imported rather than restated would be better; see the note below. */
 const TOKEN_ISSUER = 'gymmap';
 const TOKEN_AUDIENCE = 'gymmap-api';
@@ -40,6 +42,45 @@ export interface MintOptions {
 const base64url = (value: string | Buffer): string => Buffer.from(value).toString('base64url');
 
 /**
+ * `M-023` · Turns `'GYM_OWNER'` into the SCOPE CODE the production parser accepts.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════════════════
+ * THIS MINTER HAD PRODUCED TOKENS `parseRoleGrant()` REJECTS SINCE M-023
+ *
+ * Written at `M-011`, when `roles` was a list of bare role keys, and it passed them straight
+ * through. `M-023` changed the claim to a SCOPE CODE — `SE2`, `GYM_OWNER@t:9f2a…`, `MEMBER@self`
+ * — and `parseRoleGrant()` returns `null` for anything with no `@`. The minter was never updated.
+ *
+ * Nothing failed, because `PermissionsGuard` was registered nowhere: no code read the claim, so a
+ * claim nothing could parse was indistinguishable from a correct one. The moment the guard was
+ * bound, every `A4` in the generated isolation suite became a 403 — *"tenant A cannot read its
+ * OWN data"* — which reads exactly like a broken RLS policy and is not.
+ * ═══════════════════════════════════════════════════════════════════════════════════════════
+ *
+ * The two rules are copied from `user.prisma-repository.ts`'s `roleScopesFor()`, which is what a
+ * real login emits: `tenantId === null` → `KEY@<declared scope, lowercased>`, otherwise
+ * `KEY@t:<tenantId>`. A harness scoping roles by its own rule would mint tokens no real login
+ * produces, and every assertion made with one would be about a shape that cannot occur.
+ *
+ * A role that ALREADY carries an `@` passes through untouched: the verifier specs deliberately
+ * mint malformed claims, and a minter that corrected them would delete those cases.
+ */
+function toScopeCode(role: string, tenantId: string | undefined): string {
+  if (role.includes('@')) return role;
+
+  const declared = ROLE_DEFINITIONS.find((definition) => definition.key === role)?.scope;
+
+  // A TENANT- or BRANCH-scoped role with no tenant id is left BARE, and therefore unparseable.
+  // Inventing a tenant would make the token appear to work while asserting against one the test
+  // never named — a visible failure at the assertion beats a silent pass against fiction.
+  if (declared === 'TENANT' || declared === 'BRANCH') {
+    return tenantId === undefined ? role : `${role}@t:${tenantId}`;
+  }
+
+  return declared === undefined ? role : `${role}@${declared.toLowerCase()}`;
+}
+
+/**
  * Mints a Sprint-0 access token.
  *
  * Deliberately capable of producing INVALID tokens — expired, wrong key, wrong audience,
@@ -55,7 +96,7 @@ export function mintAccessToken(options: MintOptions): string {
   const payload = {
     sub: options.sub,
     ...(options.tenantId ? { tenant_id: options.tenantId } : {}),
-    roles: options.roles ?? [],
+    roles: (options.roles ?? []).map((role) => toScopeCode(role, options.tenantId)),
     typ: options.typ ?? 'ACCESS',
     iss: options.issuer ?? TOKEN_ISSUER,
     aud: options.audience ?? TOKEN_AUDIENCE,

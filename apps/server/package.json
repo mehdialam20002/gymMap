@@ -24,7 +24,8 @@
     "start": "node dist/main.js",
     "start:worker": "node dist/worker.js",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "tsc -p tsconfig.build.json && node dist/../prisma/seed/index.js",
+    "//db:seed": "`TD-042` PAID. This read `tsc -p tsconfig.build.json && node dist/../prisma/seed/index.js`, and `dist/../prisma/seed/index.js` normalises to `prisma/seed/index.js` — a file that has never existed, because the seed is TypeScript and tsconfig.build.json does not compile prisma/. So the one command CLAUDE.md §8 tells a new developer to run had never run. It also built the whole server first, which the seed does not need. `--experimental-strip-types` is what db:seed:demo already used.",
+    "db:seed": "node --experimental-strip-types prisma/seed/index.ts --apply",
     "db:seed:demo": "node --experimental-strip-types prisma/seed/demo/index.ts",
     "openapi:emit": "tsc -p tsconfig.build.json && node dist/common/openapi/emit.js",
     "db:setup": "prisma migrate deploy && docker exec -i gymmap-postgres psql -U postgres -d gymmap -v ON_ERROR_STOP=1 -f - < ../../infra/compose/set-local-role-password.sql"

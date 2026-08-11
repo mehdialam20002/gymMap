@@ -18,7 +18,7 @@ import { PrismaClient } from '@prisma/client';
 import { APP_CONFIG, type AppConfig } from '../../common/config/app-config.schema.js';
 import { ReadinessService } from '../../common/health/readiness.service.js';
 import { skipEagerConnect } from '../../common/bootstrap/contract-only-mode.js';
-import { withTenantContext } from './tenant-scoped-client.js';
+import { runInTenantTransaction, withTenantContext } from './tenant-scoped-client.js';
 
 /**
  * The two event shapes, declared locally rather than imported.
@@ -154,6 +154,41 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * The ONE way to run raw SQL under the tenant scope — `A-01`, §11.5, `BR-TEN-01`.
+   *
+   * ═══════════════════════════════════════════════════════════════════════════════════════════
+   * `client.$queryRaw` IS NOT SCOPED, AND A SHIPPED REPOSITORY BELIEVED IT WAS
+   *
+   * `withTenantContext()` extends `query.$allModels.$allOperations`. `$queryRaw`, `$executeRaw`
+   * and `$transaction` are CLIENT-level operations, not model operations, so the extension never
+   * sees them — no interactive transaction is opened and `set_config('app.tenant_id', …)` never
+   * runs.
+   *
+   * `branch.prisma-repository.ts` shipped with six raw methods and a header stating the opposite:
+   * *"`AuditReadPrismaRepository` already runs `this.db.client.$queryRaw` through the same
+   * `PrismaService`, so the A-01 extension opens the interactive transaction and sets
+   * `app.tenant_id` before the statement."* It does not. Every one failed at runtime with
+   * SQLSTATE **42704 — unrecognized configuration parameter "app.tenant_id"**, raised by the RLS
+   * policy itself.
+   *
+   * **Why it took a day to find is the reason this method exists.** The integration specs proved
+   * the SQL by running it through `psql` with their own `SET LOCAL app.tenant_id`, so they proved
+   * the statements and not the wiring. The unit specs used doubles. Nothing exercised the path a
+   * request takes until an isolation `A4` — the positive control — returned 500.
+   *
+   * It failed LOUDLY rather than returning an empty set because of `M-009`'s strict policy:
+   * `current_setting('app.tenant_id')` with no `missing_ok`.
+   * ═══════════════════════════════════════════════════════════════════════════════════════════
+   *
+   * The callback receives something that can only run raw SQL. Narrow on purpose: a caller handed
+   * the full transaction client would reach for `tx.branch.findMany`, which re-enters the
+   * extension at depth > 0 — correct today, one refactor from a nested transaction `PX-6` forbids.
+   */
+  inTenantTransaction<T>(fn: (tx: RawSqlRunner) => Promise<T>): Promise<T> {
+    return runInTenantTransaction(this.raw, (tx) => fn(tx as RawSqlRunner));
+  }
+
+  /**
    * Escape hatch for the isolation suite and for migrations verification ONLY.
    *
    * Named to be obvious in a diff and in a stack trace. Anything in `src/` that calls it is a
@@ -163,6 +198,18 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   unsafeRawClientForIsolationTests(): PrismaClient {
     return this.raw;
   }
+}
+
+/**
+ * Raw SQL, and nothing else.
+ *
+ * Declared structurally so a consumer never names a `@prisma/client` type —
+ * `no-raw-prisma-outside-tenancy` forbids that import outside this directory, and it is right to:
+ * a module that can name the client can construct one, and a second client carries no tenant scope.
+ */
+export interface RawSqlRunner {
+  $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: unknown[]): Promise<T>;
+  $executeRaw(query: TemplateStringsArray, ...values: unknown[]): Promise<number>;
 }
 
 /**

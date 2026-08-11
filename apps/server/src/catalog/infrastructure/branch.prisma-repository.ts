@@ -13,11 +13,14 @@
  * │ cannot read or write it. `listInGym` below therefore projects it with                          │
  * │ `ST_Y(location::geometry)` and `ST_X(location::geometry)`.                                     │
  * │                                                                                              │
- * │ This header used to defer that to `M-042`, on the grounds that raw SQL through the             │
- * │ tenant-scoped client was an unanswered question. It is answered: `AuditReadPrismaRepository`   │
- * │ already runs `this.db.client.$queryRaw` through the same `PrismaService`, so the `A-01`        │
- * │ extension opens the interactive transaction and sets `app.tenant_id` before the statement,     │
- * │ exactly as it does for a Prisma query. RLS filters either way.                                 │
+ * │ This header used to say the A-01 extension covers `$queryRaw` *"exactly as it does for a       │
+ * │ Prisma query"*. **That was FALSE and it cost a day.** The extension hooks                       │
+ * │ `query.$allModels.$allOperations`; `$queryRaw`, `$executeRaw` and `$transaction` are            │
+ * │ CLIENT-level operations it never sees, so no transaction is opened and `app.tenant_id` is       │
+ * │ never set. Every raw method here failed with SQLSTATE 42704 against the RLS policy.             │
+ * │                                                                                              │
+ * │ Every one now goes through `PrismaService.inTenantTransaction()`, which opens the transaction  │
+ * │ and sets the context. See that method for why the integration specs could not see this.        │
  * │                                                                                              │
  * │ What has NOT changed is the reason for caution. `$queryRaw` is the one statement class that    │
  * │ CAN bypass the extension — through `$queryRawUnsafe`, or through a second client — and every   │
@@ -161,7 +164,8 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
      * argument order. `branch.mapper.ts` is where that asymmetry is explained; here the column
      * aliases say which is which so a reader need not remember.
      */
-    return this.db.client.$queryRaw<BranchRow[]>`
+    return this.db.inTenantTransaction(
+      (tx) => tx.$queryRaw<BranchRow[]>`
       SELECT id,
              gym_id                        AS "gymId",
              name,
@@ -182,7 +186,8 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
         FROM branches
        WHERE gym_id = ${gymId}::uuid
          AND deleted_at IS NULL
-       ORDER BY is_primary DESC, created_at ASC`;
+       ORDER BY is_primary DESC, created_at ASC`,
+    );
   }
 
   /**
@@ -205,7 +210,16 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
    * would be a second answer to a question already answered.
    */
   async deactivate(branchId: string, promoteTo: string | null): Promise<void> {
-    await this.db.client.$transaction(async (tx) => {
+    /*
+     * `inTenantTransaction`, not `client.$transaction` — the sixth method broken the same way.
+     * `$transaction` is a CLIENT-level operation, so the `A-01` extension (which hooks
+     * `$allModels.$allOperations`) never sees it and `set_config('app.tenant_id', …)` never runs.
+     * Both statements below then fail against the RLS policy with SQLSTATE 42704.
+     *
+     * The one-transaction property this method exists for is unchanged: `inTenantTransaction`
+     * opens exactly one interactive transaction and refuses to nest (`PX-6`).
+     */
+    await this.db.inTenantTransaction(async (tx) => {
       /*
        * `status` and `deleted_at` together, never one without the other.
        *
@@ -292,7 +306,8 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
      * tagged template ENDS the template, and the parse error it produces points at the line after
      * the comment. That cost a build once already, four hours ago.
      */
-    const rows = await this.db.client.$queryRaw<BranchRow[]>`
+    const rows = await this.db.inTenantTransaction(
+      (tx) => tx.$queryRaw<BranchRow[]>`
       INSERT INTO branches (
         tenant_id, gym_id, name, address_line1, address_line2, city_id, locality_id,
         state, state_code, postal_code, country_code, location, geo_tolerance_metres,
@@ -330,7 +345,8 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
                 geo_tolerance_metres     AS "geoToleranceMetres",
                 capacity,
                 status::text             AS status,
-                is_primary               AS "isPrimary"`;
+                is_primary               AS "isPrimary"`,
+    );
 
     const created = rows[0];
     if (created === undefined) {
@@ -366,7 +382,8 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
     const has = (key: keyof BranchPatch): boolean => key in patch;
     const point = patch.location === undefined ? null : postGisPoint(patch.location);
 
-    const rows = await this.db.client.$queryRaw<BranchRow[]>`
+    const rows = await this.db.inTenantTransaction(
+      (tx) => tx.$queryRaw<BranchRow[]>`
       UPDATE branches SET
         name          = CASE WHEN ${has('name')}::boolean          THEN ${patch.name ?? null}          ELSE name          END,
         address_line1 = CASE WHEN ${has('addressLine1')}::boolean  THEN ${patch.addressLine1 ?? null}  ELSE address_line1 END,
@@ -399,7 +416,8 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
                 geo_tolerance_metres     AS "geoToleranceMetres",
                 capacity,
                 status::text             AS status,
-                is_primary               AS "isPrimary"`;
+                is_primary               AS "isPrimary"`,
+    );
 
     return rows[0] ?? null;
   }
@@ -426,7 +444,8 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
    * without a second `COUNT`, which `packages/types` rules out on every page for `NFR-PERF-02`.
    */
   async byId(branchId: string): Promise<BranchRow | null> {
-    const rows = await this.db.client.$queryRaw<BranchRow[]>`
+    const rows = await this.db.inTenantTransaction(
+      (tx) => tx.$queryRaw<BranchRow[]>`
       SELECT id, gym_id AS "gymId", name, address_line1 AS "addressLine1",
              address_line2 AS "addressLine2", city_id AS "cityId", locality_id AS "localityId",
              state, state_code AS "stateCode", postal_code AS "postalCode",
@@ -435,7 +454,8 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
              capacity, status::text AS status, is_primary AS "isPrimary"
         FROM branches
        WHERE id = ${branchId}::uuid
-         AND deleted_at IS NULL`;
+         AND deleted_at IS NULL`,
+    );
     return rows[0] ?? null;
   }
 
@@ -492,7 +512,8 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
   ): Promise<BranchRow[]> {
     switch (sort) {
       case 'name:asc':
-        return this.db.client.$queryRaw<BranchRow[]>`
+        return this.db.inTenantTransaction(
+          (tx) => tx.$queryRaw<BranchRow[]>`
           SELECT id, gym_id AS "gymId", name, address_line1 AS "addressLine1",
                  address_line2 AS "addressLine2", city_id AS "cityId", locality_id AS "localityId",
                  state, state_code AS "stateCode", postal_code AS "postalCode",
@@ -506,10 +527,12 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
              AND (${cityId}::uuid IS NULL OR city_id = ${cityId}::uuid)
              AND (${key}::text IS NULL OR (name, id) > (${key}::text, ${id}::uuid))
            ORDER BY name ASC, id ASC
-           LIMIT ${take}`;
+           LIMIT ${take}`,
+        );
 
       case 'name:desc':
-        return this.db.client.$queryRaw<BranchRow[]>`
+        return this.db.inTenantTransaction(
+          (tx) => tx.$queryRaw<BranchRow[]>`
           SELECT id, gym_id AS "gymId", name, address_line1 AS "addressLine1",
                  address_line2 AS "addressLine2", city_id AS "cityId", locality_id AS "localityId",
                  state, state_code AS "stateCode", postal_code AS "postalCode",
@@ -523,10 +546,12 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
              AND (${cityId}::uuid IS NULL OR city_id = ${cityId}::uuid)
              AND (${key}::text IS NULL OR (name, id) < (${key}::text, ${id}::uuid))
            ORDER BY name DESC, id DESC
-           LIMIT ${take}`;
+           LIMIT ${take}`,
+        );
 
       case 'created_at:desc':
-        return this.db.client.$queryRaw<BranchRow[]>`
+        return this.db.inTenantTransaction(
+          (tx) => tx.$queryRaw<BranchRow[]>`
           SELECT id, gym_id AS "gymId", name, address_line1 AS "addressLine1",
                  address_line2 AS "addressLine2", city_id AS "cityId", locality_id AS "localityId",
                  state, state_code AS "stateCode", postal_code AS "postalCode",
@@ -540,7 +565,8 @@ export class BranchPrismaRepository implements BranchQueryPort, BranchWritePort,
              AND (${cityId}::uuid IS NULL OR city_id = ${cityId}::uuid)
              AND (${id}::uuid IS NULL OR id < ${id}::uuid)
            ORDER BY id DESC
-           LIMIT ${take}`;
+           LIMIT ${take}`,
+        );
     }
   }
 }
