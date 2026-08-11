@@ -3347,6 +3347,59 @@
       border-color var(--gm-motion-duration-fast) var(--gm-motion-ease-standard);
   }
 
+  /*
+   * ┌─ THE FIVE ARRIVE, ONE AFTER ANOTHER ────────────────────────────────────────────────────────┐
+   * │ `MO1`: motion communicates ORIGIN. Five rings drawn on two arcs are a constellation, and a  │
+   * │ constellation that is simply THERE on the first paint reads as a picture. Arriving in       │
+   * │ sequence says they belong to the same object and that the object is being assembled - which │
+   * │ is the one thing this decoration is trying to say.                                          │
+   * │                                                                                             │
+   * │ On the ICON and not on the node, because the node already carries the float and an          │
+   * │ animation REPLACES the whole `transform`: a second one there would cancel the drift, and    │
+   * │ the icon is its own element with its own transform to spend.                                │
+   * │                                                                                             │
+   * │ `backwards` and not `both`, and that is the load-bearing word. `backwards` holds the FROM   │
+   * │ state through the delay - so a node waiting its turn is invisible rather than popping - and  │
+   * │ then releases the property when it ends. `both` would hold the final `scale(1)` forever and  │
+   * │ an animated value beats a transition, so the hover lift below would silently stop working    │
+   * │ the moment this landed.                                                                      │
+   * │                                                                                             │
+   * │ No `prefers-reduced-motion` guard: this is a ONE-SHOT, and `RM1` collapses the duration      │
+   * │ token to 1ms, which for an entrance is exactly right - it simply appears. The guard belongs  │
+   * │ to the infinite float and pulse below, where 1ms would be a strobe rather than a stillness.  │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  .gm-orbit-ico {
+    animation: gm-orbit-in var(--gm-motion-duration-deliberate) var(--gm-motion-ease-enter)
+      backwards;
+  }
+
+  /* 90ms apart, which is long enough to read as a sequence and short enough not to be a wait. */
+  .gm-orbit-2 .gm-orbit-ico {
+    animation-delay: 90ms;
+  }
+  .gm-orbit-3 .gm-orbit-ico {
+    animation-delay: 180ms;
+  }
+  .gm-orbit-4 .gm-orbit-ico {
+    animation-delay: 270ms;
+  }
+  .gm-orbit-5 .gm-orbit-ico {
+    animation-delay: 360ms;
+  }
+
+  @keyframes gm-orbit-in {
+    from {
+      opacity: 0;
+      /* Out from the centre of the constellation, not up from nowhere: they settle onto the arc. */
+      transform: scale(0.72);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
   .gm-orbit-node-amber .gm-orbit-ico {
     border-color: var(--gm-color-accent-solid);
   }
@@ -3452,13 +3505,22 @@
    * would drop the centring and jump every node a half-width down and right the moment the
    * animation started. The base rule cannot help; the keyframe has to carry both.
    */
+  /*
+   * 9px, not 6. At 6px over five seconds the drift is under two pixels a second on a 500px box -
+   * present in the CSS and absent on the screen, which is the worst of both. Nine is still slower
+   * than the eye tracks and is enough that the constellation reads as alive rather than printed.
+   *
+   * Still ONE rhythm across the whole thing. The file's own note above is right that five things
+   * moving at five phases is a screensaver, so the icons do not get a second loop of their own -
+   * they get an entrance, and then they ride this one.
+   */
   @keyframes gm-orbit-float {
     0%,
     100% {
       transform: translate(-50%, -50%);
     }
     50% {
-      transform: translate(-50%, calc(-50% - 6px));
+      transform: translate(-50%, calc(-50% - 9px));
     }
   }
 
