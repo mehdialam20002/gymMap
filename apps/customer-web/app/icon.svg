@@ -1,25 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="GYM MAP">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="GYM MAP">
   <!--
-    The tab mark. `app/icon.svg` is the App Router convention: Next serves it and emits the
-    <link rel="icon"> itself, which is why no manual tag exists in layout.tsx — and why the
-    browser stopped requesting /favicon.ico and logging a 404 on every page load.
+    The tab mark: the owner's logo, a map pin with a barbell in it.
 
-    Deliberately NOT theme-aware. A favicon is composited on the browser's tab strip, not on our
-    page, and that strip follows the OS theme independently of the site — so a mark that flips with
-    `prefers-color-scheme` would go invisible against whichever strip disagreed. A filled disc in
-    the brand red carries its own contrast on both.
+    `app/icon.svg` is the App Router convention: Next serves it and emits the <link rel="icon">
+    itself, which is why no manual tag exists in layout.tsx — and why the browser stopped
+    requesting /favicon.ico and logging a 404 on every page load.
 
-    #E21B2D is the brand fill from globals.css, where white on it is measured at 4.74:1.
+    Deliberately NOT theme-aware, and this is the artwork's own property rather than a decision
+    taken here. A favicon is composited on the browser's tab strip, not on our page, and that strip
+    follows the OS theme independently of the site — so a mark that flipped with
+    `prefers-color-scheme` would go invisible against whichever strip disagreed. This one carries
+    its own contrast on both: an emerald pin, a near-black disc inside it, a white barbell.
+
+    Same artwork as the header's mark in `site-header.tsx`. Written out twice rather than shared,
+    because this file is served as a static asset and cannot import a component — so if the logo
+    ever changes, it changes in both places or it is wrong in one of them.
   -->
-  <circle cx="16" cy="16" r="16" fill="#e21b2d" />
-  <text
-    x="16"
-    y="16"
-    fill="#ffffff"
-    font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
-    font-size="20"
-    font-weight="700"
-    text-anchor="middle"
-    dominant-baseline="central"
-  >G</text>
+  <path
+    d="M50 10 C33.4 10 20 23.4 20 40 C20 62.5 50 90 50 90 C50 90 80 62.5 80 40 C80 23.4 66.6 10 50 10 Z"
+    fill="#10b981"
+  />
+  <circle cx="50" cy="40" r="18" fill="#0f172a" />
+  <rect x="38" y="38" width="24" height="4" fill="#ffffff" />
+  <rect x="34" y="33" width="6" height="14" rx="1" fill="#ffffff" />
+  <rect x="60" y="33" width="6" height="14" rx="1" fill="#ffffff" />
 </svg>

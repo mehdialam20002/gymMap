@@ -144,16 +144,33 @@ export function SiteHeader() {
           className="gm-hit-target flex shrink-0 items-center gap-inline-2xs text-lg font-bold tracking-tight"
         >
           {/*
-           * A mark, not a logo file. One glyph in a brand-filled circle: it survives at 24px, it
-           * needs no asset pipeline, and it is the one place on this bar where the brand colour is
-           * a FILL rather than ink — `content-on-brand` is the proved foreground for it.
+           * The owner's mark: a map pin with a barbell in it, supplied as artwork.
+           *
+           * Its three colours are LITERALS and that is correct here. A logo is an asset rather
+           * than a styled component - it is the same artwork on a light tab strip, a dark page, a
+           * printed page and somebody else's slide, so it must NOT read the theme tokens the way
+           * everything else on this bar does. Same reasoning the favicon carries, and the same
+           * reasoning that makes the four `#000` mask stencils in `globals.css` legitimate.
+           *
+           * `aria-hidden`, because the wordmark beside it already says the name; a screen reader
+           * announcing it twice is worse than not announcing the picture at all.
+           *
+           * 1.75rem, which is the box the previous mark occupied, so nothing else on the bar moves.
            */}
-          <span
+          <svg
             aria-hidden="true"
-            className="flex h-[1.75rem] w-[1.75rem] items-center justify-center rounded-full bg-brand-solid text-sm font-bold text-content-on-brand"
+            viewBox="0 0 100 100"
+            className="h-[1.75rem] w-[1.75rem] shrink-0"
           >
-            G
-          </span>
+            <path
+              d="M50 10 C33.4 10 20 23.4 20 40 C20 62.5 50 90 50 90 C50 90 80 62.5 80 40 C80 23.4 66.6 10 50 10 Z"
+              fill="#10b981"
+            />
+            <circle cx="50" cy="40" r="18" fill="#0f172a" />
+            <rect x="38" y="38" width="24" height="4" fill="#ffffff" />
+            <rect x="34" y="33" width="6" height="14" rx="1" fill="#ffffff" />
+            <rect x="60" y="33" width="6" height="14" rx="1" fill="#ffffff" />
+          </svg>
           {t('web.chrome.brand')}
         </Link>
 
