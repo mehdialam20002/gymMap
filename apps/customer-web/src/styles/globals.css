@@ -898,12 +898,25 @@
     z-index: -1;
     background: var(--gm-color-brand-solid);
     /*
-     * `scaleY(0)` from the bottom edge, not `translateY(101%)`. The translated sheet sat a whole
-     * box-height BELOW the button, so the button needed `overflow: hidden` to hide it - and that
-     * clip cut the button's own label by 3px at 200% browser text and made every measurement of
-     * the page report 63px of phantom scroll height per button. Scaled, the sheet never leaves
-     * its own box, so nothing has to be clipped to hide it.
+     * ┌─ `overflow: hidden` WAS DOING TWO JOBS AND ONLY ONE OF THEM WAS REPLACED ─────────────────┐
+     * │ The fill was parked at `translateY(101%)`, a whole box-height BELOW the button, so the     │
+     * │ button carried `overflow: hidden` to hide it. That clip also cut the button's own label by │
+     * │ 3px at 200% browser text and made every measurement of the page report 63px of phantom     │
+     * │ scroll height per button, so it went - and `scaleY(0)` from the bottom edge is the same    │
+     * │ animation without a sheet that ever leaves its own box.                                    │
+     * │                                                                                           │
+     * │ That reasoning was right about the vertical overflow and blind to the CORNERS. The clip    │
+     * │ was also what gave this rectangle the button's `border-radius: 9999px`. Without it, hover  │
+     * │ painted a square-cornered sheet behind a pill: measured `border-radius: 0px` on the        │
+     * │ pseudo, `overflow: visible` on the host, and on screen a dark rectangle poking out of all  │
+     * │ four corners of every call to action on the site, in both themes. Reported from a          │
+     * │ deployed build, not caught by any test here.                                                │
+     * │                                                                                           │
+     * │ `border-radius: inherit` is the second job, done by the pseudo-element itself. A clip is   │
+     * │ still not needed and the label is still not cut.                                           │
+     * └───────────────────────────────────────────────────────────────────────────────────────────┘
      */
+    border-radius: inherit;
     transform: scaleY(0);
     transform-origin: 50% 100%;
     transition: transform var(--gm-motion-duration-slow) var(--gm-motion-ease-standard);

@@ -165,6 +165,74 @@ test.describe('a control owns its own surface', () => {
   });
 
   /*
+   * ┌─ A DECORATIVE FILL STAYS INSIDE THE SHAPE OF THE CONTROL IT DECORATES ──────────────────────┐
+   * │ Reported from a deployed build, and it was a change made HERE that caused it. `.gm-btn`     │
+   * │ paints its hover state with an absolutely positioned `::before` at `inset: 0`. That sheet   │
+   * │ used to be parked below the button and hidden by `overflow: hidden` - and when the clip was │
+   * │ removed (it was cutting the label by 3px at 200% text) only ONE of its two jobs was          │
+   * │ replaced. The other job was giving the rectangle the button's `border-radius: 9999px`.       │
+   * │                                                                                             │
+   * │ So on hover a square-cornered sheet painted behind a pill, and a dark rectangle poked out of │
+   * │ all four corners of every call to action on the site, in both themes. Nothing here caught    │
+   * │ it: the geometry is identical, the contrast is identical, no console error, and a screenshot │
+   * │ test would only have caught it if somebody had taken one while hovering.                     │
+   * │                                                                                             │
+   * │ The invariant is checkable without pixels. A pseudo-element that REACHES its host's edges    │
+   * │ and PAINTS something must either carry the host's corner radius or be clipped by the host.   │
+   * │ Anything else can only be a rectangle behind a rounded thing.                                │
+   * └─────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  test('no painted fill can escape the corners of the control it sits in', async ({ page }) => {
+    const ROUTES = [
+      '/',
+      '/search?city=bengaluru',
+      '/gyms/bengaluru',
+      '/gyms/bengaluru/iron-house-indiranagar',
+      '/for-gyms',
+      '/compare?gym=bengaluru%2Firon-house-indiranagar&gym=mumbai%2Fapex-crossfit-powai',
+      '/cities',
+      '/checkout',
+    ];
+    const failures: string[] = [];
+    for (const route of ROUTES) {
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      const found = await page.evaluate(() => {
+        const out: string[] = [];
+        const px = (v: string) => Number.parseFloat(v) || 0;
+        for (const el of document.querySelectorAll('body *')) {
+          const cs = getComputedStyle(el);
+          const hostRadius = px(cs.borderTopLeftRadius);
+          // A square host has no corner for anything to escape from.
+          if (hostRadius < 2) continue;
+          // A host that clips already forces the pseudo into its own shape.
+          if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible') continue;
+          for (const which of ['::before', '::after']) {
+            const ps = getComputedStyle(el, which);
+            if (ps.content === 'none' || ps.content === '') continue;
+            if (ps.position !== 'absolute' && ps.position !== 'fixed') continue;
+            // Only a pseudo that reaches the edges can paint over a corner.
+            const reaches =
+              px(ps.top) <= 0 && px(ps.left) <= 0 && px(ps.right) <= 0 && px(ps.bottom) <= 0;
+            if (!reaches) continue;
+            const paints =
+              ps.backgroundColor !== 'rgba(0, 0, 0, 0)' || ps.backgroundImage !== 'none';
+            if (!paints) continue;
+            if (px(ps.borderTopLeftRadius) >= hostRadius - 0.5) continue;
+            out.push(
+              `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 30)}${which} host r=${String(Math.round(hostRadius))} pseudo r=${String(Math.round(px(ps.borderTopLeftRadius)))}`,
+            );
+          }
+        }
+        return [...new Set(out)];
+      });
+      for (const f of found) failures.push(`${route}: ${f}`);
+    }
+    expect(failures, `a fill can paint outside its control:\n  ${failures.join('\n  ')}`).toEqual(
+      [],
+    );
+  });
+
+  /*
    * The open list must not cover the field it belongs to.
    *
    * `::picker(select)` anchors to the `<select>`, and the select here is the value row alone - so
