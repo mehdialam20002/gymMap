@@ -12,6 +12,7 @@
 import Link from 'next/link';
 
 import { t } from '../i18n/index.ts';
+import { BrandMark } from './brand-mark.tsx';
 import { FOOTER_NAV } from './nav-model.ts';
 
 export function SiteFooter() {
@@ -63,15 +64,16 @@ export function SiteFooter() {
         <div className="grid gap-stack-xl sm:grid-cols-2 lg:grid-cols-[1.6fr_repeat(5,minmax(136px,1fr))] lg:gap-x-inline-xl">
           <div>
             {/*
-             * The same mark the header wears, at 26px. It is the one place in the footer where the
-             * brand colour is a FILL, and `content-on-brand` is its proved foreground - the header's
-             * note says the same thing, and the two are deliberately identical so the page opens
-             * and closes on one mark rather than two treatments of it.
+             * The same mark the header wears, at 26px, and now literally the same - one component
+             * rather than two spans with a comment promising they match. The page opens and closes
+             * on one mark.
+             *
+             * 26px because the brand column's track was measured against it: the note below records
+             * 142px of track against the 122.5px this mark and the wordmark occupy, so a larger one
+             * would push the wordmark to a second line at `lg`.
              */}
             <p className="gm-foot-brand">
-              <span aria-hidden="true" className="gm-foot-mark">
-                G
-              </span>
+              <BrandMark className="h-[1.625rem] w-[1.625rem] shrink-0" />
               {t('web.chrome.brand')}
             </p>
             <p className="mt-stack-xs max-w-ui text-sm text-content-muted">

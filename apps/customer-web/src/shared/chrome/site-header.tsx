@@ -52,6 +52,7 @@ import { usePathname } from 'next/navigation';
 
 import { t } from '../i18n/index.ts';
 import { icon } from '../icons/index.tsx';
+import { BrandMark } from './brand-mark.tsx';
 import { PRIMARY_NAV } from './nav-model.ts';
 import { MobileNav } from './mobile-nav.tsx';
 import { ThemeToggle } from '../theme/theme-toggle.tsx';
@@ -157,20 +158,7 @@ export function SiteHeader() {
            *
            * 1.75rem, which is the box the previous mark occupied, so nothing else on the bar moves.
            */}
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 100 100"
-            className="h-[1.75rem] w-[1.75rem] shrink-0"
-          >
-            <path
-              d="M50 10 C33.4 10 20 23.4 20 40 C20 62.5 50 90 50 90 C50 90 80 62.5 80 40 C80 23.4 66.6 10 50 10 Z"
-              fill="#10b981"
-            />
-            <circle cx="50" cy="40" r="18" fill="#0f172a" />
-            <rect x="38" y="38" width="24" height="4" fill="#ffffff" />
-            <rect x="34" y="33" width="6" height="14" rx="1" fill="#ffffff" />
-            <rect x="60" y="33" width="6" height="14" rx="1" fill="#ffffff" />
-          </svg>
+          <BrandMark className="h-[1.75rem] w-[1.75rem] shrink-0" />
           {t('web.chrome.brand')}
         </Link>
 

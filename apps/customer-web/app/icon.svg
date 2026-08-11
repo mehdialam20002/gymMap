@@ -12,9 +12,10 @@
     `prefers-color-scheme` would go invisible against whichever strip disagreed. This one carries
     its own contrast on both: an emerald pin, a near-black disc inside it, a white barbell.
 
-    Same artwork as the header's mark in `site-header.tsx`. Written out twice rather than shared,
-    because this file is served as a static asset and cannot import a component — so if the logo
-    ever changes, it changes in both places or it is wrong in one of them.
+    The header and the footer share one `BrandMark` component. This file cannot: it is served as a
+    STATIC ASSET — Next reads it and emits the `<link rel="icon">` itself — so it can import
+    nothing. This is the one unavoidable copy of the artwork, and if the logo ever changes it
+    changes here too or the tab quietly disagrees with the page.
   -->
   <path
     d="M50 10 C33.4 10 20 23.4 20 40 C20 62.5 50 90 50 90 C50 90 80 62.5 80 40 C80 23.4 66.6 10 50 10 Z"
