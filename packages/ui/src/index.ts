@@ -39,11 +39,8 @@ export {
 } from './state/surface-state.ts';
 
 export { PageHeader, MetricCard } from './patterns/page-header.tsx';
-export {
-  CommandPalette,
-  useCommandKey,
-  type CommandItem,
-} from './patterns/command-palette.tsx';
+export { BrandMark } from './patterns/brand-mark.tsx';
+export { CommandPalette, useCommandKey, type CommandItem } from './patterns/command-palette.tsx';
 
 export {
   Panel,
@@ -60,12 +57,7 @@ export {
   type TableSort,
 } from './patterns/index.tsx';
 
-export {
-  Timeline,
-  BulkBar,
-  DecisionBar,
-  type TimelineEntry,
-} from './patterns/timeline.tsx';
+export { Timeline, BulkBar, DecisionBar, type TimelineEntry } from './patterns/timeline.tsx';
 
 export {
   Modal,

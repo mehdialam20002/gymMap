@@ -28,7 +28,7 @@ import {
 } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
-import { CommandPalette, useCommandKey, type CommandItem } from '@gymmap/ui';
+import { BrandMark, CommandPalette, useCommandKey, type CommandItem } from '@gymmap/ui';
 
 import { t } from '../shared/i18n/index.ts';
 import { useSession, useSessionController } from '../shared/auth/session.tsx';
@@ -268,9 +268,15 @@ function AdminNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () =>
       }`}
     >
       <div className="flex h-[4rem] items-center gap-inline-sm border-b border-subtle px-inset-md">
-        <span aria-hidden="true" className="text-lg font-bold text-content-brand">
-          GM
-        </span>
+        {/* The mark, not the letters. `GM` was the placeholder every console starts with, and the
+            one nobody notices is still there a year later.
+
+            `h-[1.75rem]`, not `h-7`. This design system replaces Tailwind's numeric spacing scale
+            with tokens, so `h-7` is not a class that exists — it compiled, it rendered nothing, and
+            an unsized SVG fills its container: the pin came out ~100px tall, ate the 4rem header
+            and pushed the wordmark off the rail. Same value `site-header.tsx` uses, so the two
+            surfaces wear the mark at the same size. */}
+        <BrandMark className="h-[1.75rem] w-[1.75rem] shrink-0" />
         {!collapsed && (
           <span className="truncate text-base font-semibold text-content">
             {t('adm.chrome.brand')}
