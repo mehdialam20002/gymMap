@@ -85,10 +85,40 @@ export function GymCard({ gym }: { readonly gym: SearchResult }) {
                 {gym.name}
               </Link>
             </h3>
-            <p className="gm-card-meta mt-stack-2xs flex items-center gap-inline-2xs">
-              <Place aria-hidden="true" className="h-[1rem] w-[1rem] shrink-0" />
-              {gym.locality}, {gym.city} ·{' '}
-              {t('web.gym.distanceFromCentre').replace('{km}', gym.distanceKm.toFixed(1))}
+            {/*
+             * ┌─ THE PIN AND THE ADDRESS ARE ONE FLEX ITEM, NOT TWO ─────────────────────────┐
+             * │ `.gm-card-meta` is `display: flex; flex-wrap: wrap`, and the `<svg>` and the  │
+             * │ anonymous text beside it were two items on that wrapping line. A flex line    │
+             * │ breaks on an item's HYPOTHETICAL main size, which for auto-width text is its  │
+             * │ max-content width - the address on one unbroken line - so the address almost  │
+             * │ never "fit" next to a 16px pin and took a line of its own. What that leaves   │
+             * │ on screen is a location marker hanging over nothing, with the place it marks  │
+             * │ on the line below it.                                                         │
+             * │                                                                               │
+             * │ Cards whose pin was stranded, measured in Chromium on the served build:       │
+             * │   320  8 of 8    360  6 of 8    390  6 of 8    414  2 of 8    768  0 of 8     │
+             * │   1280 / 1440 / 2560  2 of 8, once `xl:grid-cols-2` halves the column back    │
+             * │   to roughly 420px and the two longest localities stop fitting again.          │
+             * │                                                                               │
+             * │ `min-w-0` on the text is NOT the whole fix on its own: the automatic minimum  │
+             * │ size clamps a hypothetical size from below, and this one is already at        │
+             * │ max-content, so the line still breaks. What fixes it is being one item. The   │
+             * │ inner row is `flex` and so does not wrap, which is what makes the pair         │
+             * │ inseparable at any width; `min-w-0` is what then lets that row shrink past    │
+             * │ its longest word instead of overflowing the card.                              │
+             * │                                                                               │
+             * │ `items-start`, not `items-center`: when the address does take two lines the   │
+             * │ pin belongs beside the first of them, not floating in the gap between them.   │
+             * └───────────────────────────────────────────────────────────────────────────────┘
+             */}
+            <p className="gm-card-meta mt-stack-2xs">
+              <span className="flex items-start gap-inline-2xs">
+                <Place aria-hidden="true" className="h-[1rem] w-[1rem] shrink-0" />
+                <span className="min-w-0">
+                  {gym.locality}, {gym.city} ·{' '}
+                  {t('web.gym.distanceFromCentre').replace('{km}', gym.distanceKm.toFixed(1))}
+                </span>
+              </span>
             </p>
           </div>
 

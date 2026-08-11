@@ -25,7 +25,7 @@ import { icon } from '../../shared/icons/index.tsx';
 import { FixtureNotice } from '../discovery/search-results.tsx';
 import { GymCard } from '../discovery/gym-card.tsx';
 import { checkoutHref } from '../checkout/quote.ts';
-import { formatMinor, search, EMPTY_QUERY } from '../discovery/search.ts';
+import { formatMinor, search, toSearchParams, EMPTY_QUERY } from '../discovery/search.ts';
 import type { GymDetail as Gym } from '../discovery/fixtures/catalogue.ts';
 import { Gallery } from './gallery.tsx';
 
@@ -56,7 +56,24 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
           {t('web.gym.breadcrumb.root')}
         </Link>
         {' / '}
-        <Link href={`/search?city=${gym.citySlug}`} className="gm-hit-target hover:underline">
+        {/*
+         * ┌─ THE CITY CRUMB POINTS AT THE CITY LANDING, NOT AT `/search?city=<slug>` ────────────┐
+         * │ `/gyms/<citySlug>` is this URL's REAL parent path. It is a rendered page             │
+         * │ (`app/gyms/[citySlug]/page.tsx`), it is in the sitemap (`shared/seo/site.ts`), and   │
+         * │ `landing-metadata.ts` gives it `canonical: /gyms/<citySlug>`.                        │
+         * │                                                                                      │
+         * │ `/search?city=<slug>` declares `canonical: '/search'` — every faceted search URL     │
+         * │ consolidates there on purpose, and `app/search/page.tsx` says so in full. So the     │
+         * │ trail was telling a crawler that this gym's parent is a page which disclaims itself  │
+         * │ and hands its ranking somewhere else, on a page `FR-SRCH-13` wants indexed.          │
+         * │ `landings.spec.ts` already names this exact pair as the one that must not compete.   │
+         * │                                                                                      │
+         * │ It is also the better page for a reader: the landing carries its own copy, the       │
+         * │ activity cross-links, the other cities, and its own "see all N gyms" link into       │
+         * │ `/search?city=<slug>` for anyone who wanted the result set after all.                │
+         * └──────────────────────────────────────────────────────────────────────────────────────┘
+         */}
+        <Link href={`/gyms/${gym.citySlug}`} className="gm-hit-target hover:underline">
           {gym.city}
         </Link>
         {/* The current page is named and NOT linked. A breadcrumb whose last crumb links to
@@ -66,6 +83,51 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
           {gym.name}
         </span>
       </nav>
+
+      {/*
+       * ┌─ BACK TO THE RESULT SET, AND EXACTLY AS MUCH OF IT AS THIS PAGE HONESTLY KNOWS ────────┐
+       * │ Before this, the only route back to a search was the browser's Back button: the trail  │
+       * │ above is three words of 11.5px mono, and nothing on the page said "results".           │
+       * │                                                                                        │
+       * │ It is scoped to the CITY and nothing else, because the city is the only part of the    │
+       * │ reader's query this page can actually see. `/gyms/[citySlug]/[gymSlug]` carries no     │
+       * │ query string: every link into it — `gym-card.tsx:82`, `chalk.tsx:264`,                 │
+       * │ `compare-table.tsx:167`, `checkout.tsx:106`, `account/screens.tsx:132` — builds the    │
+       * │ bare path, and the route file passes only `params` to this component. So `category`,   │
+       * │ `maxPrice`, `rating`, `amenity`, `radius` and `sort` are not merely unused here, they  │
+       * │ never arrived. Emitting them would mean inventing them.                                │
+       * │                                                                                        │
+       * │ Which is why this is the CITY and not a reconstruction: it returns a SUPERSET that     │
+       * │ certainly contains the gym the reader was just looking at, and lands them on the       │
+       * │ facet rail where their narrowing is one click away. A "restore my filters" link would  │
+       * │ need the query carried on the inbound href and read off `searchParams` in the route —  │
+       * │ two files, both outside this one.                                                      │
+       * │                                                                                        │
+       * │ And it degrades correctly for the reader who arrived from Google with no prior search  │
+       * │ at all: "the verified gyms in Bengaluru" is true for them too. An empty filter set     │
+       * │ dressed up as a restored one would not be.                                             │
+       * │                                                                                        │
+       * │ INDEXING (`FR-SRCH-13`): this is an href OUT of the page, so it mints no second        │
+       * │ address for the gym, and `generateMetadata` in the route file hardcodes                │
+       * │ `canonical: /gyms/<city>/<slug>` — it reads no search parameter and must not start.    │
+       * │                                                                                        │
+       * │ `toSearchParams` rather than a hand-built string, so the one function that decides     │
+       * │ which parameters are omitted at their default keeps deciding it (`?sort=relevance`     │
+       * │ and `/search` are the same page and only one of them may be linked).                   │
+       * │                                                                                        │
+       * │ `.gm-card-add` for the pill: it carries a real `min-height: 44px` (`AX3`). Not         │
+       * │ `gm-hit-target`, which reaches 44 with an outward `::after` and reports success even   │
+       * │ where an ancestor clips it — that trap has been found six times in this repository.    │
+       * └────────────────────────────────────────────────────────────────────────────────────────┘
+       */}
+      <p className="mt-stack-sm">
+        <Link
+          href={toSearchParams({ ...EMPTY_QUERY, city: gym.citySlug })}
+          className="gm-card-add text-sm font-semibold"
+        >
+          {t('web.gym.backToResults')}
+        </Link>
+      </p>
 
       <header className="mt-stack-sm">
         {/*
@@ -105,8 +167,43 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
 
       <Gallery gym={gym} />
 
+      {/*
+       * ┌─ THE PLAN PANEL COMES FIRST IN THE DOM, AND MOVES BACK TO THE RIGHT AT `lg` ───────────┐
+       * │ Measured on the served build, `/gyms/bengaluru/iron-house-indiranagar`:                │
+       * │                                                                                        │
+       * │   740x360 landscape phone   "Join this gym" at y=1593 — 4.42 viewport heights          │
+       * │   844x390 landscape phone   "Join this gym" at y=1629 — 4.18 viewport heights          │
+       * │   360x740 portrait phone    "Join this gym" at y=2007 — 2.71 viewport heights          │
+       * │                                                                                        │
+       * │ `.gm-plan-card { position: sticky }` lives inside `@media (min-width: 1024px)`, so at  │
+       * │ 740 and 844 wide the panel is `position: static` and the grid is ONE column. The panel  │
+       * │ was authored last, so it stacked under a 603px content column that the reader has no   │
+       * │ reason to read before deciding whether they can afford the place.                       │
+       * │                                                                                        │
+       * │ DOM order is the only half of that this file owns, and below `lg` DOM order IS visual  │
+       * │ order — one column, no `order` utility, so nothing diverges for a screen reader or a   │
+       * │ tab sequence. At `lg` the two children are placed EXPLICITLY into row 1, columns 1 and │
+       * │ 2, which restores the desktop layout exactly: prices right, content left, sticky.       │
+       * │                                                                                        │
+       * │ `col-start` / `row-start` rather than `order-*`: `order` moves the paint and leaves    │
+       * │ the tab sequence behind it, and grid placement is what actually says where these go.    │
+       * │                                                                                        │
+       * │ The desktop half was verified in Chromium against these exact declarations at 1024,    │
+       * │ 1280 and 1536: with DOM order [aside, content] and the two placements, `.content` and   │
+       * │ `.aside` land on the identical x/y/width they had before the move, and the aside stays  │
+       * │ `position: sticky`. The `lg` layout is unchanged, not merely similar.                    │
+       * │                                                                                        │
+       * │ What it does NOT do is get the control into the first viewport. The panel starts where  │
+       * │ the content column used to (y=660 at 740x360, which is where the gallery ends), so the  │
+       * │ join control lands near y≈1020 — better than 1593, still 2.8 viewport heights down on a │
+       * │ 360px-tall screen. Closing that is the `@media (min-width: 1024px)` wrapper around      │
+       * │ `.gm-plan-card` in globals.css, which is not this file's to open.                        │
+       * └────────────────────────────────────────────────────────────────────────────────────────┘
+       */}
       <div className="mt-stack-xl grid gap-inline-xl lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="min-w-0">
+        <PlanPanel gym={gym} />
+
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
           <AtAGlance gym={gym} />
 
           <Section title={t('web.gym.section.about')}>
@@ -168,89 +265,105 @@ export function GymDetail({ gym }: { readonly gym: Gym }) {
             )}
           </Section>
         </div>
-
-        {/* `gm-plan-card` pins the card below the header on desktop — same
-            `--gm-chrome-height` the filter rail uses, declared once in globals.css. */}
-        {/* Named, because an unnamed `complementary` is announced as "complementary" and nothing
-            else - and this one carries the prices, which is what a reader jumping by landmark is
-            most likely looking for. */}
-        <aside aria-label={t('web.gym.plans.title')} className="gm-plan-card lg:self-start">
-          <div className="gm-card rounded-card p-inset-lg">
-            <h2 className="text-lg font-semibold text-content">{t('web.gym.plans.title')}</h2>
-
-            {/*
-             * Each plan is a LINK to its own checkout URL rather than a radio in a form. The
-             * choice is then in the address bar, so it survives a refresh, can be sent to the
-             * person actually paying, and arrives at `/checkout` as a gym-and-plan pair the
-             * parser can reject if they do not belong together.
-             */}
-            <ul className="mt-stack-md flex flex-col gap-stack-sm">
-              {gym.plans.map((plan) => (
-                <li
-                  key={plan.id}
-                  className="flex items-baseline justify-between gap-inline-sm border-b border-subtle pb-inset-sm last:border-0 last:pb-0"
-                >
-                  <div className="min-w-0">
-                    <p className="text-base font-medium text-content">
-                      <Link
-                        href={checkoutHref(gym, plan)}
-                        className="inline-flex min-h-[2.75rem] items-center rounded-control hover:underline"
-                      >
-                        {plan.name}
-                      </Link>
-                    </p>
-                    <p className="text-sm text-content-muted">
-                      {`${String(plan.durationDays)} ${t('web.gym.plans.days')}`}
-                    </p>
-                  </div>
-                  {/*
-                   * The per-plan price and NOTHING derived from it. No "₹833/month" on the
-                   * annual plan, no "save 12%": `BR-PLN-03` makes the displayed price the
-                   * charged price, checkout revalidates it on the server, and a figure this
-                   * page computed is a figure checkout has never heard of. The member would
-                   * see the abort, not the saving.
-                   */}
-                  <p className="shrink-0 text-lg font-semibold tabular-nums text-content">
-                    {formatMinor(plan.priceMinor)}
-                  </p>
-                </li>
-              ))}
-            </ul>
-
-            {/*
-             * The button opens the REVIEW screen, which is a real page, and it is the review
-             * screen that says payments are not live.
-             *
-             * A disabled button here was the earlier version. It stopped a member from ever
-             * reaching the total, the tax breakdown or the sentence about server-side
-             * revalidation — the three things this flow exists to show. Nothing on the way
-             * charges anybody: `/checkout` is where the flow stops, and it says so there.
-             *
-             * The first plan is the cheapest, because `fromPriceMinor` is defined as the cheapest
-             * and the list is authored in ascending order; a member who wants another one clicks
-             * its name, two lines up.
-             */}
-            {gym.plans[0] !== undefined && (
-              <Link
-                href={checkoutHref(gym, gym.plans[0])}
-                data-on-solid="true"
-                /* The page's conversion control wears the same pill every other primary CTA does. It was a
-                 * 12px-radius cobalt rectangle - the pre-identity button - which made the one place a
-                 * member actually pays the one place that looked like a different product. */
-                className="gm-btn gm-btn-amber gm-btn-lg"
-              >
-                {t('web.gym.plans.join')}
-              </Link>
-            )}
-            <p className="mt-stack-xs text-sm text-content-muted">
-              {t('web.gym.plans.joinNotice')}
-            </p>
-          </div>
-        </aside>
       </div>
 
       <SimilarGyms gym={gym} />
     </article>
+  );
+}
+
+/**
+ * The prices, and the one control on this page that starts a purchase.
+ *
+ * Its own function only so the DOM move above is a one-line placement rather than seventy lines
+ * of JSX lifted over a sibling — the markup inside is unchanged.
+ *
+ * It returns the `<aside>` itself and no wrapper, because the aside has to stay a DIRECT child of
+ * the grid: an intervening element would become the grid item and the two placements below would
+ * be applied to something that is not in the grid at all.
+ *
+ * `gm-plan-card` pins the card below the header on desktop — same `--gm-chrome-height` the filter
+ * rail uses, declared once in globals.css.
+ *
+ * Named, because an unnamed `complementary` is announced as "complementary" and nothing else - and
+ * this one carries the prices, which is what a reader jumping by landmark is most likely after.
+ */
+function PlanPanel({ gym }: { readonly gym: Gym }) {
+  return (
+    <aside
+      aria-label={t('web.gym.plans.title')}
+      className="gm-plan-card lg:col-start-2 lg:row-start-1 lg:self-start"
+    >
+      <div className="gm-card rounded-card p-inset-lg">
+        <h2 className="text-lg font-semibold text-content">{t('web.gym.plans.title')}</h2>
+
+        {/*
+         * Each plan is a LINK to its own checkout URL rather than a radio in a form. The
+         * choice is then in the address bar, so it survives a refresh, can be sent to the
+         * person actually paying, and arrives at `/checkout` as a gym-and-plan pair the
+         * parser can reject if they do not belong together.
+         */}
+        <ul className="mt-stack-md flex flex-col gap-stack-sm">
+          {gym.plans.map((plan) => (
+            <li
+              key={plan.id}
+              className="flex items-baseline justify-between gap-inline-sm border-b border-subtle pb-inset-sm last:border-0 last:pb-0"
+            >
+              <div className="min-w-0">
+                <p className="text-base font-medium text-content">
+                  <Link
+                    href={checkoutHref(gym, plan)}
+                    className="inline-flex min-h-[2.75rem] items-center rounded-control hover:underline"
+                  >
+                    {plan.name}
+                  </Link>
+                </p>
+                <p className="text-sm text-content-muted">
+                  {`${String(plan.durationDays)} ${t('web.gym.plans.days')}`}
+                </p>
+              </div>
+              {/*
+               * The per-plan price and NOTHING derived from it. No "₹833/month" on the
+               * annual plan, no "save 12%": `BR-PLN-03` makes the displayed price the
+               * charged price, checkout revalidates it on the server, and a figure this
+               * page computed is a figure checkout has never heard of. The member would
+               * see the abort, not the saving.
+               */}
+              <p className="shrink-0 text-lg font-semibold tabular-nums text-content">
+                {formatMinor(plan.priceMinor)}
+              </p>
+            </li>
+          ))}
+        </ul>
+
+        {/*
+         * The button opens the REVIEW screen, which is a real page, and it is the review
+         * screen that says payments are not live.
+         *
+         * A disabled button here was the earlier version. It stopped a member from ever
+         * reaching the total, the tax breakdown or the sentence about server-side
+         * revalidation — the three things this flow exists to show. Nothing on the way
+         * charges anybody: `/checkout` is where the flow stops, and it says so there.
+         *
+         * The first plan is the cheapest, because `fromPriceMinor` is defined as the cheapest
+         * and the list is authored in ascending order; a member who wants another one clicks
+         * its name, two lines up.
+         */}
+        {gym.plans[0] !== undefined && (
+          <Link
+            href={checkoutHref(gym, gym.plans[0])}
+            data-on-solid="true"
+            /* The page's conversion control wears the same pill every other primary CTA does. It was a
+             * 12px-radius cobalt rectangle - the pre-identity button - which made the one place a
+             * member actually pays the one place that looked like a different product. */
+            className="gm-btn gm-btn-amber gm-btn-lg"
+          >
+            {t('web.gym.plans.join')}
+          </Link>
+        )}
+        <p className="mt-stack-xs text-sm text-content-muted">{t('web.gym.plans.joinNotice')}</p>
+      </div>
+    </aside>
   );
 }
 

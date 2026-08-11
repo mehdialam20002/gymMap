@@ -1081,6 +1081,29 @@ export const en = {
   'web.search.loading.status': 'Searching',
 
   'web.gym.backToResults': 'Back to results',
+
+  // The theme control could reach light and dark and never get back to following the device.
+  // A member who has tapped it once has opted out of their own operating system permanently.
+  'web.chrome.theme.system': 'System',
+  'web.chrome.theme.toSystem': 'Follow the device theme',
+
+  // The drawer's own list was the one landmark on the site with no name. Every other nav on the
+  // page announces what it is, so an unnamed one reads as "navigation" among five that are named.
+  'web.chrome.nav.drawer': 'Site sections',
+
+  // Two footer groups are put behind a disclosure on a phone, where the footer was 1,210px tall
+  // against 761px of page. A disclosure needs a name that says what opening it will show.
+  'web.chrome.footer.more': 'More links',
+
+  // `/how-it-works` explains four things and, until now, offered ONE way out - 2,279px down, at
+  // 64% of the document. Each step gets its own route out, and each needs a label that says where
+  // it goes rather than borrowing a page title that happens to be nearby. The `join` one is the
+  // functional case: the title it was borrowing is 26 characters and wrapped to two lines in the
+  // pill at 320.
+  'web.howItWorks.discover.link': 'Search gyms near you',
+  'web.howItWorks.compare.link': 'Compare gyms side by side',
+  'web.howItWorks.choose.link': 'Browse gyms by activity',
+  'web.howItWorks.join.link': 'After you pay',
 } as const;
 
 export type MessageKey = keyof typeof en;

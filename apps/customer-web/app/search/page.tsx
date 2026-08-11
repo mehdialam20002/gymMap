@@ -17,6 +17,7 @@ import {
   type SearchQuery,
 } from '../../src/features/discovery/search.ts';
 import { SearchResults } from '../../src/features/discovery/search-results.tsx';
+import { RestoreScroll } from '../../src/features/discovery/restore-scroll.tsx';
 
 /**
  * ┌─ THE TITLE IS THE ANNOUNCEMENT ON A FULL PAGE LOAD ─────────────────────────────────────────┐
@@ -120,5 +121,17 @@ function resultScope(query: SearchQuery): string {
 }
 
 export default function SearchPage({ searchParams }: { searchParams: RawParams }) {
-  return <SearchResults query={parseSearchQuery(searchParams)} />;
+  return (
+    <>
+      {/*
+       * Mounted HERE and not in the root layout, deliberately. Every other route on this site
+       * restores its scroll position correctly on Back; only this one has a Suspense boundary
+       * shorter than its own content, which is what made the browser restore against a skeleton
+       * and land a reader who was at 1,276px back at 379. A component that scrolls the page is a
+       * component that can scroll it wrong, so it runs on the one route that needs it.
+       */}
+      <RestoreScroll />
+      <SearchResults query={parseSearchQuery(searchParams)} />
+    </>
+  );
 }

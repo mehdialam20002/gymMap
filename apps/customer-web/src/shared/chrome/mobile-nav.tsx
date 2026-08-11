@@ -190,13 +190,28 @@ export function MobileNav() {
           </div>
 
           {/*
-           * Named, even though the dialog carries the same name: a `<nav>` is a landmark, and an
-           * unnamed landmark is listed as "navigation" in the rotor next to the footer's and the
-           * breadcrumb's. Same key as the dialog because it is the same list of links, and
-           * inventing a second string for one list is how the two drift apart (`F35`, `AX2`).
+           * `drawer`, NOT `primary` — the site shipped two landmarks both called "Main".
+           *
+           * The note that stood here argued for reusing the dialog's key, on the grounds that one
+           * list should not own two strings. The desktop bar holds that same key, so what the
+           * argument actually bought was a duplicate: measured on the production build, every
+           * route ships exactly two `<nav>` elements whose accessible name is "Main" —
+           * `hidden min-w-0 flex-auto lg:block` (the bar), and this one.
+           *
+           * They are not exposed at the same instant, and this is not a fix for a collision.
+           * Measured at 390px the bar computes `display: none`, leaving this list as the only
+           * navigation a phone reader can reach; at 1280px the bar renders, the drawer trigger
+           * computes `display: none`, and the closed dialog keeps this list out of the tree
+           * entirely (`getClientRects()` empty at both widths while shut). The defect is the word.
+           * "Main" is a claim to BE the page's primary navigation, and a reader who has just
+           * opened a drawer already knows they are in one; what they cannot see is which list is
+           * inside it, and naming that is what a landmark name is for.
+           *
+           * The `<dialog>` above keeps `primary`, because on a phone it genuinely is the primary
+           * navigation. This list is the sections within it, and now says so (`F35`, `AX2`).
            */}
           <nav
-            aria-label={t('web.chrome.nav.primary')}
+            aria-label={t('web.chrome.nav.drawer')}
             className="flex-1 overflow-y-auto p-inset-sm"
           >
             <ul className="flex flex-col">

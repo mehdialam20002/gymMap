@@ -26,14 +26,38 @@
 export const THEME_STORAGE_KEY = 'gm-theme';
 
 /**
+ * The MODE the three-state control writes: `'light' | 'dark' | 'system'`.
+ *
+ * A second key rather than a third value in the first one, because the two answer different
+ * questions. `THEME_STORAGE_KEY` is "which palette do I paint", and the server-side preference
+ * sync (`DM4`, `SCR-WEB-014`) reads it. This one is "how was that decided", which only the
+ * control cares about - and keeping them separate means a member on System still has a concrete
+ * palette cached for the next pre-paint, rather than a word the stylesheet cannot use.
+ */
+export const THEME_MODE_STORAGE_KEY = 'gm-theme-mode';
+
+/**
  * Minified by hand rather than by a build step: it is inlined into the document head, so every
  * byte is render-blocking, and a build step that could fail would take the theme with it.
  *
  * Wrapped in try/catch because `localStorage` throws in Safari private mode and inside a
  * sandboxed iframe. An exception here would abort the rest of the inline script; a wrong theme
  * for one paint is survivable, a broken head is not.
+ *
+ * ┌─ SYSTEM IS RESOLVED HERE, NOT AFTER HYDRATION ─────────────────────────────────────────────┐
+ * │ The theme control can now return a member to their device's setting, and a member who has   │
+ * │ chosen that has to get it BEFORE first paint like everybody else - otherwise the one state  │
+ * │ that means "follow my device" is the one state that flashes.                                │
+ * │                                                                                             │
+ * │ The media query is read ONLY when a mode of `'system'` has been explicitly stored. On a     │
+ * │ genuine first visit `m` is null, the ternary falls through to the cached palette, that is   │
+ * │ null too, no attribute is set, and the page keeps its dark default - which is the owner     │
+ * │ instruction recorded in `globals.css` and is untouched by this. The query is consulted only │
+ * │ for somebody who used the toggle to ask for it.                                             │
+ * └─────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 export const themeScript = `
-try{var t=localStorage.getItem('${THEME_STORAGE_KEY}');
+try{var m=localStorage.getItem('${THEME_MODE_STORAGE_KEY}');
+var t=m==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):localStorage.getItem('${THEME_STORAGE_KEY}');
 if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t)}}catch(e){}
 `.trim();

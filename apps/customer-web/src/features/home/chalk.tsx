@@ -498,12 +498,47 @@ export function CompareBand() {
           </p>
         </div>
 
+        {/*
+         * ┌─ THE LABEL COLUMN STAYS PUT, THE GYM COLUMNS SCROLL ───────────────────────────────┐
+         * │ `DesignSystem.md` §11.4 do-not row 30, `NFR-USE-07`, `BP2`. The container already   │
+         * │ scrolled - `overflow-x-auto` on the box, `min-w-[30rem]` on the table - and the     │
+         * │ labels went with it, which is the half of that row that was missing. Measured in    │
+         * │ Chromium on the served build, at full scroll, with the three teaser gyms:           │
+         * │                                                                                    │
+         * │   viewport   scroller   travel   label width   label visible at the end             │
+         * │   320        282px      198px    129px         0 of 129                             │
+         * │   360        322px      158px    129px         0 of 129                             │
+         * │   390        352px      128px    129px         2 of 129                             │
+         * │   414        376px      104px    129px         25 of 129                            │
+         * │                                                                                    │
+         * │ So on a phone the reader arrives at the far end holding "₹2,499 / 1.2 km / 4.6" in  │
+         * │ three rows and no statement anywhere of which is which. `compare-table.tsx` solved  │
+         * │ this on `/compare` and this is the same class doing the same job.                   │
+         * │                                                                                    │
+         * │ The HEAD's corner cell takes it too, and that is not symmetry for its own sake: the │
+         * │ labels are pinned in all three body rows, so without it the gym NAMES slide through │
+         * │ the same 129px of column with nothing over them and the header is the one row that  │
+         * │ visibly comes apart.                                                                │
+         * │                                                                                    │
+         * │ The ground is named here rather than taken from the class. A sticky cell must be    │
+         * │ opaque or it shows the cells sliding under it, and `.gm-compare-label` paints       │
+         * │ `surface-default` - correct on `/compare`, where the page itself is that ground.    │
+         * │ Inside `.gm-table-box` the body sits on `surface-raised` and the head row on        │
+         * │ `surface-overlay`, so the class's own colour would pin a mismatched stripe down the │
+         * │ left of the table. Opaque, in the colour the cell is actually standing on.          │
+         * │                                                                                    │
+         * │ The full-span trap `compare-table.tsx` documents cannot be reached here: a cell     │
+         * │ spanning every column is as wide as the row, so it has zero travel and cannot stick │
+         * │ at all. This table has no section header row. If one is ever added, the sticky goes │
+         * │ on a child span, exactly as FACILITIES does over there.                              │
+         * └────────────────────────────────────────────────────────────────────────────────────┘
+         */}
         <div className="gm-compare-scroll gm-table-box overflow-x-auto">
           <table className="gm-table min-w-[30rem]">
             <caption className="gm-visually-hidden">{t('web.compare.title')}</caption>
             <thead>
               <tr>
-                <th scope="col">
+                <th scope="col" className="gm-compare-label bg-surface-overlay">
                   <span className="gm-visually-hidden">{t('web.compare.rowLabel')}</span>
                 </th>
                 {gyms.map((gym) => (
@@ -516,7 +551,12 @@ export function CompareBand() {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.label}>
-                  <th scope="row">{t(row.label)}</th>
+                  {/* `surface-raised` because that is what `.gm-table-box` paints under the body
+                      rows; the head's corner cell above takes `surface-overlay` for the same
+                      reason. See the note above the scroller. */}
+                  <th scope="row" className="gm-compare-label bg-surface-raised">
+                    {t(row.label)}
+                  </th>
                   {gyms.map((gym) => {
                     const wins = row.best(gym);
                     return (
