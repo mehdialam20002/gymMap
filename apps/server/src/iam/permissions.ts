@@ -1282,12 +1282,36 @@ export function rolePermissionPairs(): readonly { role: PlatformRole; permission
  * of one capability drift, and the one on the screen is the one nobody maintains.
  */
 export function describePermission(key: string): string {
-  const capability = CAPABILITY_MATRIX.find((c) => c.readKey === key || c.writeKey === key);
+  /*
+   * ┌─ `extraReadKeys` AND `extraWriteKeys` ARE SEARCHED TOO, AND THEY WERE NOT ─────────────────┐
+   * │ This searched `readKey` and `writeKey` only, and threw *"is not in the §B3.2 matrix"* for   │
+   * │ every extra key — which broke `pnpm db:seed` outright on `admin.user.read_permissions`      │
+   * │ (`ADR-0043`), the first extra key to reach it. Found on 2026-08-11 while adding the         │
+   * │ catalogue payload; the seed could not run at all.                                            │
+   * │                                                                                            │
+   * │ The message was also wrong, which is the part worth fixing rather than working around: the  │
+   * │ key IS in the matrix. `API_Catalog.md` §5.6's column header is *"Permission string(s)"*,    │
+   * │ plural, so a capability owning several keys is the documented shape — and five of them now  │
+   * │ live on `extraWriteKeys` alone. A function that only knows about two of a row's keys is     │
+   * │ reading an older version of the matrix than the one shipped.                                 │
+   * └────────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const capability = CAPABILITY_MATRIX.find(
+    (c) =>
+      c.readKey === key ||
+      c.writeKey === key ||
+      (c.extraReadKeys ?? []).includes(key) ||
+      (c.extraWriteKeys ?? []).includes(key),
+  );
   if (capability === undefined) {
     throw new Error(`"${key}" is not in the §B3.2 matrix.`);
   }
-  const half = capability.readKey === key ? 'Read' : 'Write';
-  return `§B3.2 “${capability.capability}” (${half}). ${capability.description}`;
+
+  // The READ half is `readKey` plus every `extraReadKeys` entry; everything else on the row is a
+  // write. Asking `=== readKey` alone would label an extra read key "Write", which is the same
+  // ●/○ distinction the matrix exists to encode, inverted in a description a reviewer reads.
+  const isRead = capability.readKey === key || (capability.extraReadKeys ?? []).includes(key);
+  return `§B3.2 “${capability.capability}” (${isRead ? 'Read' : 'Write'}). ${capability.description}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

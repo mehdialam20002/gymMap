@@ -38,4 +38,17 @@
  * 0.4 -> 0.5: the eleven principals gain a password hash. A payload change, not a code change —
  * an environment on 0.4 has accounts that cannot enrol MFA and one on 0.5 has accounts that can.
  */
-export const SEED_VERSION = '0.5' as const;
+/*
+ * ┌─ 0.5 -> 0.6 (M-031): three gyms, five branches, ten amenity claims ──────────────────────────┐
+ * │ The catalogue tables have existed since M-031's migrations and no seed ever wrote a row into │
+ * │ them — while `tenants.ts` had described their contents since M-009: tenant A *"single        │
+ * │ branch"*, tenant B *"multi-branch"*, tenant C *"suspended, so BR-GYM-01 visibility can be    │
+ * │ tested"*. Three sentences about data that did not exist.                                      │
+ * │                                                                                              │
+ * │ A payload change of the strongest kind: an environment on 0.5 has zero branches and one on   │
+ * │ 0.6 has five, so every catalogue assertion means something different depending on which one  │
+ * │ the suite was handed. That is precisely what this string exists to make visible, and why     │
+ * │ `roles-seed.int-spec.ts` compares it as a LITERAL rather than with `>=`.                      │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────┘
+ */
+export const SEED_VERSION = '0.6' as const;

@@ -1,0 +1,102 @@
+-- migration: 20260811000000_expand_add_missing_branch_indexes
+-- phase:            expand                     -- MG3
+-- requirement:      Indexes.md §11 rows 402, 404, 405; Relationships.md §3.2, §12.2;
+--                   SCR-DASH-004, FR-GYM-07, FR-SRCH-13, §15.8 r6
+-- tables:           branches (three indexes; no column, no data, no policy change)
+-- rls:              unchanged
+-- grants:           unchanged
+-- append_only:      no
+-- partitioned:      no
+-- max_lock:         SHARE on branches. Blocks writes for the build, not reads
+-- rewrite:          none
+-- est_duration:     < 20 ms — branches holds 5 rows                      -- MG11
+-- backfill_job:     none
+-- rollback:         FREE. DROP INDEX on all three; nothing depends on them yet
+-- concurrent_steps: none at this size. concurrent.sql carries the CONCURRENTLY form, which MG4
+--                   requires once branches is populated in any deployed environment
+-- reviewers:        two, one schema owner      -- MG8
+-- docs:             docs/database/Indexes.md §11 · docs/database/Relationships.md §3.2, §12.2
+--
+-- ═══════════════════════════════════════════════════════════════════════════════════════════════
+-- THREE INDEXES `Indexes.md` SPECIFIES AND `20260810120000_expand_create_branches` DID NOT BUILD.
+--
+-- ┌─ HOW THEY WERE FOUND, WHICH IS THE PART WORTH KEEPING ───────────────────────────────────────┐
+-- │ Not by re-reading `Indexes.md`. By running `EXPLAIN` against the branch-list query M-031      │
+-- │ ships and finding a sequential scan where the plan should have been an index scan — then      │
+-- │ going to the document to see whether an index had been specified and skipped, or never        │
+-- │ specified at all.                                                                              │
+-- │                                                                                              │
+-- │ It had been specified. `Indexes.md` §11 gives `branches` SIX index rows; the creating         │
+-- │ migration built THREE, and recorded no reason for the other three — which `CLAUDE.md` §9.6   │
+-- │ forbids on its own: *"Nothing is silently dropped."* A rank-3 document specifying an index    │
+-- │ and a rank-5 migration omitting it is not a conflict to escalate; it is transcription that    │
+-- │ did not finish.                                                                                │
+-- └──────────────────────────────────────────────────────────────────────────────────────────────┘
+--
+-- ┌─ AND ONE OF THE THREE EXISTS FOR THE ROUTE THIS MILESTONE JUST SHIPPED ──────────────────────┐
+-- │ `Indexes.md` row 404 gives `idx_branches__tenant_id_gym_id` the purpose                       │
+-- │ *"`WHERE tenant_id=$1 AND gym_id=$2` — `SCR-DASH-004`; covers the composite                   │
+-- │ `fk_branches__gyms`"*. `SCR-DASH-004` is the branch list, and `GET /v1/tenant/branches`       │
+-- │ landed on 2026-08-11 filtering on exactly that pair with nothing to serve it.                  │
+-- │                                                                                              │
+-- │ At five rows a sequential scan is faster and Postgres is right to choose one, so this changes │
+-- │ no plan today. It is written now because the alternative is discovering it at the scale where │
+-- │ it matters, on a screen an owner uses daily.                                                   │
+-- └──────────────────────────────────────────────────────────────────────────────────────────────┘
+--
+-- ┌─ WHAT IS DELIBERATELY NOT IN THIS MIGRATION: TWO NAMES THAT DIVERGE ─────────────────────────┐
+-- │ `Indexes.md` names two indexes the database spells differently:                               │
+-- │                                                                                              │
+-- │     specified `uq_branches__gym_id__primary`   shipped `uq_branches__one_primary_per_gym`     │
+-- │     specified `idx_branches__city_id_status`   shipped `idx_branches__city_status`            │
+-- │                                                                                              │
+-- │ Both have the right columns, the right predicate and the right uniqueness — only the label    │
+-- │ differs. Renaming them is a `DROP`/`CREATE` pair on a live constraint that `AC-3`'s three     │
+-- │ assertions depend on by name, for no behavioural gain, and `uq_branches__one_primary_per_gym` │
+-- │ is the name written into the repository, four test files and `PHASES.md`. Recorded as         │
+-- │ `TD-050` rather than fixed here: the cost of the rename is real and the benefit is tidiness.  │
+-- └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+SET LOCAL lock_timeout       = '5s';    -- PM-8. first statement, always
+SET LOCAL statement_timeout  = '300s';  -- PM-8. second statement, always
+
+-- ═══════════════════════════════════════════════════════════════════════════════════════════════
+-- Row 402 · `uq_branches__tenant_id_id` — the composite-FK referent
+-- ═══════════════════════════════════════════════════════════════════════════════════════════════
+--
+-- `Relationships.md` §3.2: `plan_branches`, `attendance`, `staff_branches` and `leads` all
+-- reference a branch with a COMPOSITE `(tenant_id, branch_id)` foreign key, so that a child row
+-- cannot name a branch in another tenant even if its own `tenant_id` is wrong. Postgres requires
+-- a unique index on the referenced columns for such a key to be declarable at all.
+--
+-- None of those four tables exists yet, which is why its absence has cost nothing so far — and
+-- why it must exist BEFORE the first of them is created rather than as part of that migration:
+-- an index built alongside a new table is an index nobody reviewed against `branches`.
+--
+-- Unique is free here: `id` is already the primary key, so `(tenant_id, id)` cannot collide.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_branches__tenant_id_id ON branches (tenant_id, id);
+
+-- ═══════════════════════════════════════════════════════════════════════════════════════════════
+-- Row 404 · `idx_branches__tenant_id_gym_id` — SCR-DASH-004
+-- ═══════════════════════════════════════════════════════════════════════════════════════════════
+--
+-- `tenant_id` leads and `gym_id` follows, matching the document, and the order is not arbitrary:
+-- RLS adds `tenant_id = current_setting('app.tenant_id')` to EVERY query against this table, so
+-- the leading column is present in the predicate whether or not the caller filtered by gym. An
+-- index led by `gym_id` would be unusable for the unfiltered list, which is the default request
+-- `GET /v1/tenant/branches` serves.
+CREATE INDEX IF NOT EXISTS idx_branches__tenant_id_gym_id ON branches (tenant_id, gym_id);
+
+-- ═══════════════════════════════════════════════════════════════════════════════════════════════
+-- Row 405 · `idx_branches__locality_id` — FK support and the locality landing page
+-- ═══════════════════════════════════════════════════════════════════════════════════════════════
+--
+-- `Indexes.md` marks this row `‡` — FK support. Without it, a `DELETE` or key `UPDATE` on
+-- `localities` scans `branches` in full to check the referencing rows, and `FR-SRCH-13`'s locality
+-- landing page has no index either.
+--
+-- Partial on `locality_id IS NOT NULL`: the column is nullable and `localities` currently holds
+-- ZERO rows, so every branch has a NULL here today. A full index would be entirely NULLs — 5 rows
+-- of nothing now, and a permanent tax on every insert later, for entries no query can use.
+CREATE INDEX IF NOT EXISTS idx_branches__locality_id
+  ON branches (locality_id) WHERE locality_id IS NOT NULL;

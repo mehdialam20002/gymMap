@@ -26,6 +26,7 @@ import { seedTenantsSql } from './tenants.ts';
 import { SEED_ROLE_COUNTS, seedRolesSql } from './roles.ts';
 import { SEED_USER_COUNTS, seedUsersSql } from './users.ts';
 import { SEED_CHECKLIST_COUNTS, seedKycChecklistsSql } from './kyc-checklists.ts';
+import { SEED_CATALOG_COUNTS, seedCatalogSql } from './catalog.ts';
 
 const CONTAINER = 'gymmap-postgres';
 const DATABASE = 'gymmap';
@@ -46,6 +47,16 @@ export function seedSql(): string {
     seedRolesSql(),
     '',
     seedUsersSql(),
+    '',
+    /*
+     * After `tenants`, and NOT orderable anywhere.
+     *
+     * `gyms.tenant_id` and `branches.tenant_id` are foreign keys, so the three tenants must land
+     * first. `city_id`, `category_id` and `amenity_id` are resolved by subselect against the
+     * reference tables — which are created by MIGRATIONS, not by this seed (`SEP1`), so they are
+     * present before any of this runs or the `NOT NULL` refuses the insert.
+     */
+    seedCatalogSql(),
     '',
     // Last, and orderable anywhere: kyc_checklists is GLOBAL reference with no foreign key to
     // anything above it. Placed at the end so the dependency-ordered block stays readable as one.
@@ -80,7 +91,9 @@ function main(): void {
       `role_permissions · ${SEED_USER_COUNTS.users} principals ` +
       `(${SEED_USER_COUNTS.platformGrants} platform, ${SEED_USER_COUNTS.tenantGrants} tenant) · ` +
       `${SEED_CHECKLIST_COUNTS.checklists} KYC checklists ` +
-      `(${SEED_CHECKLIST_COUNTS.items} items).\n`,
+      `(${SEED_CHECKLIST_COUNTS.items} items) · ` +
+      `${SEED_CATALOG_COUNTS.gyms} gyms · ${SEED_CATALOG_COUNTS.branches} branches · ` +
+      `${SEED_CATALOG_COUNTS.gymAmenities} amenity claims.\n`,
   );
 }
 
