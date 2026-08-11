@@ -271,8 +271,7 @@ export function GymRegisterRoute() {
         subtitle={t('adm.gyms.subtitle')}
         actions={
           <>
-
-        {/* Both inert, and both present. Filters beyond status need the query parameters the
+            {/* Both inert, and both present. Filters beyond status need the query parameters the
             register endpoint does not take yet; Export needs a generated file, an audit row for
             who exported the platform's commercial terms, and a decision about what a CSV of every
             gym's GSTIN is allowed to contain (BR-DAT-06). Neither is a button away. */}

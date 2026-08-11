@@ -79,7 +79,12 @@ export const SCREEN_PLANS: Readonly<Record<string, ScreenPlan>> = {
     screen: 'SCR-ADM-011',
     titleKey: 'adm.chrome.nav.categories',
     contentKey: 'adm.plan.taxonomy.content',
-    columnKeys: ['adm.plan.col.name', 'adm.plan.col.kind', 'adm.plan.col.usage', 'adm.plan.col.status'],
+    columnKeys: [
+      'adm.plan.col.name',
+      'adm.plan.col.kind',
+      'adm.plan.col.usage',
+      'adm.plan.col.status',
+    ],
     filterKeys: ['adm.plan.filter.kind', 'adm.plan.filter.search'],
     blockedOn: ['M-025'],
     noteKey: 'adm.plan.taxonomy.note',

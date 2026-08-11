@@ -87,8 +87,7 @@ export function ApprovalQueueRoute() {
           const flip = sortDirection === 'desc' ? 1 : -1;
           if (sortKey === 'gym') {
             return (
-              flip *
-              (b.trading_name ?? b.legal_name).localeCompare(a.trading_name ?? a.legal_name)
+              flip * (b.trading_name ?? b.legal_name).localeCompare(a.trading_name ?? a.legal_name)
             );
           }
           if (sortKey === 'status') return flip * b.status.localeCompare(a.status);

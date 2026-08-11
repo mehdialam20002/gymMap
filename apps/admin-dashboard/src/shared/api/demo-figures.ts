@@ -34,11 +34,7 @@
 /** Rendered above every panel fed from this file. */
 export const SAMPLE_NOTICE_KEY = 'adm.sample.notice' as const;
 
-import {
-  formatIndianRupees,
-  indianAmountParts,
-  percentStringFromBps,
-} from '@gymmap/utils';
+import { formatIndianRupees, indianAmountParts, percentStringFromBps } from '@gymmap/utils';
 
 export interface HeadlineFigure {
   readonly key: string;
@@ -119,7 +115,6 @@ export interface SeriesPoint {
  * sources for the same chart and the constant is the one that stops agreeing with the headline.
  */
 
-
 // ===========================================================================================
 // The revenue overview's metric x range series.
 //
@@ -150,7 +145,9 @@ export const REVENUE_RANGES = ['7D', '30D', '90D', '12M'] as const;
 export type RevenueRange = (typeof REVENUE_RANGES)[number];
 
 /** How many points each range draws, and what its ticks are called. */
-const RANGE_SHAPE: Readonly<Record<RevenueRange, { readonly points: number; readonly tick: (i: number, n: number) => string }>> = {
+const RANGE_SHAPE: Readonly<
+  Record<RevenueRange, { readonly points: number; readonly tick: (i: number, n: number) => string }>
+> = {
   // Days back from "today", which is only a label -- no clock is read here (`no-bare-date`).
   '7D': { points: 7, tick: (i, n) => `D-${String(n - 1 - i)}` },
   '30D': { points: 6, tick: (i, n) => `W-${String(n - 1 - i)}` },
@@ -159,7 +156,18 @@ const RANGE_SHAPE: Readonly<Record<RevenueRange, { readonly points: number; read
 };
 
 const MONTH_TICKS = [
-  'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
 ] as const;
 
 /**

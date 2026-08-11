@@ -47,6 +47,7 @@ import {
   onAccessTokenChange,
   refresh,
 } from '../api/client.ts';
+import { DEMO_OPERATOR, isDemoMode } from '../demo/demo-mode.ts';
 
 /**
  * The states an admin session can be in, as a discriminated union rather than three booleans.
@@ -101,9 +102,37 @@ export function SessionProvider({
   /** Overrides the live session. For tests and stories only. */
   value?: AdminSession;
 }) {
-  const [session, setSession] = useState<AdminSession>(
-    value ?? { status: value === undefined ? 'LOADING' : 'UNAUTHENTICATED' },
-  );
+  /*
+   * ┌─ DEMO MODE STARTS AUTHENTICATED, AND SKIPS THE REFRESH ENTIRELY ─────────────────────────┐
+   * │ There is no API, so `refresh()` cannot succeed and the console would sit on the sign-in   │
+   * │ form. Starting AUTHENTICATED is the whole point of the mode.                              │
+   * │                                                                                          │
+   * │ It is NOT a bypass of authentication: `isDemoMode` is a build-time constant, so a bundle  │
+   * │ built without `VITE_DEMO_MODE=true` has this branch eliminated and cannot reach it at     │
+   * │ runtime by any means — no cookie, no query parameter, no toggle. A deployment either IS a │
+   * │ demo or has no demo code in it at all.                                                    │
+   * │                                                                                          │
+   * │ `MFA_REQUIRED` is skipped for the same reason and with the same caveat: the second factor │
+   * │ is real (`NFR-SEC-11`) and the demo cannot present one, so the walkthrough would stop at  │
+   * │ a gate that has nothing to show. `DemoNotice` says the session is not real, which is what │
+   * │ keeps this honest rather than misleading.                                                  │
+   * └──────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  const [session, setSession] = useState<AdminSession>(() => {
+    if (value !== undefined) return value;
+    if (isDemoMode) {
+      return {
+        status: 'AUTHENTICATED',
+        userId: DEMO_OPERATOR.userId,
+        displayName: DEMO_OPERATOR.displayName,
+        roleLabel: DEMO_OPERATOR.roleLabel,
+        // Empty, exactly as a live session's is until `M-023` wires the matrix into the token.
+        // Inventing a permission list here would make the console show controls the real one hides.
+        permissions: [],
+      };
+    }
+    return { status: 'LOADING' };
+  });
 
   const authenticatedAs = useCallback(
     (userId: string, identifier?: string): AdminSession => ({
@@ -127,6 +156,8 @@ export function SessionProvider({
   // every reload would look like a sign-out and the console would be unusable.
   useEffect(() => {
     if (value !== undefined) return;
+    // No API to refresh against, and the session above is already resolved.
+    if (isDemoMode) return;
 
     let cancelled = false;
     void (async () => {
@@ -243,12 +274,14 @@ function roleLabelOf(token: string | null): string | null {
   const claims = claimsOf(token);
   const roles = Array.isArray(claims?.roles) ? claims.roles : [];
   const held = new Set(
-    roles.filter((role): role is string => typeof role === 'string').map((scoped) => {
-      // `SUPER_ADMIN@platform`. The scope matters: a tenant-scoped role of the same name is a gym
-      // owner's staff member, not platform staff.
-      const [key, scope] = scoped.split('@');
-      return scope === 'platform' ? key : undefined;
-    }),
+    roles
+      .filter((role): role is string => typeof role === 'string')
+      .map((scoped) => {
+        // `SUPER_ADMIN@platform`. The scope matters: a tenant-scoped role of the same name is a gym
+        // owner's staff member, not platform staff.
+        const [key, scope] = scoped.split('@');
+        return scope === 'platform' ? key : undefined;
+      }),
   );
 
   return PLATFORM_ROLE_LABELS.find(([key]) => held.has(key))?.[1] ?? null;

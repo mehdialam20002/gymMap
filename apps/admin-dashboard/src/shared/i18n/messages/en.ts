@@ -551,6 +551,8 @@ export const en = {
     'These screens have no endpoint behind them yet, so they show no figure. A zero here would be indistinguishable from a real zero.',
   'adm.dashboard.awaiting.milestone': 'Arrives in',
   'adm.dashboard.live': 'live',
+  // Demo mode. The counts are fixtures, so the caption must not be the word that means trust it.
+  'adm.dashboard.sample': 'sample',
   'adm.dashboard.greeting': 'Welcome back, Super Admin',
   'adm.sample.recentActivity': 'Recent activity',
   'adm.sample.topGyms': 'Top gyms by revenue',
@@ -564,6 +566,11 @@ export const en = {
   // and inventing them is only honest because the screen says it did.
   'adm.sample.notice':
     'Sample figures below this line. Revenue, orders and alerts are illustrative until the billing and moderation tables are live. Gym counts, the approval pipeline, accounts and platform health above are read from the database.',
+  // Demo mode replaces the sentence above, because the sentence above says the figures at the top
+  // of the screen are read from the database. In demo mode nothing is, and a banner that admits
+  // half of it is worse than one that admits all of it: a viewer trusts the unmarked half.
+  'adm.sample.notice.demo':
+    'Every figure on this screen is sample data, including the counts at the top. Nothing is read from a database and no action changes anything.',
   'adm.sample.tag': 'Sample',
   'adm.sample.totalRevenue': 'Total revenue',
   'adm.sample.todayRevenue': "Today's revenue",
@@ -621,6 +628,21 @@ export const en = {
   // depends on. Said out loud, because a silent restriction reads as a bug.
   'adm.impersonation.restriction':
     'Financial actions and cross-gym reads are disabled while acting as another user.',
+
+  // --- Demo mode, the walkthrough banner -------------------------------------
+  //
+  // Written to be understood by somebody who has never seen the product, in one pass, standing
+  // behind whoever is presenting. Three things it has to say and does:
+  //
+  //   this is a demonstration          so nothing on screen is a claim about the business
+  //   the numbers are made up          so nobody writes one of them down
+  //   the real thing needs the server  so "why is it not connected" is answered before it is asked
+  //
+  // No em-dash: these are rendered strings (`ui-taste` §5.1). No filler verbs, and no "seamless".
+  'adm.demo.label': 'Demonstration mode with sample data',
+  'adm.demo.title': 'Demonstration',
+  'adm.demo.body':
+    'Every figure, gym and account on this screen is sample data. Nothing here is read from a live system, and no action changes anything.',
 
   // --- FR-ADMN-02, the reason ------------------------------------------------
   'adm.reason.label': 'Reason for this action',

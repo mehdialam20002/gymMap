@@ -62,7 +62,9 @@ export function PlannedScreen({ plan }: { readonly plan: ScreenPlan }) {
         aria-label={t('adm.plan.blockedRegion')}
         className="mt-stack-md rounded-card border border-dashed border-subtle bg-surface-sunken p-inset-md"
       >
-        <h2 className="text-sm font-semibold text-content-secondary">{t('adm.plan.blockedTitle')}</h2>
+        <h2 className="text-sm font-semibold text-content-secondary">
+          {t('adm.plan.blockedTitle')}
+        </h2>
 
         <ul className="mt-stack-xs flex flex-wrap items-center gap-inline-xs">
           {plan.blockedOn.map((id) => {
@@ -79,7 +81,9 @@ export function PlannedScreen({ plan }: { readonly plan: ScreenPlan }) {
                   {/* The word, not only the tint — `AX8`. And the word is the distinction that
                       matters: "needs a decision" cannot be scheduled the way "needs building" can. */}
                   <span className="font-mono tabular-nums">{id}</span>
-                  <span>{decision ? t('adm.plan.needsDecision') : t('adm.plan.needsBuilding')}</span>
+                  <span>
+                    {decision ? t('adm.plan.needsDecision') : t('adm.plan.needsBuilding')}
+                  </span>
                 </span>
               </li>
             );

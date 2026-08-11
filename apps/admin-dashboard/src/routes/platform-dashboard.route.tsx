@@ -57,6 +57,7 @@ import {
   type RevenueMetric,
   type RevenueRange,
 } from '../shared/api/demo-figures.ts';
+import { DEMO_READINESS, isDemoMode } from '../shared/demo/demo-mode.ts';
 import { useSession } from '../shared/auth/session.tsx';
 import { MetricCard, type Tone } from '@gymmap/ui';
 
@@ -107,6 +108,10 @@ export function PlatformDashboardRoute() {
     // read rather than thrown away. A dashboard that renders "could not load" when the database
     // is down has hidden the one fact the operator needed.
     queryFn: async (): Promise<ReadinessReport> => {
+      // Demo mode: `/readyz` is not served, and the panel would render every dependency as down.
+      // See `DEMO_READINESS` for why this branch is here and not in `api()`.
+      if (isDemoMode) return DEMO_READINESS;
+
       const response = await fetch('/readyz', { credentials: 'same-origin' });
       return (await response.json()) as ReadinessReport;
     },
@@ -560,7 +565,7 @@ const METRIC_LABEL: Readonly<Record<RevenueMetric, MessageKey>> = {
 function SampleNotice() {
   return (
     <p className="mt-stack-lg rounded-card border border-warning-subtle bg-surface-warning-subtle px-inset-md py-inset-sm text-xs text-content-warning">
-      {t('adm.sample.notice')}
+      {t(isDemoMode ? 'adm.sample.notice.demo' : 'adm.sample.notice')}
     </p>
   );
 }
@@ -648,8 +653,22 @@ function LiveTile({
         // │ and it was set in the faintest ink in the system directly under the boldest figure.  │
         // │ `content-success` is 6.53:1 and matches the reference's green freshness dot.          │
         // └────────────────────────────────────────────────────────────────────────────────────┘
-        captionTone="success"
-        caption={t('adm.dashboard.live')}
+        /*
+         * ┌─ IN DEMO MODE THE WORD "live" IS A LIE, AND SO IS THE INK ────────────────────────┐
+         * │ The box above says it exactly: *"'live' is the one word on the card that says the   │
+         * │ figure can be TRUSTED"*, which is why it is set in success ink rather than muted.   │
+         * │                                                                                    │
+         * │ Nothing in demo mode is read from anything. A screenshot of four fixture counts     │
+         * │ captioned "live" in green is the `A-08` / `LC5` failure with the stakes inverted:    │
+         * │ not a stale figure looking fresh, but an invented one looking measured.              │
+         * │                                                                                    │
+         * │ `muted` and not a new `warning` tone: the box above notes muted *"reads as a         │
+         * │ disclaimer"*, and a disclaimer is precisely what this caption now is. Adding a tone  │
+         * │ to `packages/ui` would need its own contrast proof for no gain here.                 │
+         * └────────────────────────────────────────────────────────────────────────────────────┘
+         */
+        captionTone={isDemoMode ? 'muted' : 'success'}
+        caption={isDemoMode ? t('adm.dashboard.sample') : t('adm.dashboard.live')}
         loadingLabel={t('adm.state.loading')}
       />
     </Link>

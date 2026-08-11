@@ -25,6 +25,8 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
+import { demoResponseFor, isDemoMode } from '../demo/demo-mode.ts';
+
 /** The `§C3.2` error envelope every failure arrives in. */
 export interface ApiErrorBody {
   readonly error: {
@@ -147,6 +149,28 @@ export function refresh(): Promise<boolean> {
 }
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  /*
+   * ┌─ DEMO MODE INTERCEPTS HERE, AND NOWHERE ELSE ────────────────────────────────────────────┐
+   * │ One branch, at the single choke point every route already passes through, so no caller    │
+   * │ knows about it and no component grows a demo variant. `isDemoMode` is a build-time         │
+   * │ constant, so with the flag off this block is UNREACHABLE — though Rollup keeps some of the │
+   * │ fixture data anyway, which `demo-mode.ts`'s header measures rather than assumes.            │
+   * │                                                                                          │
+   * │ An UNFIXTURED path returns `undefined` and falls through to the real `fetch`, which fails  │
+   * │ and lets the route render its own error state. That is deliberate: a demo that answered    │
+   * │ every path with an empty object would show a screen full of zeros, and a zero meaning      │
+   * │ "not in the demo" is indistinguishable from a zero meaning "nothing to approve today".     │
+   * │                                                                                          │
+   * │ Mutations are NOT intercepted. A DELETE in demo mode reaches the network and fails, and    │
+   * │ the screen says so — which is honest. Pretending a revoke succeeded would leave the        │
+   * │ session list unchanged and look like a bug in the product being demonstrated.               │
+   * └──────────────────────────────────────────────────────────────────────────────────────────┘
+   */
+  if (isDemoMode && (options.method ?? 'GET') === 'GET') {
+    const fixture = demoResponseFor(path);
+    if (fixture !== undefined) return fixture as T;
+  }
+
   const send = async (): Promise<Response> => {
     const headers: Record<string, string> = {};
     if (options.body !== undefined) headers['content-type'] = 'application/json';

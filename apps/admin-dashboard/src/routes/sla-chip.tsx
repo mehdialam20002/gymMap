@@ -31,17 +31,19 @@ import type { GymRow } from '../shared/api/admin.ts';
 type SlaState = NonNullable<GymRow['sla']>['state'];
 
 /** Glyph, tone and label per state. Ordered as an operator experiences them. */
-const SLA_LOOK: Record<SlaState, { readonly glyph: string; readonly tone: Tone; readonly key: string }> =
-  {
-    // A filled triangle, not an exclamation mark: it reads as a warning sign at 11px where `!`
-    // reads as the letter l.
-    BREACHED: { glyph: '\u25B2', tone: 'danger', key: 'adm.sla.breached' },
-    APPROACHING: { glyph: '\u23F1', tone: 'warning', key: 'adm.sla.approaching' },
-    WITHIN: { glyph: '', tone: 'neutral', key: 'adm.sla.within' },
-    // Deliberately NOT warning-toned. A paused application is not the platform being late; the
-    // wall-clock age beside it is what stops the pause hiding a stalled one.
-    PAUSED: { glyph: '\u23F8', tone: 'info', key: 'adm.sla.paused' },
-  };
+const SLA_LOOK: Record<
+  SlaState,
+  { readonly glyph: string; readonly tone: Tone; readonly key: string }
+> = {
+  // A filled triangle, not an exclamation mark: it reads as a warning sign at 11px where `!`
+  // reads as the letter l.
+  BREACHED: { glyph: '\u25B2', tone: 'danger', key: 'adm.sla.breached' },
+  APPROACHING: { glyph: '\u23F1', tone: 'warning', key: 'adm.sla.approaching' },
+  WITHIN: { glyph: '', tone: 'neutral', key: 'adm.sla.within' },
+  // Deliberately NOT warning-toned. A paused application is not the platform being late; the
+  // wall-clock age beside it is what stops the pause hiding a stalled one.
+  PAUSED: { glyph: '\u23F8', tone: 'info', key: 'adm.sla.paused' },
+};
 
 const CHIP: Record<Tone, string> = {
   neutral: 'text-content-secondary',

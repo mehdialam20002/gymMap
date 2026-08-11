@@ -34,6 +34,7 @@ import { t } from '../shared/i18n/index.ts';
 import { useSession, useSessionController } from '../shared/auth/session.tsx';
 import { platformOverview } from '../shared/api/admin.ts';
 import { ImpersonationBanner } from '../shared/impersonation/banner.tsx';
+import { DemoNotice } from '../shared/demo/demo-notice.tsx';
 import { ThemeToggle } from '../shared/theme/theme-toggle.tsx';
 import { ChromeGlyph, NavGlyph } from '../shared/icons/index.tsx';
 import { ApplicationReviewRoute } from './application-review.route.tsx';
@@ -63,6 +64,11 @@ function AdminLayout() {
 
       {/* BR-DAT-02 — rendered HERE, above the gate's children, so no page can exist without it. */}
       <ImpersonationBanner session={session} />
+
+      {/* Demo mode, mounted for the same reason and in the same place: a per-page banner is one
+          forgotten import away from a screenshot that reads as a claim about the business. Renders
+          nothing when the flag is off, and the flag is a build-time constant. */}
+      <DemoNotice />
 
       <MfaGate>
         {/* ┌─ `h-screen` WITH ONE SCROLLING REGION, NOT A PAGE THAT GROWS ────────────────────┐
