@@ -26,7 +26,7 @@
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.66.0"
+    "typescript-eslint": "^8.68.0"
   },
   "//lint": "R1a keeps the ROOT devDependencies to seven packages and eslint is not one of them, so each workspace that lints declares its own runner (A-21). Turned on while this app is still one file, deliberately: a lint script that has never passed is easy to add and a lint script that has never run is what lets a thousand errors accumulate before anyone looks."
 }
