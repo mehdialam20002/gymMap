@@ -55,7 +55,7 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
 
-      - uses: github/codeql-action/upload-sarif@f09c1c0a94de965c15400f5634aa42fac8fb8f88 # v3.27.5
+      - uses: github/codeql-action/upload-sarif@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3.38.2
         if: always()
         with:
           sarif_file: trivy.sarif
